@@ -1,0 +1,5 @@
+$Id$
+
+The documentation for the code is accessible at this URL:
+
+http://openstructs.org/doc/code/structwsf/index.html

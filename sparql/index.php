@@ -16,7 +16,7 @@
  */
 
 
-ini_set("memory_limit","64M");
+ini_set("memory_limit","128M");
 
 
 // Database connectivity procedures
@@ -27,6 +27,9 @@ include_once("../framework/Conneg.php");
 
 // The Web Service parent class
 include_once("../framework/WebService.php");
+include_once("../framework/ProcessorXML.php");
+include_once("../framework/Namespaces.php");
+
 
 include_once("Sparql.php");
 include_once("../auth/validator/AuthValidator.php");
@@ -48,6 +51,22 @@ $dataset = "";
 if(isset($_POST['dataset'])) 
 {
     $dataset = $_POST['dataset'];
+}
+
+// Limit of the number of results to return in the resultset
+$limit = 2000;
+
+if(isset($_POST['limit'])) 
+{
+    $limit = $_POST['limit'];
+}
+
+// Offset of the "sub-resultset" from the total resultset of the query
+$offset = 0;
+
+if(isset($_POST['offset'])) 
+{
+    $offset = $_POST['offset'];
 }
 
 // Optional IP
@@ -88,7 +107,7 @@ elseif(isset($_SERVER['PHP_SELF']))
 	$parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_sparql = new Sparql($query, $dataset, $registered_ip, $requester_ip);
+$ws_sparql = new Sparql($query, $dataset, $limit, $offset, $registered_ip, $requester_ip);
 
 $ws_sparql->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
 

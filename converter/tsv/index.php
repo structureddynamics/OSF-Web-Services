@@ -60,6 +60,12 @@ if(isset($_POST['document']))
     $document = str_replace('\"', '"', $_POST['document']);
 }
 
+$docmime = "text/tsv";
+if(isset($_POST['docmime'])) 
+{
+    $docmime = str_replace('\"', '"', $_POST['docmime']);
+}
+
 if(isset($_POST['url'])) 
 {
     $url = $_POST['url'];
@@ -120,7 +126,7 @@ elseif(isset($_SERVER['PHP_SELF']))
 	$parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_tsv = new ConverterTsv($document, $delimiter, $base_uri, $registered_ip, $requester_ip);
+$ws_tsv = new ConverterTsv($document, $docmime, $delimiter, $base_uri, $registered_ip, $requester_ip);
 
 $ws_tsv->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
 

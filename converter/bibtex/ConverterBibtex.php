@@ -42,7 +42,7 @@ class ConverterBibtex extends WebService
 	private $text;
 
 	/*! @brief Type of the resource being converted */
-	private $type;
+	private $docmime;
 
 	/*! @brief Parsed TSV data items */
 	private $bibItems;
@@ -54,7 +54,7 @@ class ConverterBibtex extends WebService
 	private $errorMessages = "";
 	
 	/*! @brief Supported serialization mime types by this Web service */
-	public static $supportedSerializations = array("application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");	
+	public static $supportedSerializations = array("application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "application/x-bibtex", "text/*", "*/*");	
 	
 	/*! @brief Enable the enhanced bibtex parsing */
 	private $enhancedBibtex = FALSE;
@@ -131,7 +131,7 @@ class ConverterBibtex extends WebService
 													"url" => "bkn:url",
 													"type" => "dcterms:type",
 													"series" => "dcterms:isPartOf",
-													"school" => "rdfs:seeAlso",
+//													"school" => "rdfs:seeAlso",
 													"pages" => "bibo:pages",
 													"organization" => "bibo:organizer",
 													"number" => "bibo:number",
@@ -140,7 +140,8 @@ class ConverterBibtex extends WebService
 													"edition" => "bibo:edition",
 													"chapter" => "bibo:chapter",
 													"address" => "address:localityName",
-													"eprint" => "rdfs:seeAlso",
+//													"eprint" => "rdfs:seeAlso",
+													"eprint" => "bkn:eprint",
 													"crossref" => "dcterms:isPartOf",
 													
 													"name" => "foaf:name",
@@ -199,10 +200,10 @@ class ConverterBibtex extends WebService
 																				"editor" => array("foaf:Person", "foaf:name"),
 																				"institution" => array("foaf:Organization", "foaf:name"),
 																				"series" => array("bibo:Series", "dcterms:title"),
-																				"school" => array("foaf:Organization", "foaf:name"),
+//																				"school" => array("foaf:Organization", "foaf:name"),
 																				"organization" => array("foaf:Organization", "foaf:name"),
 																				"journal" => array("bibo:Journal", "dcterms:title"),
-																				"eprint" => array("bibo:Document", "dcterms:title"),
+//																				"eprint" => array("bibo:Document", "dcterms:title"),
 																				"homepage" => array("bkn:Homepage", "bkn:url"),
 																				"honor" => array("bkn:Honor", "bkn:url"),
 																				"image" => array("bkn:PhotoGallery", "bkn:url"),
@@ -229,13 +230,13 @@ class ConverterBibtex extends WebService
 		
 			\n\n\n
 	*/			
-	function __construct($document="", $type="application/x-bibtex", $base_uri="http://www.baseuri.com/resource/", $registered_ip, $requester_ip)
+	function __construct($document="", $docmime="application/x-bibtex", $base_uri="http://www.baseuri.com/resource/", $registered_ip, $requester_ip)
 	{
 		parent::__construct();		
 		
 		$this->db = new DB_Virtuoso(parent::$db_username, parent::$db_password, parent::$db_dsn, parent::$db_host);
 		
-		$this->type = $type;
+		$this->docmime = $docmime;
 		$this->text = $document;
 		$this->baseURI = $base_uri;
 		
@@ -363,122 +364,129 @@ class ConverterBibtex extends WebService
 	*/		
 	public function pipeline_getResultset()
 	{
-		$xml = new ProcessorXML();
-	
-		// Creation of the RESULTSET
-		$resultset = $xml->createResultset();
-
-		// Check if we are handling a collection of documents compiled by someone.
-		if($this->enhancedBibtex)
+		if($this->docmime == "text/xml")
 		{
+			return($this->text);
+		}
+		else
+		{
+			$xml = new ProcessorXML();
+		
+			// Creation of the RESULTSET
+			$resultset = $xml->createResultset();
+	
+			// Check if we are handling a collection of documents compiled by someone.
+			if($this->enhancedBibtex)
+			{
+				foreach($this->bibItems as $item)
+				{
+					if($item->itemType == "heading")
+					{
+						$this->processingCollection = $item->itemID;
+						break;
+					}
+				}
+			}
+	
 			foreach($this->bibItems as $item)
 			{
-				if($item->itemType == "heading")
+				// Creation of a SUBJECT of the RESULTSET		
+				
+				if(!isset($this->bibTypes[$item->itemType]))
 				{
-					$this->processingCollection = $item->itemID;
-					break;
+					$item->itemType = "misc";
 				}
-			}
-		}
-		
-		foreach($this->bibItems as $item)
-		{
-			// Creation of a SUBJECT of the RESULTSET		
-			
-			if(!isset($this->bibTypes[$item->itemType]))
-			{
-				$item->itemType = "misc";
-			}
-			
-			$subject = $xml->createSubject($this->bibTypes[$item->itemType], $this->baseURI.$this->uriEncode($item->itemID));
-
-			// If we are processing a collection, lets make the link between the item and that collection.
-			if($this->processingCollection != "" && $this->processingCollection != $item->itemID && $item->itemType != "subject" && $item->itemType != "person")
-			{
-				$pred = $xml->createPredicate("dcterms:isPartOf");
-				$object = $xml->createObject("", $this->baseURI.$this->uriEncode($this->processingCollection));
 				
-				$pred->appendChild($object);
-				$subject->appendChild($pred);
-			}
-
-			// Lets add the additional properties that define this bibtex item type
-			if(isset($this->bibTypesAdditionalProperties[$item->itemType]))
-			{
-				// Creation of the predicate
-				$pred = $xml->createPredicate($this->bibTypesAdditionalProperties[$item->itemType][0]);
-				
-				// Creation of the OBJECT of the predicate
-				$object = $xml->createObject("", $this->bibTypesAdditionalProperties[$item->itemType][1]);
+				$subject = $xml->createSubject($this->bibTypes[$item->itemType], $this->baseURI.$this->uriEncode($item->itemID));
 	
-				$pred->appendChild($object);
-				$subject->appendChild($pred);
-			}
-			
-			// Now lets convert all the bibtex item properties
-			foreach($item->properties as $property => $value)
-			{
-				if(isset($this->bibProperties[$property]))
+				// If we are processing a collection, lets make the link between the item and that collection.
+				if($this->processingCollection != "" && $this->processingCollection != $item->itemID && $item->itemType != "subject" && $item->itemType != "person")
 				{
-					// Check if we have a enhanced bibtex file
-					$processed = FALSE;
-					if($this->enhancedBibtex)
+					$pred = $xml->createPredicate("dcterms:isPartOf");
+					$object = $xml->createObject("", $this->baseURI.$this->uriEncode($this->processingCollection));
+					
+					$pred->appendChild($object);
+					$subject->appendChild($pred);
+				}
+	
+				// Lets add the additional properties that define this bibtex item type
+				if(isset($this->bibTypesAdditionalProperties[$item->itemType]))
+				{
+					// Creation of the predicate
+					$pred = $xml->createPredicate($this->bibTypesAdditionalProperties[$item->itemType][0]);
+					
+					// Creation of the OBJECT of the predicate
+					$object = $xml->createObject("", $this->bibTypesAdditionalProperties[$item->itemType][1]);
+		
+					$pred->appendChild($object);
+					$subject->appendChild($pred);
+				}
+				
+				// Now lets convert all the bibtex item properties
+				foreach($item->properties as $property => $value)
+				{
+					if(isset($this->bibProperties[$property]))
 					{
-						if($property == "author" || $property == "subjects")
+						// Check if we have a enhanced bibtex file
+						$processed = FALSE;
+						if($this->enhancedBibtex)
 						{
-							// Lets explode and create authors
-							$authors = explode(",", $value);
-							
-							foreach($authors as $author)
+							if($property == "author" || $property == "subjects")
 							{
-								// Creation of the predicate
-								$pred = $xml->createPredicate($this->bibProperties[$property]);
-								$object = $xml->createObject("", $this->baseURI.$this->uriEncode($author));
+								// Lets explode and create authors
+								$authors = explode(",", $value);
+								
+								foreach($authors as $author)
+								{
+									// Creation of the predicate
+									$pred = $xml->createPredicate($this->bibProperties[$property]);
+									$object = $xml->createObject("", $this->baseURI.$this->uriEncode($author));
+									$pred->appendChild($object);
+								
+									$subject->appendChild($pred);
+								}
+								
+								$processed = TRUE;
+							}
+						}
+						
+						if($processed === FALSE)
+						{
+							// Creation of the predicate
+							$pred = $xml->createPredicate($this->bibProperties[$property]);
+							
+							if(isset($this->bibPropertiesAdditionalObjects[$property]))
+							{
+								$object = $xml->createObject("", $this->baseURI.$this->uriEncode($value));
 								$pred->appendChild($object);
 							
-								$subject->appendChild($pred);
+								// Lets create the new subject
+								$subSubject = $xml->createSubject($this->bibPropertiesAdditionalObjects[$property][0], $this->baseURI.$this->uriEncode($value));
+								$subPred = $xml->createPredicate($this->bibPropertiesAdditionalObjects[$property][1]);
+								$subObject = $xml->createObjectContent(str_replace("\\", "%5C", $value));
+		
+								$subPred->appendChild($subObject);
+								$subSubject->appendChild($subPred);
+								$resultset->appendChild($subSubject);
+							}
+							else
+							{
+								// Creation of the OBJECT of the predicate
+								$object = $xml->createObjectContent(str_replace("\\", "%5C", $value));
+					
+								$pred->appendChild($object);
 							}
 							
-							$processed = TRUE;
+							$subject->appendChild($pred);
 						}
-					}
-					
-					if($processed === FALSE)
-					{
-						// Creation of the predicate
-						$pred = $xml->createPredicate($this->bibProperties[$property]);
-						
-						if(isset($this->bibPropertiesAdditionalObjects[$property]))
-						{
-							$object = $xml->createObject("", $this->baseURI.$this->uriEncode($value));
-							$pred->appendChild($object);
-						
-							// Lets create the new subject
-							$subSubject = $xml->createSubject($this->bibPropertiesAdditionalObjects[$property][0], $this->baseURI.$this->uriEncode($value));
-							$subPred = $xml->createPredicate($this->bibPropertiesAdditionalObjects[$property][1]);
-							$subObject = $xml->createObjectContent(str_replace("\\", "%5C", $value));
-	
-							$subPred->appendChild($subObject);
-							$subSubject->appendChild($subPred);
-							$resultset->appendChild($subSubject);
-						}
-						else
-						{
-							// Creation of the OBJECT of the predicate
-							$object = $xml->createObjectContent(str_replace("\\", "%5C", $value));
-				
-							$pred->appendChild($object);
-						}
-						
-						$subject->appendChild($pred);
 					}
 				}
+				
+				$resultset->appendChild($subject);
 			}
-			
-			$resultset->appendChild($subject);
+		
+			return($this->injectDoctype($xml->saveXML($resultset)));		
 		}
-	
-		return($this->injectDoctype($xml->saveXML($resultset)));		
 	}
 	
 	/*!	 @brief Inject the DOCType in a XML document
@@ -530,6 +538,14 @@ class ConverterBibtex extends WebService
 			$this->conneg->setStatusMsg("Bad Request");
 			$this->conneg->setStatusMsgExt("No data to convert");
 		}
+		
+		if($this->docmime != "application/x-bibtex" && $this->docmime != "text/xml")
+		{
+			$this->conneg->setStatus(400);
+			$this->conneg->setStatusMsg("Bad Request");
+			$this->conneg->setStatusMsgExt("Document mime not supported (supported mimes: application/x-bibtex and text/xml)");
+		}
+		
 	}
 	
 	/*!	 @brief Do content negotiation as an internal, pipelined, Web Service that is part of a Compound Web Service
@@ -601,6 +617,97 @@ class ConverterBibtex extends WebService
 	{
 		return $this->conneg->getStatusMsgExt();
 	}
+	
+	/*!	 @brief Get a prefix for a given ontology URI
+			 @details 	This function return the prefix literal for a given ontologu URI. This is a simple procedure that associate an Ontology URI
+			                to its "generally used prefix".
+	
+			\n
+			
+			@attention All the data ingested by a conStruct node has to define a prefix for the ontologies used to describe any data.
+					   
+			@param[in] $uri is the URI of a class or a property of an ontology
+					   
+			@return A string where the class or the property is prefixed with the most commonly used prefix
+		
+			
+			@author Frederick Giasson, Structured Dynamics LLC.
+		
+			\n\n\n
+	*/	
+	private function get_uri_label($uri)
+	{
+		// Find the base URI of the ontology
+		$pos = strripos($uri, "#");
+		
+		if($pos === FALSE)
+		{
+			$pos = strripos($uri, "/");
+		}
+		
+		if($pos !== FALSE)
+		{
+			$pos++;
+		}
+		
+		// Save the URI of the ontology
+		$onto = substr($uri, 0, $pos);
+	
+		// Save the URI of the class or property passed in parameter
+		$resource = substr($uri, $pos, strlen($uri) - $pos);
+	
+		// This statement associate a base ontology URI to its prefix.
+		switch($onto)
+		{
+			case "http://xmlns.com/foaf/0.1/":
+				return "foaf:".$resource;
+			break;
+			case "http://purl.org/umbel/sc/":
+			case "http://purl.org/umbel/ac/":
+			case "http://umbel.org/ns/":
+			case "http://umbel.org/ns/sc/":
+			case "http://umbel.org/ns/ac/":
+			case "http://umbel.org/umbel/":
+			case "http://umbel.org/umbel#":
+			case "http://umbel.org/umbel/sc/":
+			case "http://umbel.org/umbel/ac/":
+				return "umbel:".$resource;
+			break;
+			case "http://www.w3.org/2000/01/rdf-schema#":
+				return "rdfs:".$resource;
+			break;
+			case "http://www.w3.org/1999/02/22-rdf-syntax-ns#":
+				return "rdf:".$resource;
+			break;
+			case "http://www.w3.org/2002/07/owl#":
+				return "owl:".$resource;
+			break;
+			case "http://purl.org/dc/terms/":
+				return "dcterms:".$resource;
+			break;
+			case "http://www.w3.org/2004/02/skos/core#":
+			case "http://www.w3.org/2008/05/skos#":
+				return "skos:".$resource;
+			break;
+			case "http://purl.org/ontology/bibo/":
+				return "bibo:".$resource;
+			break;
+			case "http://purl.org/ontology/bkn#":
+				return "bkn:".$resource;
+			break;
+			case "http://purl.org/vocab/bio/0.1/":
+				return "bio:".$resource;
+			break;
+			case "http://schemas.talis.com/2005/address/schema#":
+				return "address:".$resource;
+			break;
+						
+			// By default, we return the "un-prefixed" URI passed in parameter.
+			default:
+				return $uri;
+			break;
+		}
+	}			
 
 	/*!	 @brief Serialize the converted UCB Memorial Data content into different serialization formats
 							
@@ -618,6 +725,93 @@ class ConverterBibtex extends WebService
 
 		switch($this->conneg->getMime())
 		{
+			case "application/x-bibtex":
+				$bibtex = "";
+
+				$xml = new ProcessorXML();
+				$xml->loadXML($this->pipeline_getResultset());
+				
+				$subjects = $xml->getSubjects();
+				
+				$nbConvertedItems = 0;			
+			
+				foreach($subjects as $subject)
+				{
+					$subjectURI = $xml->getURI($subject);
+					$subjectType = $xml->getType($subject);
+				
+					// Check if the type of this subject is mappable to BibTeX
+					$subjectType = $this->get_uri_label($subjectType);	
+				
+					if(($bibType = array_search($subjectType, $this->bibTypes)) !== FALSE)
+					{
+						$bibtex .= "@".$bibType."{".$subjectURI." \n";
+					}
+					else
+					{
+						// If the type is unknow as a bibtex type, then we continue and doesnt convert that subject.
+						continue;
+					}
+				
+					// Check if the properties of this subject are mappable to BibTeX
+					
+					$predicates = $xml->getPredicates($subject);
+					
+					foreach($predicates as $predicate)
+					{
+						$objects = $xml->getObjects($predicate);
+						$predicateType = $this->get_uri_label($xml->getType($predicate));
+
+						$bibPropertyType;
+						if(($bibPropertyType = array_search($predicateType, $this->bibProperties)) === FALSE)
+						{
+							// If the predicate is unmappable, we skip it
+							continue;
+						}
+						
+						$nbConvertedItems++;
+						
+						foreach($objects as $object)
+						{
+							$objectType = $xml->getType($object);						
+							
+							if($objectType == "rdfs:Literal")
+							{
+								$objectValue = $xml->getContent($object);
+								
+								$bibtex .= " $bibPropertyType = \"$objectValue\",\n";
+							}
+							else
+							{
+								$objectLabel = $xml->getLabel($object);
+								
+								if($objectLabel == "")
+								{
+									$objectURI = $xml->getURI($object);						
+									$bibtex .= " $bibPropertyType = \"$objectURI\",\n";
+								}
+								else
+								{
+									$bibtex .= " $bibPropertyType = \"$objectLabel\",\n";
+								}
+							}
+						}
+					}
+
+					$bibtex .= "}\n";
+				}
+				
+				if($nbConvertedItems == 0)
+				{
+					$this->conneg->setStatus(400);
+					$this->conneg->setStatusMsg("Bad Request");
+					$this->conneg->setStatusMsgExt("No BibTex data converted");
+					return;
+				}
+
+				return($bibtex);	
+			break;
+						
 			case "application/rdf+n3":
 			
 				$xml = new ProcessorXML();
@@ -736,6 +930,10 @@ class ConverterBibtex extends WebService
 	{
 		switch($this->conneg->getMime())
 		{
+			case "application/x-bibtex":
+				return $this->pipeline_serialize();
+			break;
+			
 			case "application/rdf+n3":
 			
 				$rdf_document = "";
@@ -817,11 +1015,9 @@ class ConverterBibtex extends WebService
 		// Make sure there was no conneg error prior to this process call
 		if($this->conneg->getStatus() == 200)
 		{
-			switch($this->type)
+			switch($this->docmime)
 			{
-				case "application/rdf+xml":
-				break;
-				case "application/rdf+n3":
+				case "text/xml":
 				break;
 				case "application/x-bibtex":
 				default:
@@ -842,15 +1038,14 @@ class ConverterBibtex extends WebService
 						
 						$this->enhancedBibtex = TRUE;
 					}
-					
+
+					if(count($this->bibItems) <= 0)
+					{
+						$this->conneg->setStatus(400);
+						$this->conneg->setStatusMsg("Bad Request");
+						$this->conneg->setStatusMsgExt("No BibTex data converted");
+					}
 				break;
-			}
-			
-			if(count($this->bibItems) <= 0)
-			{
-				$this->conneg->setStatus(400);
-				$this->conneg->setStatusMsg("Bad Request");
-				$this->conneg->setStatusMsgExt("No BibTex data converted");
 			}
 		}
 	}

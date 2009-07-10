@@ -50,7 +50,6 @@ $url = "";
 	(3) application/rdf+n3
 */
 
-$type = "application/x-bibtex";
 
 $base_uri = "http://www.baseuri.com/resource/";
 
@@ -59,9 +58,11 @@ if(isset($_POST['document']))
     $document = str_replace('\"', '"', $_POST['document']);
 }
 
-if(isset($_POST['type'])) 
+$docmime = "application/x-bibtex";
+
+if(isset($_POST['docmime'])) 
 {
-    $type = $_POST['type'];
+    $docmime = $_POST['docmime'];
 }
 
 if(isset($_POST['base_uri'])) 
@@ -106,7 +107,7 @@ elseif(isset($_SERVER['PHP_SELF']))
 	$parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_cbibtex = new ConverterBibtex($document, $type, $base_uri, $registered_ip, $requester_ip);
+$ws_cbibtex = new ConverterBibtex($document, $docmime, $base_uri, $registered_ip, $requester_ip);
 
 $ws_cbibtex->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
 

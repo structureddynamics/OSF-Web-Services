@@ -426,7 +426,51 @@ class Conneg
 
 					break;
 				}
+
+				if($mime == "text/tsv" && array_search("text/tsv", $this->supported_serializations) !== FALSE)
+				{
+					$this->status = 200;
+					$this->statusMsg = "OK";
+					$this->mime = "text/tsv";
+
+					$notAcceptable406 = FALSE;
+
+					break;
+				}
 				
+				if($mime == "text/csv" && array_search("text/csv", $this->supported_serializations) !== FALSE)
+				{
+					$this->status = 200;
+					$this->statusMsg = "OK";
+					$this->mime = "text/csv";
+
+					$notAcceptable406 = FALSE;
+
+					break;
+				}
+				
+				if($mime == "application/sparql-results+json" && array_search("application/sparql-results+json", $this->supported_serializations) !== FALSE)
+				{
+					$this->status = 200;
+					$this->statusMsg = "OK";
+					$this->mime = "application/sparql-results+json";
+
+					$notAcceptable406 = FALSE;
+
+					break;
+				}
+												
+				if($mime == "application/x-bibtex" && array_search("application/x-bibtex", $this->supported_serializations) !== FALSE)
+				{
+					$this->status = 200;
+					$this->statusMsg = "OK";
+					$this->mime = "application/x-bibtex";
+
+					$notAcceptable406 = FALSE;
+
+					break;
+				}
+												
 			}
 			
 			if($notAcceptable406)

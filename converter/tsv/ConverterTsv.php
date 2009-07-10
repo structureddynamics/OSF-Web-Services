@@ -41,6 +41,9 @@ class ConverterTsv extends WebService
 	/*! @brief Text being converted */
 	private $text;
 
+	/*! @brief Mime type of the document */
+	private $docmime;
+
 	/*! @brief Type of the resource being converted */
 	private $type;
 
@@ -63,7 +66,7 @@ class ConverterTsv extends WebService
 	private $delimiter = "";	
 	
 	/*! @brief Supported serialization mime types by this Web service */
-	public static $supportedSerializations = array("application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
+	public static $supportedSerializations = array("application/rdf+xml", "application/rdf+n3", "application/*", "text/tsv", "text/csv", "text/xml", "text/*", "*/*");
 		
 	/*!	 @brief Constructor
 			 @details 	Initialize the TSV Converter Web Service
@@ -82,12 +85,13 @@ class ConverterTsv extends WebService
 		
 			\n\n\n
 	*/		
-	function __construct($document="", $delimiter="\t", $base_uri="http://www.baseuri.com/resource/", $registered_ip, $requester_ip)
+	function __construct($document="", $docmime="text/tsv", $delimiter="\t", $base_uri="http://www.baseuri.com/resource/", $registered_ip, $requester_ip)
 	{
 		parent::__construct();		
 		
 		$this->text = $document;
 		$this->baseURI = $base_uri;
+		$this->docmime = $docmime;
 		$this->delimiter = $delimiter;
 		
 		$this->requester_ip = $requester_ip;
@@ -160,47 +164,54 @@ class ConverterTsv extends WebService
 	*/	
 	public function pipeline_getResultset()
 	{
-		$xml = new ProcessorXML();
-	
-		$resultset = $xml->createResultset();
-		
-		foreach($this->tsvResources as $uri => $properties)
+		if($this->docmime == "text/xml")
 		{
-			$subject = $xml->createSubject("http://www.w3.org/2002/07/owl#Thing", $this->baseURI.$this->uriEncode($uri));
-			
-			foreach($properties as $propertyValue)
-			{
-				$propertyValue[1] = trim($propertyValue[1]);
-				
-				// check if the object of the TSV is a reference to another subject of the same document
-				if(substr($propertyValue[0], 0, 1) == "{" && substr($propertyValue[0], strlen($propertyValue[0]) - 1, 1) == "}")
-				{
-					$property = $this->get_domain($this->baseURI)."/ontology#".$this->uriEncode($propertyValue[0]);
-					$value = $this->baseURI.$this->uriEncode($propertyValue[1]);
-	
-					$pred = $xml->createPredicate($property);
-					$object = $xml->createObject("http://www.w3.org/2002/07/owl#Thing", $value);
-					
-					$pred->appendChild($object);
-					$subject->appendChild($pred);			
-				}
-				else
-				{
-					$property = $this->get_domain($this->baseURI)."/ontology#".$this->uriEncode($propertyValue[0]);
-					$value = $propertyValue[1];
-		
-					$pred = $xml->createPredicate($property);
-					$object = $xml->createObjectContent($this->xmlEncode($value));
-						
-					$pred->appendChild($object);
-					$subject->appendChild($pred);
-				}
-			}
-								
-			$resultset->appendChild($subject);
+			return($this->text);
 		}
+		else
+		{
+			$xml = new ProcessorXML();
+			
+			$resultset = $xml->createResultset();
+			
+			foreach($this->tsvResources as $uri => $properties)
+			{
+				$subject = $xml->createSubject("http://www.w3.org/2002/07/owl#Thing", $this->baseURI.$this->uriEncode($uri));
+				
+				foreach($properties as $propertyValue)
+				{
+					$propertyValue[1] = trim($propertyValue[1]);
+					
+					// check if the object of the TSV is a reference to another subject of the same document
+					if(substr($propertyValue[0], 0, 1) == "{" && substr($propertyValue[0], strlen($propertyValue[0]) - 1, 1) == "}")
+					{
+						$property = $this->get_domain($this->baseURI)."/ontology#".$this->uriEncode($propertyValue[0]);
+						$value = $this->baseURI.$this->uriEncode($propertyValue[1]);
 		
-		return($this->injectDoctype($xml->saveXML($resultset)));		
+						$pred = $xml->createPredicate($property);
+						$object = $xml->createObject("http://www.w3.org/2002/07/owl#Thing", $value);
+						
+						$pred->appendChild($object);
+						$subject->appendChild($pred);			
+					}
+					else
+					{
+						$property = $this->get_domain($this->baseURI)."/ontology#".$this->uriEncode($propertyValue[0]);
+						$value = $propertyValue[1];
+			
+						$pred = $xml->createPredicate($property);
+						$object = $xml->createObjectContent($this->xmlEncode($value));
+							
+						$pred->appendChild($object);
+						$subject->appendChild($pred);
+					}
+				}
+									
+				$resultset->appendChild($subject);
+			}
+			
+			return($this->injectDoctype($xml->saveXML($resultset)));					
+		}
 	}
 	
 	/*!	 @brief Get the domain of a URL
@@ -286,6 +297,14 @@ class ConverterTsv extends WebService
 			$this->conneg->setStatusMsg("Bad Request");
 			$this->conneg->setStatusMsgExt("No data to convert");
 		}
+		
+		if($this->docmime != "text/csv" && $this->docmime != "text/tsv" && $this->docmime != "text/xml")
+		{
+			$this->conneg->setStatus(400);
+			$this->conneg->setStatusMsg("Bad Request");
+			$this->conneg->setStatusMsgExt("Document mime not supported (supported mimes: text/tsv, text/csv and text/xml)");
+		}
+		
 	}
 	
 	/*!	 @brief Do content negotiation as an internal, pipelined, Web Service that is part of a Compound Web Service
@@ -374,8 +393,57 @@ class ConverterTsv extends WebService
 
 		switch($this->conneg->getMime())
 		{
-			case "application/rdf+n3":
+			case "text/tsv":
+			case "text/csv":
+
+				$tsv = "";
+				$xml = new ProcessorXML();
+				$xml->loadXML($this->pipeline_getResultset());
+				
+				$subjects = $xml->getSubjects();
 			
+				foreach($subjects as $subject)
+				{
+					$subjectURI = $xml->getURI($subject);
+					$subjectType = $xml->getType($subject);
+				
+					$tsv .= str_replace($this->delimiter, urlencode($this->delimiter), $subjectURI).$this->delimiter."http://www.w3.org/1999/02/22-rdf-syntax-ns#type".$this->delimiter.str_replace($this->delimiter, urlencode($this->delimiter), $subjectType)."\n";
+
+					$predicates = $xml->getPredicates($subject);
+					
+					foreach($predicates as $predicate)
+					{
+						$objects = $xml->getObjects($predicate);
+						
+						foreach($objects as $object)
+						{
+							$objectType = $xml->getType($object);						
+							$predicateType = $xml->getType($predicate);
+							$objectContent = $xml->getContent($object);
+							
+							if($objectType == "rdfs:Literal")
+							{
+								$objectValue = $xml->getContent($object);						
+								$tsv .= str_replace($this->delimiter, urlencode($this->delimiter), $subjectURI).$this->delimiter.str_replace($this->delimiter, urlencode($this->delimiter), $predicateType).$this->delimiter.str_replace($this->delimiter, urlencode($this->delimiter), $objectValue)."\n";
+							}
+							else
+							{
+								$nodesList = $xml->getReificationStatements($object);
+								
+								if($nodesList->length == 0)
+								{
+									$objectURI = $xml->getURI($object);						
+									$tsv .= str_replace($this->delimiter, urlencode($this->delimiter), $subjectURI).$this->delimiter.str_replace($this->delimiter, urlencode($this->delimiter), $predicateType).$this->delimiter.str_replace($this->delimiter, urlencode($this->delimiter), $objectURI)."\n";
+								}
+							}
+						}
+					}
+				}
+
+				return($tsv);					
+			break;
+			
+			case "application/rdf+n3":
 				$xml = new ProcessorXML();
 				$xml->loadXML($this->pipeline_getResultset());
 				
@@ -559,6 +627,11 @@ class ConverterTsv extends WebService
 		{
 			switch($this->conneg->getMime())
 			{
+				case "text/tsv":
+				case "text/csv":
+					return $this->pipeline_serialize();
+				break;
+				
 				case "application/rdf+n3":
 					$rdf_document = "";
 					$rdf_document .= "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n";
@@ -802,17 +875,26 @@ class ConverterTsv extends WebService
 	public function process()
 	{
 		if($this->conneg->getStatus() == 200)
-		{		
-			$parser = new TsvParser($this->text, $this->delimiter);
-			
-			$this->tsvResources = $parser->resources;
-			
-			if(count($this->tsvResources) <= 0)
+		{	
+			switch($this->docmime)
 			{
-				$this->conneg->setStatus(400);
-				$this->conneg->setStatusMsg("Bad Request");
-				$this->conneg->setStatusMsgExt("No TSV data converted");
-			}			
+				case "text/tsv":
+				case "text/csv":
+					$parser = new TsvParser($this->text, $this->delimiter);
+					
+					$this->tsvResources = $parser->resources;
+					
+					if(count($this->tsvResources) <= 0)
+					{
+						$this->conneg->setStatus(400);
+						$this->conneg->setStatusMsg("Bad Request");
+						$this->conneg->setStatusMsgExt("No TSV data converted");
+					}			
+				break;
+				
+				case "text/xml":
+				break;
+			}	
 		}
 	}
 }

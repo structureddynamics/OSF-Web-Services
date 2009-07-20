@@ -50,7 +50,7 @@ class AuthValidator extends WebService
 	private $valid = "False";	
 
 	/*! @brief Supported serialization mime types by this Web service */
-	public static $supportedSerializations = array("application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
+	public static $supportedSerializations = array("application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
 		
 	/*!	 @brief Constructor
 			 @details Initialize the Auth Web Service
@@ -331,6 +331,7 @@ class AuthValidator extends WebService
 		
 			\n\n\n
 	*/	
+	
 	public function process()
 	{
 		// Make sure there was no conneg error prior to this process call
@@ -345,7 +346,7 @@ class AuthValidator extends WebService
 														"?_read; <http://purl.org/ontology/wsf#update> ?_update; <http://purl.org/ontology/wsf#delete> ".
 														"?_delete. }", array ('_wsf', '_create', '_read', '_update', '_delete'), FALSE));
 			
-			if (odbc_error())
+			if(odbc_error())
 			{
 				$this->conneg->setStatus(500);
 				$this->conneg->setStatusMsg("Internal Error");
@@ -407,7 +408,7 @@ class AuthValidator extends WebService
 									}
 								}";
 				
-				$resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), "", $query), array ('_access', '_create', '_read', '_update', '_delete'), FALSE));
+				$resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), " ", $query), array ('_access', '_create', '_read', '_update', '_delete'), FALSE));
 
 				$access = array();
 				$create = array();

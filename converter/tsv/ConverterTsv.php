@@ -74,6 +74,7 @@ class ConverterTsv extends WebService
 			\n
 			
 			@param[in] $document Text of a Bibtex document
+			@param[in] $docmime The mime type of the incoming document to convert			
 			@param[in] $delimiter Delimiter used to split fields of a record row
 			@param[in] $base_uri The base URI to use to create the URIs of the resources created by this web service
 			@param[in] $registered_ip Target IP address registered in the WSF
@@ -428,13 +429,8 @@ class ConverterTsv extends WebService
 							}
 							else
 							{
-								$nodesList = $xml->getReificationStatements($object);
-								
-								if($nodesList->length == 0)
-								{
-									$objectURI = $xml->getURI($object);						
-									$tsv .= str_replace($this->delimiter, urlencode($this->delimiter), $subjectURI).$this->delimiter.str_replace($this->delimiter, urlencode($this->delimiter), $predicateType).$this->delimiter.str_replace($this->delimiter, urlencode($this->delimiter), $objectURI)."\n";
-								}
+								$objectURI = $xml->getURI($object);						
+								$tsv .= str_replace($this->delimiter, urlencode($this->delimiter), $subjectURI).$this->delimiter.str_replace($this->delimiter, urlencode($this->delimiter), $predicateType).$this->delimiter.str_replace($this->delimiter, urlencode($this->delimiter), $objectURI)."\n";
 							}
 						}
 					}
@@ -475,13 +471,8 @@ class ConverterTsv extends WebService
 							}
 							else
 							{
-								$nodesList = $xml->getReificationStatements($object);
-								
-								if($nodesList->length == 0)
-								{
-									$objectURI = $xml->getURI($object);						
-									$rdf_part .= "        <$predicateType> <$objectURI> ;\n";
-								}
+								$objectURI = $xml->getURI($object);						
+								$rdf_part .= "        <$predicateType> <$objectURI> ;\n";
 							}
 						}
 					}
@@ -551,24 +542,19 @@ class ConverterTsv extends WebService
 							}
 							else
 							{
-								$nodesList = $xml->getReificationStatements($object);
+								$objectURI = $xml->getURI($object);		
 								
-								if($nodesList->length == 0)
-								{							
-									$objectURI = $xml->getURI($object);		
-									
-									$ns = $this->getNamespace($predicateType);
-									$ptNs = $ns[0];
-									$ptExtension = $ns[1];
-								
-									if(!isset($namespaces[$ptNs]))
-									{
-										$namespaces[$ptNs] = "ns".$nsId;
-										$nsId++;
-									}
-													
-									$rdf_part .= "        <".$namespaces[$ptNs].":".$ptExtension." rdf:resource=\"$objectURI\" />\n";
+								$ns = $this->getNamespace($predicateType);
+								$ptNs = $ns[0];
+								$ptExtension = $ns[1];
+							
+								if(!isset($namespaces[$ptNs]))
+								{
+									$namespaces[$ptNs] = "ns".$nsId;
+									$nsId++;
 								}
+												
+								$rdf_part .= "        <".$namespaces[$ptNs].":".$ptExtension." rdf:resource=\"$objectURI\" />\n";
 							}
 						}
 					}

@@ -46,14 +46,18 @@ class DatasetRead extends WebService
 	/*! @brief Description of one or multiple datasets */
 	private $datasetsDescription = array();
 
-	
+	/*! @brief Add meta information to the resultset */
+	private $addMeta = "false";
+
+
 	/*! @brief Supported serialization mime types by this Web service */
-	public static $supportedSerializations = array("application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
+	public static $supportedSerializations = array("application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
 		
 	/*!	 @brief Constructor
 			 @details 	Initialize the Auth Web Service
 							
 			@param[in] $uri URI of the dataset to read (get its description)
+			@param[in] $meta Add meta information with the resultset
 			@param[in] $registered_ip Target IP address registered in the WSF
 			@param[in] $requester_ip IP address of the requester
 							
@@ -65,7 +69,7 @@ class DatasetRead extends WebService
 		
 			\n\n\n
 	*/		
-	function __construct($uri, $registered_ip, $requester_ip)
+	function __construct($uri, $meta, $registered_ip, $requester_ip)
 	{
 		parent::__construct();		
 		
@@ -73,6 +77,7 @@ class DatasetRead extends WebService
 		
 		$this->datasetUri = $uri;
 		$this->requester_ip = $requester_ip;
+		$this->addMeta = strtolower($meta);
 		
 		if($registered_ip == "")
 		{
@@ -195,6 +200,8 @@ class DatasetRead extends WebService
 		$resultset->appendChild($sioc);
 		$dcterms = $xml->createPrefix("dcterms", "http://purl.org/dc/terms/");
 		$resultset->appendChild($dcterms);
+		$dcterms = $xml->createPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
+		$resultset->appendChild($dcterms);
 
 		// Creation of the SUBJECT of the RESULTSET		
 		foreach($this->datasetsDescription as $dd)
@@ -239,6 +246,78 @@ class DatasetRead extends WebService
 					$pred->appendChild($object);
 					$subject->appendChild($pred);
 				}
+
+				if($dd->meta != "" && $this->addMeta == "true")
+				{
+					$pred = $xml->createPredicate("wsf:meta");
+					$object = $xml->createObject("", $dd->meta);
+					$pred->appendChild($object);
+					$subject->appendChild($pred);
+				}
+
+				if(count($dd->metaDescription) > 0 && $this->addMeta == "true")
+				{
+					$subjectMeta = $xml->createSubject("void:Dataset", $dd->meta);		
+					
+					foreach($dd->metaDescription as $predicate => $values)
+					{
+						foreach($values as $key => $value)
+						{
+							if(gettype($key) == "integer" && $value != "")
+							{
+								if($dd->metaDescription[$predicate]["type"] == "http://www.w3.org/2001/XMLSchema#string")
+								{
+									$pred = $xml->createPredicate($predicate);
+									$object = $xml->createObjectContent($this->xmlEncode($value));
+									$pred->appendChild($object);
+									$subjectMeta->appendChild($pred);									
+								}
+								else
+								{
+									$pred = $xml->createPredicate($predicate);
+									$object = $xml->createObject("", $value);
+									
+									// Check if we have to reify statements to this object
+									$query = "	select  ?s ?p ?o
+													from <".$this->datasetUri."reification/>
+													where
+													{
+														?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#subject> <".$dd->meta.">.
+														?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate> <".$predicate.">.
+														?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#object> <".$value.">.
+														?s ?p ?o.
+													}";
+		
+									$rset = @$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), " ", $query), array("s", "p", "o"), FALSE));
+															
+									if(!odbc_error())
+									{
+										while(odbc_fetch_row($rset))
+										{
+											$s = odbc_result($rset, 1);
+											$p = odbc_result($rset, 2);
+											$o = odbc_result($rset, 3);
+											
+											if( $p == "http://purl.org/ontology/bibo/uri" ||
+												$p == "http://www.w3.org/2000/01/rdf-schema#label")
+											{
+												$reify = $xml->createReificationStatement($p, $o);
+												$object->appendChild($reify);												
+											}
+										}										
+									}										
+									
+									
+									$pred->appendChild($object);
+									$subjectMeta->appendChild($pred);								
+								}
+							}
+						}
+					}	
+					
+					$resultset->appendChild($subjectMeta);		
+				}
+
 		
 				foreach($dd->contributors as $contributor)
 				{
@@ -387,6 +466,48 @@ class DatasetRead extends WebService
 		return $this->conneg->getStatusMsgExt();
 	}
 
+	/*!	 @brief Get the namespace of a URI
+							
+			@param[in] $uri Uri of the resource from which we want the namespace
+							
+			\n
+			
+			@return returns the extracted namespace			
+			
+			@author Frederick Giasson, Structured Dynamics LLC.
+		
+			\n\n\n
+	*/		
+	private function getNamespace($uri)
+	{
+		$pos = strpos($uri, "#");
+		
+		if($pos !== FALSE)
+		{
+			return array(substr($uri, 0, $pos)."#", substr($uri, $pos + 1, strlen($uri) - ($pos +1)));
+		}
+		else
+		{
+			$pos = strrpos($uri, "/");
+			
+			if($pos !== FALSE)
+			{
+				return array(substr($uri, 0, $pos)."/", substr($uri, $pos + 1, strlen($uri) - ($pos +1)));
+			}
+			else
+			{
+				$pos = strpos($uri, ":");
+				
+				if($pos !== FALSE)
+				{
+					return explode(":", $uri, 2);
+				}
+			}
+		}
+		
+		return(FALSE);
+	}
+
 	/*!	 @brief Serialize the web service answer.
 							
 			\n
@@ -399,12 +520,90 @@ class DatasetRead extends WebService
 	*/	
 	public function pipeline_serialize()
 	{
-
-
 		$rdf_part = "";
 
 		switch($this->conneg->getMime())
 		{
+			case "application/json":
+				$json_part = "";
+				$xml = new ProcessorXML();
+				$xml->loadXML($this->pipeline_getResultset());
+				
+				$subjects = $xml->getSubjects();
+			
+				foreach($subjects as $subject)
+				{
+					$subjectURI = $xml->getURI($subject);
+					$subjectType = $xml->getType($subject);
+
+					$json_part .= "      { \n";
+					$json_part .= "        \"uri\": \"".parent::jsonEncode($subjectURI)."\", \n";
+					$json_part .= "        \"type\": \"".parent::jsonEncode($subjectType)."\", \n";
+
+					$predicates = $xml->getPredicates($subject);
+					
+					$nbPredicates = 0;
+					
+					foreach($predicates as $predicate)
+					{
+						$objects = $xml->getObjects($predicate);
+						
+						foreach($objects as $object)
+						{
+							$nbPredicates++;
+							
+							if($nbPredicates == 1)
+							{
+								$json_part .= "        \"predicates\": [ \n";
+							}
+							
+							$objectType = $xml->getType($object);						
+							$predicateType = $xml->getType($predicate);
+							
+							if($objectType == "rdfs:Literal")
+							{
+								$objectValue = $xml->getContent($object);
+														
+								$json_part .= "          { \n";
+								$json_part .= "            \"".parent::jsonEncode($predicateType)."\": \"".parent::jsonEncode($objectValue)."\" \n";
+								$json_part .= "          },\n";
+							}
+							else
+							{
+								$objectURI = $xml->getURI($object);						
+								$rdf_part .= "          <$predicateType> <$objectURI> ;\n";
+								
+								$json_part .= "          { \n";
+								$json_part .= "            \"".parent::jsonEncode($predicateType)."\": { \n";
+								$json_part .= "            	  \"uri\": \"".parent::jsonEncode($objectURI)."\" \n";
+								$json_part .= "            	  } \n";
+								$json_part .= "          },\n";
+							}
+						}
+					}
+					
+					if(strlen($json_part) > 0)
+					{
+						$json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
+					}						
+					
+					if($nbPredicates > 0)
+					{
+						$json_part .= "        ]\n";
+					}
+					
+					$json_part .= "      },\n";					
+				}
+				
+				if(strlen($json_part) > 0)
+				{
+					$json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
+				}
+				
+
+				return($json_part);		
+			break;				
+			
 			case "application/rdf+n3":
 				$xml = new ProcessorXML();
 				$xml->loadXML($this->pipeline_getResultset());
@@ -473,6 +672,18 @@ class DatasetRead extends WebService
 			
 				$xml = new ProcessorXML();
 				$xml->loadXML($this->pipeline_getResultset());
+
+
+				/*! @TODO Implementing the "nsX" generation for the RDF output of dataset read. This is needed otherwise
+				 * 				 the generated document wont be valid if meta data values are added.
+				 */
+/*
+				$namespaces = array(	"http://www.w3.org/2002/07/owl#" => "owl",
+												"http://www.w3.org/1999/02/22-rdf-syntax-ns#" => "rdf",
+												"http://www.w3.org/2000/01/rdf-schema#" => "rdfs",
+												"http://purl.org/ontology/wsf#" => "wsf");				
+				$nsId = 0;
+*/
 
 				$dataset = $xml->getSubjectsByType("void:Dataset");
 				
@@ -567,7 +778,8 @@ class DatasetRead extends WebService
 				$rdf_document .= "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n";
 				$rdf_document .= "@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n";
 				$rdf_document .= "@prefix void: <http://rdfs.org/ns/void#> .\n";
-				$rdf_document .= "@prefix dcterms: <	http://purl.org/dc/terms/> .\n";
+				$rdf_document .= "@prefix dcterms: <http://purl.org/dc/terms/> .\n";
+				$rdf_document .= "@prefix wsf: <http://purl.org/ontology/wsf#> .\n";
 				
 				$rdf_document .= $this->pipeline_serialize();
 				
@@ -579,7 +791,7 @@ class DatasetRead extends WebService
 			case "application/rdf+xml":
 				$rdf_document = "";
 				$rdf_document .= "<?xml version=\"1.0\"?>\n";
-				$rdf_document .= "<rdf:RDF xmlns:void=\"http://rdfs.org/ns/void#\" xmlns:dcterms=\"http://purl.org/dc/terms/\" xmlns:rdfs=\"http://www.w3.org/2000/01/rdf-schema#\" xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n\n";
+				$rdf_document .= "<rdf:RDF xmlns:wsf=\"http://purl.org/ontology/wsf#\" xmlns:void=\"http://rdfs.org/ns/void#\" xmlns:dcterms=\"http://purl.org/dc/terms/\" xmlns:rdfs=\"http://www.w3.org/2000/01/rdf-schema#\" xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n\n";
 				
 				$rdf_document .= $this->pipeline_serialize();
 				
@@ -591,6 +803,27 @@ class DatasetRead extends WebService
 			case "text/xml":
 				return $this->pipeline_getResultset();
 			break;
+			
+			case "application/json":
+				$json_document = "";
+				$json_document .= "{\n";
+    			$json_document .="  \"prefixes\": [ \n";
+				$json_document .="    {\n";
+				$json_document .="      \"rdf\": \"http:\/\/www.w3.org\/1999\/02\/22-rdf-syntax-ns#\",\n"; 
+				$json_document .="      \"rdfs\": \"http://www.w3.org/2000/01/rdf-schema#\",\n"; 
+				$json_document .="      \"void\": \"http://rdfs.org/ns/void#\",\n"; 
+				$json_document .="      \"dcterms\": \"http://purl.org/dc/terms/\"\n"; 
+				$json_document .="    } \n";
+				$json_document .="  ],\n";					
+				$json_document .= "  \"resultset\": {\n";
+				$json_document .= "    \"subjects\": [\n";
+				$json_document .= $this->pipeline_serialize();
+				$json_document .= "    ]\n";
+				$json_document .= "  }\n";
+				$json_document .= "}";
+				
+				return($json_document);
+			break;			
 		}		
 	}
 	
@@ -675,8 +908,7 @@ class DatasetRead extends WebService
 
 			if($this->datasetUri == "all")
 			{
-			
-				$query = "	select distinct ?dataset ?title ?description ?creator ?created ?modified ?contributor 
+				$query = "	select distinct ?dataset ?title ?description ?creator ?created ?modified ?contributor ?meta
 									from named <".parent::$wsf_graph.">
 									from named <".parent::$wsf_graph."datasets/>
 									where
@@ -694,15 +926,16 @@ class DatasetRead extends WebService
 											?dataset a <http://rdfs.org/ns/void#Dataset> ;
 											<http://purl.org/dc/terms/created> ?created.
 									
+											OPTIONAL{?dataset <http://purl.org/ontology/wsf#meta> ?meta.}
 											OPTIONAL{?dataset <http://purl.org/dc/terms/title> ?title.}
 											OPTIONAL{?dataset <http://purl.org/dc/terms/description> ?description.}
 											OPTIONAL{?dataset <http://purl.org/dc/terms/modified> ?modified.}
 											OPTIONAL{?dataset <http://purl.org/dc/terms/contributor> ?contributor.}
 											OPTIONAL{?dataset <http://purl.org/dc/terms/creator> ?creator.}
 										}		
-									}";				
-									
-				$resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), "", $query), array("dataset", "title", "description", "creator", "created", "modified", "contributor"), FALSE));
+									}";
+		
+				$resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), " ", $query), array("dataset", "title", "description", "creator", "created", "modified", "contributor", "meta"), FALSE));
 										
 				if (odbc_error())
 				{
@@ -720,6 +953,7 @@ class DatasetRead extends WebService
 					$created = "";
 					$modified = "";
 					$contributors = array();
+					$meta = "";
 					
 					while(odbc_fetch_row($resultset))
 					{
@@ -739,11 +973,59 @@ class DatasetRead extends WebService
 						$created = odbc_result($resultset, 5);
 						$modified = odbc_result($resultset, 6);
 						array_push($contributors, odbc_result($resultset, 7));
+						$meta = odbc_result($resultset, 8);
 					}
+
+					$metaDescription = array();
+
+					// We have to add the meta information if available
+					if($meta != "" && $this->addMeta == "true")
+					{
+						$query = "select ?p ?o (str(DATATYPE(?o))) as ?otype
+										from <".parent::$wsf_graph."datasets/>
+										where
+										{
+											<$meta> ?p ?o.
+										}";							
+						
+						$resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), " ", $query), array('p', 'o', 'otype'), FALSE));
+							
+						$contributors = array();					
+												
+						if (odbc_error())
+						{
+							$this->conneg->setStatus(500);
+							$this->conneg->setStatusMsg("Internal Error");
+							$this->conneg->setStatusMsgExt("Error #dataset-read-105");	
+							return;
+						}	
+						else
+						{
+							while(odbc_fetch_row($resultset))
+							{								
+								$predicate = odbc_result($resultset, 1);
+								$object = odbc_result($resultset, 2);
+								$otype = odbc_result($resultset, 3);
+								 
+								if(isset($metaDescription[$predicate]))
+								{
+									array_push($metaDescription[$predicate], $object);
+								}
+								else
+								{
+									$metaDescription[$predicate] = array($object);
+									$metaDescription[$predicate]["type"] = $otype;
+								}
+							}
+						}	
+						
+						unset($resultset);						
+					}
+
 
 					if($dataset != "")
 					{
-						array_push($this->datasetsDescription, new DatasetDescription($dataset, $title, $description, $creator, $created, $modified, $contributors));															
+						array_push($this->datasetsDescription, new DatasetDescription($dataset, $title, $description, $creator, $created, $modified, $contributors, $meta, $metaDescription));															
 					}
 					
 					unset($resultset);
@@ -769,7 +1051,7 @@ class DatasetRead extends WebService
 									}
 								}";								
 
-				$resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), "", $query), array("dataset"), FALSE));
+				$resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), " ", $query), array("dataset"), FALSE));
 										
 				if (odbc_error())
 				{
@@ -795,7 +1077,7 @@ class DatasetRead extends WebService
 			{
 				$dataset = $this->datasetUri;
 
-				$query = "select ?title ?description ?creator ?created ?modified 
+				$query = "select ?title ?description ?creator ?created ?modified ?meta
 								from named <".parent::$wsf_graph."datasets/>
 								where
 								{
@@ -808,11 +1090,11 @@ class DatasetRead extends WebService
 										OPTIONAL{<$dataset> <http://purl.org/dc/terms/description> ?description.} .
 										OPTIONAL{<$dataset> <http://purl.org/dc/terms/creator> ?creator.} .
 										OPTIONAL{<$dataset> <http://purl.org/dc/terms/modified> ?modified.} .
+										OPTIONAL{<$dataset> <http://purl.org/ontology/wsf#meta> ?meta.} .
 									}
 								}";				
 										
-								
-				$resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), "", $query), array('title', 'description', 'creator', 'created', 'modified'), FALSE));
+				$resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), " ", $query), array('title', 'description', 'creator', 'created', 'modified', 'meta'), FALSE));
 										
 				if (odbc_error())
 				{
@@ -830,8 +1112,56 @@ class DatasetRead extends WebService
 						$creator = odbc_result($resultset, 3);
 						$created = odbc_result($resultset, 4);
 						$modified = odbc_result($resultset, 5);
-						
+						$meta = odbc_result($resultset, 6);
+
 						unset($resultset);
+						
+						$metaDescription = array();
+						
+						// We have to add the meta information if available
+						if($meta != "" && $this->addMeta == "true")
+						{
+							$query = "select ?p ?o (str(DATATYPE(?o))) as ?otype
+											from <".parent::$wsf_graph."datasets/>
+											where
+											{
+												<$meta> ?p ?o.
+											}";							
+							
+							$resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), " ", $query), array('p', 'o', 'otype'), FALSE));
+												
+							$contributors = array();					
+													
+							if (odbc_error())
+							{
+								$this->conneg->setStatus(500);
+								$this->conneg->setStatusMsg("Internal Error");
+								$this->conneg->setStatusMsgExt("Error #dataset-read-104");	
+								return;
+							}	
+							else
+							{
+								while(odbc_fetch_row($resultset))
+								{								
+									$predicate = odbc_result($resultset, 1);
+									$object = odbc_result($resultset, 2);
+									$otype = odbc_result($resultset, 3);
+									 
+									if(isset($metaDescription[$predicate]))
+									{
+										array_push($metaDescription[$predicate], $object);
+									}
+									else
+									{
+										$metaDescription[$predicate] = array($object);
+										$metaDescription[$predicate]["type"] = $otype;
+									}
+								}
+							}	
+							
+							unset($resultset);						
+						}
+
 						
 						// Get all contributors (users that have CUD perissions over the dataset)				
 						$query = "select ?contributor 
@@ -843,7 +1173,7 @@ class DatasetRead extends WebService
 										}";
 										
 				
-						$resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), "", $query), array('contributor'), FALSE));
+						$resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), " ", $query), array('contributor'), FALSE));
 											
 						$contributors = array();					
 												
@@ -859,7 +1189,7 @@ class DatasetRead extends WebService
 							array_push($contributors, odbc_result($resultset, 1));
 						}									
 						
-						array_push($this->datasetsDescription, new DatasetDescription($dataset, $title, $description, $creator, $created, $modified, $contributors));
+						array_push($this->datasetsDescription, new DatasetDescription($dataset, $title, $description, $creator, $created, $modified, $contributors, $meta, $metaDescription));
 					}
 				}
 							
@@ -906,8 +1236,15 @@ class DatasetDescription
 
 	/*! @brief Contributors of the dataset */
 	public $contributors = array();
+
+	/*! @brief Meta resource URI about the dataset */
+	public $meta = "";
 	
-	function __construct($uri, $title, $description, $creator, $created, $modified, $contributors)
+	/*! @brief Meta description about the dataset */
+	public $metaDescription = "";
+	
+	
+	function __construct($uri, $title, $description, $creator, $created, $modified, $contributors, $meta="", $metaDescription=array())
 	{
 		$this->uri = $uri;
 		$this->title = $title;
@@ -916,6 +1253,8 @@ class DatasetDescription
 		$this->created = $created;
 		$this->modified = $modified;
 		$this->contributors = $contributors;
+		$this->meta = $meta;
+		$this->metaDescription = $metaDescription;
 	}	
 }
 

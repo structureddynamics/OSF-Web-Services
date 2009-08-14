@@ -56,7 +56,7 @@ class AuthLister extends WebService
 	private $accesses = array();
 	
 	/*! @brief Supported serialization mime types by this Web service */
-	public static $supportedSerializations = array("application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
+	public static $supportedSerializations = array("application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
 		
 	/*!	 @brief Constructor
 			 @details 	Initialize the Auth Web Service
@@ -139,17 +139,22 @@ class AuthLister extends WebService
 	*/			
 	protected function validateQuery()
 	{
-		$ws_av = new AuthValidator($this->requester_ip, parent::$wsf_graph, $this->uri);
-		
-		$ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
-		
-		$ws_av->process();
-		
-		if($ws_av->pipeline_getResponseHeaderStatus() != 200)
+		// We shouldnt validate & reject a query that request having access to the list of datasets fro any users (including
+		// publicly accessible users)
+		if($this->mode != "dataset" && $this->mode != "access_user")
 		{
-			$this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
-			$this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
-			$this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
+			$ws_av = new AuthValidator($this->requester_ip, parent::$wsf_graph, $this->uri);
+			
+			$ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
+			
+			$ws_av->process();
+			
+			if($ws_av->pipeline_getResponseHeaderStatus() != 200)
+			{
+				$this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
+				$this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
+				$this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
+			}
 		}
 	}
 	
@@ -171,12 +176,14 @@ class AuthLister extends WebService
 		$resultset = $xml->createResultset();
 
 		// Creation of the prefixes elements.
-		$wsf = $xml->createPrefix("wsf", "http://purl.org/ontology/wsf#");
-		$resultset->appendChild($wsf);
-		$void = $xml->createPrefix("void", "http://rdfs.org/ns/void#");
+		$void = $xml->createPrefix("owl", "http://www.w3.org/2002/07/owl#");
 		$resultset->appendChild($void);
 		$rdf = $xml->createPrefix("rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#");
 		$resultset->appendChild($rdf);
+		$dcterms = $xml->createPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
+		$resultset->appendChild($dcterms);
+		$dcterms = $xml->createPrefix("wsf", "http://purl.org/ontology/wsf#");
+		$resultset->appendChild($dcterms);
 
 		if(strtolower($this->mode) != "access_dataset" && strtolower($this->mode) != "access_user")
 		{
@@ -443,6 +450,87 @@ class AuthLister extends WebService
 
 		switch($this->conneg->getMime())
 		{
+			
+			case "application/json":
+				$json_part = "";
+				$xml = new ProcessorXML();
+				$xml->loadXML($this->pipeline_getResultset());
+				
+				$subjects = $xml->getSubjects();
+			
+				foreach($subjects as $subject)
+				{
+					$subjectURI = $xml->getURI($subject);
+					$subjectType = $xml->getType($subject);
+				
+					$json_part .= "      { \n";
+					$json_part .= "        \"uri\": \"".parent::jsonEncode($subjectURI)."\", \n";
+					$json_part .= "        \"type\": \"".parent::jsonEncode($subjectType)."\", \n";
+
+					$predicates = $xml->getPredicates($subject);
+					
+					$nbPredicates = 0;
+					
+					foreach($predicates as $predicate)
+					{
+						$objects = $xml->getObjects($predicate);
+						
+						foreach($objects as $object)
+						{
+							$nbPredicates++;
+							
+							if($nbPredicates == 1)
+							{
+								$json_part .= "        \"predicates\": [ \n";
+							}
+							
+							$objectType = $xml->getType($object);						
+							$predicateType = $xml->getType($predicate);
+							
+							if($objectType == "rdfs:Literal")
+							{
+								$objectValue = $xml->getContent($object);
+														
+								$json_part .= "          { \n";
+								$json_part .= "            \"".parent::jsonEncode($predicateType)."\": \"".parent::jsonEncode($objectValue)."\" \n";
+								$json_part .= "          },\n";
+							}
+							else
+							{
+								$objectURI = $xml->getURI($object);						
+								$rdf_part .= "          <$predicateType> <$objectURI> ;\n";
+								
+								$json_part .= "          { \n";
+								$json_part .= "            \"".parent::jsonEncode($predicateType)."\": { \n";
+								$json_part .= "            	  \"uri\": \"".parent::jsonEncode($objectURI)."\" \n";
+								$json_part .= "            	  } \n";
+								$json_part .= "          },\n";
+							}
+						}
+					}
+					
+					if(strlen($json_part) > 0)
+					{
+						$json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
+					}						
+					
+					if($nbPredicates > 0)
+					{
+						$json_part .= "        ]\n";
+					}
+					
+					$json_part .= "      },\n";					
+				}
+				
+				if(strlen($json_part) > 0)
+				{
+					$json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
+				}
+				
+
+				return($json_part);		
+			break;			
+			
 			case "application/rdf+n3":
 			
 				$xml = new ProcessorXML();
@@ -683,6 +771,26 @@ class AuthLister extends WebService
 			
 				return $rdf_document;
 			break;
+			
+			case "application/json":
+				$json_document = "";
+				$json_document .= "{\n";
+				
+    			$json_document .="  \"prefixes\": [ \n";
+				$json_document .="    {\n";
+				$json_document .="      \"rdf\": \"http:\/\/www.w3.org\/1999\/02\/22-rdf-syntax-ns#\"\n"; 
+				$json_document .="    } \n";
+				$json_document .="  ],\n";		
+				
+				$json_document .= "  \"resultset\": {\n";
+				$json_document .= "    \"subjects\": [\n";
+				$json_document .= $this->pipeline_serialize();
+				$json_document .= "    ]\n";
+				$json_document .= "  }\n";
+				$json_document .= "}";
+				
+				return($json_document);
+			break;			
 
 			case "text/xml":
 				return $this->pipeline_getResultset();
@@ -741,29 +849,27 @@ class AuthLister extends WebService
 			{		
 				if(strtolower($this->mode) == "dataset")
 				{
-					$query = "	sparql
-									select distinct ?dataset
-									from <".parent::$wsf_graph.">
-									where
-									{
-										{
-											?access <http://purl.org/ontology/wsf#registeredIP> \"$this->registered_ip\" ;
-														<http://purl.org/ontology/wsf#datasetAccess> ?dataset .
-										}
-										UNION
-										{
-											?access <http://purl.org/ontology/wsf#registeredIP> \"0.0.0.0\" ;
-														<http://purl.org/ontology/wsf#create> ?create ;
-														<http://purl.org/ontology/wsf#read> ?read ;
-														<http://purl.org/ontology/wsf#update> ?update ;
-														<http://purl.org/ontology/wsf#delete> ?delete ;
+					$query = "	select distinct ?dataset 
+									from <".parent::$wsf_graph."> 
+									where 
+									{ 
+										{ 
+											?access <http://purl.org/ontology/wsf#registeredIP> \"$this->registered_ip\" ; 
+														<http://purl.org/ontology/wsf#datasetAccess> ?dataset . 
+										} 
+										UNION 
+										{ 
+											?access <http://purl.org/ontology/wsf#registeredIP> \"0.0.0.0\" ; 
+														<http://purl.org/ontology/wsf#create> ?create ; 
+														<http://purl.org/ontology/wsf#read> ?read ; 
+														<http://purl.org/ontology/wsf#update> ?update ; 
+														<http://purl.org/ontology/wsf#delete> ?delete ; 
 														<http://purl.org/ontology/wsf#datasetAccess> ?dataset .
 											filter( str(?create) = \"True\" or str(?read) = \"True\" or str(?update) = \"True\" or str(?delete) = \"True\").
 										}
 									}";
 
-					
-					$resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), "", $query), array(), FALSE));
+					$resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), " ", $query), array(), FALSE));
 											
 					if (odbc_error())
 					{
@@ -789,7 +895,7 @@ class AuthLister extends WebService
 													<http://purl.org/ontology/wsf#hasWebService> ?ws .
 									}";
 					
-					$resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), "", $query), array(), FALSE));
+					$resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), " ", $query), array(), FALSE));
 											
 					if (odbc_error())
 					{
@@ -852,7 +958,7 @@ class AuthLister extends WebService
 										}";
 					}
 					
-					$resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), "", $query), array(), FALSE));
+					$resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), " ", $query), array(), FALSE));
 											
 					if (odbc_error())
 					{
@@ -874,7 +980,7 @@ class AuthLister extends WebService
 											<".$access[0]."> <http://purl.org/ontology/wsf#webServiceAccess> ?webServiceAccess .
 										}";
 						
-						$resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), "", $query), array(), FALSE));
+						$resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), " ", $query), array(), FALSE));
 												
 						if (odbc_error())
 						{

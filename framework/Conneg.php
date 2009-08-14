@@ -470,6 +470,40 @@ class Conneg
 
 					break;
 				}
+				
+									
+				if($mime == "application/json" && array_search("application/json", $this->supported_serializations) !== FALSE)
+				{
+					$this->status = 200;
+					$this->statusMsg = "OK";
+					$this->mime = "application/json";
+
+					$notAcceptable406 = FALSE;
+
+					break;
+				}
+												
+				if($mime == "application/irv+json" && array_search("application/irv+json", $this->supported_serializations) !== FALSE)
+				{
+					$this->status = 200;
+					$this->statusMsg = "OK";
+					$this->mime = "application/irv+json";
+
+					$notAcceptable406 = FALSE;
+
+					break;
+				}
+												
+				if($mime == "application/bib+json" && array_search("application/bib+json", $this->supported_serializations) !== FALSE)
+				{
+					$this->status = 200;
+					$this->statusMsg = "OK";
+					$this->mime = "application/bib+json";
+
+					$notAcceptable406 = FALSE;
+
+					break;
+				}
 												
 			}
 			

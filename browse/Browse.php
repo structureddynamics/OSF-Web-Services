@@ -75,7 +75,7 @@ class Browse extends WebService
 	public $include_aggregates = array();
 	
 	/*! @brief Supported serialization mime types by this Web service */
-	public static $supportedSerializations = array("application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
+	public static $supportedSerializations = array("application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
 		
 	/*!	 @brief Constructor
 			 @details 	Initialize the Auth Web Service
@@ -190,12 +190,14 @@ class Browse extends WebService
 		$resultset = $xml->createResultset();
 
 		// Creation of the prefixes elements.
+		$void = $xml->createPrefix("owl", "http://www.w3.org/2002/07/owl#");
+		$resultset->appendChild($void);
 		$rdf = $xml->createPrefix("rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#");
-		$rdf = $xml->createPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
-		$rdf = $xml->createPrefix("wsf", "http://purl.org/ontology/wsf#");
-//		$rdf = $xml->createPrefix("aggr", "http://purl.org/ontology/aggregate#");
-		
 		$resultset->appendChild($rdf);
+		$dcterms = $xml->createPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
+		$resultset->appendChild($dcterms);
+		$dcterms = $xml->createPrefix("wsf", "http://purl.org/ontology/wsf#");
+		$resultset->appendChild($dcterms);
 
 		$subject;
 
@@ -265,7 +267,7 @@ class Browse extends WebService
 							$object->appendChild($reify);
 							
 							$subject->appendChild($pred);
-							}
+						}
 					}
 				}
 			}
@@ -544,6 +546,178 @@ class Browse extends WebService
 
 		switch($this->conneg->getMime())
 		{
+			case "application/json":
+				$json_part = "";
+				$xml = new ProcessorXML();
+				$xml->loadXML($this->pipeline_getResultset());
+				
+				$subjects = $xml->getSubjects();
+			
+				$namespaces = array(	"http://www.w3.org/2002/07/owl#" => "owl",
+												"http://www.w3.org/1999/02/22-rdf-syntax-ns#" => "rdf",
+												"http://www.w3.org/2000/01/rdf-schema#" => "rdfs",
+												"http://purl.org/ontology/wsf#" => "wsf");			
+				$nsId = 0;			
+			
+				foreach($subjects as $subject)
+				{
+					$subjectURI = $xml->getURI($subject);
+					$subjectType = $xml->getType($subject);
+				
+					$ns = $this->getNamespace($subjectType);
+
+					$stNs = $ns[0];
+					$stExtension = $ns[1];
+				
+					if(!isset($namespaces[$stNs]))
+					{
+						$namespaces[$stNs] = "ns".$nsId;
+						$nsId++;
+					}				
+				
+					$json_part .= "      { \n";
+					$json_part .= "        \"uri\": \"".parent::jsonEncode($subjectURI)."\", \n";
+					$json_part .= "        \"type\": \"".parent::jsonEncode($namespaces[$stNs].":".$stExtension)."\", \n";
+
+					$predicates = $xml->getPredicates($subject);
+					
+					$nbPredicates = 0;
+					
+					foreach($predicates as $predicate)
+					{
+						$objects = $xml->getObjects($predicate);
+						
+						foreach($objects as $object)
+						{
+							$nbPredicates++;
+							
+							if($nbPredicates == 1)
+							{
+								$json_part .= "        \"predicates\": [ \n";
+							}
+							
+							$objectType = $xml->getType($object);						
+							$predicateType = $xml->getType($predicate);
+							
+							if($objectType == "rdfs:Literal")
+							{
+								$objectValue = $xml->getContent($object);
+														
+								$ns = $this->getNamespace($predicateType);
+								$ptNs = $ns[0];
+								$ptExtension = $ns[1];
+							
+								if(!isset($namespaces[$ptNs]))
+								{
+									$namespaces[$ptNs] = "ns".$nsId;
+									$nsId++;
+								}						
+														
+								$json_part .= "          { \n";
+								$json_part .= "            \"".parent::jsonEncode($namespaces[$ptNs].":".$ptExtension)."\": \"".parent::jsonEncode($objectValue)."\" \n";
+								$json_part .= "          },\n";
+							}
+							else
+							{
+								$objectURI = $xml->getURI($object);						
+
+								$ns = $this->getNamespace($predicateType);
+								$ptNs = $ns[0];
+								$ptExtension = $ns[1];
+							
+								if(!isset($namespaces[$ptNs]))
+								{
+									$namespaces[$ptNs] = "ns".$nsId;
+									$nsId++;
+								}
+								
+								$json_part .= "          { \n";
+								$json_part .= "            \"".parent::jsonEncode($namespaces[$ptNs].":".$ptExtension)."\": { \n";
+								$json_part .= "            	  \"uri\": \"".parent::jsonEncode($objectURI)."\",\n";
+								
+								// Check if there is a reification statement for this object.
+								$reifies = $xml->getReificationStatementsByType($object, "wsf:objectLabel");
+							
+								$nbReification = 0;
+							
+								foreach($reifies as $reify)
+								{
+									$nbReification++;
+									
+									if($nbReification > 0)
+									{
+										$json_part .= "           	  \"reifies\": [\n";
+									}
+									
+									$json_part .= "           	    { \n";
+									$json_part .= "                     \"type\": \"wsf:objectLabel\", \n";
+									$json_part .= "                     \"value\": \"".parent::jsonEncode($xml->getValue($reify))."\" \n";
+									$json_part .= "           	    },\n";
+								}
+								
+								if($nbReification > 0)
+								{
+									$json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
+									
+									$json_part .= "           	  ]\n";
+								}
+								else
+								{
+									$json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
+								}								
+								
+								
+								$json_part .= "            	  } \n";
+								$json_part .= "          },\n";
+							}
+						}
+					}
+					
+					if(strlen($json_part) > 0)
+					{
+						$json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
+					}						
+					
+					if($nbPredicates > 0)
+					{
+						$json_part .= "        ]\n";
+					}
+					
+					$json_part .= "      },\n";					
+				}
+				
+				if(strlen($json_part) > 0)
+				{
+					$json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
+				}
+				
+				
+    			$json_header .="  \"prefixes\": [ \n";
+				$json_header .="    {\n";
+				$json_header .= "      \"rdf\": \"http://www.w3.org/1999/02/22-rdf-syntax-ns#\",\n";
+				$json_header .= "      \"wsf\": \"http://purl.org/ontology/wsf#\",\n";
+				
+				foreach($namespaces as $ns => $prefix)
+				{
+					$json_header .= "      \"$prefix\": \"$ns\",\n";
+				}	
+				
+				if(strlen($json_header) > 0)
+				{
+					$json_header = substr($json_header, 0, strlen($json_header) - 2)."\n";
+				}				
+							
+				$json_header .="    } \n";
+				$json_header .="  ],\n";	
+				$json_header .= "  \"resultset\": {\n";
+				$json_header .= "    \"subjects\": [\n";
+				$json_header .= $json_part;
+				$json_header .= "    ]\n";
+				$json_header .= "  }\n";				
+				
+				return($json_header);		
+			break;				
+			
 			case "application/rdf+n3":
 			
 				$xml = new ProcessorXML();
@@ -577,13 +751,8 @@ class Browse extends WebService
 							}
 							else
 							{
-								$nodesList = $xml->getReificationStatements($object);
-								
-								if($nodesList->length == 0)
-								{
-									$objectURI = $xml->getURI($object);						
-									$rdf_part .= "        <$predicateType> <$objectURI> ;\n";
-								}
+								$objectURI = $xml->getURI($object);						
+								$rdf_part .= "        <$predicateType> <$objectURI> ;\n";
 							}
 						}
 					}
@@ -603,8 +772,10 @@ class Browse extends WebService
 				
 				$subjects = $xml->getSubjects();
 				
-				$namespaces = array();
-				
+				$namespaces = array(	"http://www.w3.org/2002/07/owl#" => "owl",
+												"http://www.w3.org/1999/02/22-rdf-syntax-ns#" => "rdf",
+												"http://www.w3.org/2000/01/rdf-schema#" => "rdfs",
+												"http://purl.org/ontology/wsf#" => "wsf");				
 				$nsId = 0;
 				
 				foreach($subjects as $subject)
@@ -654,24 +825,19 @@ class Browse extends WebService
 							}
 							else
 							{
-								$nodesList = $xml->getReificationStatements($object);
+								$objectURI = $xml->getURI($object);		
 								
-								if($nodesList->length == 0)
-								{							
-									$objectURI = $xml->getURI($object);		
-									
-									$ns = $this->getNamespace($predicateType);
-									$ptNs = $ns[0];
-									$ptExtension = $ns[1];
-								
-									if(!isset($namespaces[$ptNs]))
-									{
-										$namespaces[$ptNs] = "ns".$nsId;
-										$nsId++;
-									}
-													
-									$rdf_part .= "        <".$namespaces[$ptNs].":".$ptExtension." rdf:resource=\"$objectURI\" />\n";
+								$ns = $this->getNamespace($predicateType);
+								$ptNs = $ns[0];
+								$ptExtension = $ns[1];
+							
+								if(!isset($namespaces[$ptNs]))
+								{
+									$namespaces[$ptNs] = "ns".$nsId;
+									$nsId++;
 								}
+												
+								$rdf_part .= "        <".$namespaces[$ptNs].":".$ptExtension." rdf:resource=\"$objectURI\" />\n";
 							}
 						}
 					}
@@ -679,7 +845,7 @@ class Browse extends WebService
 					$rdf_part .= "    </".$namespaces[$stNs].":".$stExtension.">\n";
 				}
 
-				$rdf_header = "<rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\" xmlns:wsf=\"http://purl.org/ontology/wsf#\"";
+				$rdf_header = "<rdf:RDF ";
 
 				foreach($namespaces as $ns => $prefix)
 				{
@@ -722,6 +888,15 @@ class Browse extends WebService
 			if($pos !== FALSE)
 			{
 				return array(substr($uri, 0, $pos)."/", substr($uri, $pos + 1, strlen($uri) - ($pos +1)));
+			}
+			else
+			{
+				$pos = strpos($uri, ":");
+				
+				if($pos !== FALSE)
+				{
+					return explode(":", $uri, 2);
+				}
 			}
 		}
 		
@@ -861,6 +1036,15 @@ class Browse extends WebService
 			
 				return $rdf_document;
 			break;
+			
+			case "application/json":
+				$json_document = "";
+				$json_document .= "{\n";
+				$json_document .= $this->pipeline_serialize();
+				$json_document .= "}";
+				
+				return($json_document);
+			break;			
 
 			case "text/xml":
 				return $this->pipeline_getResultset();

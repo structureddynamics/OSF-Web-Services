@@ -62,7 +62,7 @@ class Sparql extends WebService
 	private $instanceRecordsObjectResource = array();
 
 	/*! @brief Supported MIME serializations by this web service */
-	public static $supportedSerializations = array("text/xml", "application/sparql-results+xml", "application/sparql-results+json", "text/html", "application/rdf+xml", "application/rdf+n3", "application/*", "text/plain", "text/*", "*/*");
+	public static $supportedSerializations = array("application/json", "text/xml", "application/sparql-results+xml", "application/sparql-results+json", "text/html", "application/rdf+xml", "application/rdf+n3", "application/*", "text/plain", "text/*", "*/*");
 
 
 	/*!	 @brief Constructor
@@ -223,6 +223,17 @@ class Sparql extends WebService
 		
 			// Creation of the RESULTSET
 			$resultset = $xml->createResultset();
+	
+			// Creation of the prefixes elements.
+			$void = $xml->createPrefix("owl", "http://www.w3.org/2002/07/owl#");
+			$resultset->appendChild($void);
+			$rdf = $xml->createPrefix("rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#");
+			$resultset->appendChild($rdf);
+			$dcterms = $xml->createPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
+			$resultset->appendChild($dcterms);
+			$dcterms = $xml->createPrefix("wsf", "http://purl.org/ontology/wsf#");
+			$resultset->appendChild($dcterms);
+	
 	
 			$subject;
 
@@ -487,6 +498,15 @@ class Sparql extends WebService
 			{
 				return array(substr($uri, 0, $pos)."/", substr($uri, $pos + 1, strlen($uri) - ($pos +1)));
 			}
+			else
+			{
+				$pos = strpos($uri, ":");
+				
+				if($pos !== FALSE)
+				{
+					return explode(":", $uri, 2);
+				}
+			}
 		}
 		
 		return(FALSE);
@@ -509,6 +529,175 @@ class Sparql extends WebService
 
 		switch($this->conneg->getMime())
 		{
+			case "application/json":
+				$json_part = "";
+				$xml = new ProcessorXML();
+				$xml->loadXML($this->pipeline_getResultset());
+				
+				$subjects = $xml->getSubjects();
+			
+				$namespaces = array(	"http://www.w3.org/2002/07/owl#" => "owl",
+												"http://www.w3.org/1999/02/22-rdf-syntax-ns#" => "rdf",
+												"http://www.w3.org/2000/01/rdf-schema#" => "rdfs",
+												"http://purl.org/ontology/wsf#" => "wsf");
+			
+				$nsId = 0;			
+			
+				foreach($subjects as $subject)
+				{
+					$subjectURI = $xml->getURI($subject);
+					$subjectType = $xml->getType($subject);
+				
+					$ns = $this->getNamespace($subjectType);
+
+					$stNs = $ns[0];
+					$stExtension = $ns[1];
+				
+					if(!isset($namespaces[$stNs]))
+					{
+						$namespaces[$stNs] = "ns".$nsId;
+						$nsId++;
+					}				
+				
+					$json_part .= "      { \n";
+					$json_part .= "        \"uri\": \"".parent::jsonEncode($subjectURI)."\", \n";
+					$json_part .= "        \"type\": \"".parent::jsonEncode($namespaces[$stNs].":".$stExtension)."\", \n";
+
+					$predicates = $xml->getPredicates($subject);
+					
+					$nbPredicates = 0;
+					
+					foreach($predicates as $predicate)
+					{
+						$objects = $xml->getObjects($predicate);
+						
+						foreach($objects as $object)
+						{
+							$nbPredicates++;
+							
+							if($nbPredicates == 1)
+							{
+								$json_part .= "        \"predicates\": [ \n";
+							}
+							
+							$objectType = $xml->getType($object);						
+							$predicateType = $xml->getType($predicate);
+							
+							if($objectType == "rdfs:Literal")
+							{
+								$objectValue = $xml->getContent($object);
+														
+								$ns = $this->getNamespace($predicateType);
+								$ptNs = $ns[0];
+								$ptExtension = $ns[1];
+							
+								if(!isset($namespaces[$ptNs]))
+								{
+									$namespaces[$ptNs] = "ns".$nsId;
+									$nsId++;
+								}						
+														
+								$json_part .= "          { \n";
+								$json_part .= "            \"".parent::jsonEncode($namespaces[$ptNs].":".$ptExtension)."\": \"".parent::jsonEncode($objectValue)."\" \n";
+								$json_part .= "          },\n";
+							}
+							else
+							{
+								$objectURI = $xml->getURI($object);						
+
+								$ns = $this->getNamespace($predicateType);
+								$ptNs = $ns[0];
+								$ptExtension = $ns[1];
+							
+								if(!isset($namespaces[$ptNs]))
+								{
+									$namespaces[$ptNs] = "ns".$nsId;
+									$nsId++;
+								}
+								
+								$json_part .= "          { \n";
+								$json_part .= "            \"".parent::jsonEncode($namespaces[$ptNs].":".$ptExtension)."\": { \n";
+								$json_part .= "            	  \"uri\": \"".parent::jsonEncode($objectURI)."\",\n";
+								
+								// Check if there is a reification statement for this object.
+								$reifies = $xml->getReificationStatementsByType($object, "wsf:objectLabel");
+							
+								$nbReification = 0;
+							
+								foreach($reifies as $reify)
+								{
+									$nbReification++;
+									
+									if($nbReification > 0)
+									{
+										$json_part .= "           	  \"reifies\": [\n";
+									}
+									
+									$json_part .= "           	    { \n";
+									$json_part .= "                     \"type\": \"wsf:objectLabel\", \n";
+									$json_part .= "                     \"value\": \"".parent::jsonEncode($xml->getValue($reify))."\" \n";
+									$json_part .= "           	    },\n";
+								}
+								
+								if($nbReification > 0)
+								{
+									$json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
+									
+									$json_part .= "           	  ]\n";
+								}
+								else
+								{
+									$json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
+								}								
+								
+								$json_part .= "            	} \n";
+								$json_part .= "          },\n";
+							}
+						}
+					}
+					
+					if(strlen($json_part) > 0)
+					{
+						$json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
+					}						
+					
+					if($nbPredicates > 0)
+					{
+						$json_part .= "        ]\n";
+					}
+					
+					$json_part .= "      },\n";					
+				}
+				
+				if(strlen($json_part) > 0)
+				{
+					$json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
+				}
+				
+				
+    			$json_header .="  \"prefixes\": [ \n";
+				$json_header .="    {\n";
+				foreach($namespaces as $ns => $prefix)
+				{
+					$json_header .= "      \"$prefix\": \"$ns\",\n";
+				}	
+				
+				if(strlen($json_header) > 0)
+				{
+					$json_header = substr($json_header, 0, strlen($json_header) - 2)."\n";
+				}				
+							
+				$json_header .="    } \n";
+				$json_header .="  ],\n";	
+				$json_header .= "  \"resultset\": {\n";
+				$json_header .= "    \"subjects\": [\n";
+				$json_header .= $json_part;
+				$json_header .= "    ]\n";
+				$json_header .= "  }\n";				
+				
+				return($json_header);		
+			break;				
+			
 			case "application/rdf+n3":
 			
 				$xml = new ProcessorXML();
@@ -542,13 +731,8 @@ class Sparql extends WebService
 							}
 							else
 							{
-								$nodesList = $xml->getReificationStatements($object);
-								
-								if($nodesList->length == 0)
-								{
-									$objectURI = $xml->getURI($object);						
-									$rdf_part .= "        <$predicateType> <$objectURI> ;\n";
-								}
+								$objectURI = $xml->getURI($object);						
+								$rdf_part .= "        <$predicateType> <$objectURI> ;\n";
 							}
 						}
 					}
@@ -568,10 +752,13 @@ class Sparql extends WebService
 				
 				$subjects = $xml->getSubjects();
 				
-				$namespaces = array();
+				$namespaces = array(	"http://www.w3.org/2002/07/owl#" => "owl",
+												"http://www.w3.org/1999/02/22-rdf-syntax-ns#" => "rdf",
+												"http://www.w3.org/2000/01/rdf-schema#" => "rdfs",
+												"http://purl.org/ontology/wsf#" => "wsf");
 				
 				$nsId = 0;
-				
+
 				foreach($subjects as $subject)
 				{
 					$subjectURI = $xml->getURI($subject);
@@ -619,24 +806,19 @@ class Sparql extends WebService
 							}
 							else
 							{
-								$nodesList = $xml->getReificationStatements($object);
+								$objectURI = $xml->getURI($object);		
 								
-								if($nodesList->length == 0)
-								{							
-									$objectURI = $xml->getURI($object);		
-									
-									$ns = $this->getNamespace($predicateType);
-									$ptNs = $ns[0];
-									$ptExtension = $ns[1];
-								
-									if(!isset($namespaces[$ptNs]))
-									{
-										$namespaces[$ptNs] = "ns".$nsId;
-										$nsId++;
-									}
-													
-									$rdf_part .= "        <".$namespaces[$ptNs].":".$ptExtension." rdf:resource=\"$objectURI\" />\n";
+								$ns = $this->getNamespace($predicateType);
+								$ptNs = $ns[0];
+								$ptExtension = $ns[1];
+							
+								if(!isset($namespaces[$ptNs]))
+								{
+									$namespaces[$ptNs] = "ns".$nsId;
+									$nsId++;
 								}
+												
+								$rdf_part .= "        <".$namespaces[$ptNs].":".$ptExtension." rdf:resource=\"$objectURI\" />\n";
 							}
 						}
 					}
@@ -644,7 +826,7 @@ class Sparql extends WebService
 					$rdf_part .= "    </".$namespaces[$stNs].":".$stExtension.">\n";
 				}
 
-				$rdf_header = "<rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\" xmlns:wsf=\"http://purl.org/ontology/wsf#\"";
+				$rdf_header = "<rdf:RDF ";
 
 				foreach($namespaces as $ns => $prefix)
 				{
@@ -715,6 +897,15 @@ class Sparql extends WebService
 				return $rdf_document;
 			break;
 			
+			case "application/json":
+				$json_document = "";
+				$json_document .= "{\n";
+				$json_document .= $this->pipeline_serialize();
+				$json_document .= "}";
+				
+				return($json_document);
+			break;					
+			
 			default:
 				return $this->pipeline_getResultset();
 			break;
@@ -772,6 +963,7 @@ class Sparql extends WebService
 				$queryFormat = $this->conneg->getMime();
 			}
 			elseif($this->conneg->getMime() == "text/xml" ||
+					$this->conneg->getMime() == "application/json" ||
 					$this->conneg->getMime() == "application/rdf+xml" ||
 					$this->conneg->getMime() == "application/rdf+n3")
 			{
@@ -781,19 +973,59 @@ class Sparql extends WebService
 			$ch = curl_init();
 	
 			// Remove any potential reference to any graph in the sparql query.
-			
+/*			
 			// Remove "from" clause
 			$this->query = preg_replace("/([\s]*from[\s]*<.*>[\s]*)/Uim", "", $this->query);
 
 			// Remove "from named" clauses
 			$this->query = preg_replace("/([\s]*from[\s]*named[\s]*<.*>[\s]*)/Uim", "", $this->query);
+*/
+			$graphs = array();
+
+			preg_match_all("/([\s\t]*from[\s\t]*<(.*)>[\s\t]*)/Uim", $this->query, $matches);
+
+			foreach($matches[2] as $match)
+			{
+				array_push($graphs, $match);
+			}
+
+			preg_match_all("/([\s\t]*from[\s\t]*named[\s\t]*<(.*)>[\s\t]*)/Uim", $this->query, $matches);
+
+			foreach($matches[2] as $match)
+			{
+				array_push($graphs, $match);
+			}
+
+			// Validate all graphs of the query. If one of the graph is not accessible to the user, we just return
+			// and error for this SPARQL query.
+			foreach($graphs as $graph)
+			{
+				if(substr($graph, strlen($graph) - 12, 12) == "reification/")
+				{
+					$graph = substr($graph, 0, strlen($graph) - 12);
+				}
+				
+				$ws_av = new AuthValidator($this->requester_ip, $graph, $this->uri);
+				
+				$ws_av->pipeline_conneg("*/*", $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
+				
+				$ws_av->process();
+				
+				if($ws_av->pipeline_getResponseHeaderStatus() != 200)
+				{
+					$this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
+					$this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
+					$this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
+					
+					return;
+				}
+			}
 	
 			// Add a limit to the query
 			
 			// Disable limits and offset for now until we figure out what to do (not limit on triples, but resources)
 //			$this->query .= " limit ".$this->limit." offset ".$this->offset;
 			
-
 			curl_setopt($ch, CURLOPT_URL, "http://localhost:8890/sparql?default-graph-uri=".urlencode($this->dataset)."&query=".urlencode($this->query)."&format=".urlencode($queryFormat));
 
 			curl_setopt($ch, CURLOPT_HTTPHEADER, array("Accept: ".$this->conneg->getMime()));
@@ -802,7 +1034,7 @@ class Sparql extends WebService
 			curl_setopt($ch, CURLOPT_HEADER, TRUE);			
 	
 			$xml_data = curl_exec($ch);		
-			
+
 			$header = substr($xml_data, 0, strpos($xml_data, "\r\n\r\n"));
 			
 			$data = substr($xml_data, strpos($xml_data, "\r\n\r\n") + 4, strlen($xml_data) - (strpos($xml_data, "\r\n\r\n") - 4));
@@ -827,8 +1059,11 @@ class Sparql extends WebService
 				$this->sparqlContent = "";
 			}		
 			
-//			if($this->conneg->getMime() == "text/xml")
-//			{
+			if(	$this->conneg->getMime() == "text/xml" || 
+				$this->conneg->getMime() == "application/rdf+n3" ||
+				$this->conneg->getMime() == "application/rdf+xml" ||
+				$this->conneg->getMime() == "application/json")
+			{
 				// Read the XML file and populate the recordInstances variables
 				$xml = $this->xml2ary($this->sparqlContent);
 	
@@ -889,16 +1124,15 @@ class Sparql extends WebService
 							}
 						}
 					}
-				}	
-			//}
-			
-			if(count($this->instanceRecordsObjectResource) <= 0)
-			{
-				$this->conneg->setStatus(400);
-				$this->conneg->setStatusMsg("Bad Request");
-				$this->conneg->setStatusMsgExt("No data to import");
+				}
+					
+				if(count($this->instanceRecordsObjectResource) <= 0)
+				{
+					$this->conneg->setStatus(400);
+					$this->conneg->setStatusMsg("Bad Request");
+					$this->conneg->setStatusMsgExt("No instance records found");
+				}
 			}
-			
 		}
 	}
 	

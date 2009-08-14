@@ -53,7 +53,7 @@ class DatasetUpdate extends WebService
 	private $modified = "";	
 	
 	/*! @brief Supported serialization mime types by this Web service */
-	public static $supportedSerializations = array("application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
+	public static $supportedSerializations = array("application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
 		
 	/*!	 @brief Constructor
 			 @details 	Initialize the Auth Web Service
@@ -203,7 +203,7 @@ class DatasetUpdate extends WebService
 									<$this->datasetUri> a ?dataset .
 								}";
 
-			$resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), "", $query), array("dataset"), FALSE));
+			$resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), " ", $query), array("dataset"), FALSE));
 								
 			if (odbc_error())
 			{
@@ -433,7 +433,7 @@ class DatasetUpdate extends WebService
 								}" : "");							
 			}
 							
-			@$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), "", $query), array(), FALSE));
+			@$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), " ", $query), array(), FALSE));
 									
 			if (odbc_error())
 			{
@@ -465,7 +465,7 @@ class DatasetUpdate extends WebService
 								}" : "");							
 			}
 							
-			@$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), "", $query), array(), FALSE));
+			@$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), " ", $query), array(), FALSE));
 									
 			if (odbc_error())
 			{
@@ -497,7 +497,7 @@ class DatasetUpdate extends WebService
 								}" : "");							
 			}
 							
-			@$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), "", $query), array(), FALSE));
+			@$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), " ", $query), array(), FALSE));
 									
 			if (odbc_error())
 			{
@@ -546,11 +546,8 @@ class DatasetUpdate extends WebService
 					$query .=	"}";	
 				}
 			}
-			
-			
-
 							
-			@$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), "", $query), array(), FALSE));
+			@$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), " ", $query), array(), FALSE));
 									
 			if (odbc_error())
 			{

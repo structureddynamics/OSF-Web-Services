@@ -36,7 +36,7 @@ class OntologyCreate extends WebService
 	private $dtdURL;
 	
 	/*! @brief Supported serialization mime types by this Web service */
-	public static $supportedSerializations = array("application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
+	public static $supportedSerializations = array("application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
 
 	/*! @brief IP being registered */
 	private $registered_ip = "";

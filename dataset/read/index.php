@@ -53,6 +53,14 @@ if(isset($_GET['registered_ip']))
     $registered_ip = $_GET['registered_ip'];
 }
 
+// Optional Meta information
+$meta = "false";
+
+if(isset($_GET['meta'])) 
+{
+    $meta = $_GET['meta'];
+}
+
 $mtime = microtime(); 
 $mtime = explode(' ', $mtime); 
 $mtime = $mtime[1] + $mtime[0]; 
@@ -83,7 +91,7 @@ elseif(isset($_SERVER['PHP_SELF']))
 	$parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_dr = new DatasetRead($uri, $registered_ip, $requester_ip);
+$ws_dr = new DatasetRead($uri, $meta, $registered_ip, $requester_ip);
 
 $ws_dr->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
 

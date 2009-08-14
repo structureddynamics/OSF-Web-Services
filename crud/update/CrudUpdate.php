@@ -38,7 +38,7 @@ class CrudUpdate extends WebService
 	private $dtdURL;
 	
 	/*! @brief Supported serialization mime types by this Web service */
-	public static $supportedSerializations = array("application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
+	public static $supportedSerializations = array("application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
 
 	/*! @brief IP being registered */
 	private $registered_ip = "";
@@ -247,8 +247,8 @@ class CrudUpdate extends WebService
 		
 		// Check if the dataset is created
 		
-		$ws_dr = new DatasetRead($this->dataset, "self", parent::$wsf_local_ip);	// Here the one that makes the request is the WSF (internal request).
-//		$ws_dr = new DatasetRead($this->dataset, $this->registered_ip, $this->requester_ip);
+		$ws_dr = new DatasetRead($this->dataset, "false", "self", parent::$wsf_local_ip);	// Here the one that makes the request is the WSF (internal request).
+//		$ws_dr = new DatasetRead($this->dataset, "false", $this->registered_ip, $this->requester_ip);
 		
 		$ws_dr->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
 		
@@ -466,7 +466,7 @@ class CrudUpdate extends WebService
 									}
 								}";
 	
-				@$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), "", $query), array(), FALSE));
+				@$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), " ", $query), array(), FALSE));
 										
 				if (odbc_error())
 				{
@@ -497,7 +497,7 @@ class CrudUpdate extends WebService
 									?s ?p ?o.
 								}";
 	
-				$resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), "", $query), array("s"), FALSE));
+				$resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), " ", $query), array("s"), FALSE));
 										
 				if (odbc_error())
 				{
@@ -526,7 +526,7 @@ class CrudUpdate extends WebService
 				{
 					$this->conneg->setStatus(500);
 					$this->conneg->setStatusMsg("Internal Error");
-					$this->conneg->setStatusMsgExt("Error #crud-update-102 (".str_replace(array("\n", "\r", "\t"), "", $query).")");	
+					$this->conneg->setStatusMsgExt("Error #crud-update-102 (".str_replace(array("\n", "\r", "\t"), " ", $query).")");	
 					return;
 				}					
 						
@@ -689,13 +689,17 @@ class CrudUpdate extends WebService
 					}
 				}
 				
-				if(!$solr->commit())
+				if(parent::$solr_auto_commit === FALSE)
 				{
-					$this->conneg->setStatus(500);
-					$this->conneg->setStatusMsg("Internal Error");
-					$this->conneg->setStatusMsgExt("Error #crud-create-104");
-					return;					
+					if(!$solr->commit())
+					{
+						$this->conneg->setStatus(500);
+						$this->conneg->setStatusMsg("Internal Error");
+						$this->conneg->setStatusMsgExt("Error #crud-create-105");
+						return;					
+					}
 				}
+		
 /*				
 				if(!$solr->optimize())
 				{

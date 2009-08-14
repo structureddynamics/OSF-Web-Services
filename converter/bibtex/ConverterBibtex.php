@@ -219,7 +219,7 @@ class ConverterBibtex extends WebService
 			\n
 			
 			@param[in] $document Text of a Bibtex document
-			@param[in] $type The requested type of the convertion
+			@param[in] $docmime The mime type of the incoming document to convert
 			@param[in] $base_uri The base URI to use to create the URIs of the resources created by this web service
 			@param[in] $registered_ip Target IP address registered in the WSF
 			@param[in] $requester_ip IP address of the requester
@@ -374,6 +374,17 @@ class ConverterBibtex extends WebService
 		
 			// Creation of the RESULTSET
 			$resultset = $xml->createResultset();
+	
+			// Creation of the prefixes elements.
+			$void = $xml->createPrefix("owl", "http://www.w3.org/2002/07/owl#");
+			$resultset->appendChild($void);
+			$rdf = $xml->createPrefix("rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#");
+			$resultset->appendChild($rdf);
+			$dcterms = $xml->createPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
+			$resultset->appendChild($dcterms);
+			$dcterms = $xml->createPrefix("wsf", "http://purl.org/ontology/wsf#");
+			$resultset->appendChild($dcterms);
+	
 	
 			// Check if we are handling a collection of documents compiled by someone.
 			if($this->enhancedBibtex)

@@ -37,7 +37,7 @@ class CrudCreate extends WebService
 	private $dtdURL;
 	
 	/*! @brief Supported serialization mime types by this Web service */
-	public static $supportedSerializations = array("application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
+	public static $supportedSerializations = array("application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
 
 	/*! @brief IP being registered */
 	private $registered_ip = "";
@@ -251,7 +251,7 @@ class CrudCreate extends WebService
 		
 		// Check if the dataset is created
 		
-		$ws_dr = new DatasetRead($this->dataset, "self", parent::$wsf_local_ip);	// Here the one that makes the request is the WSF (internal request).
+		$ws_dr = new DatasetRead($this->dataset, "false", "self", parent::$wsf_local_ip);	// Here the one that makes the request is the WSF (internal request).
 
 		$ws_dr->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
 		
@@ -417,17 +417,99 @@ class CrudCreate extends WebService
 			// If the query is still valid
 			if($this->conneg->getStatus() == 200)
 			{
-				// Index in the triple store
-				if($this->mime == "application/rdf+xml")
+				if($this->mime != "application/rdf+xml" && $this->mime != "application/rdf+n3")
 				{
-					$this->db->query("DB.DBA.RDF_LOAD_RDFXML_MT('".str_replace("'", "\'", $this->document)."', '".$this->dataset."', '".$this->dataset."')");		
-				}
+					$this->conneg->setStatus(400);
+					$this->conneg->setStatusMsg("Bad Request");
+					$this->conneg->setStatusMsgExt("Error #crud-create-99. Can't create data of format: ".$this->mime);
+					return;					
+				}				
 				
-				if($this->mime == "application/rdf+n3")
+				// Get triples from ARC for some offline processing.
+				$parser = ARC2::getRDFParser();
+				$parser->parse($this->dataset, $this->document);
+				$rdfxmlSerializer = ARC2::getRDFXMLSerializer();
+				
+				$resourceIndex = $parser->getSimpleIndex(0);
+
+				if(count($parser->getErrors()) > 0)
 				{
-					$this->db->query("DB.DBA.TTLP_MT('".str_replace("'", "\'", $this->document)."', '".$this->dataset."', '".$this->dataset."')");		
+					$this->conneg->setStatus(400);
+					$this->conneg->setStatusMsg("Bad Request");
+					$this->conneg->setStatusMsgExt("Error #crud-create-98. Can't parse RDF document");
+					return;									
 				}
+
+				// First: check for a void:Dataset description to add to the "dataset description graph" of structWSF
+				$break = FALSE;
+				$datasetUri;
+				foreach($resourceIndex as $resource => $description)
+				{
+					foreach($description as $predicate => $values)
+					{
+						if($predicate == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+						{
+							foreach($values as $value)
+							{
+								if($value["type"] == "uri" && $value["value"] == "http://rdfs.org/ns/void#Dataset")
+								{
+									$datasetUri = $resource;
+									break;
+								}
+							}
+						}
+						
+						if($break){break;}
+					}
+					
+					if($break){break;}
+				}
+
+			
+				// Second: get all the reification statements
+				$break = FALSE;
+				$statementsUri = array();
+				foreach($resourceIndex as $resource => $description)
+				{
+					foreach($description as $predicate => $values)
+					{
+						if($predicate == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+						{
+							foreach($values as $value)
+							{
+								if($value["type"] == "uri" && $value["value"] == "http://www.w3.org/1999/02/22-rdf-syntax-ns#Statement")
+								{
+									array_push($statementsUri, $resource);
+									break;
+								}
+							}
+						}
+						
+						if($break){break;}
+					}
+					
+					if($break){break;}
+				}		
 				
+				// Third, get all references of all instance records resources
+				$irsUri = array();
+				foreach($resourceIndex as $resource => $description)
+				{
+					if($resource != $datasetUri && array_search($resource, $statementsUri) === FALSE)
+					{
+						array_push($irsUri, $resource);
+					}
+				}		
+				
+				// Index all the instance records in the dataset
+				$irs = array();
+				foreach($irsUri as $uri)
+				{
+					$irs[$uri] = $resourceIndex[$uri];
+				}				
+
+				$this->db->query("DB.DBA.RDF_LOAD_RDFXML_MT('".str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($irs))."', '".$this->dataset."', '".$this->dataset."')");		
+
 				if(odbc_error())
 				{
 					$this->conneg->setStatus(400);
@@ -436,56 +518,43 @@ class CrudCreate extends WebService
 					return;
 				}
 				
-				// Get the list of resources to use to create Solr documents
-				$tempGraphUri = "temp-graph-".md5($this->document);
+				unset($irs);
 
-				if($this->mime == "application/rdf+xml")
+				// Index all the reification statements into the statements graph
+				$statements = array();
+				foreach($statementsUri as $uri)
 				{
-					@$this->db->query("DB.DBA.RDF_LOAD_RDFXML_MT('".str_replace("'", "\'", $this->document)."', '$tempGraphUri', '$tempGraphUri', 0)");	
-				}
-				
-				if($this->mime == "application/rdf+n3")
-				{
-					@$this->db->query("DB.DBA.TTLP_MT('".str_replace("'", "\'", $this->document)."', '$tempGraphUri', '$tempGraphUri', 0, 0)");		
-				}
+					$statements[$uri] = $resourceIndex[$uri];
+				}	
+								
+				$this->db->query("DB.DBA.RDF_LOAD_RDFXML_MT('".str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($statements))."', '".$this->dataset."reification/', '".$this->dataset."reification/')");		
 
-				$query = "select distinct ?s 					
-								from <$tempGraphUri> 
-								where 
-								{
-									?s ?p ?o.
-								}";
-	
-				$resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), "", $query), array("s"), FALSE));
-										
-				if (odbc_error())
+				if(odbc_error())
 				{
-					$this->conneg->setStatus(500);
-					$this->conneg->setStatusMsg("Internal Error");
-					$this->conneg->setStatusMsgExt("Error #crud-create-101");	
+					$this->conneg->setStatus(400);
+					$this->conneg->setStatusMsg("Bad Request");
+					$this->conneg->setStatusMsgExt("Error #crud-create-97. Syntax error in the RDF document: ".odbc_errormsg());
 					return;
-				}					
-				
-				$subjects = array();
-				
-				while(odbc_fetch_row($resultset))
-				{
-					array_push($subjects, odbc_result($resultset, 1));
 				}
 				
-				unset($resultset);
+				unset($statements);
 				
-				$query = "clear graph <".$tempGraphUri.">";
-	
-				@$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), "", $query), array(), FALSE));
-										
-				if (odbc_error())
+				// Link the dataset description of the file, by using the wsf:meta property, to its internal description (dataset graph description)
+				$datasetRes[$datasetUri] = $resourceIndex[$datasetUri];
+				
+				$datasetRes[$this->dataset] = array("http://purl.org/ontology/wsf#meta" => array(array("value" =>$datasetUri, "type" => "uri")));
+				
+				$this->db->query("DB.DBA.RDF_LOAD_RDFXML_MT('".str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($datasetRes))."', '".parent::$wsf_graph."datasets/', '".parent::$wsf_graph."datasets/')");		
+
+				if(odbc_error())
 				{
-					$this->conneg->setStatus(500);
-					$this->conneg->setStatusMsg("Internal Error");
-					$this->conneg->setStatusMsgExt("Error #crud-create-102");	
+					$this->conneg->setStatus(400);
+					$this->conneg->setStatusMsg("Bad Request");
+					$this->conneg->setStatusMsgExt("Error #crud-create-96. Syntax error in the RDF document: ".odbc_errormsg());
 					return;
-				}								
+				}		
+				
+				unset($datasetRes);		
 				
 				$labelProperties = array(	Namespaces::$dcterms."title",
 													Namespaces::$foaf."name",
@@ -533,93 +602,81 @@ class CrudCreate extends WebService
 				
 				$solr = new Solr(parent::$wsf_solr_core);
 				
-				foreach($subjects as $subject)
+				foreach($irsUri as $subject)
 				{
 					$add = "<add><doc><field name=\"uid\">".md5($this->dataset.$subject)."</field>";
 					$add .= "<field name=\"uri\">$subject</field>";
 					$add .= "<field name=\"dataset\">".$this->dataset."</field>";
 					
 					// Get types for this subject.
-					$query = $this->db->build_sparql_query("select ?type from <".$this->dataset."> where {<$subject> a ?type.}", array ('type'), FALSE);
-					
-					$resultset = $this->db->query($query);
-					
 					$types = array();
-					
-					while(odbc_fetch_row($resultset))
+					foreach($resourceIndex[$subject]["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"] as $values)
 					{
-						$type = odbc_result($resultset, 1);
-						
-						array_push($types, $type);
-						
-						$add .= "<field name=\"type\">$type</field>";
+						foreach($values as $value)
+						{
+							array_push($types, $value["value"]);
+							
+							$add .= "<field name=\"type\">".$value["value"]."</field>";
+						}
 					}
-					
-					unset($resultset);
 					
 				
 					// Get properties with the type of the object
-					$query = $this->db->build_sparql_query("select ?p ?o (str(DATATYPE(?o))) as ?otype from <".$this->dataset."> where {<$subject> ?p ?o.}", array ('p', 'o', 'otype'), FALSE);
-					
-					$resultset2 = $this->db->query($query);
-					
-					while(odbc_fetch_row($resultset2))
+					foreach($resourceIndex[$subject] as $predicate => $values)
 					{
-						$property = odbc_result($resultset2, 1);
-						$object = odbc_result($resultset2, 2);
-						$otype = odbc_result($resultset2, 3);
-						
-						if($otype == "http://www.w3.org/2001/XMLSchema#string")
-						{					  
-							$add .= "<field name=\"property\">".$this->xmlEncode($property)."</field>";
-							$add .= "<field name=\"text\">".$this->xmlEncode($object)."</field>";
-						}
-						elseif($otype == "" && strpos($property, "http://www.w3.org/1999/02/22-rdf-syntax-ns#") === FALSE && strpos($property, "http://www.w3.org/2000/01/rdf-schema#") === FALSE && strpos($property, "http://www.w3.org/2002/07/owl#") === FALSE)
+						foreach($values as $value)
 						{
-							$add .= "<field name=\"object_property\">".$this->xmlEncode($property)."</field>";
-							
-							$query = $this->db->build_sparql_query("select ?p ?o from <".$this->dataset."> where {<$object> ?p ?o.}", array ('p', 'o'), FALSE);
-					
-							$resultset3 = $this->db->query($query);
-							
-							$subjectTriples = array();
-							
-							while(odbc_fetch_row($resultset3))
+							if($value["type"] == "literal")
+							{					  
+								$add .= "<field name=\"property\">".$this->xmlEncode($predicate)."</field>";
+								$add .= "<field name=\"text\">".$this->xmlEncode($value["value"])."</field>";
+							}
+							elseif($value["type"] == "uri")
 							{
-								$p = odbc_result($resultset3, 1);
-								$o = odbc_result($resultset3, 2);
+								$add .= "<field name=\"object_property\">".$this->xmlEncode($predicate)."</field>";
 								
-								if(!isset($subjectTriples[$p]))
+								$query = $this->db->build_sparql_query("select ?p ?o from <".$this->dataset."> where {<".$value["value"]."> ?p ?o.}", array ('p', 'o'), FALSE);
+						
+								$resultset3 = $this->db->query($query);
+								
+								$subjectTriples = array();
+								
+								while(odbc_fetch_row($resultset3))
 								{
-									$subjectTriples[$p] = array();
+									$p = odbc_result($resultset3, 1);
+									$o = odbc_result($resultset3, 2);
+									
+									if(!isset($subjectTriples[$p]))
+									{
+										$subjectTriples[$p] = array();
+									}
+									
+									array_push($subjectTriples[$p], $o);
 								}
 								
-								array_push($subjectTriples[$p], $o);
-							}
-							
-							unset($resultset3);
-			
-							$labels = "";
-							foreach($labelProperties as $property)
-							{
-								if(isset($subjectTriples[$property]))
+								unset($resultset3);
+				
+								$labels = "";
+								foreach($labelProperties as $property)
 								{
-									$labels = $subjectTriples[$property][0]." ";
+									if(isset($subjectTriples[$property]))
+									{
+										$labels = $subjectTriples[$property][0]." ";
+									}
 								}
-							}
-							
-							if($labels != "")
-							{
-								$add .= "<field name=\"object_label\">".$this->xmlEncode($labels)."</field>";
-							}
-							else
-							{
-								$add .= "<field name=\"object_label\">-</field>";
+								
+								if($labels != "")
+								{
+									$add .= "<field name=\"object_label\">".$this->xmlEncode($labels)."</field>";
+								}
+								else
+								{
+									$add .= "<field name=\"object_label\">-</field>";
+								}
 							}
 						}
 					}
-					
-					unset($resultset2);
+
 					
 					// Get all types by inference
 					foreach($types as $type)
@@ -643,13 +700,17 @@ class CrudCreate extends WebService
 					}
 				}
 				
-				if(!$solr->commit())
+				if(parent::$solr_auto_commit === FALSE)
 				{
-					$this->conneg->setStatus(500);
-					$this->conneg->setStatusMsg("Internal Error");
-					$this->conneg->setStatusMsgExt("Error #crud-create-105");
-					return;					
+					if(!$solr->commit())
+					{
+						$this->conneg->setStatus(500);
+						$this->conneg->setStatusMsg("Internal Error");
+						$this->conneg->setStatusMsgExt("Error #crud-create-105");
+						return;					
+					}
 				}
+				
 /*				
 				// Optimisation can be time consuming "on-the-fly" (which decrease user's experience)
 				if(!$solr->optimize())
@@ -662,8 +723,77 @@ class CrudCreate extends WebService
 */				
 			}
 		}
+		
+		// Check if some PHP error have been thrown. If yes, then we have to change the conneg state of the query.
+		// This will only work if non-fatal error (which exit the running script) occurs. Otherwise this part of the
+		// script won't be executed.
+		
+		if(($errors = error_get_last()) !== NULL)
+		{
+			$errorMessage = "";
+			foreach($errors as $error)
+			{
+				$errorType = "";
+				switch ($error["type"]) 
+				{
+				    case E_ERROR:
+						$errorType = "Error";
+				    break;
+	
+				    case E_WARNING:
+						$errorType = "Warning";
+				    break;
+				   
+				    case E_PARSE:
+						$errorType = "Parse";
+				    break;
+				   
+				    case E_CORE_ERROR:
+						$errorType = "Core Error";
+				    break;
+				   
+				    case E_CORE_WARNING:
+						$errorType = "Core Warning";
+				    break;
+				   
+				    case E_COMPILE_ERROR:
+						$errorType = "Compile Error";
+				    break;
+				   
+				    case E_COMPILE_WARNING:
+						$errorType = "Compile Warning";
+				    break;
+				   
+				    case E_USER_ERROR:
+						$errorType = "User Error";
+				    break;
+				   
+				    case E_USER_WARNING:
+						$errorType = "User Warning";
+				    break;
+				    case E_STRICT:
+						$errorType = "Strict";
+				    break;
+				}
+				
+				if($errorType != "")
+				{
+					$errorMessage .= "PHP: $errorType: ".$error["message"];
+				}
+			}
+			
+			if($errorMessage != "")
+			{
+				$this->conneg->setStatus(500);
+				$this->conneg->setStatusMsg("Internal Error");
+				$this->conneg->setStatusMsgExt($errorMessage);
+				return;
+			}
+		}
 	}
 }
+
+
 
 	//@} 
 

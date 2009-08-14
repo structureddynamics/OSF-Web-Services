@@ -28,6 +28,8 @@ class ProcessorXML
 {
 	private $dom;
 	
+	private $prefixes = array();
+	
 	/*!	 @brief Constructor
 			 @details Create a new DOM document for the XML document being processed
 							
@@ -305,6 +307,35 @@ class ProcessorXML
 	*/
 	function loadXML($xml_doc)
 	{
+		// Get all prefixes for this XML document.
+		$prefixPos = 0;
+		while(($prefixPos = stripos($xml_doc, "<prefix", $prefixPos)) !== FALSE)
+		{
+			$entityPosStart = stripos($xml_doc, 'entity="', $prefixPos);
+			$entityPosEnd = stripos($xml_doc, '"', $entityPosStart + 9);
+			$entity = substr($xml_doc, $entityPosStart + 8, ($entityPosEnd - $entityPosStart - 8));
+
+			$uriPosStart = stripos($xml_doc, 'uri="', $entityPosEnd);
+			$uriPosEnd = stripos($xml_doc, '"', $uriPosStart + 6);
+			$uri = substr($xml_doc, $uriPosStart + 5, ($uriPosEnd - $uriPosStart - 5));
+
+			$prefixPos = $uriPosEnd;
+
+			$this->prefixes[$entity] = $uri;
+		}		
+
+		// Now lets resolve all prefixes in the XML file.
+
+		$replace = array();
+		$replaceFor = array();
+		foreach($this->prefixes as $prefix => $uri)
+		{
+			array_push($replace, "type=\"$prefix:");
+			array_push($replaceFor, "type=\"$uri");
+		}
+		
+		$xml_doc = str_ireplace($replace, $replaceFor, $xml_doc);
+		
 		$this->dom->loadXML($xml_doc);
 	}
 	
@@ -333,12 +364,11 @@ class ProcessorXML
 		return($dom);		
 	}
 	
-	/*!	 @brief Append an element to another element
+	/*!	 @brief Append an element to the root element of the current XML document
 							
 			\n
 	
-			@param[in] $dom Reference to the DOM of the resultset being appened
-			@param[in] $element Reference to the element where the new node has to be appened
+			@param[in] $element Reference to the element to happen to the root element of this XML document.
 			
 			@return returns NULL
 			
@@ -346,11 +376,18 @@ class ProcessorXML
 		
 			\n\n\n
 	*/
-	function appendElement(&$dom, &$element)
+	function appendElementToRoot(&$element)
 	{
 		$domNode = $this->dom->importNode($element, true);
-		$dom->appendChild($domNode);
+		$this->dom->documentElement->appendChild($domNode);
 	}	
+	
+	function importNode(&$targetElement, $importElement)
+	{
+		$domNode = $this->dom->importNode($importElement, true);
+		$targetElement->appendChild($domNode);
+	}
+	
 	
 	/*!	 @brief Get a list of nodes of a given type
 							
@@ -366,6 +403,8 @@ class ProcessorXML
 	*/
 	function getSubjectsByType($type)
 	{
+		$type = $this->transformPrefix($type);
+		
 		$xpath = new DOMXPath($this->dom);
 
 		$query = '//resultset/subject[attribute::type="'.$type.'"]';
@@ -373,6 +412,22 @@ class ProcessorXML
 		$subjects = $xpath->query($query);
 
 		return($subjects);		
+	}
+	
+	function transformPrefix($type)
+	{
+		if(strpos($type, ":") !== FALSE)
+		{
+			foreach($this->prefixes as $entity => $uri)
+			{
+				if(stripos($type, $entity.":") !== FALSE)
+				{
+					return(str_replace($entity.":", $uri, $type));
+				}
+			}
+		}
+		
+		return $type;
 	}
 
 
@@ -397,6 +452,26 @@ class ProcessorXML
 		return($subjects);		
 	}
 
+	/*!	 @brief Get all prefixes for this document
+							
+			\n
+	
+			@return returns a DOMNodeList with a reference to all prefixes
+			
+			@author Frederick Giasson, Structured Dynamics LLC.
+		
+			\n\n\n
+	*/
+	function getPrefixes()
+	{
+		$xpath = new DOMXPath($this->dom);
+
+		$query = '//resultset/prefix';
+		
+		$prefixes = $xpath->query($query);
+
+		return($prefixes);		
+	}
 
 	function getSubjectContent(&$subject){}
 
@@ -415,6 +490,8 @@ class ProcessorXML
 	*/
 	function getXPath($xpath)
 	{
+		$xpath = $this->transformPrefix($xpath);
+		
 		$xpath_path = new DOMXPath($this->dom);
 
 		$nodes = $xpath_path->query($xpath);
@@ -438,6 +515,8 @@ class ProcessorXML
 	*/
 	function getPredicatesByType(&$subject, $type)
 	{
+		$type = $this->transformPrefix($type);
+		
 		$resultset = $this->createResultsetFromElement($subject);
 	
 		$xpath = new DOMXPath($resultset);
@@ -489,6 +568,8 @@ class ProcessorXML
 	*/
 	function getObjectsByType(&$predicate, $type)
 	{
+		$type = $this->transformPrefix($type);
+		
 		$resultset = $this->createResultsetFromElement($predicate);
 	
 		$xpath = new DOMXPath($resultset);
@@ -540,6 +621,8 @@ class ProcessorXML
 	*/	
 	function getReificationStatementsByType(&$object, $type)
 	{
+		$type = $this->transformPrefix($type);
+		
 		$resultset = $this->createResultsetFromElement($object);
 	
 		$xpath = new DOMXPath($resultset);
@@ -599,6 +682,31 @@ class ProcessorXML
 			return "";
 		}
 	}
+
+	/*!	 @brief Get the Entity of a prefix element
+							
+			\n
+	
+			@param[in] $node the reference node
+			
+			@return returns the Entity
+			
+			@author Frederick Giasson, Structured Dynamics LLC.
+		
+			\n\n\n
+	*/
+	function getEntity(&$node)
+	{
+		if(isset($node->attributes))
+		{
+			return($node->attributes->getNamedItem("entity")->nodeValue);
+		}
+		else
+		{
+			return "";
+		}
+	}
+
 	
 	/*!	 @brief Get Label of a node of the resulset
 							
@@ -653,6 +761,7 @@ class ProcessorXML
 			\n
 	
 			@param[in] $node the reference node
+			@param[in] $prefixed Convert to prefixed form if a prefix exists for this type.
 			
 			@return returns the type
 			
@@ -660,10 +769,21 @@ class ProcessorXML
 		
 			\n\n\n
 	*/
-	function getType(&$node)
+	function getType(&$node, $prefixed=TRUE)
 	{
 		if(isset($node->attributes))
 		{
+			if($prefixed === TRUE)
+			{
+				foreach($this->prefixes as $entity => $uri)
+				{
+					if(stripos($node->attributes->getNamedItem("type")->nodeValue, $uri) !== FALSE)
+					{
+						return(str_replace($uri, $entity.":", $node->attributes->getNamedItem("type")->nodeValue));
+					}
+				}
+			}
+
 			return($node->attributes->getNamedItem("type")->nodeValue);
 		}
 		else

@@ -18,7 +18,6 @@
 
 ini_set("memory_limit","64M");
 
-
 // Database connectivity procedures
 include_once("../../framework/db.php");
 

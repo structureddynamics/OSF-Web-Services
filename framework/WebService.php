@@ -60,6 +60,14 @@ abstract class WebService
 	/*! @brief The core to use for Solr; "" for no core */
 	protected static $wsf_solr_core = "";	
 
+	/*! @brief 	Auto commit handled by the Solr data management systems. If this parameter is true, then this means
+	 * 				Solr will handle the commit operation by itself. If it is false, then the web services will trigger the commit
+	 * 				operations. Usually, Auto-commit should be handled by Solr when the size of the dataset is too big, otherwise
+	 * 				operation such as delete could take much time.			
+	 */
+	protected static $solr_auto_commit = FALSE;	
+
+
 	/*! @brief The URI of the Authentication Registrar web service */
 	protected $uri;	
 	
@@ -268,6 +276,23 @@ abstract class WebService
 	{
 		return str_replace(array("\\", "&", "<", ">"), array("%5C", "&amp;", "&lt;", "&gt;"), $string);
 	}
+	
+	/*!	 @brief Encode a string to put in a JSON value
+							
+			@param[in] $string The string to escape
+							
+			\n
+			
+			@return returns the escaped string
+			
+			@author Frederick Giasson, Structured Dynamics LLC.
+		
+			\n\n\n
+	*/		
+	public function jsonEncode($string)
+	{
+		return str_replace(array('\\', '"'), array('\\\\', '\\"'), $string);
+	}	
 }
 
 /*!	 @brief CRUD usage data structure of a web service

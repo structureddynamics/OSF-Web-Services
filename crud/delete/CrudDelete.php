@@ -36,7 +36,7 @@ class CrudDelete extends WebService
 	private $dtdURL;
 	
 	/*! @brief Supported serialization mime types by this Web service */
-	public static $supportedSerializations = array("application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
+	public static $supportedSerializations = array("application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
 
 	/*! @brief IP being registered */
 	private $registered_ip = "";
@@ -50,7 +50,6 @@ class CrudDelete extends WebService
 	/*! @brief Requester's IP used for request validation */
 	private $requester_ip = "";
 
-		
 	/*!	 @brief Constructor
 			 @details 	Initialize the Crud Delete
 			
@@ -238,7 +237,7 @@ class CrudDelete extends WebService
 		
 		// Check if the dataset is created
 		
-		$ws_dr = new DatasetRead($this->dataset, "self", parent::$wsf_local_ip);	// Here the one that makes the request is the WSF (internal request).
+		$ws_dr = new DatasetRead($this->dataset, "false", "self", parent::$wsf_local_ip);	// Here the one that makes the request is the WSF (internal request).
 		
 		$ws_dr->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
 		
@@ -414,7 +413,7 @@ class CrudDelete extends WebService
 									<".$this->resourceUri."> ?p ?o. 
 								}";
 	
-				@$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), "", $query), array(), FALSE));
+				@$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), " ", $query), array(), FALSE));
 										
 				if (odbc_error())
 				{
@@ -434,14 +433,18 @@ class CrudDelete extends WebService
 					$this->conneg->setStatusMsgExt("Error #crud-delete-101");	
 					return;
 				}
-
-				if(!$solr->commit())
+				
+				if(parent::$solr_auto_commit === FALSE)
 				{
-					$this->conneg->setStatus(500);
-					$this->conneg->setStatusMsg("Internal Error");
-					$this->conneg->setStatusMsgExt("Error #crud-delete-102");	
-					return;
+					if(!$solr->commit())
+					{
+						$this->conneg->setStatus(500);
+						$this->conneg->setStatusMsg("Internal Error");
+						$this->conneg->setStatusMsgExt("Error #crud-create-105");
+						return;					
+					}
 				}
+	
 			}
 		}
 	}

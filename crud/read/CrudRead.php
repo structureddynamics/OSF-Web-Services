@@ -59,7 +59,7 @@ class CrudRead extends WebService
 	public $objectTriples = array();	
 
 	/*! @brief Supported serialization mime types by this Web service */
-	public static $supportedSerializations = array("application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
+	public static $supportedSerializations = array("application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
 		
 	/*!	 @brief Constructor
 			 @details 	Initialize the Auth Web Service
@@ -203,8 +203,14 @@ class CrudRead extends WebService
 		$resultset = $xml->createResultset();
 
 		// Creation of the prefixes elements.
+		$void = $xml->createPrefix("owl", "http://www.w3.org/2002/07/owl#");
+		$resultset->appendChild($void);
 		$rdf = $xml->createPrefix("rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#");
 		$resultset->appendChild($rdf);
+		$dcterms = $xml->createPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
+		$resultset->appendChild($dcterms);
+		$dcterms = $xml->createPrefix("wsf", "http://purl.org/ontology/wsf#");
+		$resultset->appendChild($dcterms);
 
 		$subject;
 
@@ -419,11 +425,90 @@ class CrudRead extends WebService
 	*/	
 	public function pipeline_serialize()
 	{
-
 		$rdf_part = "";
 
 		switch($this->conneg->getMime())
 		{
+			case "application/json":
+				$json_part = "";
+				$xml = new ProcessorXML();
+				$xml->loadXML($this->pipeline_getResultset());
+				
+				$subjects = $xml->getSubjects();
+			
+				foreach($subjects as $subject)
+				{
+					$subjectURI = $xml->getURI($subject);
+					$subjectType = $xml->getType($subject);
+				
+					$json_part .= "      { \n";
+					$json_part .= "        \"uri\": \"".parent::jsonEncode($subjectURI)."\", \n";
+					$json_part .= "        \"type\": \"".parent::jsonEncode($subjectType)."\", \n";
+
+					$predicates = $xml->getPredicates($subject);
+					
+					$nbPredicates = 0;
+					
+					foreach($predicates as $predicate)
+					{
+						$objects = $xml->getObjects($predicate);
+						
+						foreach($objects as $object)
+						{
+							$nbPredicates++;
+							
+							if($nbPredicates == 1)
+							{
+								$json_part .= "        \"predicates\": [ \n";
+							}
+							
+							$objectType = $xml->getType($object);						
+							$predicateType = $xml->getType($predicate);
+							
+							if($objectType == "rdfs:Literal")
+							{
+								$objectValue = $xml->getContent($object);
+														
+								$json_part .= "          { \n";
+								$json_part .= "            \"".parent::jsonEncode($predicateType)."\": \"".parent::jsonEncode($objectValue)."\" \n";
+								$json_part .= "          },\n";
+							}
+							else
+							{
+								$objectURI = $xml->getURI($object);						
+								$rdf_part .= "          <$predicateType> <$objectURI> ;\n";
+								
+								$json_part .= "          { \n";
+								$json_part .= "            \"".parent::jsonEncode($predicateType)."\": { \n";
+								$json_part .= "            	  \"uri\": \"".parent::jsonEncode($objectURI)."\" \n";
+								$json_part .= "            	  } \n";
+								$json_part .= "          },\n";
+							}
+						}
+					}
+					
+					if(strlen($json_part) > 0)
+					{
+						$json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
+					}						
+					
+					if($nbPredicates > 0)
+					{
+						$json_part .= "        ]\n";
+					}
+					
+					$json_part .= "      },\n";					
+				}
+				
+				if(strlen($json_part) > 0)
+				{
+					$json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
+				}
+				
+
+				return($json_part);		
+			break;	
+			
 			case "application/rdf+n3":
 			
 				$xml = new ProcessorXML();
@@ -464,7 +549,7 @@ class CrudRead extends WebService
 					
 					if(strlen($rdf_part) > 0)
 					{
-						$rdf_part = substr($rdf_part, 0, strlen($rdf_part) - 2).".\n";
+						$rdf_part = substr($rdf_part, 0, strlen($rdf_part) - 2)."\n";
 					}
 					
 				}
@@ -477,8 +562,10 @@ class CrudRead extends WebService
 				
 				$subjects = $xml->getSubjects();
 				
-				$namespaces = array();
-				
+				$namespaces = array(	"http://www.w3.org/2002/07/owl#" => "owl",
+												"http://www.w3.org/1999/02/22-rdf-syntax-ns#" => "rdf",
+												"http://www.w3.org/2000/01/rdf-schema#" => "rdfs",
+												"http://purl.org/ontology/wsf#" => "wsf");				
 				$nsId = 0;
 				
 				foreach($subjects as $subject)
@@ -546,7 +633,7 @@ class CrudRead extends WebService
 
 					$rdf_part .= "    </".$namespaces[$stNs].":".$stExtension.">\n";
 					
-					$rdf_header = "<rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"";
+					$rdf_header = "<rdf:RDF ";
 
 					foreach($namespaces as $ns => $prefix)
 					{
@@ -643,6 +730,19 @@ class CrudRead extends WebService
 
 			case "text/xml":
 				return $this->pipeline_getResultset();
+			break;
+			
+			case "application/json":
+				$json_document = "";
+				$json_document .= "{\n";
+				$json_document .= "  \"resultset\": {\n";
+				$json_document .= "    \"subjects\": [\n";
+				$json_document .= $this->pipeline_serialize();
+				$json_document .= "    ]\n";
+				$json_document .= "  }\n";
+				$json_document .= "}";
+				
+				return($json_document);
 			break;
 		}		
 	}

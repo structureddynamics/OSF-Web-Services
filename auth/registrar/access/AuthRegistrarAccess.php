@@ -36,7 +36,7 @@ class AuthRegistrarAccess extends WebService
 	private $dtdURL;
 	
 	/*! @brief Supported serialization mime types by this Web service */
-	public static $supportedSerializations = array("application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
+	public static $supportedSerializations = array("application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
 	
 	/*! @brief IP being registered */
 	private $registered_ip = "";
@@ -489,7 +489,7 @@ class AuthRegistrarAccess extends WebService
 									}";
 
 		
-					$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), "", $query), array(), FALSE));
+					$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), " ", $query), array(), FALSE));
 											
 					if (odbc_error())
 					{
@@ -534,13 +534,13 @@ class AuthRegistrarAccess extends WebService
 										}
 									}";
 		
-					@$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), "", $query), array(), FALSE));
+					@$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), " ", $query), array(), FALSE));
 											
 					if (odbc_error())
 					{
 						$this->conneg->setStatus(500);
 						$this->conneg->setStatusMsg("Internal Error");
-						$this->conneg->setStatusMsgExt("Error #auth-registrar-access-101");	
+						$this->conneg->setStatusMsgExt("Error #auth-registrar-access-102");	
 						return;
 					}			
 				}				
@@ -565,13 +565,13 @@ class AuthRegistrarAccess extends WebService
 										}
 									}";
 		
-					@$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), "", $query), array(), FALSE));
+					@$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), " ", $query), array(), FALSE));
 											
 					if (odbc_error())
 					{
 						$this->conneg->setStatus(500);
 						$this->conneg->setStatusMsg("Internal Error");
-						$this->conneg->setStatusMsgExt("Error #auth-registrar-access-102");	
+						$this->conneg->setStatusMsgExt("Error #auth-registrar-access-103");	
 						return;
 					}								
 				}
@@ -592,13 +592,13 @@ class AuthRegistrarAccess extends WebService
 										}
 									}";
 		
-					@$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), "", $query), array(), FALSE));
+					@$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), " ", $query), array(), FALSE));
 											
 					if (odbc_error())
 					{
 						$this->conneg->setStatus(500);
 						$this->conneg->setStatusMsg("Internal Error");
-						$this->conneg->setStatusMsgExt("Error #auth-registrar-access-103");	
+						$this->conneg->setStatusMsgExt("Error #auth-registrar-access-104");	
 						return;
 					}							
 				}														

@@ -15,8 +15,8 @@
 	 \n\n\n
  */
 
-
-ini_set("memory_limit","64M");
+ini_set("display_errors", "On");		// Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
+ini_set("memory_limit","128M");
 
 
 // Database connectivity procedures
@@ -24,6 +24,9 @@ include_once("../../framework/db.php");
 
 // Content negotion class
 include_once("../../framework/Conneg.php");
+
+include_once("../../framework/arc2/ARC2.php");
+
 
 // The Web Service parent class
 include_once("../../framework/WebService.php");

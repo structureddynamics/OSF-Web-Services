@@ -41,7 +41,7 @@ class DatasetDelete extends WebService
 	private $datasetUri = "";
 	
 	/*! @brief Supported serialization mime types by this Web service */
-	public static $supportedSerializations = array("application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
+	public static $supportedSerializations = array("application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
 		
 	/*!	 @brief Constructor
 			 @details 	Initialize the Auth Web Service
@@ -340,8 +340,37 @@ class DatasetDelete extends WebService
 		// Make sure there was no conneg error prior to this process call
 		if($this->conneg->getStatus() == 200)
 		{
-			// Remove the Graph description in the ".../datasets/" graph.
-			$query = "delete from <".parent::$wsf_graph."datasets/> 
+			// Remove  all the possible other meta descriptions
+			// of the dataset introduced by the wsf:meta property.
+
+			$query = "	delete from <".parent::$wsf_graph."datasets/> 
+							{ 
+								?meta ?p_meta ?o_meta.
+							}
+							where
+							{
+								graph <".parent::$wsf_graph."datasets/>
+								{
+									<$this->datasetUri> <http://purl.org/ontology/wsf#meta> ?meta.
+									?meta ?p_meta ?o_meta.
+								}
+							}";
+
+
+			@$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), " ", $query), array(), FALSE));
+									
+			if (odbc_error())
+			{
+				$this->conneg->setStatus(500);
+				$this->conneg->setStatusMsg("Internal Error");
+				$this->conneg->setStatusMsgExt("Error #dataset-delete-106");
+				return;
+			}			
+
+			
+			// Remove the Graph description in the ".../datasets/"
+			
+			$query = "	delete from <".parent::$wsf_graph."datasets/> 
 							{ 
 								<$this->datasetUri> ?p ?o.
 							}
@@ -353,7 +382,7 @@ class DatasetDelete extends WebService
 								}
 							}";
 
-			@$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), "", $query), array(), FALSE));
+			@$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), " ", $query), array(), FALSE));
 									
 			if (odbc_error())
 			{
@@ -391,6 +420,20 @@ class DatasetDelete extends WebService
 				return;
 			}		
 			
+			// Drop the reification graph related to this dataset
+			$query = "exst('select * from (sparql clear graph <".$this->datasetUri."reification/>) sub')";
+
+			@$this->db->query($query);
+									
+			if (odbc_error())
+			{
+				$this->conneg->setStatus(500);
+				$this->conneg->setStatusMsg("Internal Error");
+				$this->conneg->setStatusMsgExt("Error #dataset-delete-105");	
+				return;
+			}		
+			
+			
 			// Remove all documents form the solr index for this Dataset
 			$solr = new Solr(parent::$wsf_solr_core);			
 			
@@ -402,13 +445,18 @@ class DatasetDelete extends WebService
 				return;					
 			}
 			
-			if(!$solr->commit())
+			if(parent::$solr_auto_commit === FALSE)
 			{
-				$this->conneg->setStatus(500);
-				$this->conneg->setStatusMsg("Internal Error");
-				$this->conneg->setStatusMsgExt("Error #dataset-delete-103");	
-				return;					
+				if(!$solr->commit())
+				{
+					$this->conneg->setStatus(500);
+					$this->conneg->setStatusMsg("Internal Error");
+					$this->conneg->setStatusMsgExt("Error #crud-create-105");
+					return;					
+				}
 			}
+
+			
 /*			
 			if(!$solr->optimize())
 			{

@@ -34,6 +34,9 @@ class Search extends WebService
 	/*! @brief Full text query supporting Lucene query syntax */
 	private $query = "";
 	
+	/*! @brief List of attributes to filter */
+	private $attributes = "";
+
 	/*! @brief List of types to filter */
 	private $types = "";
 
@@ -55,6 +58,15 @@ class Search extends WebService
 	/*! @brief Requested IP */
 	private $registered_ip = "";
 
+
+	/*! @brief Namespaces/Prefixes binding */
+	private	$namespaces = array(	"http://www.w3.org/2002/07/owl#" => "owl",
+												"http://www.w3.org/1999/02/22-rdf-syntax-ns#" => "rdf",
+												"http://www.w3.org/2000/01/rdf-schema#" => "rdfs",
+												"http://purl.org/ontology/wsf#" => "wsf",
+												"http://purl.org/ontology/aggregate#" => "aggr");			
+
+
 	/*! @brief Array of triples where the current resource is a subject. */
 	public $subjectTriples = array(); // 
 
@@ -67,6 +79,9 @@ class Search extends WebService
 	/*! @brief Resultset of object properties returned by Solr */
 	public $resultsetObjectProperties = array();
 
+	/*! @brief Resultset of object properties URIs returned by Solr */
+	public $resultsetObjectPropertiesUris = array();
+
 	/*! @brief Aggregates of the search */
 	public $aggregates = array();
 
@@ -75,12 +90,34 @@ class Search extends WebService
 	
 	/*! @brief Supported serialization mime types by this Web service */
 	public static $supportedSerializations = array("application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
+
+	/*! @brief Error messages of this web service */
+	private $errorMessenger = '{
+												"ws": "/ws/search/",
+												"_200": {
+													"id": "WS-AUTH-LISTER-200",
+													"name": "No query specified for this request",
+													"description": "No search query has been defined for ths query"
+												},
+												"_201": {
+													"id": "WS-SEARCH-201",
+													"name": "The number of items returned per request has to be greater than 0 and lesser than 128",
+													"description": "The number of items returned per request has to be greater than 0 and lesser than 128"
+												},
+												"_300": {
+													"id": "WS-SEARCH-300",
+													"name": "No dataset accessible by that user",
+													"description": "No dataset accessible by that user"
+												}	
+											}';	
+
 		
 	/*!	 @brief Constructor
 			 @details 	Initialize the Search Web Service
 							
 			@param[in] $query Lucune syntaxed query to send to the search system 
 			@param[in] $types List of filtering types URIs separated by ";"
+			@param[in] $attributes List of filtering attributes URIs separated by ";"
 			@param[in] $datasets List of filtering datasets URIs separated by ";"
 			@param[in] $items Number of items returned by resultset
 			@param[in] $page Starting item number of the returned resultset
@@ -97,7 +134,7 @@ class Search extends WebService
 		
 			\n\n\n
 	*/		
-	function __construct($query, $types, $datasets, $items, $page, $inference, $include_aggregates, $registered_ip, $requester_ip)
+	function __construct($query, $types, $attributes, $datasets, $items, $page, $inference, $include_aggregates, $registered_ip, $requester_ip)
 	{
 		parent::__construct();		
 		
@@ -108,6 +145,7 @@ class Search extends WebService
 		$this->includeAggregates = $include_aggregates;
 		
 		$this->types = $types;
+		$this->attributes = $attributes;
 		$this->datasets = $datasets;
 
 		$this->requester_ip = $requester_ip;
@@ -137,12 +175,14 @@ class Search extends WebService
 			}
 		}		
 
-		$this->uri = parent::$wsf_base_url."/wsf/ws/search/";	
+		$this->uri = $this->wsf_base_url."/wsf/ws/search/";	
 		$this->title = "Search Web Service";	
 		$this->crud_usage = new CrudUsage(FALSE, TRUE, FALSE, FALSE);
-		$this->endpoint = parent::$wsf_base_url."/ws/search/";			
+		$this->endpoint = $this->wsf_base_url."/ws/search/";			
 		
 		$this->dtdURL = "search/search.dtd";
+		
+		$this->errorMessenger = json_decode($this->errorMessenger);		
 	}
 
 	function __destruct() 
@@ -170,6 +210,22 @@ class Search extends WebService
 		//
 		// This means that the validation of these queries doesn't happen at this level.
 	}
+	
+	/*!	 @brief Returns the error structure
+							
+			\n
+			
+			@return returns the error structure
+		
+			@author Frederick Giasson, Structured Dynamics LLC.
+		
+			\n\n\n
+	*/		
+	public function pipeline_getError()
+	{
+		return($this->conneg->error);
+	}	
+	
 	
 	/*!	@brief Create a resultset in a pipelined mode based on the processed information by the Web service.
 							
@@ -235,6 +291,38 @@ class Search extends WebService
 				$pred->appendChild($object);
 				$subject->appendChild($pred);				
 			}
+			
+			// Assigning the preferred label relationship
+			if(isset($result["prefLabel"]))
+			{
+				$pred = $xml->createPredicate(Namespaces::$iron."prefLabel");
+				$object = $xml->createObjectContent($this->xmlEncode($result["prefLabel"]));
+				$pred->appendChild($object);
+				$subject->appendChild($pred);				
+			}
+
+			// Assigning the alternative label relationship
+			if(isset($result["altLabel"]))
+			{
+				foreach($result["altLabel"] as $altLabel)
+				{
+					$pred = $xml->createPredicate(Namespaces::$iron."altLabel");
+					$object = $xml->createObjectContent($this->xmlEncode($altLabel));
+					$pred->appendChild($object);
+					$subject->appendChild($pred);
+				}
+			}
+
+			// Assigning the description relationship
+			if(isset($result["description"]))
+			{
+				$pred = $xml->createPredicate(Namespaces::$iron."description");
+				$object = $xml->createObjectContent($this->xmlEncode($result["description"]));
+				$pred->appendChild($object);
+				$subject->appendChild($pred);				
+			}
+
+			
 	
 			// Assigning the Properties -> Literal relationships
 			foreach($result as $property => $values)
@@ -258,10 +346,10 @@ class Search extends WebService
 				{
 					if($propeerty != "type" && $property != "dataset")
 					{
-						foreach($values as $value)
+						foreach($values as $key => $value)
 						{
 							$pred = $xml->createPredicate($property);
-							$object = $xml->createObject("", "", "");
+							$object = $xml->createObject("", $this->resultsetObjectPropertiesUris[$uri][$property][$key], "");
 							$pred->appendChild($object);
 							
 							$reify = $xml->createReificationStatement("wsf:objectLabel", $value);
@@ -342,6 +430,29 @@ class Search extends WebService
 					$resultset->appendChild($subject);
 				}
 			}
+
+			// For each attributes, we re-introduce them in the aggregates
+			foreach($this->aggregates["attribute"] as $fattribute => $fcount)
+			{
+				$subject = $xml->createSubject("aggr:Aggregate", $aggregatesUri."/".md5($fattribute)."/");
+
+				$pred = $xml->createPredicate("aggr:property");
+				$object = $xml->createObject("", "http://www.w3.org/1999/02/22-rdf-syntax-ns#Property");
+				$pred->appendChild($object);
+				$subject->appendChild($pred);				
+
+				$pred = $xml->createPredicate("aggr:object");
+				$object = $xml->createObject("", $fattribute);
+				$pred->appendChild($object);
+				$subject->appendChild($pred);				
+
+				$pred = $xml->createPredicate("aggr:count");
+				$object = $xml->createObjectContent($this->xmlEncode($fcount));
+				$pred->appendChild($object);
+				$subject->appendChild($pred);				
+				
+				$resultset->appendChild($subject);
+			}
 						
 			// Dataset
 			
@@ -349,24 +460,24 @@ class Search extends WebService
 			
 			foreach($this->aggregates["dataset"] as $ftype => $fcount)
 			{
-					$subject = $xml->createSubject("aggr:Aggregate", $aggregatesUri."/".md5($ftype)."/");
-	
-					$pred = $xml->createPredicate("aggr:property");
-					$object = $xml->createObject("", "http://rdfs.org/ns/void#Dataset");
-					$pred->appendChild($object);
-					$subject->appendChild($pred);				
-	
-					$pred = $xml->createPredicate("aggr:object");
-					$object = $xml->createObject("", $ftype);
-					$pred->appendChild($object);
-					$subject->appendChild($pred);				
-	
-					$pred = $xml->createPredicate("aggr:count");
-					$object = $xml->createObjectContent($this->xmlEncode($fcount));
-					$pred->appendChild($object);
-					$subject->appendChild($pred);				
-					
-					$resultset->appendChild($subject);
+				$subject = $xml->createSubject("aggr:Aggregate", $aggregatesUri."/".md5($ftype)."/");
+
+				$pred = $xml->createPredicate("aggr:property");
+				$object = $xml->createObject("", "http://rdfs.org/ns/void#Dataset");
+				$pred->appendChild($object);
+				$subject->appendChild($pred);				
+
+				$pred = $xml->createPredicate("aggr:object");
+				$object = $xml->createObject("", $ftype);
+				$pred->appendChild($object);
+				$subject->appendChild($pred);				
+
+				$pred = $xml->createPredicate("aggr:count");
+				$object = $xml->createObjectContent($this->xmlEncode($fcount));
+				$pred->appendChild($object);
+				$subject->appendChild($pred);				
+				
+				$resultset->appendChild($subject);
 			}		
 		}
 		
@@ -388,7 +499,7 @@ class Search extends WebService
 	public function injectDoctype($xmlDoc)
 	{
 		$posHeader = 	strpos($xmlDoc, '"?>') + 3;
-		$xmlDoc = substr($xmlDoc, 0, $posHeader)."\n<!DOCTYPE resultset PUBLIC \"-//Structured Dynamics LLC//Search DTD 0.1//EN\" \"".parent::$dtdBaseURL.$this->dtdURL."\">".substr($xmlDoc, $posHeader, strlen($xmlDoc) - $posHeader);	
+		$xmlDoc = substr($xmlDoc, 0, $posHeader)."\n<!DOCTYPE resultset PUBLIC \"-//Structured Dynamics LLC//Search DTD 0.1//EN\" \"".$this->dtdBaseURL.$this->dtdURL."\">".substr($xmlDoc, $posHeader, strlen($xmlDoc) - $posHeader);	
 		
 		return($xmlDoc);
 	}
@@ -426,7 +537,14 @@ class Search extends WebService
 			{
 				$this->conneg->setStatus(400);
 				$this->conneg->setStatusMsg("Bad Request");
-				$this->conneg->setStatusMsgExt("No query specified for this request");
+				$this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
+				$this->conneg->setError($this->errorMessenger->_200->id, 
+													$this->errorMessenger->ws, 
+													$this->errorMessenger->_200->name, 
+													$this->errorMessenger->_200->description, 
+													"",
+													$this->errorMessenger->_200->level);					
+				
 				return;
 			}
 			
@@ -434,7 +552,14 @@ class Search extends WebService
 			{
 				$this->conneg->setStatus(400);
 				$this->conneg->setStatusMsg("Bad Request");
-				$this->conneg->setStatusMsgExt("The number of items returned per request has to be greater than 0 and lesser than 128");
+				$this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
+				$this->conneg->setError($this->errorMessenger->_201->id, 
+													$this->errorMessenger->ws, 
+													$this->errorMessenger->_201->name, 
+													$this->errorMessenger->_201->description, 
+													"",
+													$this->errorMessenger->_201->level);					
+
 				return;
 			}
 		}
@@ -533,11 +658,6 @@ class Search extends WebService
 				
 				$subjects = $xml->getSubjects();
 		
-				$namespaces = array(	"http://www.w3.org/2002/07/owl#" => "owl",
-												"http://www.w3.org/1999/02/22-rdf-syntax-ns#" => "rdf",
-												"http://www.w3.org/2000/01/rdf-schema#" => "rdfs",
-												"http://purl.org/ontology/wsf#" => "wsf",
-												"http://purl.org/ontology/aggregate#" => "aggr");			
 				$nsId = 0;			
 			
 				foreach($subjects as $subject)
@@ -545,20 +665,17 @@ class Search extends WebService
 					$subjectURI = $xml->getURI($subject);
 					$subjectType = $xml->getType($subject);
 				
-					$ns = $this->getNamespace($subjectType);
-
-					$stNs = $ns[0];
-					$stExtension = $ns[1];
+					$ns1 = $this->getNamespace($subjectType);
 				
-					if(!isset($namespaces[$stNs]))
+					if(!isset($this->namespaces[$ns1[0]]))
 					{
-						$namespaces[$stNs] = "ns".$nsId;
+						$this->namespaces[$ns1[0]] = "ns".$nsId;
 						$nsId++;
 					}				
 				
 					$json_part .= "      { \n";
 					$json_part .= "        \"uri\": \"".parent::jsonEncode($subjectURI)."\", \n";
-					$json_part .= "        \"type\": \"".parent::jsonEncode($namespaces[$stNs].":".$stExtension)."\", \n";
+					$json_part .= "        \"type\": \"".parent::jsonEncode($this->namespaces[$ns1[0]].":".$ns1[1])."\", \n";
 
 					$predicates = $xml->getPredicates($subject);
 					
@@ -585,17 +702,15 @@ class Search extends WebService
 								$objectValue = $xml->getContent($object);
 														
 								$ns = $this->getNamespace($predicateType);
-								$ptNs = $ns[0];
-								$ptExtension = $ns[1];
 							
-								if(!isset($namespaces[$ptNs]))
+								if(!isset($this->namespaces[$ns[0]]))
 								{
-									$namespaces[$ptNs] = "ns".$nsId;
+									$this->namespaces[$ns[0]] = "ns".$nsId;
 									$nsId++;
 								}						
 														
 								$json_part .= "          { \n";
-								$json_part .= "            \"".parent::jsonEncode($namespaces[$ptNs].":".$ptExtension)."\": \"".parent::jsonEncode($objectValue)."\" \n";
+								$json_part .= "            \"".parent::jsonEncode($this->namespaces[$ns[0]].":".$ns[1])."\": \"".parent::jsonEncode($objectValue)."\" \n";
 								$json_part .= "          },\n";
 							}
 							else
@@ -603,17 +718,15 @@ class Search extends WebService
 								$objectURI = $xml->getURI($object);						
 
 								$ns = $this->getNamespace($predicateType);
-								$ptNs = $ns[0];
-								$ptExtension = $ns[1];
 							
-								if(!isset($namespaces[$ptNs]))
+								if(!isset($this->namespaces[$ns[0]]))
 								{
-									$namespaces[$ptNs] = "ns".$nsId;
+									$this->namespaces[$ns[0]] = "ns".$nsId;
 									$nsId++;
 								}
 								
 								$json_part .= "          { \n";
-								$json_part .= "            \"".parent::jsonEncode($namespaces[$ptNs].":".$ptExtension)."\": { \n";
+								$json_part .= "            \"".parent::jsonEncode($this->namespaces[$ns[0]].":".$ns[1])."\": { \n";
 								$json_part .= "            	  \"uri\": \"".parent::jsonEncode($objectURI)."\",\n";
 								
 								// Check if there is a reification statement for this object.
@@ -674,8 +787,9 @@ class Search extends WebService
 				
     			$json_header .="  \"prefixes\": [ \n";
 				$json_header .="    {\n";
-				foreach($namespaces as $ns => $prefix)
+				foreach($this->namespaces as $ns => $prefix)
 				{
+					$ns = urldecode($ns);
 					$json_header .= "      \"$prefix\": \"$ns\",\n";
 				}	
 				
@@ -705,7 +819,7 @@ class Search extends WebService
 				foreach($subjects as $subject)
 				{
 					$subjectURI = $xml->getURI($subject);
-					$subjectType = $xml->getType($subject);
+					$subjectType = $xml->getType($subject, FALSE);
 				
 					$rdf_part .= "\n    <$subjectURI> a <$subjectType> ;\n";
 
@@ -718,7 +832,7 @@ class Search extends WebService
 						foreach($objects as $object)
 						{
 							$objectType = $xml->getType($object);						
-							$predicateType = $xml->getType($predicate);
+							$predicateType = $xml->getType($predicate, FALSE);
 							$objectContent = $xml->getContent($object);
 							
 							if($objectType == "rdfs:Literal")
@@ -749,8 +863,6 @@ class Search extends WebService
 				
 				$subjects = $xml->getSubjects();
 				
-				$namespaces = array();
-				
 				$nsId = 0;
 				
 				foreach($subjects as $subject)
@@ -758,17 +870,15 @@ class Search extends WebService
 					$subjectURI = $xml->getURI($subject);
 					$subjectType = $xml->getType($subject);
 				
-					$ns = $this->getNamespace($subjectType);
-					$stNs = $ns[0];
-					$stExtension = $ns[1];
+					$ns1 = $this->getNamespace($subjectType);
 				
-					if(!isset($namespaces[$stNs]))
+					if(!isset($this->namespaces[$ns1[0]]))
 					{
-						$namespaces[$stNs] = "ns".$nsId;
+						$this->namespaces[$ns1[0]] = "ns".$nsId;
 						$nsId++;
 					}
 				
-					$rdf_part .= "\n    <".$namespaces[$stNs].":".$stExtension." rdf:about=\"$subjectURI\">\n";
+					$rdf_part .= "\n    <".$this->namespaces[$ns1[0]].":".$ns1[1]." rdf:about=\"$subjectURI\">\n";
 
 					$predicates = $xml->getPredicates($subject);
 					
@@ -786,43 +896,40 @@ class Search extends WebService
 								$objectValue = $xml->getContent($object);	
 								
 								$ns = $this->getNamespace($predicateType);
-								$ptNs = $ns[0];
-								$ptExtension = $ns[1];
-							
-								if(!isset($namespaces[$ptNs]))
+								
+								if(!isset($this->namespaces[$ns[0]]))
 								{
-									$namespaces[$ptNs] = "ns".$nsId;
+									$this->namespaces[$ns[0]] = "ns".$nsId;
 									$nsId++;
 								}
-													
-								$rdf_part .= "        <".$namespaces[$ptNs].":".$ptExtension.">".$this->xmlEncode($objectValue)."</".$namespaces[$ptNs].":".$ptExtension.">\n";
+								
+								$rdf_part .= "        <".$this->namespaces[$ns[0]].":".$ns[1].">".$this->xmlEncode($objectValue)."</".$this->namespaces[$ns[0]].":".$ns[1].">\n";
 							}
 							else
 							{
 								$objectURI = $xml->getURI($object);		
 								
 								$ns = $this->getNamespace($predicateType);
-								$ptNs = $ns[0];
-								$ptExtension = $ns[1];
 							
-								if(!isset($namespaces[$ptNs]))
+								if(!isset($this->namespaces[$ns[0]]))
 								{
-									$namespaces[$ptNs] = "ns".$nsId;
+									$this->namespaces[$ns[0]] = "ns".$nsId;
 									$nsId++;
 								}
 												
-								$rdf_part .= "        <".$namespaces[$ptNs].":".$ptExtension." rdf:resource=\"$objectURI\" />\n";
+								$rdf_part .= "        <".$this->namespaces[$ns[0]].":".$ns[1]." rdf:resource=\"$objectURI\" />\n";
 							}
 						}
 					}
 
-					$rdf_part .= "    </".$namespaces[$stNs].":".$stExtension.">\n";
+					$rdf_part .= "    </".$this->namespaces[$ns1[0]].":".$ns1[1].">\n";
 				}
 
 				$rdf_header = "<rdf:RDF ";
 
-				foreach($namespaces as $ns => $prefix)
+				foreach($this->namespaces as $ns => $prefix)
 				{
+					$ns = urldecode($ns);
 					$rdf_header .= " xmlns:$prefix=\"$ns\"";
 				}
 				
@@ -849,7 +956,7 @@ class Search extends WebService
 	*/		
 	private function getNamespace($uri)
 	{
-		$pos = strpos($uri, "#");
+		$pos = strrpos($uri, "#");
 		
 		if($pos !== FALSE)
 		{
@@ -869,6 +976,18 @@ class Search extends WebService
 				
 				if($pos !== FALSE)
 				{
+					$nsUri = explode(":", $uri, 2);
+					
+					foreach($this->namespaces as $uri2 => $prefix2)
+					{
+						$uri2 = urldecode($uri2);
+						
+						if($prefix2 == $nsUri[0])
+						{
+							return(array($uri2, $nsUri[1]));
+						}
+					}
+					
 					return explode(":", $uri, 2);
 				}
 			}
@@ -904,7 +1023,7 @@ class Search extends WebService
 					
 					foreach($predicates as $predicate)
 					{
-						$predicateType = $xml->getType($predicate);
+						$predicateType = $xml->getType($predicate, FALSE);
 						
 						$objects = $xml->getObjects($predicate);
 						
@@ -914,11 +1033,11 @@ class Search extends WebService
 							
 							foreach($reifies as $reify)
 							{
-								$rdf_reification .= "_:bnode".$bnodeCounter." a rdf:Statement ;\n";
+								$rdf_reification .= "_:".md5($xml->getURI($subject).$predicateType.$xml->getURI($object))." a rdf:Statement ;\n";
 								$bnodeCounter++;
 								$rdf_reification .= "    rdf:subject <".$xml->getURI($subject)."> ;\n";
 								$rdf_reification .= "    rdf:predicate <".$predicateType."> ;\n";
-								$rdf_reification .= "    rdf:object _:bnode".$bnodeCounter." ;\n";
+								$rdf_reification .= "    rdf:object <".$xml->getURI($object)."> ;\n";
 								$rdf_reification .= "    wsf:objectLabel \"".$xml->getValue($reify)."\" .\n\n";
 								$bnodeCounter++;
 							}
@@ -943,7 +1062,7 @@ class Search extends WebService
 					
 					foreach($predicates as $predicate)
 					{
-						$predicateType = $xml->getType($predicate);
+						$predicateType = $xml->getType($predicate, FALSE);
 					
 						$objects = $xml->getObjects($predicate);
 						
@@ -953,11 +1072,11 @@ class Search extends WebService
 							
 							foreach($reifies as $reify)
 							{
-								$rdf_reification .= "<rdf:Statement>\n";
+								$rdf_reification .= "<rdf:Statement rdf:about=\"".md5($xml->getURI($subject).$predicateType.$xml->getURI($object))."\">\n";
 								$rdf_reification .= "    <rdf:subject rdf:resource=\"".$xml->getURI($subject)."\" />\n";
 								$rdf_reification .= "    <rdf:predicate rdf:resource=\"".$predicateType."\" />\n";
 								$rdf_reification .= "    <rdf:object rdf:resource=\"".$xml->getURI($object)."\" />\n";
-								$rdf_reification .= "    <wsf:objectLabel>".$xml->getValue($reify)."</wsf:objectLabel>\n";
+								$rdf_reification .= "    <wsf:objectLabel>".$this->xmlEncode($xml->getValue($reify))."</wsf:objectLabel>\n";
 								$rdf_reification .= "</rdf:Statement>	\n\n";
 								
 							}
@@ -1067,7 +1186,7 @@ class Search extends WebService
 		// Make sure there was no conneg error prior to this process call
 		if($this->conneg->getStatus() == 200)
 		{
-			$solr = new Solr(parent::$wsf_solr_core);		
+			$solr = new Solr($this->wsf_solr_core);		
 		
 			$solrQuery = "";
 		
@@ -1075,7 +1194,7 @@ class Search extends WebService
 			
 			$accessibleDatasets = array();
 
-			$ws_al = new AuthLister("access_user", "", $this->registered_ip, parent::$wsf_local_ip);
+			$ws_al = new AuthLister("access_user", "", $this->registered_ip, $this->wsf_local_ip);
 			
 			$ws_al->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
 			
@@ -1106,17 +1225,73 @@ class Search extends WebService
 			{
 				$this->conneg->setStatus(400);
 				$this->conneg->setStatusMsg("Bad Request");
-				$this->conneg->setStatusMsgExt("No dataset accessible by that user");
+				$this->conneg->setStatusMsgExt($this->errorMessenger->_300->name);
+				$this->conneg->setError($this->errorMessenger->_300->id, 
+													$this->errorMessenger->ws, 
+													$this->errorMessenger->_300->name, 
+													$this->errorMessenger->_300->description, 
+													"",
+													$this->errorMessenger->_300->level);					
+
 				return;
 			}
 			
 			unset($ws_al);
 
+			if($this->attributes == "all")
+			{	
+				$solrQuery = "q=%22".urlencode(implode(" +", explode(" ", $this->query)))."%22~5&start=".$this->page."&rows=".$this->items.(strtolower($this->includeAggregates) == "true" ? "&facet=true&facet.limit=-1&facet.field=type".(strtolower($this->inference) == "on" ? "&facet.field=inferred_type" : "")."&facet.field=dataset&facet.field=attribute&facet.mincount=1" : "");
+			}
+			else
+			{
+				// Lets include the information to facet per type.
+
+				$solrQuery = "q=";
+
+				$attributes = explode(";", $this->attributes);
+				
+				foreach($attributes as $key => $attribute)
+				{
+					// Decoding potentially encoded ";" characters					
+					$type = str_replace(array("%3B", "%3b"), ";", $type);
+
+					if($key > 0)
+					{
+						$solrQuery .= " OR ";
+					}						
+					
+					// Transform URIs into internal Solr schema attribute
+					switch(urldecode($attribute))
+					{
+						case Namespaces::$iron."prefLabel":
+//							$solrQuery .= "(prefLabel:".urlencode(implode("+", explode(" ", $this->query))).")";
+							$solrQuery .= "prefLabel:(".urlencode(implode(" +", explode(" ", $this->query))).")";
+						break;
+
+						case Namespaces::$iron."altLabel":
+//							$solrQuery .= "(altLabel:".urlencode(implode("+", explode(" ", $this->query))).")";
+							$solrQuery .= "altLabel:(".urlencode(implode(" +", explode(" ", $this->query))).")";
+						break;
+
+						case Namespaces::$iron."description":
+//							$solrQuery .= "(description:".urlencode(implode("+", explode(" ", $this->query))).")";
+							$solrQuery .= "description:(".urlencode(implode(" +", explode(" ", $this->query))).")";
+						break;
+						
+						default:
+//							$solrQuery .= "(".urlencode($attribute)."_attr:".urlencode(implode("+", explode(" ", $this->query))).")";
+							$solrQuery .= "".urlencode($attribute)."_attr:(".urlencode(implode(" +", explode(" ", $this->query))).")";
+						break;
+					}
+				}
+				
+				$solrQuery .= "&start=".$this->page."&rows=".$this->items.(strtolower($this->includeAggregates) == "true" ? "&facet=true&facet.limit=-1&facet.field=type".(strtolower($this->inference) == "on" ? "&facet.field=inferred_type" : "")."&facet.field=dataset&facet.field=attribute&facet.mincount=1" : "");
+			}						
+
+//echo "--- $solrQuery   ---";
 			if(strtolower($this->datasets) == "all")
 			{
 				$datasetList = "";
-				
-				$solrQuery = "q=object_label:(".urlencode($this->query).") OR (".urlencode($this->query)."\)&start=".$this->page."&rows=".$this->items.(strtolower($this->includeAggregates) == "true" ? "&facet=true&facet.limit=-1&facet.field=type".(strtolower($this->inference) == "on" ? "&facet.field=inferred_type" : "")."&facet.field=dataset&facet.mincount=1" : "");
 				
 				foreach($accessibleDatasets as $key => $dataset)
 				{
@@ -1133,8 +1308,6 @@ class Search extends WebService
 			else
 			{
 				$datasets = explode(";", $this->datasets);
-				
-				$solrQuery = "q=object_label:(".urlencode($this->query).") OR (".urlencode($this->query).")&start=".$this->page."&rows=".$this->items.(strtolower($this->includeAggregates) == "true" ? "&facet=true&facet.limit=-1&facet.field=type".(strtolower($this->inference) == "on" ? "&facet.field=inferred_type" : "")."&facet.field=dataset&facet.mincount=1" : "");
 				
 				$solrQuery .= "&fq=dataset:%22%22";
 				
@@ -1180,8 +1353,8 @@ class Search extends WebService
 						$solrQuery .= " OR inferred_type:%22".urlencode($type)."%22";
 					}
 				}
-			}			
-			
+			}		
+
 			$resultset = $solr->select($solrQuery);
 
 			$domResultset = new DomDocument("1.0", "utf-8"); 
@@ -1202,13 +1375,23 @@ class Search extends WebService
 			$founds = $xpath->query("//*/lst[@name='facet_fields']//lst[@name='type']/int");
 			
 			// Get types counts
-			
 			$this->aggregates["type"] = array();
 			
 			foreach($founds as $found)
 			{
 				$this->aggregates["type"][$found->attributes->getNamedItem("name")->nodeValue] = $found->nodeValue;
-			}					
+			}
+
+			// Get all the "attribute" facets with their counts
+			$founds = $xpath->query("//*/lst[@name='facet_fields']//lst[@name='attribute']/int");
+			
+			// Get attributes counts					
+			$this->aggregates["attribute"] = array();
+			
+			foreach($founds as $found)
+			{
+				$this->aggregates["attribute"][$found->attributes->getNamedItem("name")->nodeValue] = $found->nodeValue;
+			}
 			
 			// Get inferred types counts
 			
@@ -1264,8 +1447,124 @@ class Search extends WebService
 					$this->resultset[$uri]["dataset"] = $u->nodeValue;
 					break;
 				}
+				
+				
+				// get records preferred label
+				$resultPrefLabelURI = $xpath->query("arr[@name='prefLabel']", $result);
+				
+				foreach($resultPrefLabelURI as $u)
+				{
+					$this->resultset[$uri]["prefLabel"] = $u->nodeValue;
+					break;
+				}
+
+				// get records aternative labels
+				$resultAltLabelURI = $xpath->query("arr[@name='altLabel']", $result);
+				
+				foreach($resultAltLabelURI as $u)
+				{
+					if(!isset($this->resultset[$uri]["altLabel"]))
+					{
+						$this->resultset[$uri]["altLabel"] = array($u->nodeValue);
+					}
+					else
+					{
+						array_push($this->resultset[$uri]["altLabel"], $u->nodeValue);
+					}						
+				}
+
+				// get records description
+				$resultDescriptionURI = $xpath->query("arr[@name='description']", $result);
+				
+				foreach($resultDescriptionURI as $u)
+				{
+					$this->resultset[$uri]["description"] = $u->nodeValue;
+				}
 
 									
+				// Get all dynamic fields attributes.			
+				$resultProperties = $xpath->query("arr", $result);
+				
+				$tempProperties = array();
+				
+				foreach($resultProperties as $property)
+				{
+					$attribute = $property->getAttribute("name");
+					
+					// Check what kind of attribute it is
+					$attributeType = "";
+					
+					if(($pos = stripos($attribute, "_reify")) !== FALSE)
+					{
+						$attributeType = substr($attribute, $pos, strlen($attribute) - $pos);
+					}
+					elseif(($pos = stripos($attribute, "_attr")) !== FALSE)
+					{
+						$attributeType = substr($attribute, $pos, strlen($attribute) - $pos);
+					}
+					
+					// Get the URI of the attribute
+					$attributeURI = urldecode(str_replace($attributeType, "", $attribute));
+					
+					switch($attributeType)
+					{
+						case "_attr":
+							$values = $property->getElementsByTagName("str");
+							
+							foreach($values as $value)
+							{
+								if(!isset($this->resultset[$uri][$attributeURI]))
+								{
+									$this->resultset[$uri][$attributeURI] = array($value->nodeValue);
+								}
+								else
+								{
+									array_push($this->resultset[$uri][$attributeURI], $value->nodeValue);
+								}								
+							}
+						break;
+						
+						case "_attr_obj":
+							$values = $property->getElementsByTagName("str");
+							
+							foreach($values as $value)
+							{
+								if(!isset($this->resultsetObjectProperties[$uri][$attributeURI]))
+								{
+									$this->resultsetObjectProperties[$uri][$attributeURI] = array($value->nodeValue);
+								}
+								else
+								{
+									array_push($this->resultsetObjectProperties[$uri][$attributeURI], $value->nodeValue);
+								}								
+							}
+						break;
+						
+						case "_attr_obj_uri":
+							$values = $property->getElementsByTagName("str");
+							
+							foreach($values as $value)
+							{
+								if(!isset($this->resultsetObjectPropertiesUris[$uri][$attributeURI]))
+								{
+									$this->resultsetObjectPropertiesUris[$uri][$attributeURI] = array($value->nodeValue);
+								}
+								else
+								{
+									array_push($this->resultsetObjectPropertiesUris[$uri][$attributeURI], $value->nodeValue);
+								}								
+							}
+						break;
+						
+						case "_reify_attr":
+						case "_reify_attr_obj":
+						case "_reify_obj":
+						case "_reify_value":
+						break;						
+					}
+				}				
+
+/*									
 				// get result property					
 				$resultProperties = $xpath->query("arr[@name='property']/str", $result);
 				
@@ -1281,13 +1580,16 @@ class Search extends WebService
 				
 				foreach($resultTextes as $key => $text)
 				{
-					if(!isset($this->resultset[$uri][$tempProperties[$key]]))
+					if($text->nodeValue != "-")
 					{
-						$this->resultset[$uri][$tempProperties[$key]] = array($text->nodeValue);
-					}
-					else
-					{
-						array_push($this->resultset[$uri][$tempProperties[$key]], $text->nodeValue);
+						if(!isset($this->resultset[$uri][$tempProperties[$key]]))
+						{
+							$this->resultset[$uri][$tempProperties[$key]] = array($text->nodeValue);
+						}
+						else
+						{
+							array_push($this->resultset[$uri][$tempProperties[$key]], $text->nodeValue);
+						}
 					}
 				}
 				
@@ -1298,7 +1600,10 @@ class Search extends WebService
 				
 				foreach($resultProperties as $property)
 				{
-					array_push($tempProperties, $property->nodeValue);
+					if($property->nodeValue != "-")
+					{
+						array_push($tempProperties, $property->nodeValue);
+					}
 				}
 
 				// get result object_property label				
@@ -1306,29 +1611,52 @@ class Search extends WebService
 				
 				foreach($resultTextes as $key => $text)
 				{
-					if(!isset($this->resultsetObjectProperties[$uri][$tempProperties[$key]]))
+					if($text->nodeValue != "-")
 					{
-						$this->resultsetObjectProperties[$uri][$tempProperties[$key]] = array($text->nodeValue);
-					}
-					else
-					{
-						array_push($this->resultsetObjectProperties[$uri][$tempProperties[$key]], $text->nodeValue);
+						if(!isset($this->resultsetObjectProperties[$uri][$tempProperties[$key]]))
+						{
+							$this->resultsetObjectProperties[$uri][$tempProperties[$key]] = array($text->nodeValue);
+						}
+						else
+						{
+							array_push($this->resultsetObjectProperties[$uri][$tempProperties[$key]], $text->nodeValue);
+						}
 					}
 				}						
 				
-	
+				// get result object_property label				
+				$resultTextes = $xpath->query("arr[@name='object_uri']/str", $result);
+				
+				foreach($resultTextes as $key => $text)
+				{
+					if($text->nodeValue != "-")
+					{
+						if(!isset($this->resultsetObjectPropertiesUris[$uri][$tempProperties[$key]]))
+						{
+							$this->resultsetObjectPropertiesUris[$uri][$tempProperties[$key]] = array($text->nodeValue);
+						}
+						else
+						{
+							array_push($this->resultsetObjectPropertiesUris[$uri][$tempProperties[$key]], $text->nodeValue);
+						}
+					}
+				}			
+*/	
 				// Get the first type of the resource.
 				$resultTypes = $xpath->query("arr[@name='type']/str", $result);
 				
 				foreach($resultTypes as $t)
 				{
-					if(!isset($this->resultset[$uri]["type"]))
+					if($t->nodeValue != "-")
 					{
-						$this->resultset[$uri]["type"] = array($t->nodeValue);
-					}
-					else
-					{
-						array_push($this->resultset[$uri]["type"], $t->nodeValue);
+						if(!isset($this->resultset[$uri]["type"]))
+						{
+							$this->resultset[$uri]["type"] = array($t->nodeValue);
+						}
+						else
+						{
+							array_push($this->resultset[$uri]["type"], $t->nodeValue);
+						}
 					}
 				}
 			}					

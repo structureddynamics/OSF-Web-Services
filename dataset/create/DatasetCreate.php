@@ -52,6 +52,36 @@ class DatasetCreate extends WebService
 	/*! @brief Supported serialization mime types by this Web service */
 	public static $supportedSerializations = array("application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
 		
+	/*! @brief Error messages of this web service */
+	private $errorMessenger = '{
+												"ws": "/ws/dataset/create/",
+												"_200": {
+													"id": "WS-DATASET-UPDATE-200",
+													"level": "Warning",
+													"name": "No unique identifier specified for this dataset",
+													"description": "No URI defined for this new dataset"
+												},
+												"_201": {
+													"id": "WS-DATASET-UPDATE-201",
+													"level": "Fatal",
+													"name": "Can\'t check if the dataset is already existing",
+													"description": "An error occured when we tried to check if the dataset was already existing in the system"
+												},
+												"_202": {
+													"id": "WS-DATASET-UPDATE-202",
+													"level": "Warning",
+													"name": "Dataset already existing",
+													"description": "This dataset is already existing in this web services framework"
+												},
+												"_300": {
+													"id": "WS-DATASET-UPDATE-300",
+													"level": "Fatal",
+													"name": "Can\'t create the dataset",
+													"description": "An error occured when we tried to register the new dataset to the web service framework"
+												}	
+											}';	
+		
+		
 	/*!	 @brief Constructor
 			 @details 	Initialize the Auth Web Service
 					
@@ -72,8 +102,9 @@ class DatasetCreate extends WebService
 	function __construct($uri, $datasetTitle="", $description="", $creator="", $requester_ip)
 	{
 		parent::__construct();		
+
+		$this->db = new DB_Virtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 		
-		$this->db = new DB_Virtuoso(parent::$db_username, parent::$db_password, parent::$db_dsn, parent::$db_host);
 		
 		$this->datasetUri = $uri;
 		$this->datasetTitle = $datasetTitle;
@@ -81,12 +112,14 @@ class DatasetCreate extends WebService
 		$this->creator = $creator;
 		$this->requester_ip = $requester_ip;
 
-		$this->uri = parent::$wsf_base_url."/wsf/ws/dataset/create/";	
+		$this->uri = $this->wsf_base_url."/wsf/ws/dataset/create/";	
 		$this->title = "Dataset Create Web Service";	
 		$this->crud_usage = new CrudUsage(TRUE, FALSE, FALSE, FALSE);
-		$this->endpoint = parent::$wsf_base_url."/ws/dataset/create/";			
+		$this->endpoint = $this->wsf_base_url."/ws/dataset/create/";			
 		
 		$this->dtdURL = "dataset/datasetCreate.dtd";
+		
+		$this->errorMessenger = json_decode($this->errorMessenger);		
 	}
 
 	function __destruct() 
@@ -113,7 +146,7 @@ class DatasetCreate extends WebService
 	*/			
 	protected function validateQuery()
 	{
-		$ws_av = new AuthValidator($this->requester_ip, parent::$wsf_graph."datasets/", $this->uri);
+		$ws_av = new AuthValidator($this->requester_ip, $this->wsf_graph."datasets/", $this->uri);
 		
 		$ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
 		
@@ -124,8 +157,33 @@ class DatasetCreate extends WebService
 			$this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
 			$this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
 			$this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
+			$this->conneg->setError($ws_av->pipeline_getError()->id, 
+												$ws_av->pipeline_getError()->webservice, 
+												$ws_av->pipeline_getError()->name, 
+												$ws_av->pipeline_getError()->description, 
+												$ws_av->pipeline_getError()->debugInfo,
+												$ws_av->pipeline_getError()->level);
+
+												
+			return;												
 		}
 	}
+	
+	/*!	 @brief Returns the error structure
+							
+			\n
+			
+			@return returns the error structure
+		
+			@author Frederick Giasson, Structured Dynamics LLC.
+		
+			\n\n\n
+	*/		
+	public function pipeline_getError()
+	{
+		return($this->conneg->error);
+	}	
+	
 	
 	/*!	@brief Create a resultset in a pipelined mode based on the processed information by the Web service.
 							
@@ -186,13 +244,20 @@ class DatasetCreate extends WebService
 			{
 				$this->conneg->setStatus(400);
 				$this->conneg->setStatusMsg("Bad Request");
-				$this->conneg->setStatusMsgExt("No unique identifier specified for this dataset");
+				$this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
+				$this->conneg->setError($this->errorMessenger->_200->id, 
+													$this->errorMessenger->ws, 
+													$this->errorMessenger->_200->name, 
+													$this->errorMessenger->_200->description, 
+													"",
+													$this->errorMessenger->_200->level);					
+				
 				return;
 			}
 		
 			// Check if the dataset is already existing
 			$query .= "	select ?dataset 
-								from <".parent::$wsf_graph."datasets/>
+								from <".$this->wsf_graph."datasets/>
 								where
 								{
 									<".$this->datasetUri."> a ?dataset .
@@ -204,14 +269,27 @@ class DatasetCreate extends WebService
 			{
 				$this->conneg->setStatus(500);
 				$this->conneg->setStatusMsg("Internal Error");
-				$this->conneg->setStatusMsgExt("Error #dataset-create-100");		
+				$this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
+				$this->conneg->setError($this->errorMessenger->_201->id, 
+													$this->errorMessenger->ws, 
+													$this->errorMessenger->_201->name, 
+													$this->errorMessenger->_201->description, 
+													odbc_errormsg(),
+													$this->errorMessenger->_201->level);					
+				
 				return;			
 			}
 			elseif(odbc_fetch_row($resultset) !== FALSE)
 			{
 				$this->conneg->setStatus(400);
 				$this->conneg->setStatusMsg("Bad Request");
-				$this->conneg->setStatusMsgExt("This dataset is already existing in this web services framework");
+				$this->conneg->setStatusMsgExt($this->errorMessenger->_202->name);
+				$this->conneg->setError($this->errorMessenger->_202->id, 
+													$this->errorMessenger->ws, 
+													$this->errorMessenger->_202->name, 
+													$this->errorMessenger->_202->description, 
+													"",
+													$this->errorMessenger->_202->level);					
 				
 				unset($resultset);
 				return;
@@ -367,7 +445,7 @@ class DatasetCreate extends WebService
 		// Make sure there was no conneg error prior to this process call
 		if($this->conneg->getStatus() == 200)
 		{
-			$query = "insert into <".parent::$wsf_graph."datasets/>
+			$query = "insert into <".$this->wsf_graph."datasets/>
 							{
 								<".$this->datasetUri."> a <http://rdfs.org/ns/void#Dataset> ;
 								".($this->datasetTitle != "" ? "<http://purl.org/dc/terms/title> \"\"\"".str_replace("'", "\'", $this->datasetTitle)."\"\"\" ; " : "")."
@@ -375,7 +453,6 @@ class DatasetCreate extends WebService
 								".($this->creator != "" ? "<http://purl.org/dc/terms/creator> <$this->creator> ; " : "")."
 								<http://purl.org/dc/terms/created> \"".date("Y-m-j")."\" .
 							}";
-			
 
 			@$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), " ", $query), array(), FALSE));
 									
@@ -383,7 +460,14 @@ class DatasetCreate extends WebService
 			{
 				$this->conneg->setStatus(500);
 				$this->conneg->setStatusMsg("Internal Error");
-				$this->conneg->setStatusMsgExt("Error #dataset-create-101");	
+				$this->conneg->setStatusMsgExt($this->errorMessenger->_300->name);
+				$this->conneg->setError($this->errorMessenger->_300->id, 
+													$this->errorMessenger->ws, 
+													$this->errorMessenger->_300->name, 
+													$this->errorMessenger->_300->description, 
+													odbc_errormsg(),
+													$this->errorMessenger->_300->level);					
+				
 				return;
 			}				
 		}

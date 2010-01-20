@@ -294,6 +294,7 @@ class Solr
 		
 			\n\n\n
 	*/		
+	/*
 	public function createUpdateSolrDocument($solrDocument)
 	{
 		if($solrDocument->uri == "")
@@ -322,7 +323,14 @@ class Solr
 		{
 			global $dbUsername, $dbPassword, $dbDSN, $dbHost;
 			global $base_url;
-			
+
+			include_once("WebService.php");
+	
+			$data_ini = parse_ini_file(WebService::$data_ini."data.ini", TRUE);		
+	
+			$this->db = new DB_Virtuoso($data_ini["triplestore"]["username"], $data_ini["triplestore"]["password"], $data_ini["triplestore"]["dsn"], $data_ini["triplestore"]["host"]);
+
+
 			$db = new DB_Virtuoso($dbUsername, $dbPassword, $dbDSN, $dbHost);	
 			
 			$query = $db->build_sparql_query("select ?p ?o (str(DATATYPE(?o))) as ?otype from <".get_domain($base_url)."/data/core/> where {<".$solrDocument->uri."> ?p ?o.}", array ('p', 'o', 'otype'), FALSE);
@@ -383,7 +391,7 @@ class Solr
 			$db->close();
 			$this->update("<add>".$solrDocument->serializeSolrDocument()."</add>");
 		}		
-	}	
+	}	*/
 	
 	/*!	 @brief Encode content to be included in XML files
 							

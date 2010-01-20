@@ -48,6 +48,9 @@ class Conneg
 	/*! @brief Supported serializations by the service hanlding this query */	
 	private $supported_serializations = "";
 
+	/*! @brief Error structure that handle error reporting to users */	
+	public $error;
+
 	/*!	 @brief Constructor 
 							
 			\n
@@ -101,9 +104,16 @@ class Conneg
 		header("Content-Language: ".$this->lang);
 		header("Content-Encoding: ".$this->encoding);
 		
-		if($this->statusMsgExt != "")
+		if(!isset($this->error))
 		{
-			echo $this->statusMsgExt."\n";
+			if($this->statusMsgExt != "")
+			{
+				echo $this->statusMsgExt."\n";
+			}
+		}
+		else
+		{
+			echo $this->error->getError()."\n";			
 		}
 		
 		$this->__destruct();
@@ -212,6 +222,56 @@ class Conneg
 	public function setStatusMsgExt($statusMsgExt)
 	{
 		return $this->statusMsgExt = $statusMsgExt;
+	}
+	
+	/*!	 @brief Set the error message to embed in the body of the HTTP message	
+							
+			\n
+			
+			@param[in] $id ID of the error
+			@param[in] $webservice URI of the web service that caused this error
+			@param[in] $name Name of the error
+			@param[in] $description Description of the error
+			@param[in] $debugInfo Debug information for this error
+			@param[in] $level Error level of the error (warning, error, fatal)
+			
+			@return returns NULL			
+		
+			@author Frederick Giasson, Structured Dynamics LLC.
+		
+			\n\n\n
+	*/		
+	public function setError($id, $webservice, $name, $description, $debugInfo, $level)
+	{
+		include_once("Error.php");
+		$mime = "text/plain";
+		
+		switch($this->mime)
+		{
+			case "application/rdf+xml":
+			case "application/xhtml+rdfa":
+			case "text/xml":
+			case "text/html":
+			case "application/sparql-results+xml":
+				$mime = "text/xml";
+			break;
+			
+			case "application/sparql-results+json":
+			case "application/json":
+			case "application/iron+json":
+			case "application/bib+json":
+				$mime = "application/json";
+			break;
+			
+			case "application/rdf+n3":
+			case "text/tsv":
+			case "text/csv":
+			case "application/x-bibtex":
+				$mime = "text/plain";
+			break;
+		}
+		
+		$this->error = new Error($id, $webservice, $name, $description, $debugInfo, $mime, $level);
 	}
 
 	/*!	 @brief Get the status of the query
@@ -483,17 +543,16 @@ class Conneg
 					break;
 				}
 												
-				if($mime == "application/irv+json" && array_search("application/irv+json", $this->supported_serializations) !== FALSE)
+				if($mime == "application/iron+json" && array_search("application/iron+json", $this->supported_serializations) !== FALSE)
 				{
 					$this->status = 200;
 					$this->statusMsg = "OK";
-					$this->mime = "application/irv+json";
+					$this->mime = "application/iron+json";
 
 					$notAcceptable406 = FALSE;
 
 					break;
 				}
-												
 				if($mime == "application/bib+json" && array_search("application/bib+json", $this->supported_serializations) !== FALSE)
 				{
 					$this->status = 200;
@@ -504,7 +563,6 @@ class Conneg
 
 					break;
 				}
-												
 			}
 			
 			if($notAcceptable406)
@@ -618,6 +676,8 @@ class Conneg
 			
 			@author Frederick Giasson, Structured Dynamics LLC.
 		
+			@bug With a Post query using HTTPService of Flex, apparently the Encoding header create a 406 here. 
+		
 			\n\n\n
 	*/		
 	public function accept_encoding($header)
@@ -681,9 +741,9 @@ class Conneg
 			
 			if($notAcceptable406)
 			{
-				$this->status = 406;
+/*				$this->status = 406;
 				$this->statusMsg = "Not Acceptable";
-				$this->statusMsgExt = "Unacceptable encoding requested";
+				$this->statusMsgExt = "Unacceptable encoding requested";*/
 			}
 		}
 		else
@@ -703,6 +763,9 @@ class Conneg
 			\n
 			
 			@author Frederick Giasson, Structured Dynamics LLC.
+		
+			@bug With a Post query using HTTPService of Flex, apparently the Language header create a 406 here. 
+		
 		
 			\n\n\n
 	*/		
@@ -767,9 +830,9 @@ class Conneg
 			
 			if($notAcceptable406)
 			{
-				$this->status = 406;
+/*				$this->status = 406;
 				$this->statusMsg = "Not Acceptable";
-				$this->statusMsgExt = "Unacceptable language requested";
+				$this->statusMsgExt = "Unacceptable language requested";*/
 			}
 		}
 		else

@@ -52,6 +52,78 @@ class AuthValidator extends WebService
 	/*! @brief Supported serialization mime types by this Web service */
 	public static $supportedSerializations = array("application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
 		
+	/*! @brief Error messages of this web service */
+	private $errorMessenger = '{
+												"ws": "/ws/auth/validator/",
+												"_200": {
+													"id": "WS-AUTH-VALIDATOR-200",
+													"level": "Warning",
+													"name": "No requester IP available",
+													"description": "No requester IP address defined for this query"
+												},
+												"_201": {
+													"id": "WS-AUTH-VALIDATOR-201",
+													"level": "Warning",
+													"name": "No target dataset",
+													"description": "No target dataset defined for this query"
+												},
+												"_202": {
+													"id": "WS-AUTH-VALIDATOR-202",
+													"level": "Warning",
+													"name": "No web service URI available",
+													"description": "NO target web service URI defined for this query"
+												},
+												"_300": {
+													"id": "WS-AUTH-VALIDATOR-300",
+													"level": "Fatal",
+													"name": "Can\'t get the CRUD permissions of the target web service",
+													"description": "An error occured when wetried to get the CRUD permissions of the target web service"
+												},
+												"_301": {
+													"id": "WS-AUTH-VALIDATOR-301",
+													"level": "Warning",
+													"name": "Target web service not registered",
+													"description": "Target web service not registered to this Web Services Framework"
+												},
+												"_302": {
+													"id": "WS-AUTH-VALIDATOR-302",
+													"level": "Fatal",
+													"name": "Can\'t get the list of datasets accessible to this user",
+													"description": "An error occured when we tried to get the list of datasets accessible to this user"
+												},
+												"_303": {
+													"id": "WS-AUTH-VALIDATOR-303",
+													"level": "Warning",
+													"name": "No access defined",
+													"description": "No access defined for this requester IP , dataset and web service"
+												},
+												"_304": {
+													"id": "WS-AUTH-VALIDATOR-304",
+													"level": "Warning",
+													"name": "No create permissions",
+													"description": "The target web service needs create access and the requested user doesn\'t have this access for that dataset."
+												},
+												"_305": {
+													"id": "WS-AUTH-VALIDATOR-305",
+													"level": "Warning",
+													"name": "No update permissions",
+													"description": "The target web service needs update access and the requested user doesn\'t have this access for that dataset."
+												},
+												"_306": {
+													"id": "WS-AUTH-VALIDATOR-306",
+													"level": "Warning",
+													"name": "No read permissions",
+													"description": "The target web service needs read access and the requested user doesn\'t have this access for that dataset."
+												},
+												"_307": {
+													"id": "WS-AUTH-VALIDATOR-307",
+													"level": "Warning",
+													"name": "No delete permissions",
+													"description": "The target web service needs delete access and the requested user doesn\'t have this access for that dataset."
+												}	
+											}';	
+		
+		
 	/*!	 @brief Constructor
 			 @details Initialize the Auth Web Service
 				
@@ -70,19 +142,21 @@ class AuthValidator extends WebService
 	function __construct($requester_ip, $requested_datasets, $requested_ws_uri)
 	{
 		parent::__construct();		
-		
-		$this->db = new DB_Virtuoso(parent::$db_username, parent::$db_password, parent::$db_dsn, parent::$db_host);
+
+		$this->db = new DB_Virtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 		
 		$this->requester_ip = $requester_ip;
 		$this->requested_datasets = $requested_datasets;
 		$this->requested_ws_uri = $requested_ws_uri;
 		
-		$this->uri = parent::$wsf_base_url."/wsf/ws/auth/validator/";	
+		$this->uri = $this->wsf_base_url."/wsf/ws/auth/validator/";	
 		$this->title = "Authentication Validator Web Service";	
 		$this->crud_usage = new CrudUsage(FALSE, TRUE, FALSE, FALSE);
-		$this->endpoint = parent::$wsf_base_url."/ws/auth/validator/";			
+		$this->endpoint = $this->wsf_base_url."/ws/auth/validator/";			
 		
 		$this->dtdURL = "auth/authValidator.dtd";
+		
+		$this->errorMessenger = json_decode($this->errorMessenger);		
 	}
 
 	function __destruct() 
@@ -109,6 +183,20 @@ class AuthValidator extends WebService
 	*/			
 	protected function validateQuery(){ return TRUE; }
 	
+	/*!	 @brief Returns the error structure
+							
+			\n
+			
+			@return returns the error structure
+		
+			@author Frederick Giasson, Structured Dynamics LLC.
+		
+			\n\n\n
+	*/		
+	public function pipeline_getError()
+	{
+		return($this->conneg->error);
+	}	
 	
 	/*!	@brief Create a resultset in a pipelined mode based on the processed information by the Web service.
 							
@@ -137,7 +225,7 @@ class AuthValidator extends WebService
 	public function injectDoctype($xmlDoc)
 	{
 		$posHeader = 	strpos($xmlDoc, '"?>') + 3;
-		$xmlDoc = substr($xmlDoc, 0, $posHeader)."\n<!DOCTYPE resultset PUBLIC \"-//Structured Dynamics LLC//Auth Validator DTD 0.1//EN\" \"".parent::$dtdBaseURL.$this->dtdURL."\">".substr($xmlDoc, $posHeader, strlen($xmlDoc) - $posHeader);	
+		$xmlDoc = substr($xmlDoc, 0, $posHeader)."\n<!DOCTYPE resultset PUBLIC \"-//Structured Dynamics LLC//Auth Validator DTD 0.1//EN\" \"".$this->dtdBaseURL.$this->dtdURL."\">".substr($xmlDoc, $posHeader, strlen($xmlDoc) - $posHeader);	
 		
 		return($xmlDoc);
 	}
@@ -169,7 +257,15 @@ class AuthValidator extends WebService
 		{
 			$this->conneg->setStatus(400);
 			$this->conneg->setStatusMsg("Bad Request");
-			$this->conneg->setStatusMsgExt("No requester IP available");
+			$this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
+			$this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
+			$this->conneg->setError($this->errorMessenger->_200->id, 
+												$this->errorMessenger->ws, 
+												$this->errorMessenger->_200->name, 
+												$this->errorMessenger->_200->description, 
+												"",
+												$this->errorMessenger->_200->level);					
+			
 			return;
 		}
 
@@ -177,7 +273,15 @@ class AuthValidator extends WebService
 		{
 			$this->conneg->setStatus(400);
 			$this->conneg->setStatusMsg("Bad Request");
-			$this->conneg->setStatusMsgExt("No target dataset");
+			$this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
+			$this->conneg->setStatusMsgExt($this->errorMessenger->_->name);
+			$this->conneg->setError($this->errorMessenger->_201->id, 
+												$this->errorMessenger->ws, 
+												$this->errorMessenger->_201->name, 
+												$this->errorMessenger->_201->description, 
+												"",
+												$this->errorMessenger->_201->level);					
+
 			return;
 		}
 
@@ -185,7 +289,15 @@ class AuthValidator extends WebService
 		{
 			$this->conneg->setStatus(400);
 			$this->conneg->setStatusMsg("Bad Request");
-			$this->conneg->setStatusMsgExt("No web service URI available");
+			$this->conneg->setStatusMsgExt($this->errorMessenger->_->name);
+			$this->conneg->setStatusMsgExt($this->errorMessenger->_->name);
+			$this->conneg->setError($this->errorMessenger->_202->id, 
+												$this->errorMessenger->ws, 
+												$this->errorMessenger->_202->name, 
+												$this->errorMessenger->_202->description, 
+												"",
+												$this->errorMessenger->_202->level);					
+
 			return;
 		}
 	}
@@ -339,18 +451,23 @@ class AuthValidator extends WebService
 		{
 			// Get the CRUD usage of the target web service
 			$resultset = $this->db->query($this->db->build_sparql_query("select ?_wsf ?_create ?_read ?_update ?_delete from <".
-														parent::$wsf_graph."> where {?_wsf a <http://purl.org/ontology/wsf#WebServiceFramework>.".
+														$this->wsf_graph."> where {?_wsf a <http://purl.org/ontology/wsf#WebServiceFramework>.".
 														" ?_wsf <http://purl.org/ontology/wsf#hasWebService> <$this->requested_ws_uri>. ".
 														"<$this->requested_ws_uri> <http://purl.org/ontology/wsf#hasCrudUsage> ?crudUsage. ".
 														"?crudUsage <http://purl.org/ontology/wsf#create> ?_create; <http://purl.org/ontology/wsf#read> ".
 														"?_read; <http://purl.org/ontology/wsf#update> ?_update; <http://purl.org/ontology/wsf#delete> ".
 														"?_delete. }", array ('_wsf', '_create', '_read', '_update', '_delete'), FALSE));
-			
 			if(odbc_error())
 			{
 				$this->conneg->setStatus(500);
 				$this->conneg->setStatusMsg("Internal Error");
-				$this->conneg->setStatusMsgExt("Error #auth-validator-100");				
+				$this->conneg->setStatusMsgExt($this->errorMessenger->_300->name);
+				$this->conneg->setError($this->errorMessenger->_300->id, 
+													$this->errorMessenger->ws, 
+													$this->errorMessenger->_300->name, 
+													$this->errorMessenger->_300->description, 
+													odbc_errormsg(),
+													$this->errorMessenger->_300->level);													
 				return;	
 			}			
 			elseif(odbc_fetch_row($resultset))
@@ -369,7 +486,13 @@ class AuthValidator extends WebService
 			{
 				$this->conneg->setStatus(500);
 				$this->conneg->setStatusMsg("Internal Error");
-				$this->conneg->setStatusMsgExt("Target web service ($this->requested_ws_uri) not registered to this Web Services Framework");	
+				$this->conneg->setStatusMsgExt($this->errorMessenger->_301->name);	
+				$this->conneg->setError($this->errorMessenger->_301->id, 
+													$this->errorMessenger->ws, 
+													$this->errorMessenger->_301->name, 
+													$this->errorMessenger->_301->description, 
+													"Target web service ($this->requested_ws_uri) not registered to this Web Services Framework",
+													$this->errorMessenger->_301->level);													
 				return;
 			}		
 			
@@ -382,7 +505,7 @@ class AuthValidator extends WebService
 				$dataset = str_ireplace("%3B", ";", $dataset);
 				
 				$query = "select ?_access ?_create ?_read ?_update ?_delete 
-								from <".parent::$wsf_graph."> 
+								from <".$this->wsf_graph."> 
 								where 
 								{ 
 								    {
@@ -420,9 +543,15 @@ class AuthValidator extends WebService
 				{
 					$this->conneg->setStatus(500);
 					$this->conneg->setStatusMsg("Internal Error");
-					$this->conneg->setStatusMsgExt("Error #auth-validator-101");					
-					return;
+					$this->conneg->setStatusMsgExt($this->errorMessenger->_302->name);					
+					$this->conneg->setError($this->errorMessenger->_302->id, 
+														$this->errorMessenger->ws, 
+														$this->errorMessenger->_302->name, 
+														$this->errorMessenger->_302->description, 
+														odbc_errormsg(),
+														$this->errorMessenger->_302->level);					
 				}			
+				
 				while(odbc_fetch_row($resultset))
 				{
 					array_push($access, strtolower(odbc_result($resultset, 1)));
@@ -437,9 +566,15 @@ class AuthValidator extends WebService
 				// Check if an access is defined for this IP, dataset and registered web service
 				if(count($access) <= 0)
 				{
-					$this->conneg->setStatus(400);
-					$this->conneg->setStatusMsg("Bad Request");
-					$this->conneg->setStatusMsgExt("No access defined for this requester IP ($this->requester_ip), dataset ($dataset) and web service ($this->requested_ws_uri)");
+					$this->conneg->setStatus(403);
+					$this->conneg->setStatusMsg("Forbidden");
+					$this->conneg->setStatusMsgExt($this->errorMessenger->_303->name);	
+					$this->conneg->setError($this->errorMessenger->_303->id, 
+														$this->errorMessenger->ws, 
+														$this->errorMessenger->_303->name, 
+														$this->errorMessenger->_303->description, 
+														"No access defined for this requester IP ($this->requester_ip), dataset ($dataset) and web service ($this->requested_ws_uri)",
+														$this->errorMessenger->_303->level);
 					return;
 				}
 				
@@ -449,10 +584,15 @@ class AuthValidator extends WebService
 				{
 					if(array_search("true", $create) === FALSE)
 					{
-						$this->conneg->setStatus(400);
-						$this->conneg->setStatusMsg("Bad Request");
-						$this->conneg->setStatusMsgExt("The target web service ($this->requested_ws_uri) needs create access and the requested user ($this->requester_ip) doesn't have this access for that dataset ($dataset).");
-						return;
+						$this->conneg->setStatus(403);
+						$this->conneg->setStatusMsg("Forbidden");
+						$this->conneg->setStatusMsgExt($this->errorMessenger->_304->name);	
+						$this->conneg->setError($this->errorMessenger->_304->id, 
+															$this->errorMessenger->ws, 
+															$this->errorMessenger->_304->name, 
+															$this->errorMessenger->_304->description, 
+															"The target web service ($this->requested_ws_uri) needs create access and the requested user ($this->requester_ip) doesn't have this access for that dataset ($dataset).",
+															$this->errorMessenger->_304->level);
 					}				
 				}
 				
@@ -460,10 +600,16 @@ class AuthValidator extends WebService
 				{
 					if(array_search("true", $update) === FALSE)
 					{
-						$this->conneg->setStatus(400);
-						$this->conneg->setStatusMsg("Bad Request");
-						$this->conneg->setStatusMsgExt("The target web service ($this->requested_ws_uri) needs update access and the requested user ($this->requester_ip) doesn't have this access for that dataset ($dataset).");
-						return;
+						$this->conneg->setStatus(403);
+						$this->conneg->setStatusMsg("Forbidden");
+						$this->conneg->setStatusMsgExt($this->errorMessenger->_305->name);	
+						$this->conneg->setError($this->errorMessenger->_305->id, 
+															$this->errorMessenger->ws, 
+															$this->errorMessenger->_305->name, 
+															$this->errorMessenger->_305->description, 
+															"The target web service ($this->requested_ws_uri) needs update access and the requested user ($this->requester_ip) doesn't have this access for that dataset ($dataset).",
+															$this->errorMessenger->_305->level);
+
 					}				
 				}
 				
@@ -471,9 +617,16 @@ class AuthValidator extends WebService
 				{
 					if(array_search("true", $read) === FALSE)
 					{
-						$this->conneg->setStatus(400);
-						$this->conneg->setStatusMsg("Bad Request");
-						$this->conneg->setStatusMsgExt("The target web service ($this->requested_ws_uri) needs read access and the requested user ($this->requester_ip) doesn't have this access for that dataset ($dataset).");
+						$this->conneg->setStatus(403);
+						$this->conneg->setStatusMsg("Forbidden");
+						$this->conneg->setStatusMsgExt($this->errorMessenger->_306->name);	
+						$this->conneg->setError($this->errorMessenger->_306->id, 
+															$this->errorMessenger->ws, 
+															$this->errorMessenger->_306->name, 
+															$this->errorMessenger->_306->description, 
+															"The target web service ($this->requested_ws_uri) needs read access and the requested user ($this->requester_ip) doesn't have this access for that dataset ($dataset).",
+															$this->errorMessenger->_306->level);
+
 						return;
 					}				
 				}		
@@ -482,9 +635,16 @@ class AuthValidator extends WebService
 				{
 					if(array_search("true", $delete) === FALSE)
 					{
-						$this->conneg->setStatus(400);
-						$this->conneg->setStatusMsg("Bad Request");
-						$this->conneg->setStatusMsgExt("The target web service ($this->requested_ws_uri) needs delete access and the requested user ($this->requester_ip) doesn't have this access for that dataset ($dataset).");
+						$this->conneg->setStatus(403);
+						$this->conneg->setStatusMsg("Forbidden");
+						$this->conneg->setStatusMsgExt($this->errorMessenger->_307->name);	
+						$this->conneg->setError($this->errorMessenger->_307->id, 
+															$this->errorMessenger->ws, 
+															$this->errorMessenger->_307->name, 
+															$this->errorMessenger->_307->description, 
+															"The target web service needs delete access and the requested user doesn't have this access for that dataset.",
+															$this->errorMessenger->_307->level);
+
 						return;
 					}				
 				}						

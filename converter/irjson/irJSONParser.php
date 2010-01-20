@@ -1,10 +1,10 @@
 <?php
 
-	/*! @ingroup WsConverterIrv */
+	/*! @ingroup WsConverterIrJSON */
 	//@{ 
 
 
-	/*! @file \ws\converter\irv\JsonParser.php
+	/*! @file \ws\converter\irjson\irJSONParser.php
 		 @brief Parse a json item
 		
 		 \n\n
@@ -24,19 +24,20 @@
 		\n\n\n
 */
 
-class JsonParser
+class irJSONParser
 {
+
 	public $instanceRecords;
 	public $linkageSchemas = array();
-	public $structureSchemas = array();
+//	public $structureSchemas = array();
 	public $dataset;
 	public $jsonErrors = array();
 	public $irvErrors = array();
 	public $irvNotices = array();
 	
-	private $mime = "application/irv+json";
 	private $jsonContent = "";
 	
+/*	
 	private $irvStructureSchema = "{
 										\"structureSchema\": {
 											\"version\": \"0.1\",
@@ -46,6 +47,9 @@ class JsonParser
 													\"type\": \"string\"
 												},
 												\"label\": {
+													\"type\": \"string\"
+												},
+												\"altLabel\": {
 													\"type\": [\"string\", \"array(string)\"]
 												},
 												\"description\": {
@@ -73,7 +77,6 @@ class JsonParser
 												\"structureSchema\": {
 													\"type\": \"string\"
 												},
-												
 												\"type\": {
 													\"type\": [\"string\", \"array(string)\"]
 												},
@@ -126,13 +129,10 @@ class JsonParser
 											}
 										}
 									}";
+*/
 
-	function __construct($content, $mime) 
+	function __construct($content) 
 	{
-		$this->mime = $mime;
-
-		$content = $this->subFormatsConversion($content);
-
 		$this->jsonContent = json_decode($content);
 		
 		
@@ -165,7 +165,7 @@ class JsonParser
 		
 		if($this->jsonContent === NULL)
 		{
-			array_push($this->jsonErrors, "Syntax error, malformed JSON");
+			array_push($this->jsonErrors, "Syntax error, malformed JSON. Cant parse: '$content'");
 
 			return FALSE;		
 		}
@@ -177,120 +177,79 @@ class JsonParser
 	
 	function __destruct(){}
 	
-	/*!	 @brief Fix the parsed array structure to comply with subFormats of irJSON such as BibJSON.
-							
-			\n
-			
-			@author Frederick Giasson, Structured Dynamics LLC.
-		
-			\n\n\n
-	*/	
-	
-	private function subFormatsConversion($content)
-	{
-		switch($this->mime)
-		{
-			case "application/bib+json":
-
-				// Dataset -> Metadata
-				$content = preg_replace("/\"Metadata\"[\s\t]*:/Uim", "\"Dataset\" :", $content);				
-
-				// InstanceRecords -> Records
-				$content = preg_replace("/\"Records\"[\s\t]*:/Uim", "\"InstanceRecords\" :", $content);
-				
-			break;
-		}
-		
-		return($content);
-	}
-
 	private function parse() 
 	{
 		// Populate the Dataset object
 		$this->dataset = new Dataset();
 
 		// Set ID
-		if(isset($this->jsonContent->Dataset->id))
+		if(isset($this->jsonContent->dataset->id))
 		{
-			$this->dataset->setId($this->jsonContent->Dataset->id);
+			$this->dataset->setId($this->jsonContent->dataset->id);
 		}
 		else
 		{
 			array_push($this->irvErrors, "Dataset ID not specified");
 		}
 		
-		// Set label
-		if(is_array($this->jsonContent->Dataset->label))
+		// Set attributes
+		foreach($this->jsonContent->dataset as $attribute => $value)
 		{
-			foreach($this->jsonContent->Dataset->label as $label)
+			if($attribute != "id" && $attribute != "type")
 			{
-				$this->dataset->setLabel($label, "array(string)");	
-			}
-		}
-		else
-		{
-			$this->dataset->setLabel($this->jsonContent->Dataset->label, "string");
-		}
-		
-		// Set description
-		$this->dataset->setDescription($this->jsonContent->Dataset->description);
-				
-		// Set sources		
-		if(is_array($this->jsonContent->Dataset->source))
-		{
-			foreach($this->jsonContent->Dataset->source as $source)
-			{
-				$this->dataset->setSource($source->label, $source->href, $source->ref, "array(object)");	
-			}		
-		}
-		else
-		{
-			$this->dataset->setSource($this->jsonContent->Dataset->source->label, $this->jsonContent->Dataset->source->href, $this->jsonContent->Dataset->source->ref, "object");
+				// Check if we have an array of something
+				if(is_array($this->jsonContent->dataset->{$attribute}))
+				{
+					foreach($this->jsonContent->dataset->{$attribute} as $arrayValue)
+					{
+						if(gettype($arrayValue) == "string")
+						{
+							$this->dataset->setAttribute($attribute, $arrayValue, "primitive:string[".count($this->jsonContent->dataset->{$attribute})."]");
+						}
+						
+						if(gettype($arrayValue) == "object")
+						{
+							// Create the metaData array
+							$metaData = array();
+							foreach($arrayValue as $metaAttribute => $metaValue)
+							{
+								if($metaAttribute != "ref")
+								{
+									array_push($metaData, array($metaAttribute => $metaValue));
+								}
+							}
+							
+							$this->dataset->setAttributeRef($attribute, $metaData, $arrayValue->ref, "type:object[".$this->jsonContent->dataset->{$attribute}."]");
+						}
+					}		
+				}
+				else
+				{
+					if(gettype($value) == "string")
+					{
+						$this->dataset->setAttribute($attribute, $value, "primitive:string[1]");							
+					}
+					
+					if(gettype($value) == "object")
+					{
+						// Create the metaData array
+						$metaData = array();
+						foreach($value as $metaAttribute => $metaValue)
+						{
+							if($metaAttribute != "ref")
+							{
+								array_push($metaData, array($metaAttribute => $metaValue));
+							}
+						}
+												
+						$this->dataset->setAttributeRef($attribute, $metaData, $value->ref, "type:object[1]");
+					}
+				}
+			}	
 		}
 
 
-		// Set created
-		$this->dataset->setCreated($this->jsonContent->Dataset->created);		
-
-		// Set creator		
-		if(is_array($this->jsonContent->Dataset->creator))
-		{
-			foreach($this->jsonContent->Dataset->creator as $creator)
-			{
-				$this->dataset->setCreator($creator->label, $creator->href, $creator->ref, "array(object)");	
-			}		
-		}
-		else
-		{
-			$this->dataset->setCreator($this->jsonContent->Dataset->creator->label, $this->jsonContent->Dataset->creator->href, $this->jsonContent->Dataset->creator->ref, "object");
-		}
-
-		// Set curator		
-		if(is_array($this->jsonContent->Dataset->curator))
-		{
-			foreach($this->jsonContent->Dataset->curator as $curator)
-			{
-				$this->dataset->setCurator($curator->label, $curator->href, $curator->ref, "array(object)");	
-			}		
-		}
-		else
-		{
-			$this->dataset->setCurator($this->jsonContent->Dataset->curator->label, $this->jsonContent->Dataset->curator->href, $this->jsonContent->Dataset->curator->ref, "object");
-		}
-		
-		// Set maintainer		
-		if(is_array($this->jsonContent->Dataset->maintainer))
-		{
-			foreach($this->jsonContent->Dataset->maintainer as $maintainer)
-			{
-				$this->dataset->setMaintainer($maintainer->label, $maintainer->href, $maintainer->ref, "array(object)");	
-			}		
-		}
-		else
-		{
-			$this->dataset->setMaintainer($this->jsonContent->Dataset->maintainer->label, $this->jsonContent->Dataset->maintainer->href, $this->jsonContent->Dataset->maintainer->ref, "object");
-		}		
-		
+/*		
 		// Structured Schema
 		
 		// Load the internal structure schema in the schemas array.
@@ -308,23 +267,23 @@ class JsonParser
 		array_push($structureSchemas, $parsedContent);
 		
 		
-		if(isset($this->jsonContent->Dataset->structureSchema))
+		if(isset($this->jsonContent->dataset->structureSchema))
 		{
-			array_push($structureSchemas, $this->jsonContent->Dataset->structureSchema);
+			array_push($structureSchemas, $this->jsonContent->dataset->structureSchema);
 		}
 		
 		// Get the decoded schema
-		if(gettype($this->jsonContent->Dataset->structureSchema) != "object")
+		if(gettype($this->jsonContent->dataset->structureSchema) != "object")
 		{
 			// It is a URL link to a linkage schema
-			if(isset($this->jsonContent->Dataset->structureSchema))
+			if(isset($this->jsonContent->dataset->structureSchema))
 			{
 				// Save the URL reference
-				$this->dataset->setStructureSchema($this->jsonContent->Dataset->structureSchema);
+				$this->dataset->setStructureSchema($this->jsonContent->dataset->structureSchema);
 				
 				$ch = curl_init();
 				
-				curl_setopt($ch, CURLOPT_URL, $this->jsonContent->Dataset->structureSchema);
+				curl_setopt($ch, CURLOPT_URL, $this->jsonContent->dataset->structureSchema);
 				curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 				curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
 				
@@ -333,7 +292,7 @@ class JsonParser
 				
 				if(curl_errno($ch)) 
 				{
-					array_push($this->irvNotices, "Cannot access the structure schema from: ".$this->jsonContent->Dataset->structureSchema." - Ignored");
+					array_push($this->irvNotices, "Cannot access the structure schema from: ".$this->jsonContent->dataset->structureSchema." - Ignored");
 					
 					curl_close($ch);
 				}
@@ -347,7 +306,7 @@ class JsonParser
 	
 					if($parsedContent === NULL)
 					{
-						array_push($this->jsonErrors, "Syntax error while parsing structure schema '".$this->jsonContent->Dataset->structureSchema."', malformed JSON");
+						array_push($this->jsonErrors, "Syntax error while parsing structure schema '".$this->jsonContent->dataset->structureSchema."', malformed JSON");
 						
 						return FALSE;		
 					}
@@ -358,9 +317,9 @@ class JsonParser
 		}
 		else
 		{
-			if(isset($this->jsonContent->Dataset->structureSchema))
+			if(isset($this->jsonContent->dataset->structureSchema))
 			{
-				array_push($structureSchemas, $this->jsonContent->Dataset->structureSchema);
+				array_push($structureSchemas, $this->jsonContent->dataset->structureSchema);
 			}
 		}		
 		
@@ -393,28 +352,27 @@ class JsonParser
 
 			array_push($this->structureSchemas, $tempSchema);
 		}
-		
-		
+*/		
+
 		// Linkage Schemas
 		$linkageSchemas = array();
 
 		// Get the decoded schema
-		if(gettype($this->jsonContent->Dataset->linkageSchema) != "object")
+		if(gettype($this->jsonContent->dataset->linkage) != "object")
 		{
 			// It is a URL link to a linkage schema
-			if(isset($this->jsonContent->Dataset->linkageSchema))
+			if(isset($this->jsonContent->dataset->linkage))
 			{
-				$data;
-
-				foreach($this->jsonContent->Dataset->linkageSchema as $ls)
+				foreach($this->jsonContent->dataset->linkage as $ls)
 				{
+					$data = "";
+					
 					if(gettype($ls) != "object")
 					{
 						// It is a URL
-						
+
 						// Save the URL reference
 						$this->dataset->setLinkageSchema($ls);
-						
 						
 						$ch = curl_init();
 						
@@ -440,36 +398,92 @@ class JsonParser
 						// It is an embedded linkage schema.
 						array_push($linkageSchemas, $ls);
 					}
-				}
-
-				if($data != "")
-				{
-					$parsedContent = json_decode($data);
-	
-					if($parsedContent === NULL)
+					
+					if($data != "")
 					{
-						array_push($this->jsonErrors, "Syntax error while parsing core linkage schema '".$url."', malformed JSON");
+						$parsedContent = json_decode($data);
+		
+						if($parsedContent === NULL)
+						{
+							array_push($this->jsonErrors, "Syntax error while parsing core linkage schema '".$ls."', malformed JSON");
+							
+							return FALSE;		
+						}
 						
-						return FALSE;		
-					}
-	
-					array_push($linkageSchemas, $parsedContent);
+						// Check if a linkage schema of the same linkageType exists. If it exists, we merge them together.
+						
+						// Merging rules:
+						// (1) if a type already exists, the type of the first schema will be used
+						// (2) if an attribute already exists, the attribute of the first schema will be used.
+						
+						$parsedContent = $parsedContent->linkage;
+						
+						$merged = FALSE;
+						
+						foreach($linkageSchemas as $linkageSchema)
+						{
+							if($linkageSchema->linkageType == $parsedContent->linkageType)
+							{
+								// merge prefixes
+								if(isset($parsedContent->prefixList))
+								{
+									foreach($parsedContent->prefixList as $prefix => $uri)
+									{
+										if(!isset($linkageSchema->prefixList->{$prefix}))
+										{
+											$linkageSchema->prefixList->{$prefix} = $uri;
+										}
+									}
+								}
+								
+								// merge types
+								if(isset($parsedContent->typeList))
+								{
+									foreach($parsedContent->typeList as $type => $typeObject)
+									{
+										if(!isset($linkageSchema->typeList->{$type}))
+										{
+											$linkageSchema->typeList->{$type} = $typeObject;
+										}
+									}
+								}
+								
+								// merge attributes
+								if(isset($parsedContent->attributeList))
+								{
+									foreach($parsedContent->attributeList as $attribute => $attributeObject)
+									{
+										if(!isset($linkageSchema->attributeList->{$attribute}))
+										{
+											$linkageSchema->attributeList->{$attribute} = $attributeObject;
+										}
+									}
+								}
+							}
+							
+							$merged = TRUE;
+						}
+						
+						if(!$merged)
+						{
+							array_push($linkageSchemas, $parsedContent);
+						}
+					}					
+					
 				}
 			}
 		}
 		else
 		{
-			if(isset($this->jsonContent->Dataset->linkageSchema))
+			if(isset($this->jsonContent->dataset->linkage))
 			{
-				array_push($linkageSchemas, $this->jsonContent->Dataset->linkageSchema);
+				array_push($linkageSchemas, $this->jsonContent->dataset->linkage);
 			}
 		}
 		
 		// Now populate the schema object.
 		foreach($linkageSchemas as $linkageSchema)
 		{
-			$linkageSchema = $linkageSchema->linkageSchema;
-			
 			$tempSchema = new LinkageSchema();
 			
 			// Set version
@@ -479,50 +493,59 @@ class JsonParser
 			$tempSchema->setLinkedFormat($linkageSchema->linkedFormat);
 			
 			// Set prefixes
-			foreach($linkageSchema->prefixes as $prefix => $uri)
-			{
-				$tempSchema->setPrefix($prefix, $uri);
-			}			
+			if(isset($linkageSchema->prefixList))
+			{			
+				foreach($linkageSchema->prefixList as $prefix => $uri)
+				{
+					$tempSchema->setPrefix($prefix, $uri);
+				}			
+			}
 			
-			// Set propertieslinkageSchemas
-			foreach($linkageSchema->properties as $property => $values)
-			{
-				// Throw an error if mapTo is used without specifying a linkedFormat attribute.
-				if(!isset($linkageSchema->linkedFormat) && isset($values->mapTo))
+			// Set attributes
+			if(isset($linkageSchema->attributeList))
+			{			
+				foreach($linkageSchema->attributeList as $property => $values)
 				{
-					array_push($this->irvErrors, "A 'linkedFormat' attribute has to be defined for this schema since the 'mapTo' attribute is used in the schema.");					
-				}
-				
-				$error = "";
-				
-				$tempSchema->setPropertyX($property, $values->mapTo, $error);
-				
-				if($error != "")
-				{
-					array_push($this->irvErrors, $error);
+					// Throw an error if mapTo is used without specifying a linkedFormat attribute.
+					if(!isset($linkageSchema->linkedFormat) && isset($values->mapTo))
+					{
+						array_push($this->irvErrors, "A 'linkedFormat' attribute has to be defined for this schema since the 'mapTo' attribute is used in the schema.");					
+					}
+					
+					$error = "";
+					
+					$tempSchema->setPropertyX($property, $values->mapTo, $error);
+					
+					if($error != "")
+					{
+						array_push($this->irvErrors, $error);
+					}
 				}
 			}
 			
 			// Set types
-			foreach($linkageSchema->types as $type => $values)
+			if(isset($linkageSchema->typeList))
 			{
-				$adds = array();
-				
-				if(isset($values->add))
+				foreach($linkageSchema->typeList as $type => $values)
 				{
-					foreach($values->add as $key => $value)
+					$adds = array();
+					
+					if(isset($values->add))
 					{
-						$adds[$key] = $value;
+						foreach($values->add as $key => $value)
+						{
+							$adds[$key] = $value;
+						}
 					}
-				}
-				
-				$error = "";
-				
-				$tempSchema->setTypeX($type, $values->mapTo, $adds, $error);
-				
-				if($error != "")
-				{
-					array_push($this->irvErrors, $error);
+					
+					$error = "";
+					
+					$tempSchema->setTypeX($type, $values->mapTo, $adds, $error);
+					
+					if($error != "")
+					{
+						array_push($this->irvErrors, $error);
+					}
 				}
 			}
 
@@ -531,12 +554,11 @@ class JsonParser
 
 		$this->instanceRecords = array();
 
-		foreach($this->jsonContent->InstanceRecords as $ir)
+		foreach($this->jsonContent->recordList as $ir)
 		{
 			$instanceRecord = new InstanceRecord();
 
 			// Set ID
-			
 			if(isset($ir->id))
 			{
 				$instanceRecord->setId($ir->id);
@@ -547,130 +569,85 @@ class JsonParser
 				$instanceRecord->setId(md5(microtime()));
 			}
 
-			// Set type
+			// Set default type in case that no type has been defined for this record
 			if(isset($ir->type))
 			{
 				if(is_array($ir->type))
 				{
 					foreach($ir->type as $type)
 					{
-						$instanceRecord->setType($type, "array(string)");	
+						$instanceRecord->setAttribute("type", $type, "type:object[".count($ir->type)."]");
 					}
 				}
 				else
 				{
-					$instanceRecord->setType($ir->type, "string");
+					$instanceRecord->setAttribute("type", $ir->type, "type:object[1]");
 				}
 			}
 			else
 			{
-				$instanceRecord->setType("thing", "string");
+				$instanceRecord->setAttribute("type", "Object", "type:object[1]");
 			}
 			
-			// Set label
-			if(is_array($ir->label))
-			{
-				foreach($ir->label as $label)
-				{
-					$instanceRecord->setLabel($label, "array(string)");	
-				}
-			}
-			else
-			{
-				$instanceRecord->setLabel($ir->label, "string");
-			}
-			
-			// Set description
-			$instanceRecord->setDescription($ir->description);
-			
-			// Set sameAs
-			if(is_array($ir->sameAs))
-			{
-				foreach($ir->sameAs as $sameAs)
-				{
-					$instanceRecord->setSameAs($sameAs, "array(string)");	
-				}
-			}
-			else
-			{
-				$instanceRecord->setSameAs($ir->sameAs, "string");
-			}					
-			
-			// Set attributeX
-//			print_r($ir);
+			// Set attributes
 			foreach($ir as $attribute => $value)
 			{
-				if(	$attribute != "id" &&
-					$attribute != "type" &&
-					$attribute != "label" &&
-					$attribute != "description" &&
-					$attribute != "sameAs")
+				if($attribute != "id" && $attribute != "type")
 				{
-
 					// Check if we have an array of something
 					if(is_array($ir->{$attribute}))
 					{
-//						echo "Attribute: $attribute :gettype: ".gettype($value)."\n";
-												
 						foreach($ir->{$attribute} as $arrayValue)
 						{
 							if(gettype($arrayValue) == "string")
 							{
-//								echo "Attribute: $attribute :: array(string)\n";
-								$instanceRecord->setAttributeX($attribute, $arrayValue, "array(string)");
+								$instanceRecord->setAttribute($attribute, $arrayValue, "primitive:string[".count($ir->{$attribute})."]");
 							}
 							
 							if(gettype($arrayValue) == "object")
 							{
-//								echo "Attribute: $attribute :: array(object)\n";
-								$instanceRecord->setAttributeXRef($attribute, $arrayValue->label, $arrayValue->href, $arrayValue->ref, "array(object)");
+								// Create the metaData array
+								$metaData = array();
+								foreach($arrayValue as $metaAttribute => $metaValue)
+								{
+									if($metaAttribute != "ref")
+									{
+										array_push($metaData, array($metaAttribute => $metaValue));
+									}
+								}
+								$instanceRecord->setAttributeRef($attribute, $metaData, $arrayValue->ref, "type:object[".$ir->{$attribute}."]");
 							}
 						}		
 					}
 					else
 					{
-//						echo "Attribute: $attribute :gettype: ".gettype($value)."\n";						
-						
 						if(gettype($value) == "string")
 						{
-//							echo "Attribute: $attribute :: string\n";
-							$instanceRecord->setAttributeX($attribute, $value, "string");							
+							$instanceRecord->setAttribute($attribute, $value, "primitive:string[1]");							
 						}
 						
 						if(gettype($value) == "object")
 						{
-//							echo "Attribute: $attribute :: object\n";
-							$instanceRecord->setAttributeXRef($attribute, $value->label, $value->href, $value->ref, "object");
+							$metaData = array();
+							foreach($value as $metaAttribute => $metaValue)
+							{
+								if($metaAttribute != "ref")
+								{
+									array_push($metaData, array($metaAttribute => $metaValue));
+								}
+							}
+							
+							$instanceRecord->setAttributeRef($attribute, $metaData, $value->ref, "type:object[1]");
 						}
 					}
-
-/*
-					if(is_array($ir->{$attribute}))
-					{
-						foreach($ir->{$attribute} as $attr)
-						{
-							$instanceRecord->setAttributeXRef($attribute, $attr->label, $attr->href, $attr->ref, "array(object)");
-						}		
-					}
-					else
-					{
-						// Check if it is an array of strings
-						if(is_array($ir->{$attribute}))
-						{
-							$instanceRecord->setAttributeX($attribute, $value, "array(string)");
-						}
-						else
-						{
-							// It is a single value
-							$instanceRecord->setAttributeX($attribute, $value, "string");
-						}
-					}
-*/					
 				}	
 			}	
 
 			array_push($this->instanceRecords, $instanceRecord);
 		}
+		
+		
+/*		
 		
 		// Now lets validate the types of the values of the attributes that have been parsed.
 			
@@ -768,13 +745,7 @@ class JsonParser
 					$this->validateAttributeType($instanceRecord, $attribute);
 				}
 			}	
-			
-
 		}
-		
-/*		
-			print_r($this->linkageSchemas);
-			print_r($this->structureSchemas);
 */		
 	}
 	

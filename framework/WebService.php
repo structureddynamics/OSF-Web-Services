@@ -30,42 +30,55 @@
 
 abstract class WebService
 {
+	/*! @brief data.ini file folder */
+	public static $data_ini = "/usr/share/structwsf/";
+	
+	/*! @brief network.ini file folder */
+	public static $network_ini = "/usr/share/structwsf/";
+	
 	/*! @brief Database user name */
-	protected static $db_username = "username";
+	protected $db_username = "";
 
 	/*! @brief Database password */
-	protected static $db_password = "password";
+	protected $db_password = "";
 
 	/*! @brief Database DSN connection */
-	protected static $db_dsn = "dsn";
+	protected $db_dsn = "";
 
 	/*! @brief Database host */
-	protected static $db_host = "localhost";
+	protected $db_host = "";
 
 	/*! @brief DTD URL of the web service */
-	protected static $dtdBaseURL = "http://domain.com/ws/dtd/";
+	protected $dtdBaseURL = "";
 
 	/*! @brief The graph where the Web Services Framework description has been indexed */
-	protected static $wsf_graph = "http://domain.com/wsf/";	
+	protected $wsf_graph = "";	
 
 	/*! @brief Base URL of the WSF */
-	protected static $wsf_base_url = "http://domain.com";	
+	protected $wsf_base_url = "";	
 
 	/*! @brief Local server path of the WSF files */
-	protected static $wsf_base_path = "/.../ws";	
+	protected $wsf_base_path = "";	
 
 	/*! @brief Local server path of the WSF files */
-	protected static $wsf_local_ip = "127.0.0.1";	
+	protected $wsf_local_ip = "";	
 
 	/*! @brief The core to use for Solr; "" for no core */
-	protected static $wsf_solr_core = "";	
+	protected $wsf_solr_core = "";	
+	
+	/*! @brief Path to the ontologies description files (in RDFS and OWL) */
+	protected $ontologies_files_folder = "";
+	
+	/*! @brief Path to the structWSF ontological structure */
+	protected $ontological_structure_folder = "";	
+	
 
 	/*! @brief 	Auto commit handled by the Solr data management systems. If this parameter is true, then this means
 	 * 				Solr will handle the commit operation by itself. If it is false, then the web services will trigger the commit
 	 * 				operations. Usually, Auto-commit should be handled by Solr when the size of the dataset is too big, otherwise
 	 * 				operation such as delete could take much time.			
 	 */
-	protected static $solr_auto_commit = FALSE;	
+	protected $solr_auto_commit = FALSE;	
 
 
 	/*! @brief The URI of the Authentication Registrar web service */
@@ -80,7 +93,39 @@ abstract class WebService
 	/*! @brief The endpoint of the Authentication Registrar web service */
 	protected $endpoint;		
 	
-	function __construct(){}
+	function __construct()
+	{
+		// Load INI settings
+		$data_ini = parse_ini_file(self::$data_ini."data.ini", TRUE);
+		$network_ini = parse_ini_file(self::$network_ini."network.ini", TRUE);
+		
+		$this->db_username = $data_ini["triplestore"]["username"];
+		$this->db_password = $data_ini["triplestore"]["password"];
+		$this->db_dsn = $data_ini["triplestore"]["dsn"];
+		$this->db_host = $data_ini["triplestore"]["host"];
+		
+		$this->dtdBaseUrl = $data_ini["datasets"]["dtd_base"];
+		$this->wsf_graph = $data_ini["datasets"]["wsf_graph"];
+		
+		$this->wsf_base_url = $network_ini["network"]["wsf_base_url"];
+		$this->wsf_base_path = $network_ini["network"]["wsf_base_path"];
+		$this->wsf_local_ip = $network_ini["network"]["wsf_local_ip"];
+		
+		$this->wsf_solr_core  = $data_ini["solr"]["wsf_solr_core"];	
+
+		$this->ontologies_files_folder  = $data_ini["ontologies"]["ontologies_files_folder"];
+		$this->ontological_structure_folder  = $data_ini["ontologies"]["ontological_structure_folder"];
+		
+		if(strtolower($data_ini["solr"]["solr_auto_commit"]) == "true" || $data_ini["solr"]["solr_auto_commit"] == "1")
+		{
+			$this->solr_auto_commit  = TRUE;
+		}
+		
+		// This handler is defined for the fatal script errors. If a script can't be finished because a fatal error
+		// occured, then the handleFatalPhpError function is used to return the error message to the requester.
+		register_shutdown_function("handleFatalPhpError");	
+	}
+	
 	function __destruct(){}
 	
 	
@@ -168,6 +213,19 @@ abstract class WebService
 			\n\n\n
 	*/			
 	abstract public function pipeline_getResponseHeaderStatus();
+
+	/*!	 @brief Returns the error structure
+							
+			\n
+			
+			@return returns the error structure
+		
+			@author Frederick Giasson, Structured Dynamics LLC.
+		
+			\n\n\n
+	*/			
+	abstract public function pipeline_getError();
+
 	
 	/*!	 @brief Returns the response HTTP header status message
 							
@@ -325,6 +383,131 @@ class CrudUsage
 		$this->update = $update;	
 		$this->delete = $delete;	
 	}
+}
+
+function handleFatalPhpError()
+{
+	include_once("Error.php");
+	
+   $last_error = error_get_last();
+   
+   if(	$last_error['type'] === E_ERROR ||
+   		$last_error['type'] === E_CORE_ERROR ||
+		$last_error['type'] === E_COMPILE_ERROR ||
+		$last_error['type'] === E_RECOVERABLE_ERROR ||
+		$last_error['type'] === E_USER_ERROR) 
+   {
+		// Check accept parameter
+		$mimes = array();
+		
+		$header = $_SERVER['HTTP_ACCEPT'];
+		
+		if(strlen($header) > 0)
+		{
+			// break up string into pieces (languages and q factors)
+			preg_match_all('/([^,]+)/', $header, $accepts);
+		
+			foreach($accepts[0] as $accept)
+			{
+				$foo = explode(";", str_replace(" ", "", $accept));
+				
+				if(isset($foo[1]))
+				{
+					if(stripos($foo[1], "q=") !== FALSE)
+					{
+						$foo[1] = str_replace("q=", "", $foo[1]);
+					}
+					else
+					{
+						$foo[1] = "1";
+					}
+				}
+				else
+				{
+					array_push($foo, "1");
+				}
+				
+				$mimes[$foo[0]] = $foo[1];
+			}
+			
+			// In the case that there is a Accept: header, but that it is empty. We set it to: anything.
+			if(count($mimes) <= 0)
+			{
+				$mimes["*/*"] = 1;
+			}
+		
+			arsort($mimes, SORT_NUMERIC);
+		
+		}
+
+		$errorMime = "";			
+		foreach($mimes as $mime => $q)
+		{
+			$mime = strtolower($mime);
+			
+			switch($q)
+			{
+				case "application/rdf+xml":
+				case "text/xml":
+				case "application/sparql-results+xml":
+				case "application/xhtml+rdfa":
+				case "text/html":
+					$errorMime = "text/xml";
+				break;
+				
+				case "application/sparql-results+json":
+				case "application/iron+json":
+				case "application/json":
+				case "application/bib+json":
+					$errorMime = "application/json";
+				break;
+			}
+			
+			if($errorMime != "")
+			{
+				break;
+			}
+		}
+			
+		// Check what web service returned the error
+		$webservice = substr($_SERVER["SCRIPT_NAME"], 0, strrpos($_SERVER["SCRIPT_NAME"], "/") + 1);
+		
+		$errorName = "";
+		
+		switch($last_error['type'])
+		{
+			case E_ERROR;
+				$errorName = "Error";
+			break;
+			
+			case E_CORE_ERROR;
+				$errorName = "Core Error";
+			break;
+			
+			case E_COMPILE_ERROR;
+				$errorName = "Compile Error";
+			break;
+			
+			case E_RECOVERABLE_ERROR;
+				$errorName = "Recoverable Error";
+			break;
+			
+			case E_USER_ERROR;
+				$errorName = "User Error";
+			break;
+		}
+		
+		// Create the error object
+		$error = new Error("HTTP-500", $webservice, $errorName, $last_error['message'], "[file]: ".$last_error['file']. "[line]:".$last_error['line'], $errorMime, "Fatal");		
+		
+		// Return the error according to the requested mime.
+		header("HTTP/1.1 500 Internal Server Error");	
+		header("Content-Type: $errorMime");
+		
+		echo $error->getError();
+		
+		die;
+   }	
 }
 
 //@} 

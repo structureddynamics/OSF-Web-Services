@@ -1,10 +1,10 @@
 <?php
 
-	/*! @ingroup WsConverterIrv */
+	/*! @ingroup WsConverterIrJSON */
 	//@{ 
 
-	/*! @file \ws\converter\irv\index.php
-		 @brief Entry point of a query the TSV Converter web service
+	/*! @file \ws\converter\irjson\index.php
+		 @brief Entry point of a query the irJSON Converter web service
 		 @details Each time a query is sent to this web service, this index.php script will create the web service class
 		               and will process it. The resultset, or error, will be returned to the user in the HTTP header & body query.
 		
@@ -18,8 +18,7 @@
 	
 
 
-error_reporting(0);
-//error_reporting(E_ALL);
+ini_set("display_errors", "Off");		// Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
 ini_set("memory_limit","64M");
 
 
@@ -35,12 +34,12 @@ include_once("../../framework/WebService.php");
 include_once("../../framework/ProcessorXML.php");
 
 // Loading the Named Entities Extraction web service
-include_once("ConverterIrv.php");
+include_once("ConverterIrJSON.php");
 include_once("Dataset.php");
 include_once("InstanceRecord.php");
 include_once("LinkageSchema.php");
 include_once("StructureSchema.php");
-include_once("JsonParser.php");
+include_once("irJSONParser.php");
 
 include_once("../../framework/Logger.php");
 
@@ -50,17 +49,17 @@ $document = "";
 /*
 	3 mime choices for the text input:
 	
-	(1) application/irv+json
+	(1) application/iron+json
 	(2) application/rdf+xml
 	(3) application/rdf+n3
 */
 
 if(isset($_POST['document'])) 
 {
-    $document = str_replace('\"', '"', $_POST['document']);
+    $document = $_POST['document'];
 }
 
-$docmime = "application/irv+json";
+$docmime = "application/iron+json";
 if(isset($_POST['docmime'])) 
 {
     $docmime = str_replace('\"', '"', $_POST['docmime']);
@@ -104,7 +103,7 @@ elseif(isset($_SERVER['PHP_SELF']))
 	$parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_irv = new ConverterIrv($document, $docmime, $registered_ip, $requester_ip);
+$ws_irv = new ConverterIrJSON($document, $docmime, $registered_ip, $requester_ip);
 
 $ws_irv->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
 

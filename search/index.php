@@ -16,7 +16,7 @@
 	 
  */
 
-
+ini_set("display_errors", "Off");		// Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
 ini_set("memory_limit","64M");
 
 
@@ -39,6 +39,7 @@ include_once("../auth/lister/AuthLister.php");
 
 include_once("../framework/Logger.php");
 
+include_once("../framework/Namespaces.php");
 
 // Full text query supporting the Lucene operators
 $query = "";
@@ -54,6 +55,14 @@ $types = "all";
 if(isset($_POST['types'])) 
 {
     $types = $_POST['types'];
+}
+
+// Attributes to filter
+$attributes = "all";
+
+if(isset($_POST['attributes'])) 
+{
+    $attributes = $_POST['attributes'];
 }
 
 // Filtering types
@@ -135,7 +144,7 @@ elseif(isset($_SERVER['PHP_SELF']))
 	$parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_s = new Search($query, $types, $datasets, $items, $page, $inference, $include_aggregates, $registered_ip, $requester_ip);
+$ws_s = new Search($query, $types, $attributes, $datasets, $items, $page, $inference, $include_aggregates, $registered_ip, $requester_ip);
 
 $ws_s->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
 

@@ -46,10 +46,14 @@
 	
 	$rdf = "";
 	
-	$username = "";
-	$password = "";
-	$dsn = "";
-	$host = "";
+	include_once("../framework/WebService.php");
+
+	$data_ini = parse_ini_file(WebService::$data_ini."data.ini", TRUE);		
+	
+	$username = $data_ini["triplestore"]["username"];
+	$password = $data_ini["triplestore"]["password"];
+	$dsn = $data_ini["triplestore"]["dsn"];
+	$host = $data_ini["triplestore"]["host"];
 	
 	switch($action)
 	{
@@ -69,6 +73,7 @@
 							wsf:hasWebService <$server_address/wsf/ws/sparql/> ;
 							wsf:hasWebService <$server_address/wsf/ws/converter/bibtex/> ;
 							wsf:hasWebService <$server_address/wsf/ws/converter/tsv/> ;
+							wsf:hasWebService <$server_address/wsf/ws/converter/irjson/> ;
 							wsf:hasWebService <$server_address/wsf/ws/search/> ;
 							wsf:hasWebService <$server_address/wsf/ws/browse/> ;
 							wsf:hasWebService <$server_address/wsf/ws/auth/registrar/ws/> ;
@@ -312,6 +317,17 @@
 							wsf:read \"False\" ;
 							wsf:update \"False\" ;
 							wsf:delete \"False\" .
+
+						<$server_address/wsf/ws/converter/irjson/> rdf:type wsf:WebService ;
+							dcterms:title \"Converter irJSON web service\" ;
+							wsf:endpoint \"\"\"$server_address/ws/converter/irjson/\"\"\";
+							wsf:hasCrudUsage <$server_address/wsf/usage/converter/irjson/> .
+						
+						<$server_address/wsf/usage/converter/irjson/> rdf:type wsf:CrudUsage ;
+							wsf:create \"False\" ;
+							wsf:read \"False\" ;
+							wsf:update \"False\" ;
+							wsf:delete \"False\" .
 							
 						<$server_address/wsf/ws/converter/tsv/> rdf:type wsf:WebService ;
 							dcterms:title \"Converter TSV web service\" ;
@@ -399,7 +415,6 @@
 			return;
 		break;
 	}
-	
 
 	$db = new DB_Virtuoso($username, $password, $dsn, $host);							
 	

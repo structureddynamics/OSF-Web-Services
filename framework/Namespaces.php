@@ -40,6 +40,7 @@ class Namespaces
 	public static $rdf = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
 	public static $owl = "http://www.w3.org/2002/07/owl#";
 	public static $dcterms = "http://purl.org/dc/terms/";
+	public static $dc = "http://purl.org/dc/elements/1.1/";
 	public static $skos_2004 = "http://www.w3.org/2004/02/skos/core#";
 	public static $skos_2008 = "http://www.w3.org/2008/05/skos#";
 	public static $po = "http://purl.org/ontology/po/";
@@ -52,6 +53,7 @@ class Namespaces
 	public static $bkn_base = "http://purl.org/ontology/bkn/base/";
 	public static $bio = "http://purl.org/vocab/bio/0.1/";
 	public static $address = "http://schemas.talis.com/2005/address/schema#";
+	public static $iron = "http://purl.org/ontology/iron#";
 }
 
 //@} 

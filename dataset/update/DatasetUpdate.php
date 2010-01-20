@@ -55,6 +55,54 @@ class DatasetUpdate extends WebService
 	/*! @brief Supported serialization mime types by this Web service */
 	public static $supportedSerializations = array("application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
 		
+	/*! @brief Error messages of this web service */
+	private $errorMessenger = '{
+												"ws": "/ws/dataset/update/",
+												"_200": {
+													"id": "WS-DATASET-UPDATE-200",
+													"level": "Warning",
+													"name": "No unique identifier specified for this dataset",
+													"description": "No URI defined for this new dataset"
+												},
+												"_201": {
+													"id": "WS-DATASET-UPDATE-201",
+													"level": "Fatal",
+													"name": "Can\'t check if the dataset is existing",
+													"description": "An error occured when we tried to check if the dataset was existing"
+												},
+												"_202": {
+													"id": "WS-DATASET-UPDATE-202",
+													"level": "Warning",
+													"name": "This dataset doesn\'t exist in this WSF",
+													"description": "The target dataset is not existing in the web service framework"
+												},
+												"_300": {
+													"id": "WS-DATASET-UPDATE-300",
+													"level": "Fatal",
+													"name": "Can\'t update the title of the dataset in the triple store",
+													"description": "An error occured when we tried to update the title of the dataset in the triple store"
+												},
+												"_301": {
+													"id": "WS-DATASET-UPDATE-301",
+													"level": "Fatal",
+													"name": "Can\'t update the description of the dataset in the triple store",
+													"description": "An error occured when we tried to update the description of the dataset in the triple store"
+												},
+												"_302": {
+													"id": "WS-DATASET-UPDATE-302",
+													"level": "Fatal",
+													"name": "Can\'t update the last modification date of the dataset in the triple store",
+													"description": "An error occured when we tried to update the last modification date of the dataset in the triple store"
+												},
+												"_303": {
+													"id": "WS-DATASET-UPDATE-303",
+													"level": "Fatal",
+													"name": "Can\'t update the contributors of the dataset in the triple store",
+													"description": "An error occured when we tried to update the contributors of the dataset in the triple store"
+												}	
+											}';	
+		
+		
 	/*!	 @brief Constructor
 			 @details 	Initialize the Auth Web Service
 				
@@ -77,7 +125,7 @@ class DatasetUpdate extends WebService
 	{
 		parent::__construct();		
 		
-		$this->db = new DB_Virtuoso(parent::$db_username, parent::$db_password, parent::$db_dsn, parent::$db_host);
+		$this->db = new DB_Virtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 		
 		$this->datasetUri = $uri;
 		$this->datasetTitle = $title;
@@ -86,12 +134,14 @@ class DatasetUpdate extends WebService
 		$this->modified = $modified;
 		$this->requester_ip = $requester_ip;
 
-		$this->uri = parent::$wsf_base_url."/wsf/ws/dataset/update/";	
+		$this->uri = $this->wsf_base_url."/wsf/ws/dataset/update/";	
 		$this->title = "Dataset Update Web Service";	
 		$this->crud_usage = new CrudUsage(FALSE, FALSE, TRUE, FALSE);
-		$this->endpoint = parent::$wsf_base_url."/ws/dataset/update/";			
+		$this->endpoint = $this->wsf_base_url."/ws/dataset/update/";			
 		
 		$this->dtdURL = "dataset/datasetUpdate.dtd";
+		
+		$this->errorMessenger = json_decode($this->errorMessenger);		
 	}
 
 	function __destruct() 
@@ -118,7 +168,7 @@ class DatasetUpdate extends WebService
 	*/			
 	protected function validateQuery()
 	{
-		$ws_av = new AuthValidator($this->requester_ip, parent::$wsf_graph."datasets/", $this->uri);
+		$ws_av = new AuthValidator($this->requester_ip, $this->wsf_graph."datasets/", $this->uri);
 		
 		$ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
 		
@@ -129,8 +179,32 @@ class DatasetUpdate extends WebService
 			$this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
 			$this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
 			$this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
+			$this->conneg->setError($ws_av->pipeline_getError()->id, 
+												$ws_av->pipeline_getError()->webservice, 
+												$ws_av->pipeline_getError()->name, 
+												$ws_av->pipeline_getError()->description, 
+												$ws_av->pipeline_getError()->debugInfo,
+												$ws_av->pipeline_getError()->level);
+
+			return;			
 		}
 	}
+
+	/*!	 @brief Returns the error structure
+							
+			\n
+			
+			@return returns the error structure
+		
+			@author Frederick Giasson, Structured Dynamics LLC.
+		
+			\n\n\n
+	*/		
+	public function pipeline_getError()
+	{
+		return($this->conneg->error);
+	}	
+
 
 	/*!	@brief Create a resultset in a pipelined mode based on the processed information by the Web service.
 							
@@ -191,13 +265,20 @@ class DatasetUpdate extends WebService
 			{
 				$this->conneg->setStatus(400);
 				$this->conneg->setStatusMsg("Bad Request");
-				$this->conneg->setStatusMsgExt("No dataset URI specified");
+				$this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
+				$this->conneg->setError($this->errorMessenger->_200->id, 
+													$this->errorMessenger->ws, 
+													$this->errorMessenger->_200->name, 
+													$this->errorMessenger->_200->description, 
+													"",
+													$this->errorMessenger->_200->level);					
+				
 				return;
 			}
 			
 			// Check if the dataset is existing
 			$query .= "	select ?dataset 
-								from <".parent::$wsf_graph."datasets/>
+								from <".$this->wsf_graph."datasets/>
 								where
 								{
 									<$this->datasetUri> a ?dataset .
@@ -209,14 +290,28 @@ class DatasetUpdate extends WebService
 			{
 				$this->conneg->setStatus(500);
 				$this->conneg->setStatusMsg("Internal Error");
-				$this->conneg->setStatusMsgExt("Error #dataset-update-100");		
+				$this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
+				$this->conneg->setError($this->errorMessenger->_201->id, 
+													$this->errorMessenger->ws, 
+													$this->errorMessenger->_201->name, 
+													$this->errorMessenger->_201->description, 
+													odbc_errormsg(),
+													$this->errorMessenger->_201->level);					
+		
 				return;			
 			}
 			elseif(odbc_fetch_row($resultset) === FALSE)
 			{
 				$this->conneg->setStatus(400);
 				$this->conneg->setStatusMsg("Bad Request");
-				$this->conneg->setStatusMsgExt("This dataset doesn't exist in this WSF");
+				$this->conneg->setStatusMsgExt($this->errorMessenger->_202->name);
+				$this->conneg->setError($this->errorMessenger->_202->id, 
+													$this->errorMessenger->ws, 
+													$this->errorMessenger->_202->name, 
+													$this->errorMessenger->_202->description, 
+													"",
+													$this->errorMessenger->_202->level);					
+
 				
 				unset($resultset);
 			}
@@ -373,7 +468,7 @@ class DatasetUpdate extends WebService
 		if($this->conneg->getStatus() == 200)
 		{
 /*		
-			$query = "modify <".parent::$wsf_graph."datasets/>
+			$query = "modify <".$this->wsf_graph."datasets/>
 							delete
 							{ 
 								".($this->datasetTitle != "" ? "<$this->datasetUri> <http://purl.org/dc/terms/title> ?datasetTitle ." : "")."
@@ -395,7 +490,7 @@ class DatasetUpdate extends WebService
 			$query .= "}									
 							where
 							{
-								graph <".parent::$wsf_graph."datasets/>
+								graph <".$this->wsf_graph."datasets/>
 								{
 									<$this->datasetUri> a <http://rdfs.org/ns/void#Dataset> .
 									".($this->datasetTitle != "" ? "<$this->datasetUri> <http://purl.org/dc/terms/title> ?datasetTitle ." : "")."
@@ -414,20 +509,20 @@ class DatasetUpdate extends WebService
 			if($this->datasetTitle != "")
 			{
 
-				$query = "delete from <".parent::$wsf_graph."datasets/>
+				$query = "delete from <".$this->wsf_graph."datasets/>
 								{ 
 									<$this->datasetUri> <http://purl.org/dc/terms/title> ?datasetTitle .
 								}
 								where
 								{
-									graph <".parent::$wsf_graph."datasets/>
+									graph <".$this->wsf_graph."datasets/>
 									{
 										<$this->datasetUri> a <http://rdfs.org/ns/void#Dataset> .
 										<$this->datasetUri> <http://purl.org/dc/terms/title> ?datasetTitle .
 									}
 								}
 								".(	$this->datasetTitle != "-delete-" ? "
-								insert into <".parent::$wsf_graph."datasets/>
+								insert into <".$this->wsf_graph."datasets/>
 								{
 									<$this->datasetUri> <http://purl.org/dc/terms/title> \"\"\"".str_replace("'", "\'", $this->datasetTitle)."\"\"\" .
 								}" : "");							
@@ -439,27 +534,34 @@ class DatasetUpdate extends WebService
 			{
 				$this->conneg->setStatus(500);
 				$this->conneg->setStatusMsg("Internal Error");
-				$this->conneg->setStatusMsgExt("Error #dataset-update-101");	
+				$this->conneg->setStatusMsgExt($this->errorMessenger->_300->name);
+				$this->conneg->setError($this->errorMessenger->_300->id, 
+													$this->errorMessenger->ws, 
+													$this->errorMessenger->_300->name, 
+													$this->errorMessenger->_300->description, 
+													odbc_errormsg(),
+													$this->errorMessenger->_300->level);					
+				
 				return;
 			}					
 			
 			// Updating the description if it exists in the description		
 			if($this->description != "")
 			{
-				$query = "delete from <".parent::$wsf_graph."datasets/>
+				$query = "delete from <".$this->wsf_graph."datasets/>
 								{ 
 									<$this->datasetUri> <http://purl.org/dc/terms/description> ?description .
 								}
 								where
 								{
-									graph <".parent::$wsf_graph."datasets/>
+									graph <".$this->wsf_graph."datasets/>
 									{
 										<$this->datasetUri> a <http://rdfs.org/ns/void#Dataset> .
 										<$this->datasetUri> <http://purl.org/dc/terms/description> ?description .
 									}
 								}
 								".(	$this->description != "-delete-" ? "
-								insert into <".parent::$wsf_graph."datasets/>
+								insert into <".$this->wsf_graph."datasets/>
 								{
 									<$this->datasetUri> <http://purl.org/dc/terms/description> \"\"\"".str_replace("'", "\'", $this->description)."\"\"\" .
 								}" : "");							
@@ -471,27 +573,34 @@ class DatasetUpdate extends WebService
 			{
 				$this->conneg->setStatus(500);
 				$this->conneg->setStatusMsg("Internal Error");
-				$this->conneg->setStatusMsgExt("Error #dataset-update-102");	
+				$this->conneg->setStatusMsgExt($this->errorMessenger->_301->name);
+				$this->conneg->setError($this->errorMessenger->_301->id, 
+													$this->errorMessenger->ws, 
+													$this->errorMessenger->_301->name, 
+													$this->errorMessenger->_301->description, 
+													odbc_errormsg(),
+													$this->errorMessenger->_301->level);					
+
 				return;
 			}					
 							
 			// Updating the modification date if it exists in the description		
 			if($this->modified != "")
 			{
-				$query = "delete from <".parent::$wsf_graph."datasets/>
+				$query = "delete from <".$this->wsf_graph."datasets/>
 								{ 
 									<$this->datasetUri> <http://purl.org/dc/terms/modified> ?modified .
 								}
 								where
 								{
-									graph <".parent::$wsf_graph."datasets/>
+									graph <".$this->wsf_graph."datasets/>
 									{
 										<$this->datasetUri> a <http://rdfs.org/ns/void#Dataset> .
 										<$this->datasetUri> <http://purl.org/dc/terms/modified> ?modified .
 									}
 								}
 								".(	$this->modified != "-delete-" ? "
-								insert into <".parent::$wsf_graph."datasets/>
+								insert into <".$this->wsf_graph."datasets/>
 								{
 									<$this->datasetUri> <http://purl.org/dc/terms/modified> \"\"\"".str_replace("'", "\'", $this->modified)."\"\"\" .
 								}" : "");							
@@ -503,25 +612,33 @@ class DatasetUpdate extends WebService
 			{
 				$this->conneg->setStatus(500);
 				$this->conneg->setStatusMsg("Internal Error");
-				$this->conneg->setStatusMsgExt("Error #dataset-update-103");	
+				$this->conneg->setStatusMsgExt($this->errorMessenger->_302->name);
+				$this->conneg->setError($this->errorMessenger->_302->id, 
+													$this->errorMessenger->ws, 
+													$this->errorMessenger->_302->name, 
+													$this->errorMessenger->_302->description, 
+													odbc_errormsg(),
+													$this->errorMessenger->_302->level);					
+
 				return;
 			}					
 			
 			// Updating the contributors list if it exists in the description		
 			if($this->contributors != "")
 			{
-				$query = "delete from <".parent::$wsf_graph."datasets/>
+				$query = "delete from <".$this->wsf_graph."datasets/>
 								{ 
 									<$this->datasetUri> <http://purl.org/dc/terms/contributor> ?contributor .
 								}
 								where
 								{
-									graph <".parent::$wsf_graph."datasets/>
+									graph <".$this->wsf_graph."datasets/>
 									{
 										<$this->datasetUri> a <http://rdfs.org/ns/void#Dataset> .
 										<$this->datasetUri> <http://purl.org/dc/terms/contributor> ?contributor .
 									}
 								}";
+								
 				if($this->contributors != "-delete-")
 				{
 					$cons = array();
@@ -531,7 +648,7 @@ class DatasetUpdate extends WebService
 						$cons = explode(";", $this->contributors);
 					}
 					
-					$query .= "insert into <".parent::$wsf_graph."datasets/>
+					$query .= "insert into <".$this->wsf_graph."datasets/>
 									{";
 
 					foreach($cons as $contributor)
@@ -553,11 +670,16 @@ class DatasetUpdate extends WebService
 			{
 				$this->conneg->setStatus(500);
 				$this->conneg->setStatusMsg("Internal Error");
-				$this->conneg->setStatusMsgExt("Error #dataset-update-104");	
+				$this->conneg->setStatusMsgExt($this->errorMessenger->_303->name);
+				$this->conneg->setError($this->errorMessenger->_303->id, 
+													$this->errorMessenger->ws, 
+													$this->errorMessenger->_303->name, 
+													$this->errorMessenger->_303->description, 
+													odbc_errormsg(),
+													$this->errorMessenger->_303->level);					
+
 				return;
 			}					
-							
-							
 		}
 	}
 }

@@ -15,7 +15,7 @@
 	 \n\n\n
  */
 
-
+ini_set("display_errors", "Off");		// Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
 ini_set("memory_limit","64M");
 
 
@@ -60,6 +60,15 @@ if(isset($_GET['include_linksback']))
     $include_linksback = $_GET['include_linksback'];
 }
 
+// Include the reference of the resources that links to this resource
+$include_reification = "";
+
+if(isset($_GET['include_reification'])) 
+{
+    $include_reification = $_GET['include_reification'];
+}
+
+
 // Optional IP
 $registered_ip = "";
 
@@ -98,7 +107,7 @@ elseif(isset($_SERVER['PHP_SELF']))
 	$parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_cr = new CrudRead($uri, $dataset, $include_linksback, $registered_ip, $requester_ip);
+$ws_cr = new CrudRead($uri, $dataset, $include_linksback, $include_reification, $registered_ip, $requester_ip);
 
 $ws_cr->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
 

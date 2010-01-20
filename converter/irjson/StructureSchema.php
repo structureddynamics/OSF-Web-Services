@@ -1,9 +1,9 @@
 <?php
 
-	/*! @ingroup WsConverterIrv */
+	/*! @ingroup WsConverterIrJSON */
 	//@{ 
 
-	/*! @file \ws\converter\irv\StructureSchema.php
+	/*! @file \ws\converter\irjson\StructureSchema.php
 		 @brief Define an linkage schema item
 		
 		 \n\n

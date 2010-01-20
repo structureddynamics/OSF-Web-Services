@@ -37,6 +37,9 @@ class CrudRead extends WebService
 	/*! @brief Include the reference of the resources that links to this resource */
 	private $include_linksback = "";
 	
+	/*! @brief Include potential reification statements */
+	private $include_reification = "";
+	
 	/*! @brief URI of the resource to get its description */
 	private $resourceUri = "";
 	
@@ -52,14 +55,72 @@ class CrudRead extends WebService
 	/*! @brief Description of one or multiple datasets */
 	private $datasetsDescription = array();
 	
-	/*! @brief Array of triples where the current resource is a subject. */
-	public $subjectTriples = array(); // 
+	/*! @brief Namespaces/Prefixes binding */
+	private 	$namespaces = array(	"http://www.w3.org/2002/07/owl#" => "owl",
+												"http://www.w3.org/1999/02/22-rdf-syntax-ns#" => "rdf",
+												"http://www.w3.org/2000/01/rdf-schema#" => "rdfs",
+												"http://purl.org/ontology/wsf#" => "wsf");
+	
+	/*! @brief Array of triples where the current resource(s) is a subject. */
+	public $subjectTriples = array(); 
 
-	/*! @brief Array of triples where the current resource is an object. */
+	/*! @brief Array of triples where the current resource(s) is an object. */
 	public $objectTriples = array();	
 
+	/*! @brief Array of triples that reify triples of a resource description. */
+	public $reificationTriples = array();	
+
 	/*! @brief Supported serialization mime types by this Web service */
-	public static $supportedSerializations = array("application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
+	public static $supportedSerializations = array("application/bib+json", "application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
+		
+	/*! @brief Error messages of this web service */
+	private $errorMessenger = '{
+												"ws": "/ws/crud/read/",
+												"_200": {
+													"id": "WS-CRUD-READ-200",
+													"level": "Warning",
+													"name": "No URI specified for any resource",
+													"description": "No record URI defined for this query"
+												},
+												"_201": {
+													"id": "WS-CRUD-READ-201",
+													"level": "Warning",
+													"name": "Missing Dataset URIs",
+													"description": "Not all dataset URIs have been defined for each requested record URI. Remember that each URI of the list of URIs have to have a matching dataset URI in the datasets list."
+												},
+												"_300": {
+													"id": "WS-CRUD-READ-300",
+													"level": "Warning",
+													"name": "This resource is not existing",
+													"description": "The target resource to be read is not existing in the system"
+												},
+												"_301": {
+													"id": "WS-CRUD-READ-301",
+													"level": "Warning",
+													"name": "You can\'t read more than 64 resources at once",
+													"description": "You are limited to read maximum 64 resources for each query to the CrudRead web service endpoint"
+												},
+												"_302": {
+													"id": "WS-CRUD-READ-302",
+													"level": "Fatal",
+													"name": "Can\'t get the description of the resource(s)",
+													"description": "An error occured when we tried to get the description of the resource(s)"
+												},	
+												"_303": {
+													"id": "WS-CRUD-READ-303",
+													"level": "Fatal",
+													"name": "Can\'t get the links-to the resource(s)",
+													"description": "An error occured when we tried to get the links-to the resource(s)"
+												},	
+												"_304": {
+													"id": "WS-CRUD-READ-304",
+													"level": "Fatal",
+													"name": "Can\'t get the reification statements for that resource(s)",
+													"description": "An error occured when we tried to get the reification statements of the resource(s)"
+												}	
+
+											}';	
+		
 		
 	/*!	 @brief Constructor
 			 @details 	Initialize the Auth Web Service
@@ -70,6 +131,7 @@ class CrudRead extends WebService
 														 to the target instance record will be added in the resultset (2) False (default) — No 
 														 links-back will be added 
 
+			@param[in] $include_reification Include possible reification statements for a record
 			@param[in] $registered_ip Target IP address registered in the WSF
 			@param[in] $requester_ip IP address of the requester
 							
@@ -82,15 +144,18 @@ class CrudRead extends WebService
 		
 			\n\n\n
 	*/		
-	function __construct($uri, $dataset, $include_linksback, $registered_ip, $requester_ip)
+	function __construct($uri, $dataset, $include_linksback, $include_reification, $registered_ip, $requester_ip)
 	{
 		parent::__construct();		
 		
-		$this->db = new DB_Virtuoso(parent::$db_username, parent::$db_password, parent::$db_dsn, parent::$db_host);
+		$this->db = new DB_Virtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 		
 		$this->dataset = $dataset;
+		
 		$this->resourceUri = $uri;
+		
 		$this->include_linksback = $include_linksback;
+		$this->include_reification = $include_reification;
 		$this->requester_ip = $requester_ip;
 		
 		if($registered_ip == "")
@@ -118,12 +183,14 @@ class CrudRead extends WebService
 			}
 		}		
 
-		$this->uri = parent::$wsf_base_url."/wsf/ws/crud/read/";	
+		$this->uri = $this->wsf_base_url."/wsf/ws/crud/read/";	
 		$this->title = "Crud Read Web Service";	
 		$this->crud_usage = new CrudUsage(FALSE, TRUE, FALSE, FALSE);
-		$this->endpoint = parent::$wsf_base_url."/ws/crud/read/";			
+		$this->endpoint = $this->wsf_base_url."/ws/crud/read/";			
 		
 		$this->dtdURL = "crud/crudRead.dtd";
+		
+		$this->errorMessenger = json_decode($this->errorMessenger);		
 	}
 
 	function __destruct() 
@@ -150,40 +217,75 @@ class CrudRead extends WebService
 	*/			
 	protected function validateQuery()
 	{
-		// Validation of the "requester_ip" to make sure the system that is sending the query as the rights.
-		$ws_av = new AuthValidator($this->requester_ip, $this->dataset, $this->uri);
+		$datasets = explode(";", $this->dataset);
 		
-		$ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
+		$datasets = array_unique($datasets);
 		
-		$ws_av->process();
-		
-		if($ws_av->pipeline_getResponseHeaderStatus() != 200)
+		// Validate for each requested records of each dataset
+		foreach($datasets as $dataset)
 		{
-			$this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
-			$this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
-			$this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
+			// Validation of the "requester_ip" to make sure the system that is sending the query as the rights.
+			$ws_av = new AuthValidator($this->requester_ip, $dataset, $this->uri);
+	
+			$ws_av->pipeline_conneg("text/xml", $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
 			
-			return;
-		}
-		
-		unset($ws_av);
-		
-		// Validation of the "registered_ip" to make sure the user of this system has the rights
-		$ws_av = new AuthValidator($this->registered_ip, $this->dataset, $this->uri);
-		
-		$ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
-		
-		$ws_av->process();
-		
-		if($ws_av->pipeline_getResponseHeaderStatus() != 200)
-		{
-			$this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
-			$this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
-			$this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
+			$ws_av->process();
 			
-			return;
+			if($ws_av->pipeline_getResponseHeaderStatus() != 200)
+			{
+				$this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
+				$this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
+				$this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
+				$this->conneg->setError($ws_av->pipeline_getError()->id, 
+													$ws_av->pipeline_getError()->webservice, 
+													$ws_av->pipeline_getError()->name, 
+													$ws_av->pipeline_getError()->description, 
+													$ws_av->pipeline_getError()->debugInfo,
+													$ws_av->pipeline_getError()->level);
+			
+				return;
+			}
+			
+			unset($ws_av);
+			
+			// Validation of the "registered_ip" to make sure the user of this system has the rights
+			$ws_av = new AuthValidator($this->registered_ip, $dataset, $this->uri);
+			
+			$ws_av->pipeline_conneg("text/xml", $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
+			
+			$ws_av->process();
+			
+			if($ws_av->pipeline_getResponseHeaderStatus() != 200)
+			{
+				$this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
+				$this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
+				$this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
+				$this->conneg->setError($ws_av->pipeline_getError()->id, 
+													$ws_av->pipeline_getError()->webservice, 
+													$ws_av->pipeline_getError()->name, 
+													$ws_av->pipeline_getError()->description, 
+													$ws_av->pipeline_getError()->debugInfo,
+													$ws_av->pipeline_getError()->level);			
+				return;
+			}
 		}
 	}
+	
+	/*!	 @brief Returns the error structure
+							
+			\n
+			
+			@return returns the error structure
+		
+			@author Frederick Giasson, Structured Dynamics LLC.
+		
+			\n\n\n
+	*/		
+	public function pipeline_getError()
+	{
+		return($this->conneg->error);
+	}	
+	
 	
 	/*!	@brief Create a resultset in a pipelined mode based on the processed information by the Web service.
 							
@@ -214,69 +316,98 @@ class CrudRead extends WebService
 
 		$subject;
 
-		if(isset($this->subjectTriples["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"]))
+		foreach($this->subjectTriples as $u => $sts)
 		{
-			foreach($this->subjectTriples["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"] as $key => $type)
+			if(isset($sts["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"]))
 			{
-				if($key > 0)
+				foreach($sts["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"] as $key => $type)
 				{
-					$pred = $xml->createPredicate("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
-					$object = $xml->createObject("", $type[0]);
-					$pred->appendChild($object);
-					$subject->appendChild($pred);				
-				}
-				else
-				{
-					$subject = $xml->createSubject($type[0], $this->resourceUri);
-				}
-			}
-		}
-		else
-		{
-			$subject = $xml->createSubject("http://www.w3.org/2002/07/owl#Thing", $this->resourceUri);
-		}
-
-		foreach($this->subjectTriples as $property => $values)
-		{
-			if($property != "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
-			{
-				foreach($values as $value)
-				{
-					if($value[1] == "http://www.w3.org/2001/XMLSchema#string")
+					if($key > 0)
 					{
-						$pred = $xml->createPredicate($property);
-						$object = $xml->createObjectContent($this->xmlEncode($value[0]));
+						$pred = $xml->createPredicate("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
+						$object = $xml->createObject("", $type[0]);
 						$pred->appendChild($object);
-						$subject->appendChild($pred);
+						$subject->appendChild($pred);				
 					}
 					else
 					{
-						$pred = $xml->createPredicate($property);
-						$object = $xml->createObject("", $value[0]);
-						$pred->appendChild($object);
-						$subject->appendChild($pred);								
+						$subject = $xml->createSubject($type[0], $u);
 					}
 				}
 			}
-		}
-
-		$resultset->appendChild($subject);	
-		
-		// Now let add object references
-		if(count($this->objectTriples) > 0)
-		{
-			foreach($this->objectTriples as $property => $propertyValue)
+			else
 			{
-				foreach($propertyValue as $resource)
+				$subject = $xml->createSubject("http://www.w3.org/2002/07/owl#Thing", $u);
+			}
+	
+			foreach($sts as $property => $values)
+			{
+				if($property != "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
 				{
-					$subject = $xml->createSubject("http://www.w3.org/2002/07/owl#Thing", $resource);
-					
-					$pred = $xml->createPredicate($property);
-					$object = $xml->createObject("", $this->resourceUri);
-					$pred->appendChild($object);
-					$subject->appendChild($pred);		
-					
-					$resultset->appendChild($subject);												
+					foreach($values as $value)
+					{
+						if($value[1] == "http://www.w3.org/2001/XMLSchema#string")
+						{
+							$pred = $xml->createPredicate($property);
+							$object = $xml->createObjectContent($this->xmlEncode($value[0]));
+							$pred->appendChild($object);
+							
+							if(isset($this->reificationTriples[$u][$property][$value[0]]))
+							{
+								foreach($this->reificationTriples[$u][$property][$value[0]] as $rStatement => $rValue)
+								{
+									foreach($rValue as $rv)
+									{
+										$reify = $xml->createReificationStatement($rStatement, $rv);
+										$object->appendChild($reify);
+									}
+								}
+							}
+							
+							$subject->appendChild($pred);
+						}
+						else
+						{
+							$pred = $xml->createPredicate($property);
+							$object = $xml->createObject("", $value[0]);
+							$pred->appendChild($object);
+							
+							if(isset($this->reificationTriples[$u][$property][$value[0]]))
+							{
+								foreach($this->reificationTriples[$u][$property][$value[0]] as $rStatement => $rValue)
+								{
+									foreach($rValue as $rv)
+									{
+										$reify = $xml->createReificationStatement($rStatement, $rv);
+										$object->appendChild($reify);
+									}
+								}
+							}
+							
+							$subject->appendChild($pred);			
+						}
+					}
+				}
+			}
+	
+			$resultset->appendChild($subject);	
+			
+			// Now let add object references
+			if(count($this->objectTriples[$u]) > 0)
+			{
+				foreach($this->objectTriples[$u] as $property => $propertyValue)
+				{
+					foreach($propertyValue as $resource)
+					{
+						$subject = $xml->createSubject("http://www.w3.org/2002/07/owl#Thing", $resource);
+						
+						$pred = $xml->createPredicate($property);
+						$object = $xml->createObject("", $u);
+						$pred->appendChild($object);
+						$subject->appendChild($pred);		
+						
+						$resultset->appendChild($subject);												
+					}
 				}
 			}
 		}
@@ -299,7 +430,7 @@ class CrudRead extends WebService
 	public function injectDoctype($xmlDoc)
 	{
 		$posHeader = 	strpos($xmlDoc, '"?>') + 3;
-		$xmlDoc = substr($xmlDoc, 0, $posHeader)."\n<!DOCTYPE resultset PUBLIC \"-//Structured Dynamics LLC//Crud Read DTD 0.1//EN\" \"".parent::$dtdBaseURL.$this->dtdURL."\">".substr($xmlDoc, $posHeader, strlen($xmlDoc) - $posHeader);	
+		$xmlDoc = substr($xmlDoc, 0, $posHeader)."\n<!DOCTYPE resultset PUBLIC \"-//Structured Dynamics LLC//Crud Read DTD 0.1//EN\" \"".$this->dtdBaseURL.$this->dtdURL."\">".substr($xmlDoc, $posHeader, strlen($xmlDoc) - $posHeader);	
 		
 		return($xmlDoc);
 	}
@@ -337,10 +468,37 @@ class CrudRead extends WebService
 			{
 				$this->conneg->setStatus(400);
 				$this->conneg->setStatusMsg("Bad Request");
-				$this->conneg->setStatusMsgExt("No URI specified for any resource");
+				$this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
+				$this->conneg->setError($this->errorMessenger->_200->id, 
+													$this->errorMessenger->ws, 
+													$this->errorMessenger->_200->name, 
+													$this->errorMessenger->_200->description, 
+													"",
+													$this->errorMessenger->_200->level);					
+
 				return;
 			}
 		}
+		
+		// Check if we have the same number of URIs than Dataset URIs
+		$uris = explode(";", $this->resourceUri);
+		$datasets = explode(";", $this->dataset);
+		
+		if(count($uris) != count($datasets))
+		{
+			$this->conneg->setStatus(400);
+			$this->conneg->setStatusMsg("Bad Request");
+			$this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
+			$this->conneg->setError($this->errorMessenger->_201->id, 
+												$this->errorMessenger->ws, 
+												$this->errorMessenger->_201->name, 
+												$this->errorMessenger->_201->description, 
+												"",
+												$this->errorMessenger->_201->level);					
+
+			return;			
+		}
+		
 	}
 	
 	/*!	 @brief Do content negotiation as an internal, pipelined, Web Service that is part of a Compound Web Service
@@ -429,7 +587,233 @@ class CrudRead extends WebService
 
 		switch($this->conneg->getMime())
 		{
+			case "application/bib+json":
+
+				include_once("../../converter/irjson/ConverterIrJSON.php");
+				include_once("../../converter/irjson/Dataset.php");
+				include_once("../../converter/irjson/InstanceRecord.php");
+				include_once("../../converter/irjson/LinkageSchema.php");
+				include_once("../../converter/irjson/StructureSchema.php");
+				include_once("../../converter/irjson/irJSONParser.php");
+
+				// Include more information about the dataset (at least the ID)
+				$documentToConvert = $this->pipeline_getResultset();
+				
+				$datasets = explode(";", $this->dataset);
+				
+				$datasets = array_unique($datasets);
+				
+				// Note: this is temporary. A more consistent dataset-URI/resource-URIs has to be implemented in conStruct
+				///////////////
+				$d = $datasets[0];
+				
+				$d = str_replace("/wsf/datasets/", "/conStruct/datasets/", $d)."resource/";
+				///////////////
+
+				// Inline dataset description
+				$inlineDatasetDescription = "
+				
+						<subject type=\"http://rdfs.org/ns/void#Dataset\" uri=\"".$d."\">
+							<predicate type=\"http://purl.org/ontology/iron#schema\">
+								<object type=\"rdfs:Literal\">http://www.bibkn.org/drupal/bibjson/bibjson_schema.json</object>
+							</predicate>
+							<predicate type=\"http://purl.org/ontology/iron#linkage\">
+								<object type=\"rdfs:Literal\">http://www.bibkn.org/drupal/bibjson/iron_linkage.json</object>
+							</predicate>
+							<predicate type=\"http://purl.org/ontology/iron#linkage\">
+								<object type=\"rdfs:Literal\">http://www.bibkn.org/drupal/bibjson/schramm_linkage.json</object>
+							</predicate>
+						</subject>
+					</resultset>
+				
+				";
+				
+				$documentToConvert = str_replace("</resultset>", $inlineDatasetDescription, $documentToConvert);				
+
+				$ws_irv = new ConverterIrJSON($documentToConvert, "text/xml", $this->registered_ip, $this->requester_ip);
+				
+				$ws_irv->pipeline_conneg("application/iron+json", $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
+				
+				$ws_irv->process();
+				
+				if($ws_irv->pipeline_getResponseHeaderStatus() != 200)
+				{
+					$this->conneg->setStatus($ws_irv->pipeline_getResponseHeaderStatus());
+					$this->conneg->setStatusMsg($ws_irv->pipeline_getResponseHeaderStatusMsg());
+					$this->conneg->setStatusMsgExt($ws_irv->pipeline_getResponseHeaderStatusMsgExt());
+					$this->conneg->setError($ws_irv->pipeline_getError()->id, 
+														$ws_irv->pipeline_getError()->webservice, 
+														$ws_irv->pipeline_getError()->name, 
+														$ws_irv->pipeline_getError()->description, 
+														$ws_irv->pipeline_getError()->debugInfo,
+														$ws_irv->pipeline_getError()->level);			
+					return;
+				}
+								
+				return($ws_irv->pipeline_serialize());
+
+			break;
+
 			case "application/json":
+				$json_part = "";
+				$xml = new ProcessorXML();
+				$xml->loadXML($this->pipeline_getResultset());
+				
+				$subjects = $xml->getSubjects();
+			
+				$nsId = 0;			
+			
+				foreach($subjects as $subject)
+				{
+					$subjectURI = $xml->getURI($subject);
+					$subjectType = $xml->getType($subject);
+				
+					$ns = $this->getNamespace($subjectType);
+				
+					if(!isset($this->namespaces[$ns[0]]))
+					{
+						$this->namespaces[$ns[0]] = "ns".$nsId;
+						$nsId++;
+					}				
+				
+					$json_part .= "      { \n";
+					$json_part .= "        \"uri\": \"".parent::jsonEncode($subjectURI)."\", \n";
+					$json_part .= "        \"type\": \"".parent::jsonEncode($this->namespaces[$ns[0]].":".$ns[1])."\", \n";
+
+					$predicates = $xml->getPredicates($subject);
+					
+					$nbPredicates = 0;
+					
+					foreach($predicates as $predicate)
+					{
+						$objects = $xml->getObjects($predicate);
+						
+						foreach($objects as $object)
+						{
+							$nbPredicates++;
+							
+							if($nbPredicates == 1)
+							{
+								$json_part .= "        \"predicates\": [ \n";
+							}
+							
+							$objectType = $xml->getType($object);						
+							$predicateType = $xml->getType($predicate);
+							
+							if($objectType == "rdfs:Literal")
+							{
+								$objectValue = $xml->getContent($object);
+														
+								$ns = $this->getNamespace($predicateType);
+							
+								if(!isset($this->namespaces[$ns[0]]))
+								{
+									$this->namespaces[$ns[0]] = "ns".$nsId;
+									$nsId++;
+								}						
+														
+								$json_part .= "          { \n";
+								$json_part .= "            \"".parent::jsonEncode($this->namespaces[$ns[0]].":".$ns[1])."\": \"".parent::jsonEncode($objectValue)."\" \n";
+								$json_part .= "          },\n";
+							}
+							else
+							{
+								$objectURI = $xml->getURI($object);						
+
+								$ns = $this->getNamespace($predicateType);
+							
+								if(!isset($this->namespaces[$ns[0]]))
+								{
+									$this->namespaces[$ns[0]] = "ns".$nsId;
+									$nsId++;
+								}
+								
+								$json_part .= "          { \n";
+								$json_part .= "            \"".parent::jsonEncode($this->namespaces[$ns[0]].":".$ns[1])."\": { \n";
+								$json_part .= "            	  \"uri\": \"".parent::jsonEncode($objectURI)."\",\n";
+								
+								// Check if there is a reification statement for this object.
+								$reifies = $xml->getReificationStatements($object, "wsf:objectLabel");
+							
+								$nbReification = 0;
+							
+								foreach($reifies as $reify)
+								{
+									$nbReification++;
+									
+									if($nbReification > 0)
+									{
+										$json_part .= "           	  \"reifies\": [\n";
+									}
+									
+									$json_part .= "           	    { \n";
+									$json_part .= "                     \"type\": \"wsf:objectLabel\", \n";
+									$json_part .= "                     \"value\": \"".parent::jsonEncode($xml->getValue($reify))."\" \n";
+									$json_part .= "           	    },\n";
+								}
+								
+								if($nbReification > 0)
+								{
+									$json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
+									
+									$json_part .= "           	  ]\n";
+								}
+								else
+								{
+									$json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
+								}								
+								
+								
+								$json_part .= "            	  } \n";
+								$json_part .= "          },\n";
+							}
+						}
+					}
+					
+					if(strlen($json_part) > 0)
+					{
+						$json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
+					}						
+					
+					if($nbPredicates > 0)
+					{
+						$json_part .= "        ]\n";
+					}
+					
+					$json_part .= "      },\n";					
+				}
+				
+				if(strlen($json_part) > 0)
+				{
+					$json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
+				}
+				
+				
+    			$json_header .="  \"prefixes\": [ \n";
+				$json_header .="    {\n";
+				$json_header .= "      \"rdf\": \"http://www.w3.org/1999/02/22-rdf-syntax-ns#\",\n";
+				$json_header .= "      \"wsf\": \"http://purl.org/ontology/wsf#\",\n";
+				
+				foreach($this->namespaces as $ns => $prefix)
+				{
+					$json_header .= "      \"$prefix\": \"$ns\",\n";
+				}	
+				
+				if(strlen($json_header) > 0)
+				{
+					$json_header = substr($json_header, 0, strlen($json_header) - 2)."\n";
+				}				
+							
+				$json_header .="    } \n";
+				$json_header .="  ],\n";	
+				$json_header .= "  \"resultset\": {\n";
+				$json_header .= "    \"subjects\": [\n";
+				$json_header .= $json_part;
+				$json_header .= "    ]\n";
+				$json_header .= "  }\n";				
+				
+				return($json_header);		
+/*
 				$json_part = "";
 				$xml = new ProcessorXML();
 				$xml->loadXML($this->pipeline_getResultset());
@@ -480,7 +864,40 @@ class CrudRead extends WebService
 								
 								$json_part .= "          { \n";
 								$json_part .= "            \"".parent::jsonEncode($predicateType)."\": { \n";
-								$json_part .= "            	  \"uri\": \"".parent::jsonEncode($objectURI)."\" \n";
+								$json_part .= "            	  \"uri\": \"".parent::jsonEncode($objectURI)."\", \n";
+								
+							// Check if there is a reification statement for this object.
+								$reifies = $xml->getReificationStatements($object);
+							
+								$nbReification = 0;
+							
+								foreach($reifies as $reify)
+								{
+									$nbReification++;
+									
+									if($nbReification > 0)
+									{
+										$json_part .= "           	  \"reifies\": [\n";
+									}
+									
+									$json_part .= "           	    { \n";
+									$json_part .= "                     \"type\": \"wsf:objectLabel\", \n";
+									$json_part .= "                     \"value\": \"".parent::jsonEncode($xml->getValue($reify))."\" \n";
+									$json_part .= "           	    },\n";
+								}
+								
+								if($nbReification > 0)
+								{
+									$json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
+									
+									$json_part .= "           	  ]\n";
+								}
+								else
+								{
+									$json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
+								}								
+																
+								
 								$json_part .= "            	  } \n";
 								$json_part .= "          },\n";
 							}
@@ -507,6 +924,7 @@ class CrudRead extends WebService
 				
 
 				return($json_part);		
+				*/
 			break;	
 			
 			case "application/rdf+n3":
@@ -519,7 +937,7 @@ class CrudRead extends WebService
 				foreach($subjects as $subject)
 				{
 					$subjectURI = $xml->getURI($subject);
-					$subjectType = $xml->getType($subject);
+					$subjectType = $xml->getType($subject, FALSE);
 				
 					$rdf_part .= "\n    <$subjectURI> a <$subjectType> ;\n";
 
@@ -532,7 +950,7 @@ class CrudRead extends WebService
 						foreach($objects as $object)
 						{
 							$objectType = $xml->getType($object);						
-							$predicateType = $xml->getType($predicate);
+							$predicateType = $xml->getType($predicate, FALSE);
 							
 							if($objectType == "rdfs:Literal")
 							{
@@ -549,7 +967,7 @@ class CrudRead extends WebService
 					
 					if(strlen($rdf_part) > 0)
 					{
-						$rdf_part = substr($rdf_part, 0, strlen($rdf_part) - 2)."\n";
+						$rdf_part = substr($rdf_part, 0, strlen($rdf_part) - 2).". \n";
 					}
 					
 				}
@@ -562,10 +980,6 @@ class CrudRead extends WebService
 				
 				$subjects = $xml->getSubjects();
 				
-				$namespaces = array(	"http://www.w3.org/2002/07/owl#" => "owl",
-												"http://www.w3.org/1999/02/22-rdf-syntax-ns#" => "rdf",
-												"http://www.w3.org/2000/01/rdf-schema#" => "rdfs",
-												"http://purl.org/ontology/wsf#" => "wsf");				
 				$nsId = 0;
 				
 				foreach($subjects as $subject)
@@ -573,17 +987,15 @@ class CrudRead extends WebService
 					$subjectURI = $xml->getURI($subject);
 					$subjectType = $xml->getType($subject);
 				
-					$ns = $this->getNamespace($subjectType);
-					$stNs = $ns[0];
-					$stExtension = $ns[1];
+					$ns1 = $this->getNamespace($subjectType);
 				
-					if(!isset($namespaces[$stNs]))
+					if(!isset($this->namespaces[$ns1[0]]))
 					{
-						$namespaces[$stNs] = "ns".$nsId;
+						$this->namespaces[$ns1[0]] = "ns".$nsId;
 						$nsId++;
 					}
 				
-					$rdf_part .= "\n    <".$namespaces[$stNs].":".$stExtension." rdf:about=\"$subjectURI\">\n";
+					$rdf_part .= "\n    <".$this->namespaces[$ns1[0]].":".$ns1[1]." rdf:about=\"$subjectURI\">\n";
 
 					$predicates = $xml->getPredicates($subject);
 					
@@ -601,49 +1013,46 @@ class CrudRead extends WebService
 								$objectValue = $xml->getContent($object);	
 								
 								$ns = $this->getNamespace($predicateType);
-								$ptNs = $ns[0];
-								$ptExtension = $ns[1];
 							
-								if(!isset($namespaces[$ptNs]))
+								if(!isset($this->namespaces[$ns[0]]))
 								{
-									$namespaces[$ptNs] = "ns".$nsId;
+									$this->namespaces[$ns[0]] = "ns".$nsId;
 									$nsId++;
 								}
 													
-								$rdf_part .= "        <".$namespaces[$ptNs].":".$ptExtension.">".$this->xmlEncode($objectValue)."</".$namespaces[$ptNs].":".$ptExtension.">\n";
+								$rdf_part .= "        <".$this->namespaces[$ns[0]].":".$ns[1].">".$this->xmlEncode($objectValue)."</".$this->namespaces[$ns[0]].":".$ns[1].">\n";
 							}
 							else
 							{
 								$objectURI = $xml->getURI($object);		
 								
 								$ns = $this->getNamespace($predicateType);
-								$ptNs = $ns[0];
-								$ptExtension = $ns[1];
 							
-								if(!isset($namespaces[$ptNs]))
+								if(!isset($this->namespaces[$ns[0]]))
 								{
-									$namespaces[$ptNs] = "ns".$nsId;
+									$this->namespaces[$ns[0]] = "ns".$nsId;
 									$nsId++;
 								}
 												
-								$rdf_part .= "        <".$namespaces[$ptNs].":".$ptExtension." rdf:resource=\"$objectURI\" />\n";
+								$rdf_part .= "        <".$this->namespaces[$ns[0]].":".$ns[1]." rdf:resource=\"$objectURI\" />\n";
 							}
 						}
 					}
 
-					$rdf_part .= "    </".$namespaces[$stNs].":".$stExtension.">\n";
-					
-					$rdf_header = "<rdf:RDF ";
-
-					foreach($namespaces as $ns => $prefix)
-					{
-						$rdf_header .= " xmlns:$prefix=\"$ns\"";
-					}
-					
-					$rdf_header .= ">\n\n";
-					
-					$rdf_part = $rdf_header.$rdf_part;
+					$rdf_part .= "    </".$this->namespaces[$ns1[0]].":".$ns1[1].">\n";
 				}
+
+				$rdf_header = "<rdf:RDF ";
+
+				foreach($this->namespaces as $ns => $prefix)
+				{
+					$rdf_header .= " xmlns:$prefix=\"$ns\"";
+				}
+				
+				$rdf_header .= ">\n\n";
+				
+				$rdf_part = $rdf_header.$rdf_part;
+
 				
 				return($rdf_part);
 			break;
@@ -664,7 +1073,7 @@ class CrudRead extends WebService
 	*/		
 	private function getNamespace($uri)
 	{
-		$pos = strpos($uri, "#");
+		$pos = strrpos($uri, "#");
 		
 		if($pos !== FALSE)
 		{
@@ -677,6 +1086,27 @@ class CrudRead extends WebService
 			if($pos !== FALSE)
 			{
 				return array(substr($uri, 0, $pos)."/", substr($uri, $pos + 1, strlen($uri) - ($pos +1)));
+			}
+			else
+			{
+				$pos = strpos($uri, ":");
+				
+				if($pos !== FALSE)
+				{
+					$nsUri = explode(":", $uri, 2);
+					
+					foreach($this->namespaces as $uri2 => $prefix2)
+					{
+						$uri2 = urldecode($uri2);
+						
+						if($prefix2 == $nsUri[0])
+						{
+							return(array($uri2, $nsUri[1]));
+						}
+					}
+					
+					return explode(":", $uri, 2);
+				}
 			}
 		}
 		
@@ -733,6 +1163,7 @@ class CrudRead extends WebService
 			break;
 			
 			case "application/json":
+/*
 				$json_document = "";
 				$json_document .= "{\n";
 				$json_document .= "  \"resultset\": {\n";
@@ -743,6 +1174,17 @@ class CrudRead extends WebService
 				$json_document .= "}";
 				
 				return($json_document);
+*/
+				$json_document = "";
+				$json_document .= "{\n";
+				$json_document .= $this->pipeline_serialize();
+				$json_document .= "}";
+				
+				return($json_document);
+			break;
+			
+			case "application/bib+json":
+				return($this->pipeline_serialize());
 			break;
 		}		
 	}
@@ -789,54 +1231,167 @@ class CrudRead extends WebService
 		// Make sure there was no conneg error prior to this process call
 		if($this->conneg->getStatus() == 200)
 		{
-			$query ="";
-		
-			// Archiving suject triples
-			$query = $this->db->build_sparql_query("select ?p ?o (DATATYPE(?o)) as ?otype from <".$this->dataset."> where {<".$this->resourceUri."> ?p ?o.}", array ('p', 'o', 'otype'), FALSE);
-
-			$resultset = $this->db->query($query);
-	
-			while(odbc_fetch_row($resultset))
-			{
-				$p = odbc_result($resultset, 1);
-				$o = odbc_result($resultset, 2);
-
-				$otype = odbc_result($resultset, 3);
-
-				if(!isset($this->subjectTriples[$p]))
-				{
-					$this->subjectTriples[$p] = array();
-				}
-				
-				array_push($this->subjectTriples[$p], array($o, $otype));
-			}
+			$uris	 = explode(";", $this->resourceUri);
+			$datasets	 = explode(";", $this->dataset);
 			
-			if(count($this->subjectTriples) <= 0)
+			if(count($uris) > 64)
 			{
 				$this->conneg->setStatus(400);
 				$this->conneg->setStatusMsg("Bad Request");
-				$this->conneg->setStatusMsgExt("This resource is not existing");
+				$this->conneg->setStatusMsgExt($this->errorMessenger->_301->name);
+				$this->conneg->setError($this->errorMessenger->_301->id, 
+													$this->errorMessenger->ws, 
+													$this->errorMessenger->_301->name, 
+													$this->errorMessenger->_301->description, 
+													"",
+													$this->errorMessenger->_301->level);					
+				
 				return;				
 			}
 			
-			// Archiving object triples
-			if(strtolower($this->include_linksback) == "true")
+			foreach($uris as $key => $u)
 			{
-				$query = $this->db->build_sparql_query("select ?s ?p from <".$this->dataset."> where {?s ?p <".$this->resourceUri.">.}", array ('s', 'p'), FALSE);
-			
-				$resultset = $this->db->query($query);
+				// Decode potentially encoded ";" character.
+				$u = str_ireplace("%3B", ";", $u);			
+				$d = str_ireplace("%3B", ";", $datasets[$key]);			
 				
+				$query ="";
+			
+				// Archiving suject triples
+				$query = $this->db->build_sparql_query("select ?p ?o (DATATYPE(?o)) as ?otype from <".$d."> where {<".$u."> ?p ?o.}", array ('p', 'o', 'otype'), FALSE);
+	
+				$resultset = $this->db->query($query);
+		
+				if (odbc_error())
+				{
+					$this->conneg->setStatus(500);
+					$this->conneg->setStatusMsg("Internal Error");
+					$this->conneg->setStatusMsgExt($this->errorMessenger->_302->name);					
+					$this->conneg->setError($this->errorMessenger->_302->id, 
+														$this->errorMessenger->ws, 
+														$this->errorMessenger->_302->name, 
+														$this->errorMessenger->_302->description, 
+														odbc_errormsg(),
+														$this->errorMessenger->_302->level);					
+				}			
+		
 				while(odbc_fetch_row($resultset))
 				{
-					$s = odbc_result($resultset, 1);
-					$p = odbc_result($resultset, 2);
-		
-					if(!isset($this->objectTriples[$p]))
+					$p = odbc_result($resultset, 1);
+					$o = odbc_result($resultset, 2);
+	
+					$otype = odbc_result($resultset, 3);
+	
+					if(!isset($this->subjectTriples[$u][$p]))
 					{
-						$this->objectTriples[$p] = array();
+						$this->subjectTriples[$u][$p] = array();
 					}
 					
-					array_push($this->objectTriples[$p], $s);
+					array_push($this->subjectTriples[$u][$p], array($o, $otype));
+				}
+				
+				if(count($this->subjectTriples) <= 0)
+				{
+					$this->conneg->setStatus(400);
+					$this->conneg->setStatusMsg("Bad Request");
+					$this->conneg->setStatusMsgExt($this->errorMessenger->_300->name);
+					$this->conneg->setError($this->errorMessenger->_300->id, 
+														$this->errorMessenger->ws, 
+														$this->errorMessenger->_300->name, 
+														$this->errorMessenger->_300->description, 
+														"",
+														$this->errorMessenger->_300->level);					
+					
+					return;				
+				}
+				
+				// Archiving object triples
+				if(strtolower($this->include_linksback) == "true")
+				{
+					$query = $this->db->build_sparql_query("select ?s ?p from <".$d."> where {?s ?p <".$u.">.}", array ('s', 'p'), FALSE);
+				
+					$resultset = $this->db->query($query);
+					
+					if (odbc_error())
+					{
+						$this->conneg->setStatus(500);
+						$this->conneg->setStatusMsg("Internal Error");
+						$this->conneg->setStatusMsgExt($this->errorMessenger->_303>name);					
+						$this->conneg->setError($this->errorMessenger->_303->id, 
+															$this->errorMessenger->ws, 
+															$this->errorMessenger->_303->name, 
+															$this->errorMessenger->_303->description, 
+															odbc_errormsg(),
+															$this->errorMessenger->_303->level);					
+					}						
+					
+					while(odbc_fetch_row($resultset))
+					{
+						$s = odbc_result($resultset, 1);
+						$p = odbc_result($resultset, 2);
+			
+						if(!isset($this->objectTriples[$u][$p]))
+						{
+							$this->objectTriples[$u][$p] = array();
+						}
+						
+						array_push($this->objectTriples[$u][$p], $s);
+					}
+					
+					unset($resultset);
+				}
+				
+				// Get reification triples
+				if(strtolower($this->include_reification) == "true")
+				{
+					$query = "	select ?rei_p ?rei_o ?p ?o from <".$d."reification/> 
+									where 
+									{
+										?statement <http://www.w3.org/1999/02/22-rdf-syntax-ns#subject> <".$u.">.
+										?statement <http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate> ?rei_p.
+										?statement <http://www.w3.org/1999/02/22-rdf-syntax-ns#object> ?rei_o.
+										?statement ?p ?o.
+									}";
+					
+					$query = $this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), " ", $query), array ('rei_p', 'rei_o', 'p', 'o'), FALSE);
+	
+					$resultset = $this->db->query($query);
+					
+					if (odbc_error())
+					{
+						$this->conneg->setStatus(500);
+						$this->conneg->setStatusMsg("Internal Error");
+						$this->conneg->setStatusMsgExt($this->errorMessenger->_304->name);					
+						$this->conneg->setError($this->errorMessenger->_304->id, 
+															$this->errorMessenger->ws, 
+															$this->errorMessenger->_304->name, 
+															$this->errorMessenger->_304->description, 
+															odbc_errormsg(),
+															$this->errorMessenger->_304->level);					
+					}						
+					
+					while(odbc_fetch_row($resultset))
+					{
+						$rei_p = odbc_result($resultset, 1);
+						$rei_o = odbc_result($resultset, 2);
+						$p = odbc_result($resultset, 3);
+						$o = odbc_result($resultset, 4);
+			
+						if(	$p != "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject" && 
+							$p != "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate" &&
+							$p != "http://www.w3.org/1999/02/22-rdf-syntax-ns#object" &&
+							$p != "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+						{
+							if(!isset($this->reificationTriples[$u][$rei_p][$rei_o][$p]))
+							{
+								$this->reificationTriples[$u][$rei_p][$rei_o][$p] = array();
+							}
+		
+							array_push($this->reificationTriples[$u][$rei_p][$rei_o][$p], $o);
+						}
+					}
+					
+					unset($resultset);
 				}
 			}
 		}

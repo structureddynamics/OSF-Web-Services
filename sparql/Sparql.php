@@ -61,8 +61,50 @@ class Sparql extends WebService
 	/*! @brief Instance records from the query where the object of the triple is a resource */
 	private $instanceRecordsObjectResource = array();
 
+	/*! @brief Namespaces/Prefixes binding */
+	private $namespaces = array(	"http://www.w3.org/2002/07/owl#" => "owl",
+												"http://www.w3.org/1999/02/22-rdf-syntax-ns#" => "rdf",
+												"http://www.w3.org/2000/01/rdf-schema#" => "rdfs",
+												"http://purl.org/ontology/wsf#" => "wsf");
+
+
 	/*! @brief Supported MIME serializations by this web service */
 	public static $supportedSerializations = array("application/json", "text/xml", "application/sparql-results+xml", "application/sparql-results+json", "text/html", "application/rdf+xml", "application/rdf+n3", "application/*", "text/plain", "text/*", "*/*");
+
+	/*! @brief Error messages of this web service */
+	private $errorMessenger = '{
+												"ws": "/ws/sparql/",
+												"_200": {
+													"id": "WS-SPARQL-200",
+													"level": "Warning",
+													"name": "No query specified for this request",
+													"description": "No query specified for this request"
+												},
+												"_201": {
+													"id": "WS-SPARQL-201",
+													"level": "Warning",
+													"name": "No dataset specified for this request",
+													"description": "No dataset specified for this request"
+												},
+												"_202": {
+													"id": "WS-SPARQL-202",
+													"level": "Warning",
+													"name": "The maximum number of records returned within the same slice is 2000. Use multiple queries with the OFFSET parameter to build-up the entire resultset.",
+													"description": "The maximum number of records returned within the same slice is 2000. Use multiple queries with the OFFSET parameter to build-up the entire resultset."
+												},
+												"_300": {
+													"id": "WS-SPARQL-300",
+													"level": "Warning",
+													"name": "Connection to the sparql endpoint failed",
+													"description": "Connection to the sparql endpoint failed"
+												},
+												"_301": {
+													"id": "WS-SPARQL-301",
+													"level": "Notice",
+													"name": "No instance records found",
+													"description": "No instance records found for this query"
+												}	
+											}';	
 
 
 	/*!	 @brief Constructor
@@ -87,7 +129,7 @@ class Sparql extends WebService
 	{
 		parent::__construct();		
 		
-		$this->db = new DB_Virtuoso(parent::$db_username, parent::$db_password, parent::$db_dsn, parent::$db_host);
+		$this->db = new DB_Virtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 		
 		$this->query = $query;
 		$this->limit = $limit;
@@ -120,12 +162,14 @@ class Sparql extends WebService
 			}
 		}		
 
-		$this->uri = parent::$wsf_base_url."/wsf/ws/sparql/";	
+		$this->uri = $this->wsf_base_url."/wsf/ws/sparql/";	
 		$this->title = "Sparql Web Service";	
 		$this->crud_usage = new CrudUsage(FALSE, TRUE, FALSE, FALSE);
-		$this->endpoint = parent::$wsf_base_url."/ws/sparql/";			
+		$this->endpoint = $this->wsf_base_url."/ws/sparql/";			
 		
 		$this->dtdURL = "sparql/sparql.dtd";
+		
+		$this->errorMessenger = json_decode($this->errorMessenger);		
 	}
 
 	function __destruct() 
@@ -166,7 +210,12 @@ class Sparql extends WebService
 			$this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
 			$this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
 			$this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-			
+			$this->conneg->setError($ws_av->pipeline_getError()->id, 
+												$ws_av->pipeline_getError()->webservice, 
+												$ws_av->pipeline_getError()->name, 
+												$ws_av->pipeline_getError()->description, 
+												$ws_av->pipeline_getError()->debugInfo,
+												$ws_av->pipeline_getError()->level);			
 			return;
 		}
 		
@@ -184,10 +233,31 @@ class Sparql extends WebService
 			$this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
 			$this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
 			$this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-			
+			$this->conneg->setError($ws_av->pipeline_getError()->id, 
+												$ws_av->pipeline_getError()->webservice, 
+												$ws_av->pipeline_getError()->name, 
+												$ws_av->pipeline_getError()->description, 
+												$ws_av->pipeline_getError()->debugInfo,
+												$ws_av->pipeline_getError()->level);			
 			return;
 		}
 	}
+	
+	/*!	 @brief Returns the error structure
+							
+			\n
+			
+			@return returns the error structure
+		
+			@author Frederick Giasson, Structured Dynamics LLC.
+		
+			\n\n\n
+	*/		
+	public function pipeline_getError()
+	{
+		return($this->conneg->error);
+	}	
+	
 	
 	/*!	@brief Create a resultset in a pipelined mode based on the processed information by the Web service.
 							
@@ -259,7 +329,7 @@ class Sparql extends WebService
 				}
 				else
 				{
-					$subject = $xml->createSubject("http://www.w3.org/2002/07/owl#Thing", $this->resourceUri);
+					$subject = $xml->createSubject("http://www.w3.org/2002/07/owl#Thing", $uri);
 				}
 				
 				// Assigning object resource properties
@@ -339,7 +409,7 @@ class Sparql extends WebService
 	public function injectDoctype($xmlDoc)
 	{
 		$posHeader = 	strpos($xmlDoc, '"?>') + 3;
-		$xmlDoc = substr($xmlDoc, 0, $posHeader)."\n<!DOCTYPE resultset PUBLIC \"-//Structured Dynamics LLC//SPARQL DTD 0.1//EN\" \"".parent::$dtdBaseURL.$this->dtdURL."\">".substr($xmlDoc, $posHeader, strlen($xmlDoc) - $posHeader);	
+		$xmlDoc = substr($xmlDoc, 0, $posHeader)."\n<!DOCTYPE resultset PUBLIC \"-//Structured Dynamics LLC//SPARQL DTD 0.1//EN\" \"".$this->dtdBaseURL.$this->dtdURL."\">".substr($xmlDoc, $posHeader, strlen($xmlDoc) - $posHeader);	
 		
 		return($xmlDoc);
 	}
@@ -377,7 +447,14 @@ class Sparql extends WebService
 			{
 				$this->conneg->setStatus(400);
 				$this->conneg->setStatusMsg("Bad Request");
-				$this->conneg->setStatusMsgExt("No query specified for this request");
+				$this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
+				$this->conneg->setError($this->errorMessenger->_200->id, 
+													$this->errorMessenger->ws, 
+													$this->errorMessenger->_200->name, 
+													$this->errorMessenger->_200->description, 
+													"",
+													$this->errorMessenger->_200->level);					
+				
 				return;
 			}
 			
@@ -385,7 +462,14 @@ class Sparql extends WebService
 			{
 				$this->conneg->setStatus(400);
 				$this->conneg->setStatusMsg("Bad Request");
-				$this->conneg->setStatusMsgExt("No dataset specified for this request");
+				$this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
+				$this->conneg->setError($this->errorMessenger->_201->id, 
+													$this->errorMessenger->ws, 
+													$this->errorMessenger->_201->name, 
+													$this->errorMessenger->_201->description, 
+													"",
+													$this->errorMessenger->_201->level);					
+				
 				return;
 			}
 			
@@ -393,7 +477,14 @@ class Sparql extends WebService
 			{
 				$this->conneg->setStatus(400);
 				$this->conneg->setStatusMsg("Bad Request");
-				$this->conneg->setStatusMsgExt("The maximum number of records returned within the same slice is 2000. Use multiple queries with the OFFSET parameter to build-up the entire resultset.");
+				$this->conneg->setStatusMsgExt($this->errorMessenger->_202->name);
+				$this->conneg->setError($this->errorMessenger->_202->id, 
+													$this->errorMessenger->ws, 
+													$this->errorMessenger->_202->name, 
+													$this->errorMessenger->_202->description, 
+													"",
+													$this->errorMessenger->_202->level);					
+
 				return;
 			}
 			
@@ -484,7 +575,7 @@ class Sparql extends WebService
 	*/		
 	private function getNamespace($uri)
 	{
-		$pos = strpos($uri, "#");
+		$pos = strrpos($uri, "#");
 		
 		if($pos !== FALSE)
 		{
@@ -504,6 +595,18 @@ class Sparql extends WebService
 				
 				if($pos !== FALSE)
 				{
+					$nsUri = explode(":", $uri, 2);
+					
+					foreach($this->namespaces as $uri2 => $prefix2)
+					{
+						$uri2 = urldecode($uri2);
+						
+						if($prefix2 == $nsUri[0])
+						{
+							return(array($uri2, $nsUri[1]));
+						}
+					}
+					
 					return explode(":", $uri, 2);
 				}
 			}
@@ -536,11 +639,6 @@ class Sparql extends WebService
 				
 				$subjects = $xml->getSubjects();
 			
-				$namespaces = array(	"http://www.w3.org/2002/07/owl#" => "owl",
-												"http://www.w3.org/1999/02/22-rdf-syntax-ns#" => "rdf",
-												"http://www.w3.org/2000/01/rdf-schema#" => "rdfs",
-												"http://purl.org/ontology/wsf#" => "wsf");
-			
 				$nsId = 0;			
 			
 				foreach($subjects as $subject)
@@ -549,19 +647,16 @@ class Sparql extends WebService
 					$subjectType = $xml->getType($subject);
 				
 					$ns = $this->getNamespace($subjectType);
-
-					$stNs = $ns[0];
-					$stExtension = $ns[1];
 				
-					if(!isset($namespaces[$stNs]))
+					if(!isset($this->namespaces[$ns[0]]))
 					{
-						$namespaces[$stNs] = "ns".$nsId;
+						$this->namespaces[$ns[0]] = "ns".$nsId;
 						$nsId++;
 					}				
 				
 					$json_part .= "      { \n";
 					$json_part .= "        \"uri\": \"".parent::jsonEncode($subjectURI)."\", \n";
-					$json_part .= "        \"type\": \"".parent::jsonEncode($namespaces[$stNs].":".$stExtension)."\", \n";
+					$json_part .= "        \"type\": \"".parent::jsonEncode($this->namespaces[$ns[0]].":".$ns[1])."\", \n";
 
 					$predicates = $xml->getPredicates($subject);
 					
@@ -588,17 +683,15 @@ class Sparql extends WebService
 								$objectValue = $xml->getContent($object);
 														
 								$ns = $this->getNamespace($predicateType);
-								$ptNs = $ns[0];
-								$ptExtension = $ns[1];
 							
-								if(!isset($namespaces[$ptNs]))
+								if(!isset($this->namespaces[$ns[0]]))
 								{
-									$namespaces[$ptNs] = "ns".$nsId;
+									$this->namespaces[$ns[0]] = "ns".$nsId;
 									$nsId++;
 								}						
 														
 								$json_part .= "          { \n";
-								$json_part .= "            \"".parent::jsonEncode($namespaces[$ptNs].":".$ptExtension)."\": \"".parent::jsonEncode($objectValue)."\" \n";
+								$json_part .= "            \"".parent::jsonEncode($this->namespaces[$ns[0]].":".$ns[1])."\": \"".parent::jsonEncode($objectValue)."\" \n";
 								$json_part .= "          },\n";
 							}
 							else
@@ -606,17 +699,15 @@ class Sparql extends WebService
 								$objectURI = $xml->getURI($object);						
 
 								$ns = $this->getNamespace($predicateType);
-								$ptNs = $ns[0];
-								$ptExtension = $ns[1];
 							
-								if(!isset($namespaces[$ptNs]))
+								if(!isset($this->namespaces[$ns[0]]))
 								{
-									$namespaces[$ptNs] = "ns".$nsId;
+									$this->namespaces[$ns[0]] = "ns".$nsId;
 									$nsId++;
 								}
 								
 								$json_part .= "          { \n";
-								$json_part .= "            \"".parent::jsonEncode($namespaces[$ptNs].":".$ptExtension)."\": { \n";
+								$json_part .= "            \"".parent::jsonEncode($this->namespaces[$ns[0]].":".$ns[1])."\": { \n";
 								$json_part .= "            	  \"uri\": \"".parent::jsonEncode($objectURI)."\",\n";
 								
 								// Check if there is a reification statement for this object.
@@ -677,7 +768,7 @@ class Sparql extends WebService
 				
     			$json_header .="  \"prefixes\": [ \n";
 				$json_header .="    {\n";
-				foreach($namespaces as $ns => $prefix)
+				foreach($this->namespaces as $ns => $prefix)
 				{
 					$json_header .= "      \"$prefix\": \"$ns\",\n";
 				}	
@@ -708,7 +799,7 @@ class Sparql extends WebService
 				foreach($subjects as $subject)
 				{
 					$subjectURI = $xml->getURI($subject);
-					$subjectType = $xml->getType($subject);
+					$subjectType = $xml->getType($subject, FALSE);
 				
 					$rdf_part .= "\n    <$subjectURI> a <$subjectType> ;\n";
 
@@ -721,7 +812,7 @@ class Sparql extends WebService
 						foreach($objects as $object)
 						{
 							$objectType = $xml->getType($object);						
-							$predicateType = $xml->getType($predicate);
+							$predicateType = $xml->getType($predicate, FALSE);
 							$objectContent = $xml->getContent($object);
 							
 							if($objectType == "rdfs:Literal")
@@ -752,11 +843,6 @@ class Sparql extends WebService
 				
 				$subjects = $xml->getSubjects();
 				
-				$namespaces = array(	"http://www.w3.org/2002/07/owl#" => "owl",
-												"http://www.w3.org/1999/02/22-rdf-syntax-ns#" => "rdf",
-												"http://www.w3.org/2000/01/rdf-schema#" => "rdfs",
-												"http://purl.org/ontology/wsf#" => "wsf");
-				
 				$nsId = 0;
 
 				foreach($subjects as $subject)
@@ -764,18 +850,15 @@ class Sparql extends WebService
 					$subjectURI = $xml->getURI($subject);
 					$subjectType = $xml->getType($subject);
 				
-					$ns = $this->getNamespace($subjectType);
-
-					$stNs = $ns[0];
-					$stExtension = $ns[1];
+					$ns1 = $this->getNamespace($subjectType);
 				
-					if(!isset($namespaces[$stNs]))
+					if(!isset($this->namespaces[$ns1[0]]))
 					{
-						$namespaces[$stNs] = "ns".$nsId;
+						$this->namespaces[$ns1[0]] = "ns".$nsId;
 						$nsId++;
 					}
 				
-					$rdf_part .= "\n    <".$namespaces[$stNs].":".$stExtension." rdf:about=\"$subjectURI\">\n";
+					$rdf_part .= "\n    <".$this->namespaces[$ns1[0]].":".$ns1[1]." rdf:about=\"$subjectURI\">\n";
 
 					$predicates = $xml->getPredicates($subject);
 					
@@ -793,42 +876,38 @@ class Sparql extends WebService
 								$objectValue = $xml->getContent($object);	
 								
 								$ns = $this->getNamespace($predicateType);
-								$ptNs = $ns[0];
-								$ptExtension = $ns[1];
 							
-								if(!isset($namespaces[$ptNs]))
+								if(!isset($this->namespaces[$ns[0]]))
 								{
-									$namespaces[$ptNs] = "ns".$nsId;
+									$this->namespaces[$ns[0]] = "ns".$nsId;
 									$nsId++;
 								}
 													
-								$rdf_part .= "        <".$namespaces[$ptNs].":".$ptExtension.">".$this->xmlEncode($objectValue)."</".$namespaces[$ptNs].":".$ptExtension.">\n";
+								$rdf_part .= "        <".$this->namespaces[$ns[0]].":".$ns[1].">".$this->xmlEncode($objectValue)."</".$this->namespaces[$ns[0]].":".$ns[1].">\n";
 							}
 							else
 							{
 								$objectURI = $xml->getURI($object);		
 								
 								$ns = $this->getNamespace($predicateType);
-								$ptNs = $ns[0];
-								$ptExtension = $ns[1];
 							
-								if(!isset($namespaces[$ptNs]))
+								if(!isset($this->namespaces[$ns[0]]))
 								{
-									$namespaces[$ptNs] = "ns".$nsId;
+									$this->namespaces[$ns[0]] = "ns".$nsId;
 									$nsId++;
 								}
 												
-								$rdf_part .= "        <".$namespaces[$ptNs].":".$ptExtension." rdf:resource=\"$objectURI\" />\n";
+								$rdf_part .= "        <".$this->namespaces[$ns[0]].":".$ns[1]." rdf:resource=\"$objectURI\" />\n";
 							}
 						}
 					}
 
-					$rdf_part .= "    </".$namespaces[$stNs].":".$stExtension.">\n";
+					$rdf_part .= "    </".$this->namespaces[$ns1[0]].":".$ns1[1].">\n";
 				}
 
 				$rdf_header = "<rdf:RDF ";
 
-				foreach($namespaces as $ns => $prefix)
+				foreach($this->namespaces as $ns => $prefix)
 				{
 					$rdf_header .= " xmlns:$prefix=\"$ns\"";
 				}
@@ -1016,7 +1095,13 @@ class Sparql extends WebService
 					$this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
 					$this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
 					$this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-					
+					$this->conneg->setError($ws_av->pipeline_getError()->id, 
+														$ws_av->pipeline_getError()->webservice, 
+														$ws_av->pipeline_getError()->name, 
+														$ws_av->pipeline_getError()->description, 
+														$ws_av->pipeline_getError()->debugInfo,
+														$ws_av->pipeline_getError()->level);
+			
 					return;
 				}
 			}
@@ -1054,9 +1139,16 @@ class Sparql extends WebService
 			{
 				$this->conneg->setStatus($httpMsgNum);
 				$this->conneg->setStatusMsg($httpMsg);
-				$this->conneg->setStatusMsgExt($data);
+				$this->conneg->setStatusMsgExt($this->errorMessenger->_300->name);
+				$this->conneg->setError($this->errorMessenger->_300->id, 
+													$this->errorMessenger->ws, 
+													$this->errorMessenger->_300>name, 
+													$this->errorMessenger->_300->description, 
+													$data,
+													$this->errorMessenger->_300->level);					
 			
 				$this->sparqlContent = "";
+				return;
 			}		
 			
 			if(	$this->conneg->getMime() == "text/xml" || 
@@ -1065,6 +1157,7 @@ class Sparql extends WebService
 				$this->conneg->getMime() == "application/json")
 			{
 				// Read the XML file and populate the recordInstances variables
+				
 				$xml = $this->xml2ary($this->sparqlContent);
 	
 				if(isset($xml["sparql"]["_c"]["results"]["_c"]["result"]))
@@ -1130,7 +1223,14 @@ class Sparql extends WebService
 				{
 					$this->conneg->setStatus(400);
 					$this->conneg->setStatusMsg("Bad Request");
-					$this->conneg->setStatusMsgExt("No instance records found");
+					$this->conneg->setStatusMsgExt($this->errorMessenger->_301->name);
+					$this->conneg->setError($this->errorMessenger->_301->id, 
+														$this->errorMessenger->ws, 
+														$this->errorMessenger->_301->name, 
+														$this->errorMessenger->_301->description, 
+														"",
+														$this->errorMessenger->_301->level);					
+					
 				}
 			}
 		}

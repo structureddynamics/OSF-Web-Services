@@ -15,7 +15,7 @@
 	 \n\n\n
  */
 
-
+ini_set("display_errors", "Off");		// Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
 ini_set("memory_limit","64M");
 
 // Database connectivity procedures
@@ -94,6 +94,8 @@ $ws_al->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SE
 $ws_al->process();
 
 $ws_al->ws_respond($ws_al->ws_serialize());
+
+
 
 
 $mtime = microtime(); 

@@ -93,12 +93,12 @@ class DB_Virtuoso
 	
 	public function getError()
 	{
-		return odbc_error($this->db_link);
+		return(odbc_error($this->db_link));
 	}
 
 	public function getErrorMsg()
 	{
-		return odbc_errormsg($this->db_link);
+		return(odbc_errormsg($this->db_link));
 	}
 
 /*!	 @brief Send a query to the server

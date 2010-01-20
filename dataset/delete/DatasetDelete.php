@@ -43,6 +43,54 @@ class DatasetDelete extends WebService
 	/*! @brief Supported serialization mime types by this Web service */
 	public static $supportedSerializations = array("application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
 		
+	/*! @brief Error messages of this web service */
+	private $errorMessenger = '{
+												"ws": "/ws/dataset/delete/",
+												"_200": {
+													"id": "WS-DATASET-DELETE-200",
+													"level": "Warning",
+													"name": "No unique identifier specified for this dataset",
+													"description": "No URI defined for this new dataset"
+												},
+												"_300": {
+													"id": "WS-DATASET-DELETE-300",
+													"level": "Fatal",
+													"name": "Can\'t delete meta-data information about the dataset",
+													"description": "An error occured when we tried to remove any meta-information about this dataset in our system"
+												},
+												"_301": {
+													"id": "WS-DATASET-DELETE-301",
+													"level": "Fatal",
+													"name": "Can\'t unregister the dataset in the system",
+													"description": "An error occured when we tried to delete the description of the dataset in the system"
+												},
+												"_302": {
+													"id": "WS-DATASET-DELETE-302",
+													"level": "Fatal",
+													"name": "Can\'t delete the graph in the triple store",
+													"description": "An error occured when we tried to delete the graph in the triple store"
+												},
+												"_303": {
+													"id": "WS-DATASET-DELETE-303",
+													"level": "Fatal",
+													"name": "Can\'t delete the reification graph in the system",
+													"description": "An error occured when we tried to delete the reification graph in the triple store"
+												},
+												"_304": {
+													"id": "WS-DATASET-DELETE-304",
+													"level": "Fatal",
+													"name": "Can\'t delete the dataset in Solr",
+													"description": "An error occured when we tried to delete that dataset in Solr"
+												},
+												"_305": {
+													"id": "WS-DATASET-DELETE-305",
+													"level": "Fatal",
+													"name": "Can\'t commit changes to the Solr index",
+													"description": "An error occured when we tried to commit changes to the Solr index"
+												}	
+											}';	
+		
+		
 	/*!	 @brief Constructor
 			 @details 	Initialize the Auth Web Service
 					
@@ -62,7 +110,7 @@ class DatasetDelete extends WebService
 	{
 		parent::__construct();		
 		
-		$this->db = new DB_Virtuoso(parent::$db_username, parent::$db_password, parent::$db_dsn, parent::$db_host);
+		$this->db = new DB_Virtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 		
 		$this->datasetUri = $uri;
 		
@@ -83,12 +131,14 @@ class DatasetDelete extends WebService
 			}
 		}			
 
-		$this->uri = parent::$wsf_base_url."/wsf/ws/dataset/delete/";	
+		$this->uri = $this->wsf_base_url."/wsf/ws/dataset/delete/";	
 		$this->title = "Dataset Delete Web Service";	
 		$this->crud_usage = new CrudUsage(FALSE, FALSE, FALSE, TRUE);
-		$this->endpoint = parent::$wsf_base_url."/ws/dataset/delete/";			
+		$this->endpoint = $this->wsf_base_url."/ws/dataset/delete/";			
 		
 		$this->dtdURL = "dataset/datasetDelete.dtd";
+		
+		$this->errorMessenger = json_decode($this->errorMessenger);		
 	}
 
 	function __destruct() 
@@ -115,7 +165,7 @@ class DatasetDelete extends WebService
 	*/			
 	protected function validateQuery()
 	{
-		$ws_av = new AuthValidator($this->registered_ip, parent::$wsf_graph."datasets/", $this->uri);
+		$ws_av = new AuthValidator($this->registered_ip, $this->wsf_graph."datasets/", $this->uri);
 		
 		$ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
 		
@@ -126,8 +176,32 @@ class DatasetDelete extends WebService
 			$this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
 			$this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
 			$this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
+			$this->conneg->setError($ws_av->pipeline_getError()->id, 
+												$ws_av->pipeline_getError()->webservice, 
+												$ws_av->pipeline_getError()->name, 
+												$ws_av->pipeline_getError()->description, 
+												$ws_av->pipeline_getError()->debugInfo,
+												$ws_av->pipeline_getError()->level);
+
+			return;			
 		}
 	}
+	
+	/*!	 @brief Returns the error structure
+							
+			\n
+			
+			@return returns the error structure
+		
+			@author Frederick Giasson, Structured Dynamics LLC.
+		
+			\n\n\n
+	*/		
+	public function pipeline_getError()
+	{
+		return($this->conneg->error);
+	}	
+	
 	
 	/*!	@brief Create a resultset in a pipelined mode based on the processed information by the Web service.
 							
@@ -188,7 +262,14 @@ class DatasetDelete extends WebService
 			{
 				$this->conneg->setStatus(400);
 				$this->conneg->setStatusMsg("Bad Request");
-				$this->conneg->setStatusMsgExt("No dataset URI specified");
+				$this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
+				$this->conneg->setError($this->errorMessenger->_200->id, 
+													$this->errorMessenger->ws, 
+													$this->errorMessenger->_200->name, 
+													$this->errorMessenger->_200->description, 
+													"",
+													$this->errorMessenger->_200->level);					
+				
 				return;
 			}
 		}
@@ -343,13 +424,13 @@ class DatasetDelete extends WebService
 			// Remove  all the possible other meta descriptions
 			// of the dataset introduced by the wsf:meta property.
 
-			$query = "	delete from <".parent::$wsf_graph."datasets/> 
+			$query = "	delete from <".$this->wsf_graph."datasets/> 
 							{ 
 								?meta ?p_meta ?o_meta.
 							}
 							where
 							{
-								graph <".parent::$wsf_graph."datasets/>
+								graph <".$this->wsf_graph."datasets/>
 								{
 									<$this->datasetUri> <http://purl.org/ontology/wsf#meta> ?meta.
 									?meta ?p_meta ?o_meta.
@@ -363,20 +444,27 @@ class DatasetDelete extends WebService
 			{
 				$this->conneg->setStatus(500);
 				$this->conneg->setStatusMsg("Internal Error");
-				$this->conneg->setStatusMsgExt("Error #dataset-delete-106");
+				$this->conneg->setStatusMsgExt($this->errorMessenger->_300->name);
+				$this->conneg->setError($this->errorMessenger->_300->id, 
+													$this->errorMessenger->ws, 
+													$this->errorMessenger->_300->name, 
+													$this->errorMessenger->_300->description, 
+													odbc_errormsg(),
+													$this->errorMessenger->_300->level);					
+				
 				return;
 			}			
 
 			
 			// Remove the Graph description in the ".../datasets/"
 			
-			$query = "	delete from <".parent::$wsf_graph."datasets/> 
+			$query = "	delete from <".$this->wsf_graph."datasets/> 
 							{ 
 								<$this->datasetUri> ?p ?o.
 							}
 							where
 							{
-								graph <".parent::$wsf_graph."datasets/>
+								graph <".$this->wsf_graph."datasets/>
 								{
 									<$this->datasetUri> ?p ?o.
 								}
@@ -388,7 +476,13 @@ class DatasetDelete extends WebService
 			{
 				$this->conneg->setStatus(500);
 				$this->conneg->setStatusMsg("Internal Error");
-				$this->conneg->setStatusMsgExt("Error #dataset-delete-100");
+				$this->conneg->setStatusMsgExt($this->errorMessenger->_301->name);
+				$this->conneg->setError($this->errorMessenger->_301->id, 
+													$this->errorMessenger->ws, 
+													$this->errorMessenger->_301->name, 
+													$this->errorMessenger->_301->description, 
+													odbc_errormsg(),
+													$this->errorMessenger->_301->level);					
 				return;
 			}			
 			
@@ -404,6 +498,12 @@ class DatasetDelete extends WebService
 				$this->conneg->setStatus($ws_ara->pipeline_getResponseHeaderStatus());
 				$this->conneg->setStatusMsg($ws_ara->pipeline_getResponseHeaderStatusMsg());
 				$this->conneg->setStatusMsgExt($ws_ara->pipeline_getResponseHeaderStatusMsgExt());
+				$this->conneg->setError($ws_ara->pipeline_getError()->id, 
+													$ws_ara->pipeline_getError()->webservice, 
+													$ws_ara->pipeline_getError()->name, 
+													$ws_ara->pipeline_getError()->description, 
+													$ws_ara->pipeline_getError()->debugInfo,
+													$ws_ara->pipeline_getError()->level);				
 				return;
 			}		
 			
@@ -416,7 +516,14 @@ class DatasetDelete extends WebService
 			{
 				$this->conneg->setStatus(500);
 				$this->conneg->setStatusMsg("Internal Error");
-				$this->conneg->setStatusMsgExt("Error #dataset-delete-101");	
+				$this->conneg->setStatusMsgExt($this->errorMessenger->_302->name);
+				$this->conneg->setError($this->errorMessenger->_302->id, 
+													$this->errorMessenger->ws, 
+													$this->errorMessenger->_302->name, 
+													$this->errorMessenger->_302->description, 
+													odbc_errormsg(),
+													$this->errorMessenger->_302->level);					
+				
 				return;
 			}		
 			
@@ -430,28 +537,49 @@ class DatasetDelete extends WebService
 				$this->conneg->setStatus(500);
 				$this->conneg->setStatusMsg("Internal Error");
 				$this->conneg->setStatusMsgExt("Error #dataset-delete-105");	
+				$this->conneg->setError($this->errorMessenger->_303->id, 
+													$this->errorMessenger->ws, 
+													$this->errorMessenger->_303->name, 
+													$this->errorMessenger->_303->description, 
+													odbc_errormsg(),
+													$this->errorMessenger->_303->level);					
+				
 				return;
 			}		
 			
 			
 			// Remove all documents form the solr index for this Dataset
-			$solr = new Solr(parent::$wsf_solr_core);			
+			$solr = new Solr($this->wsf_solr_core);			
 			
 			if(!$solr->flushDataset($this->datasetUri))
 			{
 				$this->conneg->setStatus(500);
 				$this->conneg->setStatusMsg("Internal Error");
-				$this->conneg->setStatusMsgExt("Error #dataset-delete-102");	
+				$this->conneg->setStatusMsgExt($this->errorMessenger->_304->name);
+				$this->conneg->setError($this->errorMessenger->_304->id, 
+													$this->errorMessenger->ws, 
+													$this->errorMessenger->_304->name, 
+													$this->errorMessenger->_304->description, 
+													odbc_errormsg(),
+													$this->errorMessenger->_304->level);					
+				
 				return;					
 			}
 			
-			if(parent::$solr_auto_commit === FALSE)
+			if($this->solr_auto_commit === FALSE)
 			{
 				if(!$solr->commit())
 				{
 					$this->conneg->setStatus(500);
 					$this->conneg->setStatusMsg("Internal Error");
-					$this->conneg->setStatusMsgExt("Error #crud-create-105");
+					$this->conneg->setStatusMsgExt($this->errorMessenger->_305->name);
+					$this->conneg->setError($this->errorMessenger->_305->id, 
+														$this->errorMessenger->ws, 
+														$this->errorMessenger->_305->name, 
+														$this->errorMessenger->_305->description, 
+														odbc_errormsg(),
+														$this->errorMessenger->_305->level);					
+					
 					return;					
 				}
 			}

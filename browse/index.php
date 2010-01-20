@@ -15,7 +15,7 @@
 	 \n\n\n
  */
 
-
+ini_set("display_errors", "Off");		// Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
 ini_set("memory_limit","64M");
 
 // Database connectivity procedures
@@ -37,6 +37,7 @@ include_once("../auth/lister/AuthLister.php");
 
 include_once("../framework/Logger.php");
 
+include_once("../framework/Namespaces.php");
 
 // Full text query supporting the Lucene operators
 $attributes = "all";

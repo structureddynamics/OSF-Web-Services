@@ -1,9 +1,9 @@
 <?php
 
-	/*! @ingroup WsConverterIrv */
+	/*! @ingroup WsConverterIrJSON */
 	//@{ 
 
-	/*! @file \ws\converter\irv\LinkageSchema.php
+	/*! @file \ws\converter\irjson\LinkageSchema.php
 		 @brief Define an linkage schema item
 		
 		 \n\n
@@ -27,7 +27,7 @@ class LinkageSchema
 {
 	public $version;
 	public $linkedFormat;
-	public $prefixes;
+	public $prefixes = array();
 	public $propertyX = array();
 	public $typeX = array();
 	
@@ -201,7 +201,7 @@ class LinkageSchema
 	public function generateJsonSerialization()
 	{
 		$schema = "{\n";
-		$schema .= "    \"linkageSchema\": {\n";
+		$schema .= "    \"linkage\": {\n";
 		
 		if($this->version != "")
 		{
@@ -215,7 +215,7 @@ class LinkageSchema
 		
 		if(count($this->prefixes) > 0)
 		{
-			$schema .= "        \"prefixes\": {\n";
+			$schema .= "        \"prefixList\": {\n";
 
 			foreach($this->prefixes as $prefix => $uri)
 			{
@@ -229,7 +229,7 @@ class LinkageSchema
 		
 		if(count($this->propertyX) > 0)
 		{
-			$schema .= "        \"properties\": {\n";
+			$schema .= "        \"attributeList\": {\n";
 
 			foreach($this->propertyX as $property => $maps)
 			{
@@ -253,7 +253,7 @@ class LinkageSchema
 		
 		if(count($this->typeX) > 0)
 		{
-			$schema .= "        \"types\": {\n";
+			$schema .= "        \"typeList\": {\n";
 
 			foreach($this->typeX as $type => $maps)
 			{
@@ -272,17 +272,6 @@ class LinkageSchema
 		
 		$schema .= "    }\n";
 		
-		/*
-{
-	"linkageSchema": {
-
-		
-		"properties": {
-			"address": {
-				"mapTo": "address:localityName"
-			},
-		
-		*/
 		$schema .= "}\n";
 		
 		return($schema);

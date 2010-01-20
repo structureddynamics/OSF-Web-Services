@@ -234,7 +234,7 @@ class ConverterBibtex extends WebService
 	{
 		parent::__construct();		
 		
-		$this->db = new DB_Virtuoso(parent::$db_username, parent::$db_password, parent::$db_dsn, parent::$db_host);
+		$this->db = new DB_Virtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 		
 		$this->docmime = $docmime;
 		$this->text = $document;
@@ -269,10 +269,10 @@ class ConverterBibtex extends WebService
 		
 		$this->bibItems = array();
 		
-		$this->uri = parent::$wsf_base_url."/wsf/ws/converter/bibtex/";	
+		$this->uri = $this->wsf_base_url."/wsf/ws/converter/bibtex/";	
 		$this->title = "Bibtex Converter Web Service";	
 		$this->crud_usage = new CrudUsage(FALSE, TRUE, FALSE, FALSE);
-		$this->endpoint = parent::$wsf_base_url."/ws/converter/bibtex/";			
+		$this->endpoint = $this->wsf_base_url."/ws/converter/bibtex/";			
 		
 		$this->dtdURL = "converter/bibtex.dtd";
 	}
@@ -515,7 +515,7 @@ class ConverterBibtex extends WebService
 	public function injectDoctype($xmlDoc)
 	{
 		$posHeader = 	strpos($xmlDoc, '"?>') + 3;
-		$xmlDoc = substr($xmlDoc, 0, $posHeader)."\n<!DOCTYPE resultset PUBLIC \"-//Bibliographic Knowledge Network//Converter BibTeX DTD 0.1//EN\" \"".parent::$dtdBaseURL.$this->dtdURL."\">".substr($xmlDoc, $posHeader, strlen($xmlDoc) - $posHeader);	
+		$xmlDoc = substr($xmlDoc, 0, $posHeader)."\n<!DOCTYPE resultset PUBLIC \"-//Bibliographic Knowledge Network//Converter BibTeX DTD 0.1//EN\" \"".$this->dtdBaseURL.$this->dtdURL."\">".substr($xmlDoc, $posHeader, strlen($xmlDoc) - $posHeader);	
 		
 		return($xmlDoc);
 	}

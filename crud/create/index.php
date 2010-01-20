@@ -15,9 +15,9 @@
 	 \n\n\n
  */
 
-ini_set("display_errors", "On");		// Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
+ini_set("display_errors", "Off");		// Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
 ini_set("memory_limit","128M");
-
+set_time_limit(2700);
 
 // Database connectivity procedures
 include_once("../../framework/db.php");
@@ -76,6 +76,15 @@ if(isset($_POST['mime']))
     $mime = $_POST['mime'];
 }
 
+// Indexation mode ((1) full (2) triplestore (3) searchindex)
+$mode = "full";
+
+if(isset($_POST['mode'])) 
+{
+    $mode = $_POST['mode'];
+}
+
+
 $mtime = microtime(); 
 $mtime = explode(' ', $mtime); 
 $mtime = $mtime[1] + $mtime[0]; 
@@ -106,7 +115,7 @@ elseif(isset($_SERVER['PHP_SELF']))
 	$parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_crudcreate = new CrudCreate($document, $mime, $dataset, $registered_ip, $requester_ip);
+$ws_crudcreate = new CrudCreate($document, $mime, $mode, $dataset, $registered_ip, $requester_ip);
 
 $ws_crudcreate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
 

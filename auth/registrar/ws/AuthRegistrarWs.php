@@ -52,6 +52,46 @@ class AuthRegistrarWs extends WebService
 	/*! @brief Requester's IP used for request validation */
 	private $requester_ip = "";
 	
+	/*! @brief Error messages of this web service */
+	private $errorMessenger = '{
+												"ws": "/ws/auth/registrar/ws/",
+												"_200": {
+													"id": "WS-AUTH-REGISTRAR-WS-200",
+													"level": "Warning",
+													"name": "No endpoint URL",
+													"description": "No endpoint URL defined for this query."
+												},
+												"_201": {
+													"id": "WS-AUTH-REGISTRAR-WS-201",
+													"level": "Warning",
+													"name": "No crud usage defined",
+													"description": "No crud usage defined for this query."
+												},
+												"_202": {
+													"id": "WS-AUTH-REGISTRAR-WS-202",
+													"level": "Warning",
+													"name": "No web service URI defined",
+													"description": "No web service URI defined for this query."
+												},
+												"_203": {
+													"id": "WS-AUTH-REGISTRAR-WS-203",
+													"level": "Fatal",
+													"name": "Can\'t check of the web service was already registered to this WSF",
+													"description": "An error occured when we tried to check if the web service was already registered to this web service network."
+												},
+												"_204": {
+													"id": "WS-AUTH-REGISTRAR-WS-204",
+													"level": "Warning",
+													"name": "Web service already registered",
+													"description": "This web service is already registered to this Web Service Framework."
+												},
+												"_300": {
+													"id": "WS-AUTH-REGISTRAR-WS-300",
+													"level": "Fatal",
+													"name": "Can\'t register this web service to the network",
+													"description": "An error occured when we tried to register this new web service to the network."
+												}	
+											}';	
 	
 		
 	/*!	 @brief Constructor
@@ -79,7 +119,7 @@ class AuthRegistrarWs extends WebService
 	{
 		parent::__construct();		
 		
-		$this->db = new DB_Virtuoso(parent::$db_username, parent::$db_password, parent::$db_dsn, parent::$db_host);
+		$this->db = new DB_Virtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 		
 		$this->registered_title= $registered_title;
 		$this->registered_endpoint = $registered_endpoint;
@@ -87,12 +127,14 @@ class AuthRegistrarWs extends WebService
 		$this->registered_uri = $registered_uri;
 		$this->requester_ip = $requester_ip;
 		
-		$this->uri = parent::$wsf_base_url."/wsf/ws/auth/registrar/ws/";	
+		$this->uri = $this->wsf_base_url."/wsf/ws/auth/registrar/ws/";	
 		$this->title = "Authentication Web Service Registration Web Service";	
 		$this->crud_usage = new CrudUsage(TRUE, TRUE, FALSE, FALSE);
-		$this->endpoint = parent::$wsf_base_url."/ws/auth/registrar/ws/";			
+		$this->endpoint = $this->wsf_base_url."/ws/auth/registrar/ws/";			
 		
 		$this->dtdURL = "auth/authRegistrarWs.dtd";
+		
+		$this->errorMessenger = json_decode($this->errorMessenger);		
 	}
 
 	function __destruct() 
@@ -117,7 +159,7 @@ class AuthRegistrarWs extends WebService
 	*/		
 	protected function validateQuery()
 	{ 
-		$ws_av = new AuthValidator($this->requester_ip, parent::$wsf_graph, $this->uri);
+		$ws_av = new AuthValidator($this->requester_ip, $this->wsf_graph, $this->uri);
 		
 		$ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
 		
@@ -128,8 +170,30 @@ class AuthRegistrarWs extends WebService
 			$this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
 			$this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
 			$this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
+			$this->conneg->setError($ws_av->pipeline_getError()->id, 
+												$ws_av->pipeline_getError()->webservice, 
+												$ws_av->pipeline_getError()->name, 
+												$ws_av->pipeline_getError()->description, 
+												$ws_av->pipeline_getError()->debugInfo,
+												$ws_av->pipeline_getError()->level);
 		}
 	}
+	
+	/*!	 @brief Returns the error structure
+							
+			\n
+			
+			@return returns the error structure
+		
+			@author Frederick Giasson, Structured Dynamics LLC.
+		
+			\n\n\n
+	*/		
+	public function pipeline_getError()
+	{
+		return($this->conneg->error);
+	}	
+	
 	
 	/*!	@brief Create a resultset in a pipelined mode based on the processed information by the Web service.
 							
@@ -158,7 +222,7 @@ class AuthRegistrarWs extends WebService
 	public function injectDoctype($xmlDoc)
 	{
 		$posHeader = 	strpos($xmlDoc, '"?>') + 3;
-		$xmlDoc = substr($xmlDoc, 0, $posHeader)."\n<!DOCTYPE resultset PUBLIC \"-//Structured Dynamics LLC//Auth Registrar WS DTD 0.1//EN\" \"".parent::$dtdBaseURL.$this->dtdURL."\">".substr($xmlDoc, $posHeader, strlen($xmlDoc) - $posHeader);	
+		$xmlDoc = substr($xmlDoc, 0, $posHeader)."\n<!DOCTYPE resultset PUBLIC \"-//Structured Dynamics LLC//Auth Registrar WS DTD 0.1//EN\" \"".$this->dtdBaseURL.$this->dtdURL."\">".substr($xmlDoc, $posHeader, strlen($xmlDoc) - $posHeader);	
 		
 		return($xmlDoc);
 	}
@@ -190,7 +254,13 @@ class AuthRegistrarWs extends WebService
 		{
 			$this->conneg->setStatus(400);
 			$this->conneg->setStatusMsg("Bad Request");
-			$this->conneg->setStatusMsgExt("No endpoint URL");
+			$this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
+			$this->conneg->setError($this->errorMessenger->_200->id, 
+												$this->errorMessenger->ws, 
+												$this->errorMessenger->_200->name, 
+												$this->errorMessenger->_200->description, 
+												"",
+												$this->errorMessenger->_200->level);					
 			return;
 		}
 
@@ -198,7 +268,14 @@ class AuthRegistrarWs extends WebService
 		{
 			$this->conneg->setStatus(400);
 			$this->conneg->setStatusMsg("Bad Request");
-			$this->conneg->setStatusMsgExt("No crud usage defined");
+			$this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
+			$this->conneg->setError($this->errorMessenger->_201->id, 
+												$this->errorMessenger->ws, 
+												$this->errorMessenger->_201->name, 
+												$this->errorMessenger->_201->description, 
+												"",
+												$this->errorMessenger->_201->level);					
+			
 			return;
 		}
 
@@ -206,18 +283,32 @@ class AuthRegistrarWs extends WebService
 		{
 			$this->conneg->setStatus(400);
 			$this->conneg->setStatusMsg("Bad Request");
-			$this->conneg->setStatusMsgExt("No web service URI defined");
+			$this->conneg->setStatusMsgExt($this->errorMessenger->_202->name);
+			$this->conneg->setError($this->errorMessenger->_202->id, 
+												$this->errorMessenger->ws, 
+												$this->errorMessenger->_202->name, 
+												$this->errorMessenger->_202->description, 
+												"",
+												$this->errorMessenger->_202->level);					
+			
 			return;
 		}
 	
 		// Check if the web service is already registered
-		$resultset = $this->db->query($this->db->build_sparql_query("select ?wsf ?crudUsage from <".parent::$wsf_graph."> where {?wsf a <http://purl.org/ontology/wsf#WebServiceFramework>. ?wsf <http://purl.org/ontology/wsf#hasWebService> <$this->registered_uri>. <$this->registered_uri> <http://purl.org/ontology/wsf#hasCrudUsage> ?crudUsage.}", array ('wsf', 'crudUsage'), FALSE));
+		$resultset = $this->db->query($this->db->build_sparql_query("select ?wsf ?crudUsage from <".$this->wsf_graph."> where {?wsf a <http://purl.org/ontology/wsf#WebServiceFramework>. ?wsf <http://purl.org/ontology/wsf#hasWebService> <$this->registered_uri>. <$this->registered_uri> <http://purl.org/ontology/wsf#hasCrudUsage> ?crudUsage.}", array ('wsf', 'crudUsage'), FALSE));
 		
 		if (odbc_error())
 		{
 			$this->conneg->setStatus(500);
 			$this->conneg->setStatusMsg("Internal Error");
-			$this->conneg->setStatusMsgExt("Error #auth-registrar-ws-100");		
+			$this->conneg->setStatusMsgExt($this->errorMessenger->_203->name);		
+			$this->conneg->setError($this->errorMessenger->_203->id, 
+												$this->errorMessenger->ws, 
+												$this->errorMessenger->_203->name, 
+												$this->errorMessenger->_203->description, 
+												"",
+												$this->errorMessenger->_203->level);					
+			
 			return;			
 		}
 		elseif(odbc_fetch_row($resultset))
@@ -229,7 +320,13 @@ class AuthRegistrarWs extends WebService
 			{
 				$this->conneg->setStatus(400);
 				$this->conneg->setStatusMsg("Bad Request");
-				$this->conneg->setStatusMsgExt("Web service already registered");
+				$this->conneg->setStatusMsgExt($this->errorMessenger->_204->name);
+				$this->conneg->setError($this->errorMessenger->_204->id, 
+													$this->errorMessenger->ws, 
+													$this->errorMessenger->_204->name, 
+													$this->errorMessenger->_204->description, 
+													"",
+													$this->errorMessenger->_204->level);					
 				
 				unset($resultset);
 				return;
@@ -395,7 +492,7 @@ class AuthRegistrarWs extends WebService
 				// Note: we make sure we remove any previously defined triples that we are about to re-enter in the graph. All information other than these new properties
 				//          will remain in the graph
 				
-				$query = "delete from <".parent::$wsf_graph.">
+				$query = "delete from <".$this->wsf_graph.">
 								{ 
 									<$this->registered_uri> a <http://purl.org/ontology/wsf#WebService> .
 									<$this->registered_uri> <http://purl.org/dc/terms/title> ?title . 
@@ -405,7 +502,7 @@ class AuthRegistrarWs extends WebService
 								}
 								where
 								{
-									graph <".parent::$wsf_graph.">
+									graph <".$this->wsf_graph.">
 									{
 										<$this->registered_uri> a <http://purl.org/ontology/wsf#WebService> .
 										<$this->registered_uri> <http://purl.org/dc/terms/title> ?title . 
@@ -414,7 +511,7 @@ class AuthRegistrarWs extends WebService
 										?crud_usage ?crud_property ?crud_value .
 									}
 								}
-								insert into <".parent::$wsf_graph.">
+								insert into <".$this->wsf_graph.">
 								{
 									<$this->registered_uri> a <http://purl.org/ontology/wsf#WebService> .
 									<$this->registered_uri> <http://purl.org/dc/terms/title> \"$this->registered_title\" .
@@ -427,7 +524,7 @@ class AuthRegistrarWs extends WebService
 									<http://purl.org/ontology/wsf#update> ".($this->crud_usage->update ? "\"True\"" : "\"False\"")." ;
 									<http://purl.org/ontology/wsf#delete> ".($this->crud_usage->delete ? "\"True\"" : "\"False\"")." .
 									
-									<".parent::$wsf_graph."> <http://purl.org/ontology/wsf#hasWebService> <$this->registered_uri>.
+									<".$this->wsf_graph."> <http://purl.org/ontology/wsf#hasWebService> <$this->registered_uri>.
 								}";
 				
 				@$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), " ", $query), array(), FALSE));
@@ -436,7 +533,14 @@ class AuthRegistrarWs extends WebService
 				{
 					$this->conneg->setStatus(500);
 					$this->conneg->setStatusMsg("Internal Error");
-					$this->conneg->setStatusMsgExt("Error #auth-registrar-ws-101");	
+					$this->conneg->setStatusMsgExt($this->errorMessenger->_300->name);	
+					$this->conneg->setError($this->errorMessenger->_300->id, 
+														$this->errorMessenger->ws, 
+														$this->errorMessenger->_300->name, 
+														$this->errorMessenger->_300->description, 
+														odbc_errormsg(),
+														$this->errorMessenger->_300->level);					
+					
 					return;
 				}																		
 			}

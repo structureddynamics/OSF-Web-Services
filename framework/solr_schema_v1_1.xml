@@ -228,7 +228,7 @@
 
 
  <fields>
-   <!-- Valid attributes for fields:
+<!-- Valid attributes for fields:
      name: mandatory - the name for the field
      type: mandatory - the name of a previously defined type from the <types> section
      indexed: true if this field should be indexed (searchable or sortable)
@@ -247,22 +247,34 @@
 <!-- The document id is derived from a site-spcific key (hash) and the node ID like:
      $document->id = $hash . '/node/' . $node->nid; -->
 
-<!--   <field name="uri" type="string" indexed="true" stored="true" required="true" /> -->
    <field name="uid" type="string" indexed="true" stored="true" required="true" />
    <field name="uri" type="string" indexed="true" stored="true" required="true" />
    <field name="dataset" type="string" indexed="true" stored="true" required="true" />
-<!-- These are the fields that correspond to a Drupal node. The beauty of having
-     Lucene store title, body, type, etc., is that we retrieve them with the search
-     result set and don't need to go to the database with a node_load. -->
 
    <field name="type" type="string" indexed="true" stored="true" multiValued="true"/>
-   <field name="property" type="string" indexed="true" stored="true" multiValued="true"/>
-   <field name="object_property" type="string" indexed="true" stored="true" multiValued="true"/>
    <field name="inferred_type" type="string" indexed="true" stored="true" multiValued="true"/>
+   
+   <field name="prefLabel" type="text" indexed="true" stored="true"/>
+   <field name="altLabel" type="text" indexed="true" stored="true" multiValued="true"/>
+   <field name="description" type="text" indexed="true" stored="true"/>
+   <field name="prefURL" type="text" indexed="true" stored="true"/>
 
-   <field name="text" type="text" indexed="true" stored="true" multiValued="true"/>
-   <field name="object_label" type="text" indexed="true" stored="true" multiValued="true"/>
+   <!-- Used to create attribute/key pairs that were not previously created in this schema -->
+   <dynamicField name="*_attr"  type="text"  indexed="true"  stored="true" multiValued="true"/>   
+   <dynamicField name="*_attr_obj"  type="text"  indexed="true"  stored="true" multiValued="true"/>   
+   <dynamicField name="*_attr_obj_uri"  type="string"  indexed="true"  stored="true" multiValued="true"/>   
 
+   <dynamicField name="*_reify_obj"  type="text"  indexed="true"  stored="true" multiValued="true"/>   
+   <dynamicField name="*_reify_value"  type="text"  indexed="true"  stored="true" multiValued="true"/>   
+
+
+   <!-- 	This field is use to keep track of the dynamicFields that have been created. It is the way to be able to
+   			get the counts of properties from facets. -->
+   <field name="attribute" type="string" indexed="true" stored="true" multiValued="true"/>
+
+   <!-- All text, from all properties, used when we search over all properties -->
+   <field name="all_text" type="text" indexed="true" stored="true" multiValued="true"/>
+   
  </fields>
 
  <!-- Field to use to determine and enforce document uniqueness.
@@ -270,9 +282,18 @@
    -->
  <uniqueKey>uid</uniqueKey>
 
- <!-- field for the QueryParser to use when an explicit fieldname is absent -->
+ <!-- Copy all values of all fields to the "all_text" field. This is needed to be able to query
+ 		all data from all dynamic properties -->
+ <copyField source="*_attr"  dest="all_text" />
+ <copyField source="*_attr_obj"  dest="all_text" />
+ <copyField source="*_reify_value"  dest="all_text" />
+ <copyField source="prefLabel"  dest="all_text" />
+ <copyField source="altLabel"  dest="all_text" />
+ <copyField source="description"  dest="all_text" />
+ <copyField source="prefURL"  dest="all_text" />
 
- <defaultSearchField>text</defaultSearchField>
+ <!-- field for the QueryParser to use when an explicit fieldname is absent -->
+ <defaultSearchField>all_text</defaultSearchField>
 
  <!-- SolrQueryParser configuration: defaultOperator="AND|OR" -->
  <solrQueryParser defaultOperator="AND"/>

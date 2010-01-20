@@ -1,10 +1,10 @@
 <?php
 
-	/*! @defgroup WsConverterIrv Converter IRV Web Service */
+	/*! @defgroup WsConverterIrJSON Converter irJSON Web Service */
 	//@{ 
 
-	/*! @file \ws\converter\irv\ConverterIrv.php
-		 @brief Define the IRV converter class
+	/*! @file \ws\converter\irjson\ConverterIrJSON.php
+		 @brief Define the irJSON converter class
 		
 		 \n\n
 	 
@@ -14,8 +14,8 @@
 	 */
 	
 	
-	/*!	 @brief Convert IRV data into RDF.
-			 @details 	This class takes IRV (table separeted values) files as input, convert them into RDF using the BKN Ontology, 
+	/*!	 @brief Convert irJSON data into RDF.
+			 @details 	This class takes irJSON files as input, convert them into RDF using linkage schemas, 
 							and output RDF in different formats.
 							
 			\n
@@ -25,7 +25,7 @@
 			\n\n\n
 	*/
 
-class ConverterIrv extends WebService
+class ConverterIrJSON extends WebService
 {
 	/*! @brief Database connection */
 	private $db;
@@ -66,10 +66,46 @@ class ConverterIrv extends WebService
 	private $customLinkageSchema;
 	
 	/*! @brief Supported serialization mime types by this Web service */
-	public static $supportedSerializations = array("application/bib+json", "application/irv+json", "application/wsf+json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/tsv", "text/csv", "text/xml", "text/*", "*/*");
+	public static $supportedSerializations = array("application/iron+json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/tsv", "text/csv", "text/xml", "text/*", "*/*");
+		
+	/*! @brief Error messages of this web service */
+	private $errorMessenger = '{
+												"ws": "/ws/converter/irjson/",
+												"_200": {
+													"id": "WS-CONVERTER-IRJSON-200",
+													"level": "Warning",
+													"name": "No linkage file specified",
+													"description": "No linkage file of type \'RDF\' has been defined for this Instance Record Vocabulary file."
+												},
+												"_201": {
+													"id": "WS-CONVERTER-IRJSON-201",
+													"level": "Warning",
+													"name": "No data to convert",
+													"description": "No data is available for conversion"
+												},
+												"_300": {
+													"id": "WS-CONVERTER-IRJSON-300",
+													"level": "Warning",
+													"name": "JSON parsing error(s)",
+													"description": "JSON parsing error(s)"
+												},
+												"_301": {
+													"id": "WS-CONVERTER-IRJSON-301",
+													"level": "Warning",
+													"name": "irJSON validation error(s)",
+													"description": "irJSON validation error(s)"
+												},	
+												"_302": {
+													"id": "WS-CONVERTER-IRJSON-302",
+													"level": "Warning",
+													"name": "Unsupported Document Mime",
+													"description": "The MIME type of the document you sent to this irJSON conversion web service is not supported."
+												}
+											}';	
+		
 		
 	/*!	 @brief Constructor
-			 @details 	Initialize the IRV Converter Web Service
+			 @details 	Initialize the irJSON Converter Web Service
 							
 			\n
 			
@@ -84,7 +120,7 @@ class ConverterIrv extends WebService
 		
 			\n\n\n
 	*/		
-	function __construct($document="", $docmime="application/irv+json", $registered_ip, $requester_ip)
+	function __construct($document="", $docmime="application/iron+json", $registered_ip, $requester_ip)
 	{
 		parent::__construct();		
 		
@@ -118,17 +154,19 @@ class ConverterIrv extends WebService
 			}
 		}	
 		
-		$this->irvResources = array();
+		$this->irJSONResources = array();
 		
-		$this->uri = parent::$wsf_base_url."/wsf/ws/converter/irv/";	
+		$this->uri = $this->wsf_base_url."/wsf/ws/converter/irjson/";	
 		$this->title = "Instance Record Vocabulary Converter Web Service";	
 		$this->crud_usage = new CrudUsage(FALSE, TRUE, FALSE, FALSE);
-		$this->endpoint = parent::$wsf_base_url."/ws/converter/irv/";			
+		$this->endpoint = $this->wsf_base_url."/ws/converter/irjson/";			
 		
-		$this->dtdURL = "converter/irv.dtd";	
+		$this->dtdURL = "converter/irjson.dtd";	
 		
 		$this->customLinkageSchema = new LinkageSchema();
-		$this->customLinkageSchema->setLinkedFormat("rdf");
+		$this->customLinkageSchema->setLinkedFormat("application/rdf+xml");
+		
+		$this->errorMessenger = json_decode($this->errorMessenger);		
 	}
 
 	function __destruct() 
@@ -171,8 +209,50 @@ class ConverterIrv extends WebService
 			$ext = substr($str, $pos + 1, strlen($str) - $pos - 1);
 		}
 	}
+	
+	/*!	 @brief Returns the error structure
+							
+			\n
+			
+			@return returns the error structure
+		
+			@author Frederick Giasson, Structured Dynamics LLC.
+		
+			\n\n\n
+	*/		
+	public function pipeline_getError()
+	{
+		return($this->conneg->error);
+	}	
+	
+	private function getLinkedProperty($property, &$linkageSchema)
+	{
+		$pro = "";
+		
+		if(isset($linkageSchema->propertyX[$property][0]["mapTo"]))
+		{
+			$prop = $linkageSchema->propertyX[$property][0]["mapTo"];
+		}
+		else
+		{
+			// If the property is not linked, we create one in the temporary ontology of the node.
+			/*! @todo Add this new property in the internal ontology of the node. */
 
-	/*!	 @brief Generate the converted IRV items using the internal XML representation
+			if(strpos($property, "http://") === FALSE)
+			{
+				$prop = $this->wsf_graph."ontology/properties/".$property;
+			}
+			else
+			{
+				$prop = $property;
+			}
+		}		
+		
+		return($prop);
+	}
+	
+
+	/*!	 @brief Generate the converted irJSON items using the internal XML representation
 							
 			\n
 			
@@ -188,12 +268,13 @@ class ConverterIrv extends WebService
 		{
 			return($this->text);
 		}
-		else
-		{
-			// Check if a linkage file of kind RDF has been defined for this IRV file.
+		
+		if($this->docmime == "application/iron+json")
+		{			
+			// Check if a linkage file of kind RDF has been defined for this irJSON file.
 			foreach($this->parser->linkageSchemas as $linkageSchema)
 			{
-				if(strtolower($linkageSchema->linkedFormat) == "rdf")
+				if(strtolower($linkageSchema->linkedFormat) == "application/rdf+xml")
 				{
 					$xml = new ProcessorXML();
 			
@@ -206,7 +287,7 @@ class ConverterIrv extends WebService
 					$resultset->appendChild($rdf);
 					$dcterms = $xml->createPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
 					$resultset->appendChild($dcterms);
-					$dcterms = $xml->createPrefix("wsf", "http://purl.org/ontology/wsf#");
+					$dcterms = $xml->createPrefix("iron", "http://purl.org/ontology/iron#");
 					$resultset->appendChild($dcterms);
 					
 					//
@@ -215,132 +296,100 @@ class ConverterIrv extends WebService
 					
 					$datasetSubject = $xml->createSubject("http://rdfs.org/ns/void#Dataset", $this->parser->dataset->id[0]); 
 						
-					// Map labels
-					if(isset($this->parser->dataset->label))
+					// Map other attributes
+					if(isset($this->parser->dataset->attributes))
 					{
-						foreach($this->parser->dataset->label as $key => $label)
+						foreach($this->parser->dataset->attributes as $property => $obj)
 						{
-							if(gettype($key) == "integer")
+							if(stripos($this->parser->dataset->attributes[$property]["valueType"], "primitive:string") !== FALSE)
 							{
-								$pred = $xml->createPredicate("http://www.w3.org/2000/01/rdf-schema#label");
-								$object = $xml->createObjectContent($label);
-								
-								$pred->appendChild($object);
-								$datasetSubject->appendChild($pred);			
-							}
-						}
-					}				
-
-					// Map descriptions
-					if(isset($this->parser->dataset->description))
-					{
-						foreach($this->parser->dataset->description as $key => $description)
-						{
-							if(gettype($key) == "integer")
-							{
-								$pred = $xml->createPredicate("http://www.w3.org/2000/01/rdf-schema#comment");
-								$object = $xml->createObjectContent($description);
-								
-								$pred->appendChild($object);
-								$datasetSubject->appendChild($pred);			
-							}
-						}
-					}	
-					
-					// Map the Linkage Schema
-					if(isset($this->parser->dataset->linkageSchema))
-					{
-						foreach($this->parser->dataset->linkageSchema as $key => $ls)
-						{
-							if(gettype($key) == "integer")
-							{
-								$pred = $xml->createPredicate("http://purl.org/ontology/wsf#linkageSchema");
-								$object = $xml->createObjectContent($ls);
-								
-								$pred->appendChild($object);
-								$datasetSubject->appendChild($pred);			
-							}
-						}
-					}						
-
-					// Map the Structure Schema
-					if(isset($this->parser->dataset->structureSchema))
-					{
-						foreach($this->parser->dataset->structureSchema as $key => $ss)
-						{
-							if(gettype($key) == "integer")
-							{
-								$pred = $xml->createPredicate("http://purl.org/ontology/wsf#structureSchema");
-								$object = $xml->createObjectContent($ss);
-								
-								$pred->appendChild($object);
-								$datasetSubject->appendChild($pred);			
-							}
-						}
-					}						
-
-					
-					// Map created
-					if(isset($this->parser->dataset->created))
-					{
-						foreach($this->parser->dataset->created as $key => $created)
-						{
-							if(gettype($key) == "integer")
-							{
-								$pred = $xml->createPredicate("http://purl.org/dc/terms/created");
-								$object = $xml->createObjectContent($created);
-								
-								$pred->appendChild($object);
-								$datasetSubject->appendChild($pred);			
-							}
-						}
-					}						
-				
-					// Map sources, creators, maintainers and curators
-					$variables = array("source", "creator", "maintainer", "curator");
-					foreach($variables as $var)
-					{
-						if(isset($this->parser->dataset->{$var}))
-						{
-							foreach($this->parser->dataset->{$var} as $key => $value)
-							{
-								if(gettype($key) == "integer")
+								foreach($this->parser->dataset->attributes[$property] as $key => $value)
 								{
-									$pred = $xml->createPredicate("http://purl.org/ontology/irv#".$var);
-									
-									if(isset($value["ref"]))
+									if(gettype($key) == "integer")
 									{
-										$value["ref"] = $this->parser->dataset->id[0].substr($value["ref"], 1, strlen($value["ref"]) - 1);
-									} 
-									else
-									{
-										$value["ref"] = parent::$wsf_graph."irs/".md5(microtime());
+										// Get the linked property.
+										$prop = $this->getLinkedProperty($property, $linkageSchema);
+							
+										$pred = $xml->createPredicate($prop);
+										$object = $xml->createObjectContent($this->xmlEncode($value));
+										
+										$pred->appendChild($object);
+										$datasetSubject->appendChild($pred);			
 									}
-									
-									$object = $xml->createObject("", $value["ref"]);
-									$pred->appendChild($object);
-		
-									// Check if we have to reify UI related information about this property-object pair
-									if(isset($value["label"]))
-									{
-										$reify = $xml->createReificationStatement("http://www.w3.org/2000/01/rdf-schema#label", $value["label"]);
-										$object->appendChild($reify);
+								}
+							}
+
+							if(	stripos($this->parser->dataset->attributes[$property]["valueType"], "type:object") !== FALSE)
+							{
+								foreach($this->parser->dataset->attributes[$property] as $key => $value)
+								{		
+									if(gettype($key) == "integer")
+									{								
+										// Check for the reference
+										if(isset($this->parser->dataset->attributes[$property][$key]["ref"]))
+										{
+												// Reference to an external record
+												if(substr($this->parser->dataset->attributes[$property][$key]["ref"], 0, 2) == "@@")
+												{
+													$this->parser->dataset->attributes[$property][$key]["ref"] = substr($this->parser->dataset->attributes[$property][$key]["ref"], 2, strlen($this->parser->dataset->attributes[$property][$key]["ref"]) - 2);
+												}
+												elseif(substr($this->parser->dataset->attributes[$property][$key]["ref"], 0, 1) == "@")
+												{
+													$this->parser->dataset->attributes[$property][$key]["ref"] = $this->parser->dataset->id[0].substr($this->parser->dataset->attributes[$property][$key]["ref"], 1, strlen($this->parser->dataset->attributes[$property][$key]["ref"]) - 1);
+												}
+										}
+										else
+										{
+											/*
+												If no reference has been specified, we have to create a BNode for it even if the
+												object (instance record) is not defined anywhere.
+												This object will then be used
+											*/
+																				
+											$this->parser->dataset->attributes[$property][$key]["ref"] = $this->wsf_graph."irs/".md5(microtime());
+										}								
+															
+										// Check if metaData has been added to this relationship
+										if(isset($this->parser->dataset->attributes[$property][$key]["metaData"]))
+										{
+											// Get the linked property.
+											$prop = $this->getLinkedProperty($property, $linkageSchema);
+	
+											$pred = $xml->createPredicate($prop);
+											$object = $xml->createObject("", $this->parser->dataset->attributes[$property][$key]["ref"]);
+											foreach($this->parser->dataset->attributes[$property][$key]["metaData"] as $metaKey => $metaObject)
+											{
+												foreach($metaObject as $metaAttribute => $metaValue)
+												{
+													// Reify all metaData attributes/values
+													$metaProp = $this->getLinkedProperty($metaAttribute, $linkageSchema);												
+													
+													$reify = $xml->createReificationStatement($metaProp, $this->xmlEncode($metaValue));
+													$object->appendChild($reify);
+												}
+											}
+											
+											$pred->appendChild($object);
+	
+											$datasetSubject->appendChild($pred);		
+										}
+										else
+										{
+											// No metaData exists for this relationship. We simply create the s-p-o triple
+											$prop = $this->getLinkedProperty($property, $linkageSchema);		
+											
+											$pred = $xml->createPredicate($prop);
+											$object = $xml->createObject("", $this->parser->dataset->attributes[$property][$key]["ref"]);
+											$pred->appendChild($object);
+	
+											$datasetSubject->appendChild($pred);																				
+										}
 									}
-									
-									if(	isset($value["href"]))
-									{
-										$reify = $xml->createReificationStatement("http://purl.org/ontology/bibo/uri", $value["href"]);
-										$object->appendChild($reify);
-									}
-									
-									$datasetSubject->appendChild($pred);		
 								}
 							}
 						}
-					}
-
-
-
+					}						
+					
 					$resultset->appendChild($datasetSubject);
 					
 					//
@@ -354,9 +403,9 @@ class ConverterIrv extends WebService
 						$subject;
 						
 						// Map types
-						if(isset($instanceRecord->type))
-						{
-							foreach($instanceRecord->type as $key => $type)
+						if(isset($instanceRecord->attributes["type"]))
+						{				
+							foreach($instanceRecord->attributes["type"] as $key => $type)
 							{
 								if(gettype($key) != "string")
 								{
@@ -366,17 +415,13 @@ class ConverterIrv extends WebService
 									}
 									else
 									{
-//										$type = "http://www.w3.org/2002/07/owl#Thing";
-/*! @TODO removing the end of $type and add an entry in the automatically generated linkage schema.*/
-//										$type = parent::$wsf_graph."ontology/types/".$type;
-
-////////// Temporaty //////////////
-												if(strpos($type, "http://") === FALSE)
-												{
-													$type = parent::$wsf_graph."ontology/types/".$type;
-												}
-/////////////////////////////////////	
-
+										// If the type is not linked, we create one in the temporary ontology of the node.
+										/*! @todo Add this new type in the internal ontology of the node. */
+										
+										if(strpos($type, "http://") === FALSE)
+										{
+											$type = $this->wsf_graph."ontology/types/".$type;
+										}
 									}
 								}
 								
@@ -399,95 +444,22 @@ class ConverterIrv extends WebService
 							$subject = $xml->createSubject("http://www.w3.org/2002/07/owl#Thing", $uri);
 						}
 						
-						// Map labels
-						if(isset($instanceRecord->label))
-						{
-							foreach($instanceRecord->label as $key => $label)
-							{
-								if(gettype($key) == "integer")
-								{
-									$pred = $xml->createPredicate("http://www.w3.org/2000/01/rdf-schema#label");
-									$object = $xml->createObjectContent($label);
-									
-									$pred->appendChild($object);
-									$subject->appendChild($pred);			
-								}
-							}
-						}
-
-						// Map description
-						if(isset($instanceRecord->description))
-						{
-							foreach($instanceRecord->description as $key => $description)
-							{
-								if(gettype($key) == "integer")
-								{
-									$pred = $xml->createPredicate("http://www.w3.org/2000/01/rdf-schema#comment");
-									$object = $xml->createObjectContent($description);
-									
-									$pred->appendChild($object);
-									$subject->appendChild($pred);			
-								}
-							}
-						}
-
-						// Map sameAs / isLike
-						if(isset($instanceRecord->sameAs))
-						{
-							foreach($instanceRecord->sameAs as $key => $sameAs)
-							{
-								if(gettype($key) == "integer")
-								{
-									$pred = $xml->createPredicate("http://umbel.org/umbel#isLike");
-									$object = $xml->createObject("", $sameAs);
-									
-									$pred->appendChild($object);
-									$subject->appendChild($pred);			
-								}
-							}
-						}
-
 						// Map other attributes
-						if(isset($instanceRecord->attributeX))
+						if(isset($instanceRecord->attributes))
 						{
-							foreach($instanceRecord->attributeX as $property => $object)
+							foreach($instanceRecord->attributes as $property => $obj)
 							{
-								if(	$instanceRecord->attributeX[$property]["valueType"] == "string" ||
-									$instanceRecord->attributeX[$property]["valueType"] == "array(string)")
+								if(stripos($instanceRecord->attributes[$property]["valueType"], "primitive:string") !== FALSE)
 								{
-									foreach($instanceRecord->attributeX[$property] as $key => $value)
+									foreach($instanceRecord->attributes[$property] as $key => $value)
 									{
 										if(gettype($key) == "integer")
 										{
 											// Get the linked property.
-											$prop;
-											
-											if(isset($linkageSchema->propertyX[$property][0]["mapTo"]))
-											{
-												$prop = $linkageSchema->propertyX[$property][0]["mapTo"];
-											}
-											else
-											{
-												// If the property is not linked, we create one in the temporary ontology of the node.
-/*! @TODO removing the end of $type and add an entry in the automatically generated linkage schema.*/
-//												$prop = parent::$wsf_graph."ontology/properties/".$property;
-
-////////// Temporaty //////////////
-												if(strpos($property, "http://") === FALSE)
-												{
-													$prop = parent::$wsf_graph."ontology/properties/".$property;
-												}
-												else
-												{
-													$prop = $property;
-												}
-/////////////////////////////////////												
-												
-									//			$prop = $property;
-											}
-											
+											$prop = $this->getLinkedProperty($property, $linkageSchema);
+								
 											$pred = $xml->createPredicate($prop);
-											$object = $xml->createObjectContent($value);
+											$object = $xml->createObjectContent($this->xmlEncode($value));
 											
 											$pred->appendChild($object);
 											$subject->appendChild($pred);			
@@ -495,79 +467,78 @@ class ConverterIrv extends WebService
 									}
 								}
 
-								if(	$instanceRecord->attributeX[$property]["valueType"] == "object" ||
-									$instanceRecord->attributeX[$property]["valueType"] == "array(object)")
+								if(	stripos($instanceRecord->attributes[$property]["valueType"], "type:object") !== FALSE)
 								{
-									
-									foreach($instanceRecord->attributeX[$property] as $key => $value)
-									{
-										// Fix the reference before conversion
-										if(!isset($instanceRecord->attributeX[$property][$key]["ref"]))
-										{
-											// If no reference has been specified, we have to create a BNode for it even if the
-											// object (instance record) is not defined anywhere.
-											$instanceRecord->attributeX[$property][$key]["ref"] = parent::$wsf_graph."irs/".md5(microtime());
-										}
-										else
-										{
-											if(substr($instanceRecord->attributeX[$property][$key]["ref"], 0, 1) == "@")
+									foreach($instanceRecord->attributes[$property] as $key => $value)
+									{		
+										if(gettype($key) == "integer" && $property != "type")
+										{								
+											// Check for the reference
+											if(isset($instanceRecord->attributes[$property][$key]["ref"]))
 											{
-												$instanceRecord->attributeX[$property][$key]["ref"] = $this->parser->dataset->id[0].substr($instanceRecord->attributeX[$property][$key]["ref"], 1, strlen($instanceRecord->attributeX[$property][$key]["ref"]) - 1);
-											}
-										}
-										
-										if(gettype($key) == "integer")
-										{
-											// Get the linked property.
-											$prop;
-											
-											if(isset($linkageSchema->propertyX[$property][0]["mapTo"]))
-											{
-												$prop = $linkageSchema->propertyX[$property][0]["mapTo"];
+													// Reference to an external record
+													if(substr($instanceRecord->attributes[$property][$key]["ref"], 0, 2) == "@@")
+													{
+														$instanceRecord->attributes[$property][$key]["ref"] = substr($instanceRecord->attributes[$property][$key]["ref"], 2, strlen($instanceRecord->attributes[$property][$key]["ref"]) - 2);
+													}
+													elseif(substr($instanceRecord->attributes[$property][$key]["ref"], 0, 1) == "@")
+													{
+														$instanceRecord->attributes[$property][$key]["ref"] = $this->parser->dataset->id[0].substr($instanceRecord->attributes[$property][$key]["ref"], 1, strlen($instanceRecord->attributes[$property][$key]["ref"]) - 1);
+													}
 											}
 											else
 											{
-												// If the property is not linked, we create one in the temporary ontology of the node.
-/*! @TODO removing the end of $type and add an entry in the automatically generated linkage schema.*/
-//												$prop = parent::$wsf_graph."ontology/properties/".$property;
-
-////////// Temporaty //////////////
-												if(strpos($property, "http://") === FALSE)
-												{
-													$prop = parent::$wsf_graph."ontology/properties/".$property;
-												}
-												else
-												{
-													$prop = $property;
-												}
-/////////////////////////////////////	
-
-//												$prop = $property;
-											}
-
-											$pred = $xml->createPredicate($prop);
-											$object = $xml->createObject("", $instanceRecord->attributeX[$property][$key]["ref"]);
-											
-											// Check if we have to reify UI related information about this property-object pair
-											if(isset($instanceRecord->attributeX[$property][$key]["label"]))
+												/*
+													If no reference has been specified, we have to create a BNode for it even if the
+													object (instance record) is not defined anywhere.
+													This object will then be used
+												*/
+																					
+												$instanceRecord->attributes[$property][$key]["ref"] = $this->wsf_graph."irs/".md5(microtime());
+											}								
+																
+											// Check if metaData has been added to this relationship
+											if(isset($instanceRecord->attributes[$property][$key]["metaData"]))
 											{
-												$reify = $xml->createReificationStatement("http://www.w3.org/2000/01/rdf-schema#label", $instanceRecord->attributeX[$property][$key]["label"]);
-												$object->appendChild($reify);
+												// Get the linked property.
+												$prop = $this->getLinkedProperty($property, $linkageSchema);
+		
+												$pred = $xml->createPredicate($prop);
+												$object = $xml->createObject("", $instanceRecord->attributes[$property][$key]["ref"]);
+
+							
+												foreach($instanceRecord->attributes[$property][$key]["metaData"] as $metaKey => $metaObject)
+												{
+													foreach($metaObject as $metaAttribute => $metaValue)
+													{
+														// Reify all metaData attributes/values
+														$metaProp = $this->getLinkedProperty($metaAttribute, $linkageSchema);												
+														
+														$reify = $xml->createReificationStatement($metaProp, $this->xmlEncode($metaValue));
+														$object->appendChild($reify);
+													}
+												}
+												
+												$pred->appendChild($object);
+		
+												$subject->appendChild($pred);		
 											}
-											if(isset($instanceRecord->attributeX[$property][$key]["href"]))
+											else
 											{
-												$reify = $xml->createReificationStatement("http://purl.org/ontology/bibo/uri", $instanceRecord->attributeX[$property][$key]["href"]);
-												$object->appendChild($reify);
+												// No metaData exists for this relationship. We simply create the s-p-o triple
+												$prop = $this->getLinkedProperty($property, $linkageSchema);		
+												
+												$pred = $xml->createPredicate($prop);
+												$object = $xml->createObject("", $instanceRecord->attributes[$property][$key]["ref"]);
+												$pred->appendChild($object);
+		
+												$subject->appendChild($pred);																				
 											}
-
-											$pred->appendChild($object);
-
-											$subject->appendChild($pred);			
 										}
 									}
 								}
 							}
-						}
+						}							
 
 						$resultset->appendChild($subject);
 					}
@@ -576,12 +547,31 @@ class ConverterIrv extends WebService
 				}
 			}
 			
-			// No RDF linkage file exists for this IRV file, then we throw an error
+			// No RDF linkage file exists for this irJSON file, then we throw an error
 			$this->conneg->setStatus(400);
 			$this->conneg->setStatusMsg("Bad Request");
-			$this->conneg->setStatusMsgExt("No linkage file of type 'RDF' has been defined for this Instance Record Vocabulary file. Cant convert this file in '".$this->conneg->getMime()."'");
-			
+			$this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
+			$this->conneg->setError($this->errorMessenger->_200->id, 
+												$this->errorMessenger->ws, 
+												$this->errorMessenger->_200->name, 
+												$this->errorMessenger->_200->description, 
+												"No linkage file of type 'RDF' has been defined for this Instance Record Vocabulary file. Cant convert this file in '".$this->conneg->getMime()."'",
+												$this->errorMessenger->_200->level);					
+			return;			
 		}
+		
+		// Unsupported docmime type
+		
+		$this->conneg->setStatus(400);
+		$this->conneg->setStatusMsg("Bad Request");
+		$this->conneg->setStatusMsgExt($this->errorMessenger->_302->name);
+		$this->conneg->setError($this->errorMessenger->_302->id, 
+											$this->errorMessenger->ws, 
+											$this->errorMessenger->_302->name, 
+											$this->errorMessenger->_302->description, 
+											"Mime type you requested: ".$this->docmime,
+											$this->errorMessenger->_302->level);					
+		
 	}
 	
 	/*!	 @brief Get the domain of a URL
@@ -632,7 +622,7 @@ class ConverterIrv extends WebService
 	public function injectDoctype($xmlDoc)
 	{
 		$posHeader = 	strpos($xmlDoc, '"?>') + 3;
-		$xmlDoc = substr($xmlDoc, 0, $posHeader)."\n<!DOCTYPE resultset PUBLIC \"-//Bibliographic Knowledge Network//Converter IRV DTD 0.1//EN\" \"".parent::$dtdBaseURL.$this->dtdURL."\">".substr($xmlDoc, $posHeader, strlen($xmlDoc) - $posHeader);	
+		$xmlDoc = substr($xmlDoc, 0, $posHeader)."\n<!DOCTYPE resultset PUBLIC \"-//Structured Dynamics LLC//Converter irJSON DTD 0.1//EN\" \"".$this->dtdBaseURL.$this->dtdURL."\">".substr($xmlDoc, $posHeader, strlen($xmlDoc) - $posHeader);	
 		
 		return($xmlDoc);
 	}
@@ -658,14 +648,21 @@ class ConverterIrv extends WebService
 	*/	
 	public function ws_conneg($accept, $accept_charset, $accept_encoding, $accept_language)
 	{
-		$this->conneg = new Conneg(	$accept, $accept_charset, $accept_encoding, $accept_language, ConverterIrv::$supportedSerializations);
+		$this->conneg = new Conneg(	$accept, $accept_charset, $accept_encoding, $accept_language, ConverterIrJSON::$supportedSerializations);
 
 		// No text to process? Throw an error.
 		if($this->text == "")
 		{
 			$this->conneg->setStatus(400);
 			$this->conneg->setStatusMsg("Bad Request");
-			$this->conneg->setStatusMsgExt("No data to convert");
+			$this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);			
+			$this->conneg->setError($this->errorMessenger->_201->id, 
+												$this->errorMessenger->ws, 
+												$this->errorMessenger->_201->name, 
+												$this->errorMessenger->_201->description, 
+												"",
+												$this->errorMessenger->_201->level);					
+			
 		}
 	}
 	
@@ -755,28 +752,19 @@ class ConverterIrv extends WebService
 
 		switch($this->conneg->getMime())
 		{
-			case "application/irv+json":
-			case "application/bib+json":
-				$irv = "{\n";
+			case "application/iron+json":
+				$irJSON = "{\n";
 
 				$xml = new ProcessorXML();
 				$xml->loadXML($this->pipeline_getResultset());
 				
 				$subjects = $xml->getSubjects();
 				
-				if($this->conneg->getMime() == "application/bib+json")
-				{
-					$datasetJson = "    \"Metadata\": {\n";
-					$instanceRecordsJson = "    \"Records\": [\n";
-				}
-				else
-				{
-					$datasetJson = "    \"Dataset\": {\n";
-					$instanceRecordsJson = "    \"InstanceRecords\": [\n";
-				}
+				$datasetJson = "    \"dataset\": {\n";
+				$instanceRecordsJson = "    \"recordList\": [\n";
 
 				// The first thing we have to check is if a linkage schema is available for this dataset.
-				// If it is not, then we simply use the RDF properties and values to populate the IRV+JSON file.
+				// If it is not, then we simply use the RDF properties and values to populate the IRON+JSON file.
 				
 				$accesses = $xml->getSubjectsByType("http://rdfs.org/ns/void#Dataset");
 
@@ -786,32 +774,35 @@ class ConverterIrv extends WebService
 				foreach($accesses as $access)
 				{
 					// We check if there is a link to a linkage schema
-					$predicates = $xml->getPredicatesByType($access, "http://purl.org/ontology/wsf#linkageSchema");
+					$predicates = $xml->getPredicatesByType($access, "http://purl.org/ontology/iron#linkage");
 					
 					if($predicates->length > 0)
 					{
-						$objects = $xml->getObjects($predicates->item(0));
-						
-						$linkageSchemaUrl = $xml->getContent($objects->item(0));
-						if(substr($linkageSchemaUrl, 0, 7) == "http://")
+						foreach($predicates as $predicate)
 						{
-							$ch = curl_init();
+							$objects = $xml->getObjects($predicate);
 							
-							curl_setopt($ch, CURLOPT_URL, $linkageSchemaUrl);
-							curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-							curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
-							
-							$data = curl_exec($ch);
-							$data = trim($data);
-						
-							if(!curl_errno($ch) && $data != "") 
+							$linkageSchemaUrl = $xml->getContent($objects->item(0));
+							if(substr($linkageSchemaUrl, 0, 7) == "http://")
 							{
-								$parsedContent = json_decode($data);
+								$ch = curl_init();
 								
-								array_push($ls, $parsedContent);								
-							}
+								curl_setopt($ch, CURLOPT_URL, $linkageSchemaUrl);
+								curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+								curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+								
+								$data = curl_exec($ch);
+								$data = trim($data);
 							
-							curl_close($ch);
+								if(!curl_errno($ch) && $data != "") 
+								{
+									$parsedContent = json_decode($data);
+									
+									array_push($ls, $parsedContent);								
+								}
+								
+								curl_close($ch);
+							}
 						}
 					}
 					else
@@ -823,11 +814,11 @@ class ConverterIrv extends WebService
 						
 					// If no link, we create an inline schema.					
 				}
-				
+
 				// Now populate the linkage schema object.
 				foreach($ls as $linkageSchema)
 				{
-					$linkageSchema = $linkageSchema->linkageSchema;
+					$linkageSchema = $linkageSchema->linkage;
 					
 					$tempSchema = new LinkageSchema();
 					
@@ -838,39 +829,122 @@ class ConverterIrv extends WebService
 					$tempSchema->setLinkedFormat($linkageSchema->linkedFormat);
 					
 					// Set prefixes
-					foreach($linkageSchema->prefixes as $prefix => $uri)
+					if(isset($linkageSchema->prefixList))
 					{
-						$tempSchema->setPrefix($prefix, $uri);
-					}			
+						foreach($linkageSchema->prefixList as $prefix => $uri)
+						{
+							$tempSchema->setPrefix($prefix, $uri);
+						}			
+					}
 					
 					// Set propertieslinkageSchemas
-					foreach($linkageSchema->properties as $property => $values)
+					if(isset($linkageSchema->attributeList))
 					{
-						$tempSchema->setPropertyX($property, $values->mapTo, $error);
+						foreach($linkageSchema->attributeList as $property => $values)
+						{
+							$tempSchema->setPropertyX($property, $values->mapTo, $error);
+						}
 					}
 					
 					// Set types
-					foreach($linkageSchema->types as $type => $values)
+					if(isset($linkageSchema->typeList))
 					{
-						$adds = array();
-						
-						if(isset($values->add))
+						foreach($linkageSchema->typeList as $type => $values)
 						{
-							foreach($values->add as $key => $value)
+							$adds = array();
+							
+							if(isset($values->add))
 							{
-								$adds[$key] = $value;
+								foreach($values->add as $key => $value)
+								{
+									$adds[$key] = $value;
+								}
 							}
+							
+							$error = "";
+							
+							$tempSchema->setTypeX($type, $values->mapTo, $adds, $error);
 						}
-						
-						$error = "";
-						
-						$tempSchema->setTypeX($type, $values->mapTo, $adds, $error);
 					}
 		
 					array_push($linkageSchemas, $tempSchema);
 				}		
+				
+				
+				// Check if a linkage schema of the same linkageType exists. If it exists, we merge them together.
+				
+				// Merging rules:
+				// (1) if a type already exists, the type of the first schema will be used
+				// (2) if an attribute already exists, the attribute of the first schema will be used.
+				
+				$parsedContent = $parsedContent->linkage;
+				
+				$merged = FALSE;
+				
+				$mergedSchemas = array();
 
-				// Now lets create the IRV+JSON serialization for dataset description and instance records descriptions.
+				foreach($linkageSchemas as $linkageSchema)
+				{
+					$merged = FALSE;
+					
+					// Check if this linkageType has already been merged
+					foreach($mergedSchemas as $ms)
+					{
+						if($ms->linkageType == $linkageSchema->linkageType)
+						{
+							// Merge schemas
+
+							// merge prefixes
+							if(isset($linkageSchema->prefixes))
+							{
+								foreach($linkageSchema->prefixes as $prefix => $uri)
+								{
+									if(!isset($ms->prefixes[$prefix]))
+									{
+										$ms->prefixes[$prefix] = $uri;
+									}
+								}
+							}
+							
+							// merge types
+							if(isset($linkageSchema->typeX))
+							{
+								foreach($linkageSchema->typeX as $type => $typeObject)
+								{
+									if(!isset($ms->typeX[$type]))
+									{
+										$ms->typeX[$type] = $typeObject;
+									}
+								}
+							}
+							
+							// merge attributes
+							if(isset($linkageSchema->propertyX))
+							{
+								foreach($linkageSchema->propertyX as $attribute => $attributeObject)
+								{
+									if(!isset($ms->propertyX[$attribute]))
+									{
+										$ms->propertyX[$attribute] = $attributeObject;
+									}
+								}
+							}							
+							
+							
+							$merged = TRUE;
+							break;
+						}
+					}
+					
+					if(!$merged)
+					{
+						array_push($mergedSchemas, $linkageSchema);
+					}
+				}
+		
+				$linkageSchemas = $mergedSchemas;
+
+				// Now lets create the IRON+JSON serialization for dataset description and instance records descriptions.
 				
 				// Get the base (dataset) ID
 				$datasetID = "";
@@ -885,11 +959,13 @@ class ConverterIrv extends WebService
 					}
 				}
 				
+				$linkageSchemaLinks = array();
+				
 				foreach($subjects as $subject)
 				{
 					$subjectURI = $xml->getURI($subject);
 					$subjectType = $xml->getType($subject, FALSE);
-					
+									
 					if($subjectType == "http://rdfs.org/ns/void#Dataset")
 					{
 						$datasetJson .= "        \"id\": \"$datasetID\",\n";						
@@ -920,50 +996,42 @@ class ConverterIrv extends WebService
 								
 								$predicateName = "";
 
-								switch($predicateType)
+								// Check for a linked property.
+								foreach($linkageSchemas as $linkageSchema)
 								{
-									case "http://www.w3.org/2000/01/rdf-schema#label":
-										$predicateName = "label";
-									break;
+									if(strtolower($linkageSchema->linkedFormat) == "application/rdf+xml")
+									{				
+										foreach($linkageSchema->propertyX as $property => $value)
+										{
+											if($value[0]["mapTo"] == $predicateType)
+											{
+												$predicateName = $property;
+											}
+										}		
+									}
+								}
+								
+								if($predicateName == "")
+								{
+									/*! @todo: custom linkage file */							
 									
-									case "http://www.w3.org/2000/01/rdf-schema#comment":
-										$predicateName = "description";
-									break;
+									// If we still dont have a reference to a property name, we use the end of the RDF generated one.
+									$predicateName = str_replace($this->wsf_graph."ontology/properties/", "", $predicateType);
 									
-									case "http://purl.org/ontology/wsf#linkageSchema":
-										$predicateName = "linkageSchema";
-									break;
+									$this->splitUri($predicateType, $base, $ext);
+									$this->customLinkageSchema->setPropertyX($ext, $predicateType, $error);
 									
-									case "http://purl.org/ontology/wsf#structureSchema":
-										$predicateName = "structureSchema";
-									break;
-									
-									case "http://purl.org/dc/terms/created":
-										$predicateName = "created";
-									break;
-									
-									case "http://purl.org/ontology/irv#source":
-										$predicateName = "source";
-									break;
-									
-									case "http://purl.org/ontology/irv#creator":
-										$predicateName = "creator";
-									break;
-									
-									case "http://purl.org/ontology/irv#maintainer":
-										$predicateName = "maintainer";
-									break;
-									
-									case "http://purl.org/ontology/irv#curator":
-										$predicateName = "curator";
-									break;
-								}								
+									$predicateName = $ext;
+								}						
 
 								if($predicateName != "")
 								{
 									if(($this->nbPredicates($subject, $xml, $predicateType) > 1 && $processingPredicateNum == 1))
 									{
-										$datasetJson .= "        \"$predicateName\": [";
+										if($predicateName != "linkage")
+										{
+											$datasetJson .= "        \"$predicateName\": [";
+										}
 									}
 									
 									if($objectType == "rdfs:Literal")
@@ -972,9 +1040,10 @@ class ConverterIrv extends WebService
 										
 											if($objects->length == 1)
 											{
-												if($predicateName == "linkageSchema")
+												if($predicateName == "linkage")
 												{
-													$datasetJson .= "        \"$predicateName\": [\"".$this->jsonEscape($objectValue)."\"],\n";
+//													$datasetJson .= "        \"$predicateName\": [\"".$this->jsonEscape($objectValue)."\"],\n";
+													array_push($linkageSchemaLinks, $objectValue);
 												}
 												else
 												{
@@ -992,7 +1061,21 @@ class ConverterIrv extends WebService
 										$objectURI = $xml->getURI($object);
 									
 										$datasetJson .= "        \"$predicateName\": {\n";
-										$datasetJson .= "            \"ref\": \"".$this->jsonEscape(str_replace($datasetID, "@", $objectURI))."\",\n";
+										
+										if(stripos($objectURI, "/irs/") === FALSE)  // Don't display dummy object references in the irJSON output.
+										{
+											$nbReplaced = 0;
+											$ref = str_replace($datasetID, "@", $objectURI, $nbReplaced);
+											
+											if($nbReplaced > 0)
+											{
+												$datasetJson .= "            \"ref\": \"".$this->jsonEscape($ref)."\",\n";
+											}
+											else
+											{
+												$datasetJson .= "            \"ref\": \"".$this->jsonEscape("@@".$objectURI)."\",\n";
+											}
+										}
 										
 										$reifies = $xml->getReificationStatements($object);
 	
@@ -1001,15 +1084,37 @@ class ConverterIrv extends WebService
 											$v = $xml->getValue($reify);
 											$t = $xml->getType($reify, FALSE);
 											
-											if($t == "http://www.w3.org/2000/01/rdf-schema#label")
-											{
-												$datasetJson .= "            \"label\": \"".$this->jsonEscape($v)."\",\n";
-											}
+											$predicateName = "";
 											
-											if($t == "http://purl.org/ontology/bibo/uri")
+											// Check for a linked property
+											foreach($linkageSchemas as $linkageSchema)
 											{
-												$datasetJson .= "            \"href\": \"".$this->jsonEscape($v)."\",\n";
-											}
+												if(strtolower($linkageSchema->linkedFormat) == "application/rdf+xml")
+												{				
+													foreach($linkageSchema->propertyX as $property => $value)
+													{
+														if($value[0]["mapTo"] == $t)
+														{
+															$predicateName = $property;
+														}
+													}		
+												}
+											}			
+											
+											if($predicateName == "")
+											{
+												/*! @todo: custom linkage file */							
+												
+												// If we still dont have a reference to a property name, we use the end of the RDF generated one.
+												$predicateName = str_replace($this->wsf_graph."ontology/properties/", "", $t);
+												
+												$this->splitUri($t, $base, $ext);
+												$this->customLinkageSchema->setPropertyX($ext, $t, $error);
+												
+												$predicateName = $ext;
+											}											
+											
+											$datasetJson .= "            \"".$predicateName."\": \"".$this->jsonEscape($v)."\",\n";
 										}
 									
 										$datasetJson = substr($datasetJson, 0, strlen($datasetJson) - 2)."\n";
@@ -1022,15 +1127,16 @@ class ConverterIrv extends WebService
 							
 							if($this->nbPredicates($subject, $xml, $predicateType) > 1 && $processingPredicateNum == $this->nbPredicates($subject, $xml, $predicateType))
 							{
-								$datasetJson = substr($datasetJson, 0, strlen($datasetJson) - 2);
-								$datasetJson .= " ],\n";
+								if($predicateName != "linkage")
+								{
+									$datasetJson = substr($datasetJson, 0, strlen($datasetJson) - 2);
+									$datasetJson .= " ],\n";
+								}
 							}
 							
 						}
 						
 						$datasetJson = substr($datasetJson, 0, strlen($datasetJson) - 2)."\n";
-						$datasetJson .= "    },\n";
-						
 					}
 					else
 					{
@@ -1041,9 +1147,10 @@ class ConverterIrv extends WebService
 						// Get the type
 						$typeName = $subjectType;
 						$break = FALSE;
+						
 						foreach($linkageSchemas as $linkageSchema)
 						{
-							if(strtolower($linkageSchema->linkedFormat) == "rdf")
+							if(strtolower($linkageSchema->linkedFormat) == "application/rdf+xml")
 							{				
 								foreach($linkageSchema->typeX as $type => $value)
 								{
@@ -1065,8 +1172,8 @@ class ConverterIrv extends WebService
 						// If there is no linked type for this type, we use the end of the automatically RDF type generated.
 						if($break === FALSE)
 						{
-/*! @TODO: custom linkage file */							
-							$typeName = str_replace(parent::$wsf_graph."ontology/types/", "", $typeName);
+							/*! @todo: custom linkage file */							
+							//$typeName = str_replace($this->wsf_graph."ontology/types/", "", $typeName);
 							
 							$this->splitUri($typeName, $base, $ext);
 							$this->customLinkageSchema->setTypeX($ext, $typeName, "", $error);
@@ -1094,7 +1201,7 @@ class ConverterIrv extends WebService
 									$break = FALSE;
 									foreach($linkageSchemas as $linkageSchema)
 									{
-										if(strtolower($linkageSchema->linkedFormat) == "rdf")
+										if(strtolower($linkageSchema->linkedFormat) == "application/rdf+xml")
 										{				
 											foreach($linkageSchema->typeX as $type => $value)
 											{
@@ -1116,8 +1223,8 @@ class ConverterIrv extends WebService
 									// If there is no linked type for this type, we use the end of the automatically RDF type generated.
 									if($break === FALSE)
 									{
-			/*! @TODO: custom linkage file */							
-										$objectValue = str_replace(parent::$wsf_graph."ontology/types/", "", $objectValue);
+										/*! @todo: custom linkage file */							
+										$objectValue = str_replace($this->wsf_graph."ontology/types/", "", $objectValue);
 										
 										$this->splitUri($objectValue, $base, $ext);
 										$this->customLinkageSchema->setTypeX($ext, $objectValue, "", $error);
@@ -1136,6 +1243,8 @@ class ConverterIrv extends WebService
 						{
 							$instanceRecordsJson .= "            \"type\": \"".$typeName."\",\n";						
 						}
+						
+						
 
 						$predicates = $xml->getPredicates($subject);
 						
@@ -1160,60 +1269,36 @@ class ConverterIrv extends WebService
 									$processingPredicateNum++;
 								}
 								
+								if($predicateType == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+								{
+									continue;
+								}
+								
 								$objectContent = $xml->getContent($object);
 								
 								$predicateName = "";
 
-								$break = FALSE;
-
-								switch($predicateType)
+								// Check for a linked property.
+								foreach($linkageSchemas as $linkageSchema)
 								{
-									case "http://www.w3.org/2000/01/rdf-schema#label":
-										$predicateName = "label";
-									break;
-									
-									case "http://www.w3.org/2000/01/rdf-schema#comment":
-										$predicateName = "description";
-									break;
-									
-									case "http://www.w3.org/1999/02/22-rdf-syntax-ns#type":
-										$break = TRUE;
-									break;
-									
-									case "http://umbel.org/umbel#isLike":
-										$predicateName = "sameAs";
-									break;
-								}		
-								
-								if($break)
-								{
-									break;
+									if(strtolower($linkageSchema->linkedFormat) == "application/rdf+xml")
+									{				
+										foreach($linkageSchema->propertyX as $property => $value)
+										{
+											if($value[0]["mapTo"] == $predicateType)
+											{
+												$predicateName = $property;
+											}
+										}		
+									}
 								}
 								
 								if($predicateName == "")
 								{
-									// Check for a linked property.
-									foreach($linkageSchemas as $linkageSchema)
-									{
-										if(strtolower($linkageSchema->linkedFormat) == "rdf")
-										{				
-											foreach($linkageSchema->propertyX as $property => $value)
-											{
-												if($value[0]["mapTo"] == $predicateType)
-												{
-													$predicateName = $property;
-												}
-											}		
-										}
-									}
-								}			
-								
-								if($predicateName == "")
-								{
-/*! @TODO: custom linkage file */							
+									/*! @todo: custom linkage file */							
 									
 									// If we still dont have a reference to a property name, we use the end of the RDF generated one.
-									$predicateName = str_replace(parent::$wsf_graph."ontology/properties/", "", $predicateType);
+									$predicateName = str_replace($this->wsf_graph."ontology/properties/", "", $predicateType);
 									
 									$this->splitUri($predicateType, $base, $ext);
 									$this->customLinkageSchema->setPropertyX($ext, $predicateType, $error);
@@ -1229,33 +1314,7 @@ class ConverterIrv extends WebService
 								if($objectType == "rdfs:Literal")
 								{
 									$objectValue = $xml->getContent($object);						
-/*
-									if($predicateName == "type")
-									{
-										// Get the type
-										$break = FALSE;
-										foreach($linkageSchemas as $linkageSchema)
-										{
-											if(strtolower($linkageSchema->linkedFormat) == "rdf")
-											{				
-												foreach($linkageSchema->typeX as $type => $value)
-												{
-													if($value[0]["mapTo"] == $objectValue)
-													{
-														$objectValue = $type;
-														$break = TRUE;
-														break;
-													}
-												}		
-												
-												if($break)
-												{
-													break;
-												}
-											}
-										}							
-									}
-*/									
+
 									if($this->nbPredicates($subject, $xml, $predicateType) == 1)
 									{
 										$instanceRecordsJson .= "            \"$predicateName\": \"".$this->jsonEscape($objectValue)."\",\n";
@@ -1279,7 +1338,20 @@ class ConverterIrv extends WebService
 										$instanceRecordsJson .= "            \"$predicateName\": {\n";
 									}
 									
-									$instanceRecordsJson .= "                \"ref\": \"".$this->jsonEscape(str_replace($datasetID, "@", $objectURI))."\",\n";
+									if(stripos($objectURI, "/irs/") === FALSE)  // Don't display dummy object references in the irJSON output.
+									{
+										$nbReplaced = 0;
+										$ref = str_replace($datasetID, "@", $objectURI, $nbReplaced);
+										
+										if($nbReplaced > 0)
+										{
+											$instanceRecordsJson .= "            \"ref\": \"".$this->jsonEscape($ref)."\",\n";
+										}
+										else
+										{
+											$instanceRecordsJson .= "            \"ref\": \"".$this->jsonEscape("@@".$objectURI)."\",\n";
+										}
+									}
 									 
 									$reifies = $xml->getReificationStatements($object);
 
@@ -1288,15 +1360,37 @@ class ConverterIrv extends WebService
 										$v = $xml->getValue($reify);
 										$t = $xml->getType($reify, FALSE);
 										
-										if($t == "http://www.w3.org/2000/01/rdf-schema#label")
+										$predicateName = "";
+										
+										// Check for a linked property
+										foreach($linkageSchemas as $linkageSchema)
 										{
-											$instanceRecordsJson .= "                \"label\": \"".$this->jsonEscape($v)."\",\n";
+											if(strtolower($linkageSchema->linkedFormat) == "application/rdf+xml")
+											{				
+												foreach($linkageSchema->propertyX as $property => $value)
+												{
+													if($value[0]["mapTo"] == $t)
+													{
+														$predicateName = $property;
+													}
+												}		
+											}
+										}			
+										
+										if($predicateName == "")
+										{
+											/*! @todo: custom linkage file */							
+											
+											// If we still dont have a reference to a property name, we use the end of the RDF generated one.
+											$predicateName = str_replace($this->wsf_graph."ontology/properties/", "", $t);
+											
+											$this->splitUri($t, $base, $ext);
+											$this->customLinkageSchema->setPropertyX($ext, $t, $error);
+											
+											$predicateName = $ext;
 										}
 										
-										if($t == "http://purl.org/ontology/bibo/uri")
-										{
-											$instanceRecordsJson .= "                \"href\": \"".$this->jsonEscape($v)."\",\n";
-										}
+										$instanceRecordsJson .= "                \"".$predicateName."\": \"".$this->jsonEscape($v)."\",\n";
 									}
 								
 									$instanceRecordsJson = substr($instanceRecordsJson, 0, strlen($instanceRecordsJson) - 2)."\n";
@@ -1323,29 +1417,55 @@ class ConverterIrv extends WebService
 
 				$instanceRecordsJson .= "        ]\n";
 
-				$irv .= $datasetJson.$instanceRecordsJson;
+
+				$datasetJson .= "    },\n";
+
+				$irJSON .= $datasetJson.$instanceRecordsJson;
 
 
-				$irv .= "}";
+				$irJSON .= "}";
 				
 				// Inject the custom linakge schema in the dataset description.
-				
-				if(($pos = stripos($irv, '"linkageSchema"')) !== FALSE)
+
+				if(($pos = stripos($irJSON, '"dataset"')) !== FALSE)
 				{
-					$posStart = strpos($irv, "[", $pos);
-					$irv = substr($irv, 0, $posStart + 1).$this->customLinkageSchema->generateJsonSerialization().",\n".substr($irv, $posStart + 1, strlen($irv) - $posStart);
+					$posStart = strpos($irJSON, "{", $pos);
+					$endIrJsonFile = substr($irJSON, $posStart + 1, strlen($irJSON) - $posStart);
+					$irJSON = substr($irJSON, 0, $posStart + 1)."\n        \"linkage\": [\n";
+				
+					if(	count($this->customLinkageSchema->prefixes) > 0 ||
+						count($this->customLinkageSchema->predicateX) > 0 ||
+						count($this->customLinkageSchema->typeX) > 0)
+					{
+						$irJSON .= $this->customLinkageSchema->generateJsonSerialization().",";
+					}
+					
+					foreach($linkageSchemaLinks as $lsl)
+					{
+						$irJSON .= "\"$lsl\",";
+					}
+					
+					$irJSON .= "],\n".$endIrJsonFile;					
+					
+				}
+				
+				/*
+				if(($pos = stripos($irJSON, '"linkage"')) !== FALSE)
+				{
+					$posStart = strpos($irJSON, "[", $pos);
+					$irJSON = substr($irJSON, 0, $posStart + 1).$this->customLinkageSchema->generateJsonSerialization().",\n".substr($irJSON, $posStart + 1, strlen($irJSON) - $posStart);
 				}
 				else
 				{
 					// no linakgeSchema property found. Lets create one.
-					if(($pos = stripos($irv, '"Dataset"')) !== FALSE)
+					if(($pos = stripos($irJSON, "dataset")) !== FALSE)
 					{
-						$posStart = strpos($irv, "{", $pos);
-						$irv = substr($irv, 0, $posStart + 1)."\n        \"linkageSchema\": [\n".$this->customLinkageSchema->generateJsonSerialization()."        ],\n".substr($irv, $posStart + 1, strlen($irv) - $posStart);
+						$posStart = strpos($irJSON, "{", $pos);
+						$irJSON = substr($irJSON, 0, $posStart + 1)."\n        \"linkage\": [\n".$this->customLinkageSchema->generateJsonSerialization()."        ],\n".substr($irJSON, $posStart + 1, strlen($irJSON) - $posStart);
 					}
 				}
-				
-				return($irv);		
+				*/
+				return($this->jsonRemoveTrailingCommas($irJSON));		
 			break;
 			
 			case "text/tsv":
@@ -1449,7 +1569,7 @@ class ConverterIrv extends WebService
 				$this->namespaces = array(	"http://www.w3.org/2002/07/owl#" => "owl",
 														"http://www.w3.org/1999/02/22-rdf-syntax-ns#" => "rdf",
 														"http://www.w3.org/2000/01/rdf-schema#" => "rdfs",
-														"http://purl.org/ontology/wsf#" => "wsf");				
+														"http://purl.org/ontology/iron#" => "iron");				
 				
 				$nsId = 0;
 				
@@ -1524,6 +1644,12 @@ class ConverterIrv extends WebService
 		}		
 	}
 	
+    public function jsonRemoveTrailingCommas($json)
+    {
+        $json=preg_replace('/,\s*([\]}])/m', '$1', $json);
+        return $json;
+    }	
+	
 	public function jsonEscape($str)
 	{
 		return str_replace('"', '', $str);
@@ -1578,11 +1704,12 @@ class ConverterIrv extends WebService
 							{
 								if($first == 0)
 								{
-									$rdf_reification .= "_:bnode".$bnodeCounter." a rdf:Statement ;\n";
+//									$rdf_reification .= "_:bnode".$bnodeCounter." a rdf:Statement ;\n";
+									$rdf_reification .= "_:".md5($xml->getURI($subject).$predicateType.$xml->getURI($object))." a rdf:Statement ;\n";
 									$bnodeCounter++;
 									$rdf_reification .= "    rdf:subject <".$xml->getURI($subject)."> ;\n";
 									$rdf_reification .= "    rdf:predicate <".$predicateType."> ;\n";
-									$rdf_reification .= "    rdf:object _:bnode".$bnodeCounter." ;\n";
+									$rdf_reification .= "    rdf:object <".$xml->getURI($object)."> ;\n";
 								}
 								
 								$first++;
@@ -1632,7 +1759,8 @@ class ConverterIrv extends WebService
 							{
 								if($first == 0)
 								{
-									$rdf_reification .= "    <rdf:Statement>\n";
+//									$rdf_reification .= "    <rdf:Statement>\n";
+									$rdf_reification .= "    <rdf:Statement rdf:about=\"".md5($xml->getURI($subject).$predicateType.$xml->getURI($object))."\">\n";
 									$rdf_reification .= "        <rdf:subject rdf:resource=\"".$xml->getURI($subject)."\" />\n";
 									$rdf_reification .= "        <rdf:predicate rdf:resource=\"".$predicateType."\" />\n";
 									$rdf_reification .= "        <rdf:object rdf:resource=\"".$xml->getURI($object)."\" />\n";
@@ -1700,7 +1828,7 @@ class ConverterIrv extends WebService
 				case "application/rdf+n3":
 					$rdf_document = "";
 					$rdf_document .= "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n";
-					$rdf_document .= "@prefix wsf: <http://purl.org/ontology/wsf#> .\n";
+					$rdf_document .= "@prefix iron: <http://purl.org/ontology/iron#> .\n";
 					
 					$rdf_document .= $this->pipeline_serialize();
 					
@@ -1737,8 +1865,7 @@ class ConverterIrv extends WebService
 					return $this->pipeline_getResultset();
 				break;
 				
-				case "application/irv+json":
-				case "application/bib+json":
+				case "application/iron+json":
 					return($this->pipeline_serialize());
 				break;
 			}	
@@ -1839,7 +1966,7 @@ class ConverterIrv extends WebService
 		
 			\n\n\n
 	*/	
-	private function irvParsingError()
+	private function irJSONParsingError()
 	{
 		return FALSE;
 	}	
@@ -1858,10 +1985,10 @@ class ConverterIrv extends WebService
 		{
 			switch($this->docmime)
 			{	
-				case "application/irv+json":
-				case "application/bib+json":
+				case "application/iron+json":
+					$this->parser = new irJSONParser($this->text);
 
-					$this->parser = new JsonParser($this->text, $this->docmime);
+//var_dump($this->parser);die;
 
 					if(count($this->parser->jsonErrors) > 0)
 					{
@@ -1873,19 +2000,32 @@ class ConverterIrv extends WebService
 
 						$this->conneg->setStatus(400);
 						$this->conneg->setStatusMsg("Bad Request");
-						$this->conneg->setStatusMsgExt("JSON parsing error(s): ".$errorMsg);						
+						$this->conneg->setStatusMsgExt($this->errorMessenger->_300->name);			
+						$this->conneg->setError($this->errorMessenger->_300->id, 
+															$this->errorMessenger->ws, 
+															$this->errorMessenger->_300->name, 
+															$this->errorMessenger->_300->description, 
+															$errorMsg,
+															$this->errorMessenger->_300->level);					
+												
 					}
-					elseif(count($this->parser->irvErrors) > 0)
+					elseif(count($this->parser->irJSONErrors) > 0)
 					{
 						$errorMsg = "";
-						foreach($this->parser->irvErrors as $key => $error)
+						foreach($this->parser->irJSONErrors as $key => $error)
 						{
 							$errorMsg .= "\n(".($key + 1).") $error \n";
 						}
 						
 						$this->conneg->setStatus(400);
 						$this->conneg->setStatusMsg("Bad Request");
-						$this->conneg->setStatusMsgExt("IRV validation error(s): ".$errorMsg);						
+						$this->conneg->setStatusMsgExt($this->errorMessenger->_301->name);			
+						$this->conneg->setError($this->errorMessenger->_301->id, 
+															$this->errorMessenger->ws, 
+															$this->errorMessenger->_301->name, 
+															$this->errorMessenger->_301->description, 
+															$errorMsg,
+															$this->errorMessenger->_301->level);					
 					}			
 				break;
 				

@@ -49,9 +49,63 @@ class DatasetRead extends WebService
 	/*! @brief Add meta information to the resultset */
 	private $addMeta = "false";
 
+	/*! @brief Namespaces/Prefixes binding */
+	private $namespaces = array(	"http://www.w3.org/2002/07/owl#" => "owl",
+												"http://www.w3.org/1999/02/22-rdf-syntax-ns#" => "rdf",
+												"http://www.w3.org/2000/01/rdf-schema#" => "rdfs",
+												"http://purl.org/ontology/wsf#" => "wsf");	
+
 
 	/*! @brief Supported serialization mime types by this Web service */
 	public static $supportedSerializations = array("application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
+		
+	/*! @brief Error messages of this web service */
+	private $errorMessenger = '{
+												"ws": "/ws/dataset/read/",
+												"_200": {
+													"id": "WS-DATASET-READ-200",
+													"level": "Warning",
+													"name": "No unique identifier specified for this dataset",
+													"description": "No URI defined for this new dataset"
+												},
+												"_300": {
+													"id": "WS-DATASET-READ-300",
+													"level": "Fatal",
+													"name": "Can\'t get the description of any dataset",
+													"description": "An error occured when we tried to get information about all datasets"
+												},
+												"_301": {
+													"id": "WS-DATASET-READ-301",
+													"level": "Fatal",
+													"name": "Can\'t get the description of the target dataset",
+													"description": "An error occured when we tried to get information about the target dataset"
+												},
+												"_302": {
+													"id": "WS-DATASET-READ-302",
+													"level": "Fatal",
+													"name": "Can\'t get meta-information about the dataset(s)",
+													"description": "An error occured when we tried to get meta-information about the dataset(s)"
+												},
+												"_303": {
+													"id": "WS-DATASET-READ-303",
+													"level": "Fatal",
+													"name": "Can\'t get information about the contributors",
+													"description": "An error occured when we tried to get information about the contributors of this dataset"
+												},
+												"_304": {
+													"id": "WS-DATASET-READ-304",
+													"level": "Warning",
+													"name": "This dataset doesn\'t exist in this WSF",
+													"description": "The target dataset doesn\'t exist in this web service framework"
+												},
+												"_305": {
+													"id": "WS-DATASET-READ-305",
+													"level": "Fatal",
+													"name": "Can\'t get meta-information about the dataset(s)",
+													"description": "An error occured when we tried to get meta-information about the dataset(s)"
+												}		
+											}';	
+		
 		
 	/*!	 @brief Constructor
 			 @details 	Initialize the Auth Web Service
@@ -73,7 +127,7 @@ class DatasetRead extends WebService
 	{
 		parent::__construct();		
 		
-		$this->db = new DB_Virtuoso(parent::$db_username, parent::$db_password, parent::$db_dsn, parent::$db_host);
+		$this->db = new DB_Virtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 		
 		$this->datasetUri = $uri;
 		$this->requester_ip = $requester_ip;
@@ -105,12 +159,14 @@ class DatasetRead extends WebService
 		}		
 
 
-		$this->uri = parent::$wsf_base_url."/wsf/ws/dataset/read/";	
+		$this->uri = $this->wsf_base_url."/wsf/ws/dataset/read/";	
 		$this->title = "Dataset Read Web Service";	
 		$this->crud_usage = new CrudUsage(FALSE, TRUE, FALSE, FALSE);
-		$this->endpoint = parent::$wsf_base_url."/ws/dataset/read/";			
+		$this->endpoint = $this->wsf_base_url."/ws/dataset/read/";			
 		
 		$this->dtdURL = "dataset/datasetRead.dtd";
+		
+		$this->errorMessenger = json_decode($this->errorMessenger);		
 	}
 
 	function __destruct() 
@@ -137,7 +193,7 @@ class DatasetRead extends WebService
 	*/			
 	protected function validateQuery()
 	{
-		$ws_av = new AuthValidator($this->requester_ip, parent::$wsf_graph."datasets/", $this->uri);
+		$ws_av = new AuthValidator($this->requester_ip, $this->wsf_graph."datasets/", $this->uri);
 		
 		$ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
 		
@@ -148,6 +204,14 @@ class DatasetRead extends WebService
 			$this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
 			$this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
 			$this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
+			$this->conneg->setError($ws_av->pipeline_getError()->id, 
+												$ws_av->pipeline_getError()->webservice, 
+												$ws_av->pipeline_getError()->name, 
+												$ws_av->pipeline_getError()->description, 
+												$ws_av->pipeline_getError()->debugInfo,
+												$ws_av->pipeline_getError()->level);
+
+			return;			
 		}
 	}
 	
@@ -171,6 +235,22 @@ class DatasetRead extends WebService
 		
 		return($uri);
 	}		
+	
+	/*!	 @brief Returns the error structure
+							
+			\n
+			
+			@return returns the error structure
+		
+			@author Frederick Giasson, Structured Dynamics LLC.
+		
+			\n\n\n
+	*/		
+	public function pipeline_getError()
+	{
+		return($this->conneg->error);
+	}	
+	
 	
 	/*!	@brief Create a resultset in a pipelined mode based on the processed information by the Web service.
 							
@@ -352,7 +432,7 @@ class DatasetRead extends WebService
 	public function injectDoctype($xmlDoc)
 	{
 		$posHeader = 	strpos($xmlDoc, '"?>') + 3;
-		$xmlDoc = substr($xmlDoc, 0, $posHeader)."\n<!DOCTYPE resultset PUBLIC \"-//Structured Dynamics LLC//Dataset Read DTD 0.1//EN\" \"".parent::$dtdBaseURL.$this->dtdURL."\">".substr($xmlDoc, $posHeader, strlen($xmlDoc) - $posHeader);	
+		$xmlDoc = substr($xmlDoc, 0, $posHeader)."\n<!DOCTYPE resultset PUBLIC \"-//Structured Dynamics LLC//Dataset Read DTD 0.1//EN\" \"".$this->dtdBaseURL.$this->dtdURL."\">".substr($xmlDoc, $posHeader, strlen($xmlDoc) - $posHeader);	
 		
 		return($xmlDoc);
 	}
@@ -391,6 +471,14 @@ class DatasetRead extends WebService
 				$this->conneg->setStatus(400);
 				$this->conneg->setStatusMsg("Bad Request");
 				$this->conneg->setStatusMsgExt("No URI specified for any dataset");
+				$this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
+				$this->conneg->setError($this->errorMessenger->_200->id, 
+													$this->errorMessenger->ws, 
+													$this->errorMessenger->_200->name, 
+													$this->errorMessenger->_200->description, 
+													"",
+													$this->errorMessenger->_200->level);					
+
 				return;
 			}
 		}
@@ -480,7 +568,7 @@ class DatasetRead extends WebService
 	*/		
 	private function getNamespace($uri)
 	{
-		$pos = strpos($uri, "#");
+		$pos = strrpos($uri, "#");
 		
 		if($pos !== FALSE)
 		{
@@ -500,6 +588,18 @@ class DatasetRead extends WebService
 				
 				if($pos !== FALSE)
 				{
+					$nsUri = explode(":", $uri, 2);
+					
+					foreach($this->namespaces as $uri2 => $prefix2)
+					{
+						$uri2 = urldecode($uri2);
+						
+						if($prefix2 == $nsUri[0])
+						{
+							return(array($uri2, $nsUri[1]));
+						}
+					}
+					
 					return explode(":", $uri, 2);
 				}
 			}
@@ -507,7 +607,6 @@ class DatasetRead extends WebService
 		
 		return(FALSE);
 	}
-
 	/*!	 @brief Serialize the web service answer.
 							
 			\n
@@ -674,14 +773,10 @@ class DatasetRead extends WebService
 				$xml->loadXML($this->pipeline_getResultset());
 
 
-				/*! @TODO Implementing the "nsX" generation for the RDF output of dataset read. This is needed otherwise
+				/*! @todo Implementing the "nsX" generation for the RDF output of dataset read. This is needed otherwise
 				 * 				 the generated document wont be valid if meta data values are added.
 				 */
 /*
-				$namespaces = array(	"http://www.w3.org/2002/07/owl#" => "owl",
-												"http://www.w3.org/1999/02/22-rdf-syntax-ns#" => "rdf",
-												"http://www.w3.org/2000/01/rdf-schema#" => "rdfs",
-												"http://purl.org/ontology/wsf#" => "wsf");				
 				$nsId = 0;
 */
 
@@ -909,11 +1004,11 @@ class DatasetRead extends WebService
 			if($this->datasetUri == "all")
 			{
 				$query = "	select distinct ?dataset ?title ?description ?creator ?created ?modified ?contributor ?meta
-									from named <".parent::$wsf_graph.">
-									from named <".parent::$wsf_graph."datasets/>
+									from named <".$this->wsf_graph.">
+									from named <".$this->wsf_graph."datasets/>
 									where
 									{
-										graph <".parent::$wsf_graph.">
+										graph <".$this->wsf_graph.">
 										{
 											?access <http://purl.org/ontology/wsf#registeredIP> ?ip ;
           									<http://purl.org/ontology/wsf#read> \"True\" ;
@@ -921,7 +1016,7 @@ class DatasetRead extends WebService
 											filter( str(?ip) = \"$this->registered_ip\" or str(?ip) = \"0.0.0.0\") .
 										}
 										
-										graph <".parent::$wsf_graph."datasets/>
+										graph <".$this->wsf_graph."datasets/>
 										{
 											?dataset a <http://rdfs.org/ns/void#Dataset> ;
 											<http://purl.org/dc/terms/created> ?created.
@@ -941,7 +1036,14 @@ class DatasetRead extends WebService
 				{
 					$this->conneg->setStatus(500);
 					$this->conneg->setStatusMsg("Internal Error");
-					$this->conneg->setStatusMsgExt("Error #dataset-read-100");	
+					$this->conneg->setStatusMsgExt($this->errorMessenger->_300->name);
+					$this->conneg->setError($this->errorMessenger->_300->id, 
+														$this->errorMessenger->ws, 
+														$this->errorMessenger->_300->name, 
+														$this->errorMessenger->_300->description, 
+														odbc_errormsg(),
+														$this->errorMessenger->_300->level);					
+					
 					return;
 				}	
 				else
@@ -982,7 +1084,7 @@ class DatasetRead extends WebService
 					if($meta != "" && $this->addMeta == "true")
 					{
 						$query = "select ?p ?o (str(DATATYPE(?o))) as ?otype
-										from <".parent::$wsf_graph."datasets/>
+										from <".$this->wsf_graph."datasets/>
 										where
 										{
 											<$meta> ?p ?o.
@@ -996,7 +1098,14 @@ class DatasetRead extends WebService
 						{
 							$this->conneg->setStatus(500);
 							$this->conneg->setStatusMsg("Internal Error");
-							$this->conneg->setStatusMsgExt("Error #dataset-read-105");	
+							$this->conneg->setStatusMsgExt($this->errorMessenger->_305->name);
+							$this->conneg->setError($this->errorMessenger->_305->id, 
+																$this->errorMessenger->ws, 
+																$this->errorMessenger->_305->name, 
+																$this->errorMessenger->_305->description, 
+																odbc_errormsg(),
+																$this->errorMessenger->_305->level);					
+
 							return;
 						}	
 						else
@@ -1034,16 +1143,16 @@ class DatasetRead extends WebService
 /*			
 				// Get all datasets this user has access to
 				$query = "select ?dataset 
-								from named <".parent::$wsf_graph."datasets/>
-								from named <".parent::$wsf_graph.">
+								from named <".$this->wsf_graph."datasets/>
+								from named <".$this->wsf_graph.">
 								where
 								{
-									graph <".parent::$wsf_graph."datasets/>
+									graph <".$this->wsf_graph."datasets/>
 									{
 										?dataset a <http://rdfs.org/ns/void#Dataset> .
 									}
 								
-									graph <".parent::$wsf_graph.">
+									graph <".$this->wsf_graph.">
 									{
 										?access <http://purl.org/ontology/wsf#registeredIP> \"$this->registered_ip\" ;
 													  <http://purl.org/ontology/wsf#read> \"True\" ;
@@ -1078,10 +1187,10 @@ class DatasetRead extends WebService
 				$dataset = $this->datasetUri;
 
 				$query = "select ?title ?description ?creator ?created ?modified ?meta
-								from named <".parent::$wsf_graph."datasets/>
+								from named <".$this->wsf_graph."datasets/>
 								where
 								{
-									graph <".parent::$wsf_graph."datasets/>
+									graph <".$this->wsf_graph."datasets/>
 									{
 										<$dataset> a <http://rdfs.org/ns/void#Dataset> ;
 										<http://purl.org/dc/terms/created> ?created.
@@ -1100,7 +1209,14 @@ class DatasetRead extends WebService
 				{
 					$this->conneg->setStatus(500);
 					$this->conneg->setStatusMsg("Internal Error");
-					$this->conneg->setStatusMsgExt("Error #dataset-read-101");	
+					$this->conneg->setStatusMsgExt($this->errorMessenger->_301->name);
+					$this->conneg->setError($this->errorMessenger->_301->id, 
+														$this->errorMessenger->ws, 
+														$this->errorMessenger->_301->name, 
+														$this->errorMessenger->_301->description, 
+														odbc_errormsg(),
+														$this->errorMessenger->_301->level);					
+	
 					return;
 				}		
 				else
@@ -1122,7 +1238,7 @@ class DatasetRead extends WebService
 						if($meta != "" && $this->addMeta == "true")
 						{
 							$query = "select ?p ?o (str(DATATYPE(?o))) as ?otype
-											from <".parent::$wsf_graph."datasets/>
+											from <".$this->wsf_graph."datasets/>
 											where
 											{
 												<$meta> ?p ?o.
@@ -1136,7 +1252,14 @@ class DatasetRead extends WebService
 							{
 								$this->conneg->setStatus(500);
 								$this->conneg->setStatusMsg("Internal Error");
-								$this->conneg->setStatusMsgExt("Error #dataset-read-104");	
+								$this->conneg->setStatusMsgExt($this->errorMessenger->_302->name);
+								$this->conneg->setError($this->errorMessenger->_302->id, 
+																	$this->errorMessenger->ws, 
+																	$this->errorMessenger->_302->name, 
+																	$this->errorMessenger->_302->description, 
+																	odbc_errormsg(),
+																	$this->errorMessenger->_302->level);					
+	
 								return;
 							}	
 							else
@@ -1165,7 +1288,7 @@ class DatasetRead extends WebService
 						
 						// Get all contributors (users that have CUD perissions over the dataset)				
 						$query = "select ?contributor 
-										from <".parent::$wsf_graph."datasets/>
+										from <".$this->wsf_graph."datasets/>
 										where
 										{
 											<$dataset> a <http://rdfs.org/ns/void#Dataset> ;
@@ -1181,7 +1304,14 @@ class DatasetRead extends WebService
 						{
 							$this->conneg->setStatus(500);
 							$this->conneg->setStatusMsg("Internal Error");
-							$this->conneg->setStatusMsgExt("Error #dataset-read-103");	
+							$this->conneg->setStatusMsgExt($this->errorMessenger->_303->name);
+							$this->conneg->setError($this->errorMessenger->_303->id, 
+																$this->errorMessenger->ws, 
+																$this->errorMessenger->_303->name, 
+																$this->errorMessenger->_303->description, 
+																odbc_errormsg(),
+																$this->errorMessenger->_303->level);					
+	
 							return;
 						}	
 						elseif(odbc_fetch_row($resultset))
@@ -1200,6 +1330,13 @@ class DatasetRead extends WebService
 				$this->conneg->setStatus(400);
 				$this->conneg->setStatusMsg("Bad Request");
 				$this->conneg->setStatusMsgExt("This dataset doesn't exist in this WSF");	
+				$this->conneg->setStatusMsgExt($this->errorMessenger->_304->name);
+				$this->conneg->setError($this->errorMessenger->_304->id, 
+													$this->errorMessenger->ws, 
+													$this->errorMessenger->_304->name, 
+													$this->errorMessenger->_304->description, 
+													"",
+													$this->errorMessenger->_304->level);					
 			}
 		}
 	}

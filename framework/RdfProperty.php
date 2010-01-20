@@ -1,5 +1,7 @@
 <?php
 
+include_once("Namespaces.php");
+
 /*! @ingroup WsFramework Framework for the Web Services */
 //@{ 
 
@@ -65,8 +67,8 @@ class RdfProperty
 	function __construct($propertyURI, $ontologiesGraph, $inferredOntologiesGraph, &$db)
 	{
 		$this->uri = $propertyURI;
-		$this->$ontologiesGraph = $ontologiesGraph;
-	
+		$this->ontologiesGraph = $ontologiesGraph;
+
 		$query = $db->build_sparql_query("select ?g ?p ?o from named <$ontologiesGraph> from named <$inferredOntologiesGraph> where {graph ?g{<$propertyURI> ?p ?o.}}", array ('g', 'p', 'o'), FALSE);
 	
 		$resultset = $db->query($query);
@@ -105,14 +107,24 @@ class RdfProperty
 	*/			
 	public function getLabel()
 	{
-		if(isset($this->triples[$this->ontologiesGraph]["http://www.w3.org/2008/05/skos#prefLabel"]))
+		if(isset($this->triples[$this->ontologiesGraph][Namespaces::$iron."prefLabel"]))
 		{
-			return $this->triples[$this->ontologiesGraph]["http://www.w3.org/2008/05/skos#prefLabel"][0];
+			return $this->triples[$this->ontologiesGraph][Namespaces::$iron."prefLabel"][0];
 		}
 
-		if(isset($this->triples[$this->ontologiesGraph]["http://www.w3.org/2000/01/rdf-schema#label"]))
+		if(isset($this->triples[$this->ontologiesGraph][Namespaces::$skos_2008."prefLabel"]))
 		{
-			return $this->triples[$this->ontologiesGraph]["http://www.w3.org/2000/01/rdf-schema#label"][0];
+			return $this->triples[$this->ontologiesGraph][Namespaces::$skos_2008."prefLabel"][0];
+		}
+		
+		if(isset($this->triples[$this->ontologiesGraph][Namespaces::$skos_2004."prefLabel"]))
+		{
+			return $this->triples[$this->ontologiesGraph][Namespaces::$skos_2004."prefLabel"][0];
+		}
+
+		if(isset($this->triples[$this->ontologiesGraph][Namespaces::$rdfs."label"]))
+		{
+			return $this->triples[$this->ontologiesGraph][Namespaces::$rdfs."label"][0];
 		}
 		
 		// Find the base URI of the ontology
@@ -145,21 +157,34 @@ class RdfProperty
 	*/		
 	public function getDescription()
 	{
-		global $ontologiesGraph;	
-	
-		if(isset($this->triples[$this->ontologiesGraph]["http://www.w3.org/2008/05/skos#definition"]))
+		if(isset($this->triples[$this->ontologiesGraph][Namespaces::$iron."description"]))
 		{
-			return $this->triples[$this->ontologiesGraph]["http://www.w3.org/2008/05/skos#definition"][0];
+			return $this->triples[$this->ontologiesGraph][Namespaces::$iron."description"][0];
 		}
 		
-		if(isset($this->triples[$this->ontologiesGraph]["http://www.w3.org/2000/01/rdf-schema#comment"]))
+		if(isset($this->triples[$this->ontologiesGraph][Namespaces::$skos_2008."definition"]))
 		{
-			return $this->triples[$this->ontologiesGraph]["http://www.w3.org/2000/01/rdf-schema#comment"][0];
+			return $this->triples[$this->ontologiesGraph][Namespaces::$skos_2008."definition"][0];
+		}
+		
+		if(isset($this->triples[$this->ontologiesGraph][Namespaces::$skos_2004."definition"]))
+		{
+			return $this->triples[$this->ontologiesGraph][Namespaces::$skos_2004."definition"][0];
+		}
+		
+		if(isset($this->triples[$this->ontologiesGraph][Namespaces::$rdfs."comment"]))
+		{
+			return $this->triples[$this->ontologiesGraph][Namespaces::$rdfs."comment"][0];
 		}
 
-		if(isset($this->triples[$this->ontologiesGraph]["http://purl.org/dc/terms/description"]))
+		if(isset($this->triples[$this->ontologiesGraph][Namespaces::$dcterms."description"]))
 		{
-			return $this->triples[$this->ontologiesGraph]["http://purl.org/dc/terms/description"][0];
+			return $this->triples[$this->ontologiesGraph][Namespaces::$dcterms."description"][0];
+		}
+
+		if(isset($this->triples[$this->ontologiesGraph][Namespaces::$dc."description"]))
+		{
+			return $this->triples[$this->ontologiesGraph][Namespaces::$dc."description"][0];
 		}
 		
 		return "No description available";

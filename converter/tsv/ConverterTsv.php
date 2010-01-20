@@ -68,6 +68,36 @@ class ConverterTsv extends WebService
 	/*! @brief Supported serialization mime types by this Web service */
 	public static $supportedSerializations = array("application/rdf+xml", "application/rdf+n3", "application/*", "text/tsv", "text/csv", "text/xml", "text/*", "*/*");
 		
+	/*! @brief Error messages of this web service */
+	private $errorMessenger = '{
+												"ws": "/ws/converter/irv/",
+												"_200": {
+													"id": "WS-CONVERTER-IRV-200",
+													"level": "Warning",
+													"name": "No data to convert",
+													"description": "No data to convert"
+												},
+												"_201": {
+													"id": "WS-CONVERTER-IRV-201",
+													"level": "Warning",
+													"name": "Document mime not supported (supported mimes: text/tsv, text/csv and text/xml)",
+													"description": "Document mime not supported (supported mimes: text/tsv, text/csv and text/xml)"
+												},
+												"_300": {
+													"id": "WS-CONVERTER-IRV-300",
+													"level": "Warning",
+													"name": "Parsing Errors",
+													"description": "Parsing Errors"
+												},
+												"_301": {
+													"id": "WS-CONVERTER-IRV-301",
+													"level": "Warning",
+													"name": "No TSV data converted",
+													"description": "No TSV data converted"
+												}	
+											}';	
+				
+		
 	/*!	 @brief Constructor
 			 @details 	Initialize the TSV Converter Web Service
 							
@@ -124,12 +154,15 @@ class ConverterTsv extends WebService
 		
 		$this->tsvResources = array();
 		
-		$this->uri = parent::$wsf_base_url."/wsf/ws/converter/tsv/";	
+		$this->uri = $this->wsf_base_url."/wsf/ws/converter/tsv/";	
 		$this->title = "TSV/CSV Converter Web Service";	
 		$this->crud_usage = new CrudUsage(FALSE, TRUE, FALSE, FALSE);
-		$this->endpoint = parent::$wsf_base_url."/ws/converter/tsv/";			
+		$this->endpoint = $this->wsf_base_url."/ws/converter/tsv/";			
 		
-		$this->dtdURL = "converter/bitsvbtex.dtd";	}
+		$this->dtdURL = "converter/bitsvbtex.dtd";
+		
+		$this->errorMessenger = json_decode($this->errorMessenger);		
+	}
 
 	function __destruct() 
 	{
@@ -152,6 +185,21 @@ class ConverterTsv extends WebService
 			\n\n\n
 	*/		
 	protected function validateQuery(){ return; }	
+
+	/*!	 @brief Returns the error structure
+							
+			\n
+			
+			@return returns the error structure
+		
+			@author Frederick Giasson, Structured Dynamics LLC.
+		
+			\n\n\n
+	*/		
+	public function pipeline_getError()
+	{
+		return($this->conneg->error);
+	}	
 
 	/*!	 @brief Generate the converted TSV items using the internal XML representation
 							
@@ -263,7 +311,7 @@ class ConverterTsv extends WebService
 	public function injectDoctype($xmlDoc)
 	{
 		$posHeader = 	strpos($xmlDoc, '"?>') + 3;
-		$xmlDoc = substr($xmlDoc, 0, $posHeader)."\n<!DOCTYPE resultset PUBLIC \"-//Bibliographic Knowledge Network//Converter TSV DTD 0.1//EN\" \"".parent::$dtdBaseURL.$this->dtdURL."\">".substr($xmlDoc, $posHeader, strlen($xmlDoc) - $posHeader);	
+		$xmlDoc = substr($xmlDoc, 0, $posHeader)."\n<!DOCTYPE resultset PUBLIC \"-//Bibliographic Knowledge Network//Converter TSV DTD 0.1//EN\" \"".$this->dtdBaseURL.$this->dtdURL."\">".substr($xmlDoc, $posHeader, strlen($xmlDoc) - $posHeader);	
 		
 		return($xmlDoc);
 	}
@@ -296,14 +344,27 @@ class ConverterTsv extends WebService
 		{
 			$this->conneg->setStatus(400);
 			$this->conneg->setStatusMsg("Bad Request");
-			$this->conneg->setStatusMsgExt("No data to convert");
+			$this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
+			$this->conneg->setError($this->errorMessenger->_200->id, 
+												$this->errorMessenger->ws, 
+												$this->errorMessenger->_200->name, 
+												$this->errorMessenger->_200->description, 
+												"",
+												$this->errorMessenger->_200->level);					
+			
 		}
 		
 		if($this->docmime != "text/csv" && $this->docmime != "text/tsv" && $this->docmime != "text/xml")
 		{
 			$this->conneg->setStatus(400);
 			$this->conneg->setStatusMsg("Bad Request");
-			$this->conneg->setStatusMsgExt("Document mime not supported (supported mimes: text/tsv, text/csv and text/xml)");
+			$this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
+			$this->conneg->setError($this->errorMessenger->_201->id, 
+												$this->errorMessenger->ws, 
+												$this->errorMessenger->_201->name, 
+												$this->errorMessenger->_201->description, 
+												"",
+												$this->errorMessenger->_201->level);					
 		}
 		
 	}
@@ -605,9 +666,15 @@ class ConverterTsv extends WebService
 		{
 			$this->conneg->setStatus(400);
 			$this->conneg->setStatusMsg("Bad Request");
-			$this->conneg->setStatusMsgExt("Parsing Errors");
-			
-			return($this->errorMessages);
+			$this->conneg->setStatusMsgExt($this->errorMessenger->_300->name);
+			$this->conneg->setError($this->errorMessenger->_300->id, 
+												$this->errorMessenger->ws, 
+												$this->errorMessenger->_300->name, 
+												$this->errorMessenger->_300->description, 
+												$this->errorMessages,
+												$this->errorMessenger->_300->level);		
+															
+			return;
 		}
 		else
 		{
@@ -825,7 +892,7 @@ class ConverterTsv extends WebService
 		// Handle the BKN-TEMPS classes and properties
 		if(count($bknTemps) > 0)
 		{
-			$this->db = new DB_Virtuoso(parent::$db_username, parent::$db_password, parent::$db_dsn, parent::$db_host);
+			$this->db = new DB_Virtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 
 			$bknTempsN3 = "@prefix bkn-temp: <http://purl.org/ontology/bkn/temp#> .\n";
 			
@@ -874,7 +941,13 @@ class ConverterTsv extends WebService
 					{
 						$this->conneg->setStatus(400);
 						$this->conneg->setStatusMsg("Bad Request");
-						$this->conneg->setStatusMsgExt("No TSV data converted");
+						$this->conneg->setStatusMsgExt($this->errorMessenger->_301->name);
+						$this->conneg->setError($this->errorMessenger->_301->id, 
+															$this->errorMessenger->ws, 
+															$this->errorMessenger->_301->name, 
+															$this->errorMessenger->_301->description, 
+															"",
+															$this->errorMessenger->_301->level);								
 					}			
 				break;
 				

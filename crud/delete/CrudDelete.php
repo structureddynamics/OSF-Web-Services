@@ -50,6 +50,42 @@ class CrudDelete extends WebService
 	/*! @brief Requester's IP used for request validation */
 	private $requester_ip = "";
 
+	/*! @brief Error messages of this web service */
+	private $errorMessenger = '{
+												"ws": "/ws/crud/delete/",
+												"_200": {
+													"id": "WS-CRUD-DELETE-200",
+													"level": "Warning",
+													"name": "No resource URI to delete specified",
+													"description": "No resource URI has been defined for this query"
+												},
+												"_201": {
+													"id": "WS-CRUD-DELETE-201",
+													"level": "Warning",
+													"name": "No dataset specified",
+													"description": "No dataset URI defined for this query"
+												},
+												"_300": {
+													"id": "WS-CRUD-DELETE-300",
+													"level": "Fatal",
+													"name": "Can\'t delete the record in the triple store",
+													"description": "An error occured when we tried to delete that record in the triple store"
+												},
+												"_301": {
+													"id": "WS-CRUD-DELETE-301",
+													"level": "Fatal",
+													"name": "Can\'t delete the record in Solr",
+													"description": "An error occured when we tried to delete that record in Solr"
+												},
+												"_302": {
+													"id": "WS-CRUD-DELETE-302",
+													"level": "Fatal",
+													"name": "Can\'t commit changes to the Solr index",
+													"description": "An error occured when we tried to commit changes to the Solr index"
+												}	
+											}';	
+
+
 	/*!	 @brief Constructor
 			 @details 	Initialize the Crud Delete
 			
@@ -70,7 +106,7 @@ class CrudDelete extends WebService
 	{
 		parent::__construct();		
 		
-		$this->db = new DB_Virtuoso(parent::$db_username, parent::$db_password, parent::$db_dsn, parent::$db_host);
+		$this->db = new DB_Virtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 		
 		$this->registered_ip = $registered_ip;
 		$this->requester_ip = $requester_ip;
@@ -98,12 +134,14 @@ class CrudDelete extends WebService
 			}
 		}					
 		
-		$this->uri = parent::$wsf_base_url."/wsf/ws/crud/delete/";	
+		$this->uri = $this->wsf_base_url."/wsf/ws/crud/delete/";	
 		$this->title = "Crud Delete Web Service";	
 		$this->crud_usage = new CrudUsage(FALSE, FALSE, FALSE, TRUE);
-		$this->endpoint = parent::$wsf_base_url."/ws/crud/delete/";			
+		$this->endpoint = $this->wsf_base_url."/ws/crud/delete/";			
 		
 		$this->dtdURL = "auth/CrudDelete.dtd";
+		
+		$this->errorMessenger = json_decode($this->errorMessenger);		
 	}
 
 	function __destruct() 
@@ -140,7 +178,13 @@ class CrudDelete extends WebService
 			$this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
 			$this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
 			$this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-			
+			$this->conneg->setError($ws_av->pipeline_getError()->id, 
+												$ws_av->pipeline_getError()->webservice, 
+												$ws_av->pipeline_getError()->name, 
+												$ws_av->pipeline_getError()->description, 
+												$ws_av->pipeline_getError()->debugInfo,
+												$ws_av->pipeline_getError()->level);
+		
 			return;
 		}
 		
@@ -158,10 +202,31 @@ class CrudDelete extends WebService
 			$this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
 			$this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
 			$this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-			
+			$this->conneg->setError($ws_av->pipeline_getError()->id, 
+												$ws_av->pipeline_getError()->webservice, 
+												$ws_av->pipeline_getError()->name, 
+												$ws_av->pipeline_getError()->description, 
+												$ws_av->pipeline_getError()->debugInfo,
+												$ws_av->pipeline_getError()->level);			
 			return;
 		}
 	}
+	
+	/*!	 @brief Returns the error structure
+							
+			\n
+			
+			@return returns the error structure
+		
+			@author Frederick Giasson, Structured Dynamics LLC.
+		
+			\n\n\n
+	*/		
+	public function pipeline_getError()
+	{
+		return($this->conneg->error);
+	}	
+	
 	
 	/*!	@brief Create a resultset in a pipelined mode based on the processed information by the Web service.
 							
@@ -190,7 +255,7 @@ class CrudDelete extends WebService
 	public function injectDoctype($xmlDoc)
 	{
 		$posHeader = 	strpos($xmlDoc, '"?>') + 3;
-		$xmlDoc = substr($xmlDoc, 0, $posHeader)."\n<!DOCTYPE resultset PUBLIC \"-//Structured Dynamics LLC//Crud Delete DTD 0.1//EN\" \"".parent::$dtdBaseURL.$this->dtdURL."\">".substr($xmlDoc, $posHeader, strlen($xmlDoc) - $posHeader);	
+		$xmlDoc = substr($xmlDoc, 0, $posHeader)."\n<!DOCTYPE resultset PUBLIC \"-//Structured Dynamics LLC//Crud Delete DTD 0.1//EN\" \"".$this->dtdBaseURL.$this->dtdURL."\">".substr($xmlDoc, $posHeader, strlen($xmlDoc) - $posHeader);	
 		
 		return($xmlDoc);
 	}
@@ -223,7 +288,14 @@ class CrudDelete extends WebService
 		{
 			$this->conneg->setStatus(400);
 			$this->conneg->setStatusMsg("Bad Request");
-			$this->conneg->setStatusMsgExt("No resource URI to delete specified");
+			$this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
+			$this->conneg->setError($this->errorMessenger->_200->id, 
+												$this->errorMessenger->ws, 
+												$this->errorMessenger->_200->name, 
+												$this->errorMessenger->_200->description, 
+												"",
+												$this->errorMessenger->_200->level);					
+
 			return;
 		}
 
@@ -231,13 +303,20 @@ class CrudDelete extends WebService
 		{
 			$this->conneg->setStatus(400);
 			$this->conneg->setStatusMsg("Bad Request");
-			$this->conneg->setStatusMsgExt("No dataset specified");
+			$this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
+			$this->conneg->setError($this->errorMessenger->_201->id, 
+												$this->errorMessenger->ws, 
+												$this->errorMessenger->_201->name, 
+												$this->errorMessenger->_201->description, 
+												"",
+												$this->errorMessenger->_201->level);					
+			
 			return;
 		}
 		
 		// Check if the dataset is created
 		
-		$ws_dr = new DatasetRead($this->dataset, "false", "self", parent::$wsf_local_ip);	// Here the one that makes the request is the WSF (internal request).
+		$ws_dr = new DatasetRead($this->dataset, "false", "self", $this->wsf_local_ip);	// Here the one that makes the request is the WSF (internal request).
 		
 		$ws_dr->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
 		
@@ -248,6 +327,13 @@ class CrudDelete extends WebService
 			$this->conneg->setStatus($ws_dr->pipeline_getResponseHeaderStatus());
 			$this->conneg->setStatusMsg($ws_dr->pipeline_getResponseHeaderStatusMsg());
 			$this->conneg->setStatusMsgExt($ws_dr->pipeline_getResponseHeaderStatusMsgExt());
+			$this->conneg->setError($ws_av->pipeline_getError()->id, 
+												$ws_av->pipeline_getError()->webservice, 
+												$ws_av->pipeline_getError()->name, 
+												$ws_av->pipeline_getError()->description, 
+												$ws_av->pipeline_getError()->debugInfo,
+												$ws_av->pipeline_getError()->level);	
+															
 			return;
 		}
 	}
@@ -419,28 +505,49 @@ class CrudDelete extends WebService
 				{
 					$this->conneg->setStatus(500);
 					$this->conneg->setStatusMsg("Internal Error");
-					$this->conneg->setStatusMsgExt("Error #crud-delete-100");	
+					$this->conneg->setStatusMsgExt($this->errorMessenger->_300->name);
+					$this->conneg->setError($this->errorMessenger->_300->id, 
+														$this->errorMessenger->ws, 
+														$this->errorMessenger->_300->name, 
+														$this->errorMessenger->_300->description, 
+														odbc_errormsg(),
+														$this->errorMessenger->_300->level);					
+
 					return;
 				}		
 				
 				// Delete the Solr document in the Solr index
-				$solr = new Solr(parent::$wsf_solr_core);
+				$solr = new Solr($this->wsf_solr_core);
 				
 				if(!$solr->deleteInstanceRecord($this->resourceUri, $this->dataset))
 				{
 					$this->conneg->setStatus(500);
 					$this->conneg->setStatusMsg("Internal Error");
-					$this->conneg->setStatusMsgExt("Error #crud-delete-101");	
+					$this->conneg->setStatusMsgExt($this->errorMessenger->_301->name);
+					$this->conneg->setError($this->errorMessenger->_301->id, 
+														$this->errorMessenger->ws, 
+														$this->errorMessenger->_301->name, 
+														$this->errorMessenger->_301->description, 
+														odbc_errormsg(),
+														$this->errorMessenger->_301->level);					
+					
 					return;
 				}
 				
-				if(parent::$solr_auto_commit === FALSE)
+				if($this->solr_auto_commit === FALSE)
 				{
 					if(!$solr->commit())
 					{
 						$this->conneg->setStatus(500);
 						$this->conneg->setStatusMsg("Internal Error");
-						$this->conneg->setStatusMsgExt("Error #crud-create-105");
+						$this->conneg->setStatusMsgExt($this->errorMessenger->_302->name);
+						$this->conneg->setError($this->errorMessenger->_302->id, 
+															$this->errorMessenger->ws, 
+															$this->errorMessenger->_302->name, 
+															$this->errorMessenger->_302->description, 
+															odbc_errormsg(),
+															$this->errorMessenger->_302->level);
+																				
 						return;					
 					}
 				}

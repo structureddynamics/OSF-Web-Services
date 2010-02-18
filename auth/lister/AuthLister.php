@@ -325,6 +325,11 @@ class AuthLister extends WebService
 					$object = $xml->createObject("void:Dataset", $access[1]);
 					$pred->appendChild($object);
 					$subject->appendChild($pred);
+					
+					$pred = $xml->createPredicate("wsf:registeredIP");
+					$object = $xml->createObjectContent($access[6]);
+					$pred->appendChild($object);
+					$subject->appendChild($pred);					
 				}
 				else
 				{
@@ -354,12 +359,12 @@ class AuthLister extends WebService
 				$pred->appendChild($object);
 				$subject->appendChild($pred);
 
-				$nbWS = count($access) - 6;
+				$nbWS = count($access) - 7;
 				
 				for($i = 0; $i < $nbWS; $i++)
 				{
 					$pred = $xml->createPredicate("wsf:webServiceAccess");
-					$object = $xml->createObject("wsf:WebService", $access[(6 + $i)]);
+					$object = $xml->createObject("wsf:WebService", $access[(7 + $i)]);
 					$pred->appendChild($object);
 					$subject->appendChild($pred);
 				}			
@@ -564,7 +569,7 @@ class AuthLister extends WebService
 							
 							if($nbPredicates == 1)
 							{
-								$json_part .= "        \"predicates\": [ \n";
+								$json_part .= "        \"predicate\": [ \n";
 							}
 							
 							$objectType = $xml->getType($object);						
@@ -861,12 +866,15 @@ class AuthLister extends WebService
 				
     			$json_document .="  \"prefixes\": [ \n";
 				$json_document .="    {\n";
-				$json_document .="      \"rdf\": \"http:\/\/www.w3.org\/1999\/02\/22-rdf-syntax-ns#\"\n"; 
+				$json_document .="      \"rdf\": \"http://www.w3.org/1999/02/22-rdf-syntax-ns#\",\n"; 
+				$json_document .="      \"owl\": \"http://www.w3.org/2002/07/owl#\",\n"; 
+				$json_document .="      \"rdfs\": \"http://www.w3.org/2000/01/rdf-schema#\",\n"; 
+				$json_document .="      \"wsf\": \"http://purl.org/ontology/wsf#\"\n"; 
 				$json_document .="    } \n";
 				$json_document .="  ],\n";		
 				
 				$json_document .= "  \"resultset\": {\n";
-				$json_document .= "    \"subjects\": [\n";
+				$json_document .= "    \"subject\": [\n";
 				$json_document .= $this->pipeline_serialize();
 				$json_document .= "    ]\n";
 				$json_document .= "  }\n";
@@ -1011,7 +1019,7 @@ class AuthLister extends WebService
 				{
 					if(strtolower($this->mode) == "access_user")
 					{
-						$query = "	select ?access ?datasetAccess ?create ?read ?update ?delete  
+						$query = "	select ?access ?datasetAccess ?create ?read ?update ?delete ?registeredIP
 										from <".$this->wsf_graph.">
 										where
 										{
@@ -1022,7 +1030,8 @@ class AuthLister extends WebService
 															<http://purl.org/ontology/wsf#read> ?read ;
 															<http://purl.org/ontology/wsf#update> ?update ;
 															<http://purl.org/ontology/wsf#delete> ?delete ;
-															<http://purl.org/ontology/wsf#datasetAccess> ?datasetAccess .
+															<http://purl.org/ontology/wsf#datasetAccess> ?datasetAccess ;
+															<http://purl.org/ontology/wsf#registeredIP> ?registeredIP .
 											}
 											union
 											{
@@ -1032,7 +1041,9 @@ class AuthLister extends WebService
 															<http://purl.org/ontology/wsf#read> ?read ;
 															<http://purl.org/ontology/wsf#update> ?update ;
 															<http://purl.org/ontology/wsf#delete> ?delete ;
-															<http://purl.org/ontology/wsf#datasetAccess> ?datasetAccess .											
+															<http://purl.org/ontology/wsf#datasetAccess> ?datasetAccess ;											
+															<http://purl.org/ontology/wsf#registeredIP> ?registeredIP .
+															
 												filter( str(?create) = \"True\" or str(?read) = \"True\" or str(?update) = \"True\" or str(?delete) = \"True\").
 											}
 										}";
@@ -1085,8 +1096,14 @@ class AuthLister extends WebService
 					}					
 					
 					while(odbc_fetch_row($resultset))
-					{ 
-						array_push($this->accesses, array(odbc_result($resultset, 1), odbc_result($resultset, 2), odbc_result($resultset, 3), odbc_result($resultset, 4), odbc_result($resultset, 5), odbc_result($resultset, 6)));
+					{
+						$lastElement = "";
+						if(strtolower($this->mode) == "access_user")	
+						{
+							$lastElement = odbc_result($resultset, 7); 
+						}
+						
+						array_push($this->accesses, array(odbc_result($resultset, 1), odbc_result($resultset, 2), odbc_result($resultset, 3), odbc_result($resultset, 4), odbc_result($resultset, 5), odbc_result($resultset, 6), $lastElement));
 					}		
 					
 					foreach($this->accesses as $key => $access)

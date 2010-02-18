@@ -72,6 +72,13 @@ if(isset($_POST['registered_ip']))
     $registered_ip = $_POST['registered_ip'];
 }
 
+$include_dataset_description = "false";
+
+if(isset($_POST['include_dataset_description'])) 
+{
+    $include_dataset_description = strtolower($_POST['include_dataset_description']);
+}
+
 
 $mtime = microtime(); 
 $mtime = explode(' ', $mtime); 
@@ -103,7 +110,7 @@ elseif(isset($_SERVER['PHP_SELF']))
 	$parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_irv = new ConverterIrJSON($document, $docmime, $registered_ip, $requester_ip);
+$ws_irv = new ConverterIrJSON($document, $docmime, $include_dataset_description, $registered_ip, $requester_ip);
 
 $ws_irv->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
 

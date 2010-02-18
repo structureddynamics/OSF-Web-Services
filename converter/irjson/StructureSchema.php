@@ -25,24 +25,66 @@
 
 class StructureSchema
 {
-	public $version;
-	public $propertyX = array();
-	public $typeX = array();
+    /*! @brief Version of the linkage schema */                             
+    public $version;
+    
+    /*! @brief List of atributes linked by the schema */                            
+    public $propertyX = array();
+    
+    /*! @brief List of types linked by the schema */                                
+    public $typeX = array();
 	
 	function __construct(){}
 	
 	function __destruct(){}
 	
+    /*!      @brief Set the value of the version
+                                                    
+                    \n
+                    
+                    @param[in] $version Version of the linkage schema
+                    
+                    @author Frederick Giasson, Structured Dynamics LLC.
+            
+                    \n\n\n
+    */ 	
 	public function setVersion($version)
 	{
 		$this->version = $version;
 	}
 
+    /*!      @brief Define an attribute in the structure schema
+                                                    
+                    \n
+                    
+                    @param[in] $property Attribute name to be described
+                    @param[in] $type Expected type of the value
+                    @param[in] $format Expected format of the balue
+                    @param[in] $equivalentPropertyTo Equivalent property relationships
+                    @param[in] $subPropertyOf Sub-property relationships
+                    
+                    @author Frederick Giasson, Structured Dynamics LLC.
+            
+                    \n\n\n
+    */ 
 	public function setPropertyX($property, $type, $format, $equivalentPropertyTo, $subPropertyOf)
 	{
 		$this->addProperty($this->propertyX[$property], $type, $format, $equivalentPropertyTo, $subPropertyOf);			
 	}
 
+
+    /*!      @brief Define a type in the structure schema
+                                                    
+                    \n
+                    
+                    @param[in] $type Attribute name to be described
+                    @param[in] $equivalentTypeTo Equivalent type relationships
+                    @param[in] $subTypeOf Sub-type relationships
+                    
+                    @author Frederick Giasson, Structured Dynamics LLC.
+            
+                    \n\n\n
+    */ 
 	public function setTypeX($type, $equivalentTypeTo, $subTypeOf)
 	{
 		$this->addType($this->typeX[$type], $equivalentTypeTo, $subTypeOf);			

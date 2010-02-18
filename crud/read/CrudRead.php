@@ -71,7 +71,7 @@ class CrudRead extends WebService
 	public $reificationTriples = array();	
 
 	/*! @brief Supported serialization mime types by this Web service */
-	public static $supportedSerializations = array("application/bib+json", "application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
+	public static $supportedSerializations = array("application/bib+json", "application/iron+json", "application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
 		
 	/*! @brief Error messages of this web service */
 	private $errorMessenger = '{
@@ -588,6 +588,7 @@ class CrudRead extends WebService
 		switch($this->conneg->getMime())
 		{
 			case "application/bib+json":
+			case "application/iron+json":
 
 				include_once("../../converter/irjson/ConverterIrJSON.php");
 				include_once("../../converter/irjson/Dataset.php");
@@ -694,7 +695,7 @@ class CrudRead extends WebService
 							
 							if($nbPredicates == 1)
 							{
-								$json_part .= "        \"predicates\": [ \n";
+								$json_part .= "        \"predicate\": [ \n";
 							}
 							
 							$objectType = $xml->getType($object);						
@@ -743,7 +744,7 @@ class CrudRead extends WebService
 									
 									if($nbReification > 0)
 									{
-										$json_part .= "           	  \"reifies\": [\n";
+										$json_part .= "           	  \"reify\": [\n";
 									}
 									
 									$json_part .= "           	    { \n";
@@ -807,7 +808,7 @@ class CrudRead extends WebService
 				$json_header .="    } \n";
 				$json_header .="  ],\n";	
 				$json_header .= "  \"resultset\": {\n";
-				$json_header .= "    \"subjects\": [\n";
+				$json_header .= "    \"subject\": [\n";
 				$json_header .= $json_part;
 				$json_header .= "    ]\n";
 				$json_header .= "  }\n";				
@@ -1121,7 +1122,111 @@ class CrudRead extends WebService
 		
 			\n\n\n
 	*/		
-	public function pipeline_serialize_reification(){ return ""; }	
+	public function pipeline_serialize_reification()
+	{
+		$rdf_reification = "";
+		switch($this->conneg->getMime())
+		{
+			case "application/rdf+n3":
+			
+				$xml = new ProcessorXML();
+				$xml->loadXML($this->pipeline_getResultset());
+				
+				$subjects = $xml->getSubjects();
+				
+				$bnodeCounter = 0;
+				
+				foreach($subjects as $subject)
+				{
+					$predicates = $xml->getPredicates($subject);
+					
+					foreach($predicates as $predicate)
+					{
+						$predicateType = $xml->getType($predicate, FALSE);
+						
+						$objects = $xml->getObjects($predicate);
+						
+						foreach($objects as $object)
+						{
+							$reifies = $xml->getReificationStatements($object);
+							
+							foreach($reifies as $reify)
+							{
+								$reifyPredicate = $xml->getType($reify, FALSE);
+																
+								$ns = $this->getNamespace($reifyPredicate);
+							
+								if(!isset($this->namespaces[$ns[0]]))
+								{
+									$this->namespaces[$ns[0]] = "ns".$nsId;
+									$nsId++;
+								}																		
+																
+								$rdf_reification .= "_:".md5($xml->getURI($subject).$predicateType.$xml->getURI($object))." a rdf:Statement ;\n";
+								$bnodeCounter++;
+								$rdf_reification .= "    rdf:subject <".$xml->getURI($subject)."> ;\n";
+								$rdf_reification .= "    rdf:predicate <".$predicateType."> ;\n";
+								$rdf_reification .= "    rdf:object <".$xml->getURI($object)."> ;\n";
+								$rdf_reification .= "    ".$this->namespaces[$ns[0]].":".$ns[1]." \"".$xml->getValue($reify)."\" .\n\n";
+								$bnodeCounter++;
+							}
+						}
+					}
+				}
+				
+				return($rdf_reification);	
+							
+			break;
+			
+			case "application/rdf+xml":
+				$xml = new ProcessorXML();
+				$xml->loadXML($this->pipeline_getResultset());
+				
+				$subjects = $xml->getSubjects();
+				
+				foreach($subjects as $subject)
+				{
+					$predicates = $xml->getPredicates($subject);
+					
+					foreach($predicates as $predicate)
+					{
+						$predicateType = $xml->getType($predicate, FALSE);
+					
+						$objects = $xml->getObjects($predicate);
+						
+						foreach($objects as $object)
+						{
+							$reifies = $xml->getReificationStatements($object);
+							
+							foreach($reifies as $reify)
+							{
+								$reifyPredicate = $xml->getType($reify, FALSE);
+
+								$ns = $this->getNamespace($reifyPredicate);
+							
+								if(!isset($this->namespaces[$ns[0]]))
+								{
+									$this->namespaces[$ns[0]] = "ns".$nsId;
+									$nsId++;
+								}			
+
+								$rdf_reification .= "<rdf:Statement rdf:about=\"".md5($xml->getURI($subject).$predicateType.$xml->getURI($object))."\">\n";
+								$rdf_reification .= "    <rdf:subject rdf:resource=\"".$xml->getURI($subject)."\" />\n";
+								$rdf_reification .= "    <rdf:predicate rdf:resource=\"".$predicateType."\" />\n";
+								$rdf_reification .= "    <rdf:object rdf:resource=\"".$xml->getURI($object)."\" />\n";
+								$rdf_reification .= "    <".$this->namespaces[$ns[0]].":".$ns[1].">".$this->xmlEncode($xml->getValue($reify))."</$reifyPredicate>\n";
+								$rdf_reification .= "</rdf:Statement>	\n\n";
+								
+							}
+						}
+					}
+				}
+				
+				return($rdf_reification);			
+				
+			break;
+		}	
+	}	
 	
 	/*!	 @brief Serialize the web service answer.
 							
@@ -1142,6 +1247,8 @@ class CrudRead extends WebService
 				$rdf_document .= "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n";
 				
 				$rdf_document .= $this->pipeline_serialize();
+
+				$rdf_document .= $this->pipeline_serialize_reification();
 				
 				return $rdf_document;
 			break;
@@ -1152,6 +1259,7 @@ class CrudRead extends WebService
 			
 				$rdf_document .= $this->pipeline_serialize();
 				
+				$rdf_document .= $this->pipeline_serialize_reification();
 			
 				$rdf_document .= "</rdf:RDF>";
 			
@@ -1184,6 +1292,7 @@ class CrudRead extends WebService
 			break;
 			
 			case "application/bib+json":
+			case "application/iron+json":
 				return($this->pipeline_serialize());
 			break;
 		}		

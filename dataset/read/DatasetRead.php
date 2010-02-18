@@ -653,7 +653,7 @@ class DatasetRead extends WebService
 							
 							if($nbPredicates == 1)
 							{
-								$json_part .= "        \"predicates\": [ \n";
+								$json_part .= "        \"predicate\": [ \n";
 							}
 							
 							$objectType = $xml->getType($object);						
@@ -911,7 +911,7 @@ class DatasetRead extends WebService
 				$json_document .="    } \n";
 				$json_document .="  ],\n";					
 				$json_document .= "  \"resultset\": {\n";
-				$json_document .= "    \"subjects\": [\n";
+				$json_document .= "    \"subject\": [\n";
 				$json_document .= $this->pipeline_serialize();
 				$json_document .= "    ]\n";
 				$json_document .= "  }\n";

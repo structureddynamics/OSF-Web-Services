@@ -57,6 +57,9 @@ class ConverterIrJSON extends WebService
 	/*! @brief Parser */
 	private $parser;	
 	
+	/*! @brief Include Dataset Description in the output */
+	private $include_dataset_description;
+	
 	/*! @brief Defined dummany namespaces/prefixes used for data conversion for some serializations */
 	private $namespaces = array();
 	
@@ -120,12 +123,13 @@ class ConverterIrJSON extends WebService
 		
 			\n\n\n
 	*/		
-	function __construct($document="", $docmime="application/iron+json", $registered_ip, $requester_ip)
+	function __construct($document="", $docmime="application/iron+json", $include_dataset_description, $registered_ip, $requester_ip)
 	{
 		parent::__construct();		
 		
 		$this->text = $document;
 		$this->docmime = $docmime;
+		$this->include_dataset_description = $include_dataset_description;
 		
 		$this->requester_ip = $requester_ip;
 
@@ -164,7 +168,7 @@ class ConverterIrJSON extends WebService
 		$this->dtdURL = "converter/irjson.dtd";	
 		
 		$this->customLinkageSchema = new LinkageSchema();
-		$this->customLinkageSchema->setLinkedFormat("application/rdf+xml");
+		$this->customLinkageSchema->setLinkedType("application/rdf+xml");
 		
 		$this->errorMessenger = json_decode($this->errorMessenger);		
 	}
@@ -274,7 +278,7 @@ class ConverterIrJSON extends WebService
 			// Check if a linkage file of kind RDF has been defined for this irJSON file.
 			foreach($this->parser->linkageSchemas as $linkageSchema)
 			{
-				if(strtolower($linkageSchema->linkedFormat) == "application/rdf+xml")
+				if(strtolower($linkageSchema->linkedType) == "application/rdf+xml")
 				{
 					$xml = new ProcessorXML();
 			
@@ -546,7 +550,7 @@ class ConverterIrJSON extends WebService
 					return($this->injectDoctype($xml->saveXML($resultset)));		
 				}
 			}
-			
+
 			// No RDF linkage file exists for this irJSON file, then we throw an error
 			$this->conneg->setStatus(400);
 			$this->conneg->setStatusMsg("Bad Request");
@@ -825,8 +829,8 @@ class ConverterIrJSON extends WebService
 					// Set version
 					$tempSchema->setVersion($linkageSchema->version);			
 		
-					// Set linkedFormat
-					$tempSchema->setLinkedFormat($linkageSchema->linkedFormat);
+					// Set linkedType
+					$tempSchema->setLinkedType($linkageSchema->linkedType);
 					
 					// Set prefixes
 					if(isset($linkageSchema->prefixList))
@@ -999,7 +1003,7 @@ class ConverterIrJSON extends WebService
 								// Check for a linked property.
 								foreach($linkageSchemas as $linkageSchema)
 								{
-									if(strtolower($linkageSchema->linkedFormat) == "application/rdf+xml")
+									if(strtolower($linkageSchema->linkedType) == "application/rdf+xml")
 									{				
 										foreach($linkageSchema->propertyX as $property => $value)
 										{
@@ -1089,7 +1093,7 @@ class ConverterIrJSON extends WebService
 											// Check for a linked property
 											foreach($linkageSchemas as $linkageSchema)
 											{
-												if(strtolower($linkageSchema->linkedFormat) == "application/rdf+xml")
+												if(strtolower($linkageSchema->linkedType) == "application/rdf+xml")
 												{				
 													foreach($linkageSchema->propertyX as $property => $value)
 													{
@@ -1150,7 +1154,7 @@ class ConverterIrJSON extends WebService
 						
 						foreach($linkageSchemas as $linkageSchema)
 						{
-							if(strtolower($linkageSchema->linkedFormat) == "application/rdf+xml")
+							if(strtolower($linkageSchema->linkedType) == "application/rdf+xml")
 							{				
 								foreach($linkageSchema->typeX as $type => $value)
 								{
@@ -1201,7 +1205,7 @@ class ConverterIrJSON extends WebService
 									$break = FALSE;
 									foreach($linkageSchemas as $linkageSchema)
 									{
-										if(strtolower($linkageSchema->linkedFormat) == "application/rdf+xml")
+										if(strtolower($linkageSchema->linkedType) == "application/rdf+xml")
 										{				
 											foreach($linkageSchema->typeX as $type => $value)
 											{
@@ -1281,7 +1285,7 @@ class ConverterIrJSON extends WebService
 								// Check for a linked property.
 								foreach($linkageSchemas as $linkageSchema)
 								{
-									if(strtolower($linkageSchema->linkedFormat) == "application/rdf+xml")
+									if(strtolower($linkageSchema->linkedType) == "application/rdf+xml")
 									{				
 										foreach($linkageSchema->propertyX as $property => $value)
 										{
@@ -1365,7 +1369,7 @@ class ConverterIrJSON extends WebService
 										// Check for a linked property
 										foreach($linkageSchemas as $linkageSchema)
 										{
-											if(strtolower($linkageSchema->linkedFormat) == "application/rdf+xml")
+											if(strtolower($linkageSchema->linkedType) == "application/rdf+xml")
 											{				
 												foreach($linkageSchema->propertyX as $property => $value)
 												{
@@ -1481,30 +1485,33 @@ class ConverterIrJSON extends WebService
 				{
 					$subjectURI = $xml->getURI($subject);
 					$subjectType = $xml->getType($subject, FALSE);
-				
-					$tsv .= str_replace($this->delimiter, urlencode($this->delimiter), $subjectURI).$this->delimiter."http://www.w3.org/1999/02/22-rdf-syntax-ns#type".$this->delimiter.str_replace($this->delimiter, urlencode($this->delimiter), $subjectType)."\n";
-
-					$predicates = $xml->getPredicates($subject);
 					
-					foreach($predicates as $predicate)
+					if($subjectType != "http://rdfs.org/ns/void#Dataset" || $this->include_dataset_description == "true")
 					{
-						$objects = $xml->getObjects($predicate);
+						$tsv .= str_replace($this->delimiter, urlencode($this->delimiter), $subjectURI).$this->delimiter."http://www.w3.org/1999/02/22-rdf-syntax-ns#type".$this->delimiter.str_replace($this->delimiter, urlencode($this->delimiter), $subjectType)."\n";
+	
+						$predicates = $xml->getPredicates($subject);
 						
-						foreach($objects as $object)
+						foreach($predicates as $predicate)
 						{
-							$objectType = $xml->getType($object);						
-							$predicateType = $xml->getType($predicate, FALSE);
-							$objectContent = $xml->getContent($object);
+							$objects = $xml->getObjects($predicate);
 							
-							if($objectType == "rdfs:Literal")
+							foreach($objects as $object)
 							{
-								$objectValue = $xml->getContent($object);						
-								$tsv .= str_replace($this->delimiter, urlencode($this->delimiter), $subjectURI).$this->delimiter.str_replace($this->delimiter, urlencode($this->delimiter), $predicateType).$this->delimiter.str_replace($this->delimiter, urlencode($this->delimiter), $objectValue)."\n";
-							}
-							else
-							{
-								$objectURI = $xml->getURI($object);						
-								$tsv .= str_replace($this->delimiter, urlencode($this->delimiter), $subjectURI).$this->delimiter.str_replace($this->delimiter, urlencode($this->delimiter), $predicateType).$this->delimiter.str_replace($this->delimiter, urlencode($this->delimiter), $objectURI)."\n";
+								$objectType = $xml->getType($object);						
+								$predicateType = $xml->getType($predicate, FALSE);
+								$objectContent = $xml->getContent($object);
+								
+								if($objectType == "rdfs:Literal")
+								{
+									$objectValue = $xml->getContent($object);						
+									$tsv .= str_replace($this->delimiter, urlencode($this->delimiter), $subjectURI).$this->delimiter.str_replace($this->delimiter, urlencode($this->delimiter), $predicateType).$this->delimiter.str_replace($this->delimiter, urlencode($this->delimiter), $objectValue)."\n";
+								}
+								else
+								{
+									$objectURI = $xml->getURI($object);						
+									$tsv .= str_replace($this->delimiter, urlencode($this->delimiter), $subjectURI).$this->delimiter.str_replace($this->delimiter, urlencode($this->delimiter), $predicateType).$this->delimiter.str_replace($this->delimiter, urlencode($this->delimiter), $objectURI)."\n";
+								}
 							}
 						}
 					}
@@ -1523,39 +1530,41 @@ class ConverterIrJSON extends WebService
 				{
 					$subjectURI = $xml->getURI($subject);
 					$subjectType = $xml->getType($subject, FALSE);
-				
-					$rdf_part .= "\n    <$subjectURI> a <$subjectType> ;\n";
-
-					$predicates = $xml->getPredicates($subject);
 					
-					foreach($predicates as $predicate)
+					if($subjectType != "http://rdfs.org/ns/void#Dataset" || $this->include_dataset_description == "true")
 					{
-						$objects = $xml->getObjects($predicate);
+						$rdf_part .= "\n    <$subjectURI> a <$subjectType> ;\n";
+	
+						$predicates = $xml->getPredicates($subject);
 						
-						foreach($objects as $object)
+						foreach($predicates as $predicate)
 						{
-							$objectType = $xml->getType($object);						
-							$predicateType = $xml->getType($predicate, FALSE);
-							$objectContent = $xml->getContent($object);
+							$objects = $xml->getObjects($predicate);
 							
-							if($objectType == "rdfs:Literal")
+							foreach($objects as $object)
 							{
-								$objectValue = $xml->getContent($object);						
-								$rdf_part .= "        <$predicateType> \"\"\"".str_replace(array("\\"), "\\\\", $objectValue)."\"\"\" ;\n";
-							}
-							else
-							{
-								$objectURI = $xml->getURI($object);						
-								$rdf_part .= "        <$predicateType> <$objectURI> ;\n";
+								$objectType = $xml->getType($object);						
+								$predicateType = $xml->getType($predicate, FALSE);
+								$objectContent = $xml->getContent($object);
+								
+								if($objectType == "rdfs:Literal")
+								{
+									$objectValue = $xml->getContent($object);						
+									$rdf_part .= "        <$predicateType> \"\"\"".str_replace(array("\\"), "\\\\", $objectValue)."\"\"\" ;\n";
+								}
+								else
+								{
+									$objectURI = $xml->getURI($object);						
+									$rdf_part .= "        <$predicateType> <$objectURI> ;\n";
+								}
 							}
 						}
+						
+						if(strlen($rdf_part) > 0)
+						{
+							$rdf_part = substr($rdf_part, 0, strlen($rdf_part) - 2).".\n";
+						}
 					}
-					
-					if(strlen($rdf_part) > 0)
-					{
-						$rdf_part = substr($rdf_part, 0, strlen($rdf_part) - 2).".\n";
-					}
-					
 				}
 
 				return($rdf_part);		
@@ -1578,65 +1587,68 @@ class ConverterIrJSON extends WebService
 					$subjectURI = $xml->getURI($subject);
 					$subjectType = $xml->getType($subject, FALSE);
 				
-					$ns = $this->getNamespace($subjectType);
-					$stNs = $ns[0];
-					$stExtension = $ns[1];
-				
-					if(!isset($this->namespaces[$stNs]))
+					if($subjectType != "http://rdfs.org/ns/void#Dataset" || $this->include_dataset_description == "true")
 					{
-						$this->namespaces[$stNs] = "ns".$nsId;
-						$nsId++;
-					}
-				
-					$rdf_part .= "\n    <".$this->namespaces[$stNs].":".$stExtension." rdf:about=\"$subjectURI\">\n";
-
-					$predicates = $xml->getPredicates($subject);
+						$ns = $this->getNamespace($subjectType);
+						$stNs = $ns[0];
+						$stExtension = $ns[1];
 					
-					foreach($predicates as $predicate)
-					{
-						$objects = $xml->getObjects($predicate);
-						
-						foreach($objects as $object)
+						if(!isset($this->namespaces[$stNs]))
 						{
-							$objectType = $xml->getType($object);						
-							$predicateType = $xml->getType($predicate, FALSE);
-							
-							if($objectType == "rdfs:Literal")
-							{
-								$objectValue = $xml->getContent($object);	
-								
-								$ns = $this->getNamespace($predicateType);
-								$ptNs = $ns[0];
-								$ptExtension = $ns[1];
-							
-								if(!isset($this->namespaces[$ptNs]))
-								{
-									$this->namespaces[$ptNs] = "ns".$nsId;
-									$nsId++;
-								}
-													
-								$rdf_part .= "        <".$this->namespaces[$ptNs].":".$ptExtension.">".$this->xmlEncode($objectValue)."</".$this->namespaces[$ptNs].":".$ptExtension.">\n";
-							}
-							else
-							{
-								$objectURI = $xml->getURI($object);		
-								
-								$ns = $this->getNamespace($predicateType);
-								$ptNs = $ns[0];
-								$ptExtension = $ns[1];
-							
-								if(!isset($this->namespaces[$ptNs]))
-								{
-									$this->namespaces[$ptNs] = "ns".$nsId;
-									$nsId++;
-								}
-												
-								$rdf_part .= "        <".$this->namespaces[$ptNs].":".$ptExtension." rdf:resource=\"$objectURI\" />\n";
-								}
+							$this->namespaces[$stNs] = "ns".$nsId;
+							$nsId++;
 						}
+					
+						$rdf_part .= "\n    <".$this->namespaces[$stNs].":".$stExtension." rdf:about=\"$subjectURI\">\n";
+	
+						$predicates = $xml->getPredicates($subject);
+						
+						foreach($predicates as $predicate)
+						{
+							$objects = $xml->getObjects($predicate);
+							
+							foreach($objects as $object)
+							{
+								$objectType = $xml->getType($object);						
+								$predicateType = $xml->getType($predicate, FALSE);
+								
+								if($objectType == "rdfs:Literal")
+								{
+									$objectValue = $xml->getContent($object);	
+									
+									$ns = $this->getNamespace($predicateType);
+									$ptNs = $ns[0];
+									$ptExtension = $ns[1];
+								
+									if(!isset($this->namespaces[$ptNs]))
+									{
+										$this->namespaces[$ptNs] = "ns".$nsId;
+										$nsId++;
+									}
+														
+									$rdf_part .= "        <".$this->namespaces[$ptNs].":".$ptExtension.">".$this->xmlEncode($objectValue)."</".$this->namespaces[$ptNs].":".$ptExtension.">\n";
+								}
+								else
+								{
+									$objectURI = $xml->getURI($object);		
+									
+									$ns = $this->getNamespace($predicateType);
+									$ptNs = $ns[0];
+									$ptExtension = $ns[1];
+								
+									if(!isset($this->namespaces[$ptNs]))
+									{
+										$this->namespaces[$ptNs] = "ns".$nsId;
+										$nsId++;
+									}
+													
+									$rdf_part .= "        <".$this->namespaces[$ptNs].":".$ptExtension." rdf:resource=\"$objectURI\" />\n";
+									}
+							}
+						}
+	
+						$rdf_part .= "    </".$this->namespaces[$stNs].":".$stExtension.">\n";
 					}
-
-					$rdf_part .= "    </".$this->namespaces[$stNs].":".$stExtension.">\n";
 				}
 
 				return($rdf_part);
@@ -2009,10 +2021,10 @@ class ConverterIrJSON extends WebService
 															$this->errorMessenger->_300->level);					
 												
 					}
-					elseif(count($this->parser->irJSONErrors) > 0)
+					elseif(count($this->parser->irjsonErrors) > 0)
 					{
 						$errorMsg = "";
-						foreach($this->parser->irJSONErrors as $key => $error)
+						foreach($this->parser->irjsonErrors as $key => $error)
 						{
 							$errorMsg .= "\n(".($key + 1).") $error \n";
 						}

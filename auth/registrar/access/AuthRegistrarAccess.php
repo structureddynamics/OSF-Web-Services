@@ -335,7 +335,7 @@ class AuthRegistrarAccess extends WebService
 												$this->errorMessenger->_200->name, 
 												$this->errorMessenger->_200->description, 
 												"",
-												$this->errorMessenger->_200->description);					
+												$this->errorMessenger->_200->level);					
 			return;
 		}
 
@@ -351,7 +351,7 @@ class AuthRegistrarAccess extends WebService
 												$this->errorMessenger->_201->name, 
 												$this->errorMessenger->_201->description, 
 												"",
-												$this->errorMessenger->_201->description);					
+												$this->errorMessenger->_201->level);					
 			return;
 		}
 
@@ -368,7 +368,7 @@ class AuthRegistrarAccess extends WebService
 													$this->errorMessenger->_202->name, 
 													$this->errorMessenger->_202->description, 
 													"",
-													$this->errorMessenger->_202->description);					
+													$this->errorMessenger->_202->level);					
 					
 				return;
 			}
@@ -386,8 +386,8 @@ class AuthRegistrarAccess extends WebService
 													$this->errorMessenger->ws, 
 													$this->errorMessenger->_203->name, 
 													$this->errorMessenger->_203->description, 
-													"203",
-													$this->errorMessenger->_203->description);					
+													"",
+													$this->errorMessenger->_203->level);					
 				return;
 			}
 		}
@@ -402,7 +402,7 @@ class AuthRegistrarAccess extends WebService
 												$this->errorMessenger->_204->name, 
 												$this->errorMessenger->_204->description, 
 												"",
-												$this->errorMessenger->_204->description);					
+												$this->errorMessenger->_204->level);					
 			return;
 		}
 		
@@ -416,7 +416,7 @@ class AuthRegistrarAccess extends WebService
 												$this->errorMessenger->_205->name, 
 												$this->errorMessenger->_205->description, 
 												"",
-												$this->errorMessenger->_205->description);					
+												$this->errorMessenger->_205->level);					
 			return;
 		}
 	}
@@ -578,7 +578,7 @@ class AuthRegistrarAccess extends WebService
 					// Note: we make sure we remove any previously defined triples that we are about to re-enter in the graph. All information other than these new properties
 					//          will remain in the graph
 					
-					$query = "delete from <".$this->wsf_graph.">
+					$query = "delete from graph <".$this->wsf_graph.">
 									{ 
 										?access a <http://purl.org/ontology/wsf#Access> ;
 										<http://purl.org/ontology/wsf#registeredIP> \"$this->registered_ip\" ; 
@@ -587,13 +587,10 @@ class AuthRegistrarAccess extends WebService
 									}
 									where
 									{
-										graph <".$this->wsf_graph.">
-										{
-											?access a <http://purl.org/ontology/wsf#Access> ;
-											<http://purl.org/ontology/wsf#registeredIP> \"$this->registered_ip\" ; 
-											<http://purl.org/ontology/wsf#datasetAccess> <$this->dataset> ;
-											?p ?o.
-										}
+										?access a <http://purl.org/ontology/wsf#Access> ;
+										<http://purl.org/ontology/wsf#registeredIP> \"$this->registered_ip\" ; 
+										<http://purl.org/ontology/wsf#datasetAccess> <$this->dataset> ;
+										?p ?o.
 									}
 									insert into <".$this->wsf_graph.">
 									{
@@ -633,7 +630,7 @@ class AuthRegistrarAccess extends WebService
 				{
 					// Update and describe the resource being registered
 					
-					$query = "modify <".$this->wsf_graph.">
+					$query = "modify graph <".$this->wsf_graph.">
 									delete
 									{ 
 										<$this->target_access_uri> a <http://purl.org/ontology/wsf#Access> ;
@@ -657,11 +654,8 @@ class AuthRegistrarAccess extends WebService
 									}									
 									where
 									{
-										graph <".$this->wsf_graph.">
-										{
-											<$this->target_access_uri> a <http://purl.org/ontology/wsf#Access> ;
-											?p ?o.
-										}
+										<$this->target_access_uri> a <http://purl.org/ontology/wsf#Access> ;
+										?p ?o.
 									}";
 		
 					@$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), " ", $query), array(), FALSE));
@@ -675,7 +669,7 @@ class AuthRegistrarAccess extends WebService
 															$this->errorMessenger->ws, 
 															$this->errorMessenger->_301->name, 
 															$this->errorMessenger->_301->description, 
-															odbc_errormsg(),
+															odbc_errormsg().$query,
 															$this->errorMessenger->_301->level);			
 						return;
 					}			
@@ -683,7 +677,7 @@ class AuthRegistrarAccess extends WebService
 				elseif(strtolower($this->action) == "delete_target")
 				{
 					// Just delete target access
-					$query = "delete from <".$this->wsf_graph.">
+					$query = "delete from graph <".$this->wsf_graph.">
 									{ 
 										?access a <http://purl.org/ontology/wsf#Access> ;
 										<http://purl.org/ontology/wsf#registeredIP> \"$this->registered_ip\" ; 
@@ -692,13 +686,10 @@ class AuthRegistrarAccess extends WebService
 									}
 									where
 									{
-										graph <".$this->wsf_graph.">
-										{
-											?access a <http://purl.org/ontology/wsf#Access> ;
-											<http://purl.org/ontology/wsf#registeredIP> \"$this->registered_ip\" ; 
-											<http://purl.org/ontology/wsf#datasetAccess> <$this->dataset> ;
-											?p ?o.
-										}
+										?access a <http://purl.org/ontology/wsf#Access> ;
+										<http://purl.org/ontology/wsf#registeredIP> \"$this->registered_ip\" ; 
+										<http://purl.org/ontology/wsf#datasetAccess> <$this->dataset> ;
+										?p ?o.
 									}";
 		
 					@$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), " ", $query), array(), FALSE));
@@ -720,18 +711,15 @@ class AuthRegistrarAccess extends WebService
 				else
 				{
 					// Delete all access to a specific dataset
-					$query = "delete from <".$this->wsf_graph.">
+					$query = "delete from graph <".$this->wsf_graph.">
 									{ 
 										?access ?p ?o. 
 									}
 									where
 									{
-										graph <".$this->wsf_graph.">
-										{
-											?access a <http://purl.org/ontology/wsf#Access> ;
-											<http://purl.org/ontology/wsf#datasetAccess> <$this->dataset> ;
-											?p ?o.
-										}
+										?access a <http://purl.org/ontology/wsf#Access> ;
+										<http://purl.org/ontology/wsf#datasetAccess> <$this->dataset> ;
+										?p ?o.
 									}";
 		
 					@$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), " ", $query), array(), FALSE));

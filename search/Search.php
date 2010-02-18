@@ -691,7 +691,7 @@ class Search extends WebService
 							
 							if($nbPredicates == 1)
 							{
-								$json_part .= "        \"predicates\": [ \n";
+								$json_part .= "        \"predicate\": [ \n";
 							}
 							
 							$objectType = $xml->getType($object);						
@@ -740,7 +740,7 @@ class Search extends WebService
 									
 									if($nbReification > 0)
 									{
-										$json_part .= "           	  \"reifies\": [\n";
+										$json_part .= "           	  \"reify\": [\n";
 									}
 									
 									$json_part .= "           	    { \n";
@@ -801,7 +801,7 @@ class Search extends WebService
 				$json_header .="    } \n";
 				$json_header .="  ],\n";	
 				$json_header .= "  \"resultset\": {\n";
-				$json_header .= "    \"subjects\": [\n";
+				$json_header .= "    \"subject\": [\n";
 				$json_header .= $json_part;
 				$json_header .= "    ]\n";
 				$json_header .= "  }\n";				

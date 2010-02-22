@@ -26,6 +26,8 @@ $_SERVER['HTTP_ACCEPT_LANGUAGE'] = "da, en-gb;q=0.8, en;q=0.7";
 
 
 $data_ini = parse_ini_file(WebService::$data_ini."data.ini", TRUE);		
+$network_ini = parse_ini_file(WebService::$network_ini."network.ini", TRUE);
+
 
 // Properly setup the connection to the virtuoso server
 $db = new DB_Virtuoso($data_ini["triplestore"]["username"], $data_ini["triplestore"]["password"], $data_ini["triplestore"]["dsn"], $data_ini["triplestore"]["host"]);
@@ -54,7 +56,7 @@ function IndexOntologiesDirectory($dir)
 					echo "Processing ontology file $sub\n";
 
 
-					$wsq = new WebServiceQuerier(	"http://localhost/ws/ontology/create/", "post", "application/rdf+xml", 
+					$wsq = new WebServiceQuerier(	$network_ini["network"]["wsf_base_url"]."/ws/ontology/create/", "post", "application/rdf+xml", 
 																	"ontology=".urlencode($ontologyFileContent).
 																	"&mime=".urlencode("application/rdf+xml").
 																	"&action=recreate_inference".
@@ -65,25 +67,6 @@ function IndexOntologiesDirectory($dir)
 					}
 
 					unset($wsq);
-
-
-/*
-					$ows = new OntologyCreate($ontologyFileContent, "application/rdf+xml", "recreate_inference", "", "self");
-					
-					$ows->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
-
-					$ows->process();
-
-					if($ows->pipeline_getResponseHeaderStatus() != 200)
-					{
-						print_r($ows->pipeline_getError());
-						
-						echo "(".$ows->pipeline_getResponseHeaderStatus().") (".$ows->pipeline_getResponseHeaderStatusMsg().") (".$ows->pipeline_getResponseHeaderStatusMsgExt().") \n";		
-					}
-					
-					unset($ows);
-*/					
-
 				}
 				elseif(is_dir($dir."/".$sub))
 				{

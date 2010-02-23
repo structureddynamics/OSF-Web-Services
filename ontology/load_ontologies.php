@@ -38,7 +38,7 @@ IndexOntologiesDirectory($ontologiesFilesPath);
 
 function IndexOntologiesDirectory($dir)
 {
-	global $db;
+	global $db, $network_ini;
 
 	if($handler = opendir($dir)) 
 	{

@@ -864,6 +864,15 @@ class CrudUpdate extends WebService
 				
 				foreach($irsUri as $subject)
 				{
+					// Skip Bnodes indexation in Solr
+					// One of the prerequise is that each records indexed in Solr (and then available in Search and Browse)
+					// should have a URI. Bnodes are simply skiped.
+					
+					if(stripos($subject, "_:arc") !== FALSE)
+					{
+						continue;
+					}					
+					
 					$add = "<add><doc><field name=\"uid\">".md5($this->dataset.$subject)."</field>";
 					$add .= "<field name=\"uri\">$subject</field>";
 					$add .= "<field name=\"dataset\">".$this->dataset."</field>";

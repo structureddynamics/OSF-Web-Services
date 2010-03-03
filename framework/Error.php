@@ -96,7 +96,7 @@ class Error
 									\"webservice\": \"".$this->jsonEncode($this->webservice)."\",
 									\"name\": \"".$this->jsonEncode($this->name)."\",
 									\"description\": \"".$this->jsonEncode($this->description)."\",
-									\"debugInformation\": \"".$this->jsonEncode($this->debugInfo)."\"
+									\"debugInformation\": \"".$this->jsonEncode($this->debugInfo)."\",
 									\"level\": \"".$this->jsonEncode($this->level)."\"
 								}
 							  ";

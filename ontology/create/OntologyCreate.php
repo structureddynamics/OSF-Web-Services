@@ -844,23 +844,25 @@ class OntologyCreate extends WebService
 					foreach($classHierarchy->classes as $c)
 					{
 						$class = new RdfClass($c->name, $this->wsf_graph."ontologies/", $this->wsf_graph."ontologies/inferred/", $this->db);
-						
+
 						// Escaping the description and label to make sure that PHP serialize works as expected.
-						$c->description = str_replace(array("\n", "\r", "'", '"'), array("", "", "&#039;", "&quot;"), preg_replace('/[^(\x20-\x7F)]*/','', $class->getDescription()));
-						$c->label = str_replace(array("\n", "\r", "'", '"'), array("", "", "&#039;", "&quot;"), preg_replace('/[^(\x20-\x7F)]*/','', $class->getLabel()));
+//						$c->description = str_replace(array("\n", "\r", "'", '"'), array("&#010;", "&#013;", "&#039;", "&quot;"), preg_replace('/[^(\x20-\x7F)]*/','', $class->getDescription()));
+//						$c->label = str_replace(array("\n", "\r", "'", '"'), array("&#010;", "&#013;", "&#039;", "&quot;"), preg_replace('/[^(\x20-\x7F)]*/','', $class->getLabel()));
+						$c->description = str_replace(array("\n", "\r", "'", '"'), array("&#010;", "&#013;", "&#039;", "&quot;"), $class->getDescription());
+						$c->label = str_replace(array("\n", "\r", "'", '"'), array("&#010;", "&#013;", "&#039;", "&quot;"), $class->getLabel());
 						
 						unset($class);			
 					}
 					
-					
 					foreach($propertyHierarchy->properties as $p)
 					{
 						$property = new RdfProperty($p->name, $this->wsf_graph."ontologies/", $this->wsf_graph."ontologies/inferred/", $this->db);
-
 						// Escaping the description and label to make sure that PHP serialize works as expected.
-						$p->description = str_replace(array("\n", "\r", "'", '"'), array("", "", "&#039;", "&quot;"), preg_replace('/[^(\x20-\x7F)]*/','', $property->getDescription()));
-						$p->label = str_replace(array("\n", "\r", "'", '"'), array("", "", "&#039;", "&quot;"), preg_replace('/[^(\x20-\x7F)]*/','', $property->getLabel()));
-						
+//						$p->description = str_replace(array("\n", "\r", "'", '"'), array("&#010;", "&#013;", "&#039;", "&quot;"), preg_replace('/[^(\x20-\x7F)]*/','', $property->getDescription()));
+//						$p->label = str_replace(array("\n", "\r", "'", '"'), array("&#010;", "&#013;", "&#039;", "&quot;"), preg_replace('/[^(\x20-\x7F)]*/','', $property->getLabel()));
+						$p->description = str_replace(array("\n", "\r", "'", '"'), array("&#010;", "&#013;", "&#039;", "&quot;"), $property->getDescription());
+						$p->label = str_replace(array("\n", "\r", "'", '"'), array("&#010;", "&#013;", "&#039;", "&quot;"), $property->getLabel());
+				
 						unset($property);
 					}
 				}

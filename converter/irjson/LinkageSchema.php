@@ -274,7 +274,6 @@ class LinkageSchema
 	public function generateJsonSerialization()
 	{
 		$schema = "{\n";
-		$schema .= "    \"linkage\": {\n";
 		
 		if($this->version != "")
 		{
@@ -342,8 +341,6 @@ class LinkageSchema
 
 			$schema .= "        }\n";
 		}
-		
-		$schema .= "    }\n";
 		
 		$schema .= "}\n";
 		

@@ -6,7 +6,7 @@
 	/*! @file \ws\dataset\create\DatasetCreate.php
 		 @brief Create a new graph for this dataset & indexation of its description
 		
-		 \n\n
+		 \n\nf
 	 
 		 @author Frederick Giasson, Structured Dynamics LLC.
 
@@ -56,25 +56,25 @@ class DatasetCreate extends WebService
 	private $errorMessenger = '{
 												"ws": "/ws/dataset/create/",
 												"_200": {
-													"id": "WS-DATASET-UPDATE-200",
+													"id": "WS-DATASET-CREATE-200",
 													"level": "Warning",
 													"name": "No unique identifier specified for this dataset",
 													"description": "No URI defined for this new dataset"
 												},
 												"_201": {
-													"id": "WS-DATASET-UPDATE-201",
+													"id": "WS-DATASET-CREATE-201",
 													"level": "Fatal",
 													"name": "Can\'t check if the dataset is already existing",
 													"description": "An error occured when we tried to check if the dataset was already existing in the system"
 												},
 												"_202": {
-													"id": "WS-DATASET-UPDATE-202",
+													"id": "WS-DATASET-CREATE-202",
 													"level": "Warning",
 													"name": "Dataset already existing",
 													"description": "This dataset is already existing in this web services framework"
 												},
 												"_300": {
-													"id": "WS-DATASET-UPDATE-300",
+													"id": "WS-DATASET-CREATE-300",
 													"level": "Fatal",
 													"name": "Can\'t create the dataset",
 													"description": "An error occured when we tried to register the new dataset to the web service framework"

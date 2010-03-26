@@ -1,0 +1,287 @@
+/**
+ * This is a recommended Polystyle PHP example.
+ * Reformat this file as you like to define your personal style.
+ *
+ * Notes:
+ * 1.) Polystyle only modifies whitespace and will never alter the actual content
+ *     of your files, such as adding {}'s in 'if' statements.
+ *
+ * 2.) Polystyle does not format comments based on examples. It will always
+ *     format comments the same way.
+ *
+ * Copyright Flashbulb Studios
+ *
+ * http://polystyle.com
+ */
+
+class MyClass
+    extends Parent
+    implements Intf
+    {
+    function &funct($a, &$b, $c, ...)
+        {
+        // if statements with empty braces
+        if ($x)
+            {
+            }
+        elseif ($x)
+            {
+            }
+        else if ($x)
+            {
+            }
+        else
+            {
+            }
+
+        // if statements with exactly one braced statement
+        if ($x)
+            {
+            a(0);
+            }
+        else if ($x)
+            {
+            b();
+            }
+        else
+            {
+            c();
+            }
+
+        // special 'if' cases
+        if (x)
+            {
+            a();
+            }
+        else
+            {
+            c();
+            }
+
+        if (x)
+            {
+            a();
+
+            a();
+            }
+        else
+            {
+            c();
+
+            c();
+            }
+
+        // if statements with a single implicit substatement
+        if ($x)
+            a();
+
+        else if ($x)
+            b();
+
+        else
+            c();
+
+        // if statements with multiple statements
+        if (!@$z)
+            {
+            $j=++$i & ((Obj)$i);
+
+            $z=$j[0][0][0];
+            }
+        else if ($a and $b)
+            {
+            $a();
+
+            return x::$y;
+            }
+        else
+            {
+            echo $a;
+
+            return new Object()->method($a, $b, $c);
+            }
+
+        // alternate syntax
+        if ($x):
+        endif;
+
+        if ($x):
+            a();
+        else if ($x):
+            a();
+        else:
+            a();
+        endif;
+
+        if ($x):
+            a();
+
+            b();
+        endif;
+
+        // while statements with a single implicit substatement
+        while ($x)
+            a();
+
+        // while statements with a single implicit 'if' substatement
+        while ($x)
+            if ($x)
+                a();
+
+        // while with multiple statements
+        while ($k == &$j)
+            {
+            $h[0] = $a ? $b : $c::$d->$e;
+
+            break;
+            }
+
+        // for statements with a single braced statement
+        for (var $i; $i > 6; $i++)
+            {
+            break 1;
+            }
+
+        // for statement with list initialiser and a single multiline substatement
+        for ($x=0, $i=0; $x < $i; $x++)
+            {
+            foreach ($x as $set)
+                {
+                } // for statement with 'in' initialiser  
+            }
+
+        for (;;)
+            {
+            }   // for statement with empty control statements
+
+        foreach ($x as $row):
+            $x;
+        endforeach;
+ 
+        // do statements with a single braced substatement
+        do
+            {
+            continue;
+            } while ($x);
+
+        do
+            {
+            } while ($x);
+
+        /* Switch blocks:
+         *
+         * You can have case substatements be aligned by giving an example like:
+         *
+         * case 1: a();
+         * 
+         *         b();
+         * 
+         *         c();
+         * 
+         *         etc...
+         */
+        switch ($c)
+            {
+            case 1:
+            case 2:
+            case 3:
+                a();
+
+                b();
+
+                c();
+
+            case 4: break; // case with exactly one substatement
+
+            default: break;
+            }
+
+        // alternate syntax
+        switch ($c):
+            default: break;
+        endswitch;
+
+        // try-catch-finally with empty bodies
+        try
+            {
+            }
+        catch(Throwable e)
+            {
+            }
+        finally
+            {
+            }
+
+        // try-catch-finally with exactly one statement
+        try
+            {
+            statement;
+            }
+        catch( Throwable t )
+            {
+            statement;
+            }
+        finally
+            {
+            statement;
+            }
+
+        // try-catch-finally with multiple statements 
+        try
+            {
+            statement;
+
+            statement;
+            }
+        catch( Throwable e )
+            {
+            statement;
+
+            statement;
+            }
+        finally
+            {
+            statement;
+
+            statement;
+
+            statement;
+            }
+            
+        return 'i' + "0" . "0";
+        }
+    }
+
+function noArgFunct()
+    {
+    declare ($x)
+        {
+        var $i = $i * 3, $j, $k{0};
+
+        var $i = { 1, 2 };
+
+        ::delete [] $x;
+        }
+
+    @include_once "x.php";
+
+    // array with multiple elements
+    $x=array
+        (
+        false,
+        false,
+        false
+        );
+
+    // array with a single element
+    $x=array("a" => false);
+
+    // array with no elements
+    $x=array();
+
+    var $i = $j || $k;
+    }
+
+function emptyBlockFunct() { }
+
+function exactlyOneStatementBlockFunct() { $i >> 1; }

@@ -351,19 +351,24 @@ class ProcessorXML
 		
 			\n\n\n
 	*/
-	function createResultsetFromElement(&$element)
-	{
-		$dom = new DomDocument("1.0", "utf-8"); 
-		$resultset = $dom->appendChild($dom->createElement("resultset")); 
-	
-		$domNode = $dom->importNode($element, true);
-		$resultset->appendChild($domNode);
-	
-		$dom->formatOutput = true;
+  function createResultsetFromElement(&$element)
+  {
+    if(get_class($element) != "DOMElement ")
+    {
+      $dom = new DomDocument("1.0", "utf-8"); 
+      $resultset = $dom->appendChild($dom->createElement("resultset")); 
+    
+      $domNode = $dom->importNode($element, true);
+      $resultset->appendChild($domNode);
+    
+      $dom->formatOutput = true;
+      
+      return($dom);
+    }
+    
+    return(NULL);
+  }
 		
-		return($dom);		
-	}
-	
 	/*!	 @brief Append an element to the root element of the current XML document
 							
 			\n
@@ -806,7 +811,12 @@ class ProcessorXML
 	*/
 	function getContent(&$node)
 	{
-		return($node->nodeValue);
+    if(isset($node->attributes))
+    {		
+		  return($node->nodeValue);
+		}
+    
+		return("");	
 	}
 }
 

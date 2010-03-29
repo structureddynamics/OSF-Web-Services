@@ -757,7 +757,7 @@ class Sparql extends WebService
         $json_header .= "    } \n";
         $json_header .= "  ],\n";
         $json_header .= "  \"resultset\": {\n";
-        $json_header .= "    \"subjects\": [\n";
+        $json_header .= "    \"subject\": [\n";
         $json_header .= $json_part;
         $json_header .= "    ]\n";
         $json_header .= "  }\n";

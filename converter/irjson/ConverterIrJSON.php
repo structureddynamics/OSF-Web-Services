@@ -24,7 +24,6 @@
   
     \n\n\n
 */
-
 class ConverterIrJSON extends WebService
 {
   /*! @brief Database connection */
@@ -759,7 +758,7 @@ class ConverterIrJSON extends WebService
         $subjects = $xml->getSubjects();
 
         $datasetJson = "    \"dataset\": {\n";
-        $instanceRecordsJson = "    \"recordList\": [\n";
+        $instanceRecordsJson = "    \"recordList\": [ \n";
 
         // The first thing we have to check is if a linkage schema is available for this dataset.
         // If it is not, then we simply use the RDF properties and values to populate the IRON+JSON file.
@@ -1426,22 +1425,34 @@ class ConverterIrJSON extends WebService
 
         if(($pos = stripos($irJSON, '"dataset"')) !== FALSE)
         {
-          $posStart = strpos($irJSON, "{", $pos);
-          $endIrJsonFile = substr($irJSON, $posStart + 1, strlen($irJSON) - $posStart);
-          $irJSON = substr($irJSON, 0, $posStart + 1) . "\n        \"linkage\": [\n";
-
+          $irJSONLinkageSchema = "";
+          
           if(count($this->customLinkageSchema->prefixes) > 0 || count($this->customLinkageSchema->predicateX) > 0
             || count($this->customLinkageSchema->typeX) > 0)
           {
-            $irJSON .= $this->customLinkageSchema->generateJsonSerialization() . ",";
+            $irJSONLinkageSchema .= $this->customLinkageSchema->generateJsonSerialization() . ",";
           }
 
           foreach($linkageSchemaLinks as $lsl)
           {
-            $irJSON .= "\"$lsl\",";
+            $irJSONLinkageSchema .= "\"$lsl\",";
           }
+                    
+          if($irJSONLinkageSchema != "")
+          {
+            $posStart = strpos($irJSON, "{", $pos);
+            $endIrJsonFile = substr($irJSON, $posStart + 1, strlen($irJSON) - $posStart);
 
-          $irJSON .= "],\n" . $endIrJsonFile;
+            $irJSON = substr($irJSON, 0, $posStart + 1) . "\n        \"linkage\": [\n";
+            
+            $irJSON .= $irJSONLinkageSchema;
+            
+            $irJSON = rtrim($irJSON, ",");
+            
+            $irJSON .= "],\n";
+
+            $irJSON .= $endIrJsonFile;
+          }
         }
 
 /*

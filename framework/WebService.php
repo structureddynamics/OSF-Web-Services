@@ -31,7 +31,7 @@
 abstract class WebService
 {
   /*! @brief data.ini file folder */
-  public static $data_ini = "/usr/share/structwsf/";
+  public static $data_ini = "/data/";
 
   /*! @brief network.ini file folder */
   public static $network_ini = "/usr/share/structwsf/";
@@ -343,7 +343,7 @@ abstract class WebService
     
       \n\n\n
   */
-  public function jsonEncode($string) { return str_replace(array ('\\', '"'), array ('\\\\', '\\"'), $string); }
+  public function jsonEncode($string) { return str_replace(array ('\\', '"', "\n", "\r"), array ('\\\\', '\\"', "\\n", "\\r"), $string); }
 }
 
 /*!   @brief CRUD usage data structure of a web service

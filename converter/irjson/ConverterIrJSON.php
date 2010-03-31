@@ -1673,7 +1673,7 @@ else
     return $json;
   }
 
-  public function jsonEscape($str) { return str_replace('"', '', $str); }
+  public function jsonEscape($str) { return str_replace(array ('\\', '"', "\n", "\r"), array ('\\\\', '\\"', "\\n", "\\r"), $str); }
 
   public function nbPredicates(&$subject, &$xml, $predicate)
   {

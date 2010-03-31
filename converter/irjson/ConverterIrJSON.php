@@ -125,7 +125,7 @@ class ConverterIrJSON extends WebService
     
       \n\n\n
   */
-  function __construct($document = "", $docmime = "application/iron+json", $include_dataset_description, $registered_ip,
+  function __construct($document = "", $docmime = "application/iron+json", $include_dataset_description="false", $registered_ip,
     $requester_ip)
   {
     parent::__construct();
@@ -1173,7 +1173,7 @@ class ConverterIrJSON extends WebService
               //$typeName = str_replace($this->wsf_graph."ontology/types/", "", $typeName);
 
               $this->splitUri($typeName, $base, $ext);
-              $this->customLinkageSchema->setTypeX($ext, $typeName, "", $error);
+              $this->customLinkageSchema->setTypeX($ext, $typeName, array(), $error);
 
               $typeName = $ext;
             }
@@ -1225,7 +1225,7 @@ class ConverterIrJSON extends WebService
                     $objectValue = str_replace($this->wsf_graph . "ontology/types/", "", $objectValue);
 
                     $this->splitUri($objectValue, $base, $ext);
-                    $this->customLinkageSchema->setTypeX($ext, $objectValue, "", $error);
+                    $this->customLinkageSchema->setTypeX($ext, $objectValue, array(), $error);
 
                     $objectValue = $ext;
                   }
@@ -1268,7 +1268,7 @@ class ConverterIrJSON extends WebService
                 {
                   continue;
                 }
-
+                
                 $objectContent = $xml->getContent($object);
 
                 $predicateName = "";
@@ -1287,7 +1287,7 @@ class ConverterIrJSON extends WebService
                     }
                   }
                 }
-
+                
                 if($predicateName == "")
                 {
                   /*! @todo: custom linkage file */
@@ -1349,7 +1349,7 @@ class ConverterIrJSON extends WebService
                         . "\",\n";
                     }
                   }
-
+                   
                   $reifies = $xml->getReificationStatements($object);
 
                   foreach($reifies as $reify)
@@ -1391,7 +1391,7 @@ class ConverterIrJSON extends WebService
                       . "\",\n";
                   }
 
-                  $instanceRecordsJson = substr($instanceRecordsJson, 0, strlen($instanceRecordsJson) - 2) . "\n";
+                  $instanceRecordsJson = rtrim(rtrim($instanceRecordsJson, "\n"), ",") . "\n";
 
                   $instanceRecordsJson .= "            },\n";
                 }

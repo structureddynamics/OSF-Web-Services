@@ -477,6 +477,7 @@ class CrudRead extends WebService
 
     // Check if we have the same number of URIs than Dataset URIs
     $uris = explode(";", $this->resourceUri);
+
     $datasets = explode(";", $this->dataset);
 
     if(count($uris) != count($datasets))
@@ -612,7 +613,8 @@ class CrudRead extends WebService
 
         $documentToConvert = str_replace("</resultset>", $inlineDatasetDescription, $documentToConvert);
 
-        $ws_irv = new ConverterIrJSON($documentToConvert, "text/xml", $this->registered_ip, $this->requester_ip);
+        $ws_irv =
+          new ConverterIrJSON($documentToConvert, "text/xml", "false", $this->registered_ip, $this->requester_ip);
 
         $ws_irv->pipeline_conneg("application/iron+json", $this->conneg->getAcceptCharset(),
           $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
@@ -848,65 +850,65 @@ class CrudRead extends WebService
                 $json_part .= "            \"".parent::jsonEncode($predicateType)."\": { \n";
                 $json_part .= "                \"uri\": \"".parent::jsonEncode($objectURI)."\", \n";
                 
-                          // Check if there is a reification statement for this object.
-                            $reifies = $xml->getReificationStatements($object);
-                          
-                            $nbReification = 0;
-                          
-                            foreach($reifies as $reify)
-                            {
-                              $nbReification++;
-                              
-                              if($nbReification > 0)
-                              {
-                                $json_part .= "               \"reifies\": [\n";
+                                // Check if there is a reification statement for this object.
+                                  $reifies = $xml->getReificationStatements($object);
+                                
+                                  $nbReification = 0;
+                                
+                                  foreach($reifies as $reify)
+                                  {
+                                    $nbReification++;
+                                    
+                                    if($nbReification > 0)
+                                    {
+                                      $json_part .= "               \"reifies\": [\n";
+                                    }
+                                    
+                                    $json_part .= "                 { \n";
+                                    $json_part .= "                     \"type\": \"wsf:objectLabel\", \n";
+                                    $json_part .= "                     \"value\": \"".parent::jsonEncode($xml->getValue($reify))."\" \n";
+                                    $json_part .= "                 },\n";
+                                  }
+                                  
+                                  if($nbReification > 0)
+                                  {
+                                    $json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
+                                    
+                                    $json_part .= "               ]\n";
+                                  }
+                                  else
+                                  {
+                                    $json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
+                                  }                
+                                                  
+                                  
+                                  $json_part .= "                } \n";
+                                  $json_part .= "          },\n";
+                                }
                               }
-                              
-                              $json_part .= "                 { \n";
-                              $json_part .= "                     \"type\": \"wsf:objectLabel\", \n";
-                              $json_part .= "                     \"value\": \"".parent::jsonEncode($xml->getValue($reify))."\" \n";
-                              $json_part .= "                 },\n";
                             }
                             
-                            if($nbReification > 0)
+                            if(strlen($json_part) > 0)
                             {
                               $json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
-                              
-                              $json_part .= "               ]\n";
-                            }
-                            else
-                            {
-                              $json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
-                            }                
-                                            
+                            }            
                             
-                            $json_part .= "                } \n";
-                            $json_part .= "          },\n";
+                            if($nbPredicates > 0)
+                            {
+                              $json_part .= "        ]\n";
+                            }
+                            
+                            $json_part .= "      },\n";          
                           }
-                        }
-                      }
-                      
-                      if(strlen($json_part) > 0)
-                      {
-                        $json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
-                      }            
-                      
-                      if($nbPredicates > 0)
-                      {
-                        $json_part .= "        ]\n";
-                      }
-                      
-                      $json_part .= "      },\n";          
-                    }
-                    
-                    if(strlen($json_part) > 0)
-                    {
-                      $json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
-                    }
-                    
-            
-                    return($json_part);    
-                    */
+                          
+                          if(strlen($json_part) > 0)
+                          {
+                            $json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
+                          }
+                          
+                  
+                          return($json_part);    
+                          */
       break;
 
       case "application/rdf+n3":
@@ -1429,8 +1431,7 @@ class CrudRead extends WebService
         // Get reification triples
         if(strtolower($this->include_reification) == "true")
         {
-          $query =
-            "  select ?rei_p ?rei_o ?p ?o from <" . $d . "reification/> 
+          $query = "  select ?rei_p ?rei_o ?p ?o from <" . $d . "reification/> 
                   where 
                   {
                     ?statement <http://www.w3.org/1999/02/22-rdf-syntax-ns#subject> <"

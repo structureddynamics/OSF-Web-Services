@@ -332,6 +332,21 @@ class Conneg
           if(stripos($foo[1], "q=") !== FALSE)
           {
             $foo[1] = str_replace("q=", "", $foo[1]);
+            
+            /*
+             This is to ensure that the "q=1" parameter will be prioritary on the "non-q" accept mimes.
+             It is the reason why we set it to 1.1
+             
+             This is particularly interesting in some usecases when a user agent "highjack" the accept header sent by 
+             another user agent. One good usecase is the one of a Flash Movie embedded in a FireFox Browser window.
+             When using the HTTPService API, the FireFox browser will add its default accept mimes to the query
+             sent by the embeded flash movie. By seting "q=1" for any flash movies that send a query, it ensures
+             that that mime will be the one selected by the WS, and not the ones added by FireFox.
+            */
+            if($foo[1] == "1")
+            {
+              $foo[1] = "1.1";
+            }
           }
           else
           {

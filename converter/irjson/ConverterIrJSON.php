@@ -215,6 +215,11 @@ class ConverterIrJSON extends WebService
       $base = substr($str, 0, $pos);
       $ext = substr($str, $pos + 1, strlen($str) - $pos - 1);
     }
+    else
+    {
+      $base = "";
+      $ext = $str;
+    }
   }
 
   /*!   @brief Returns the error structure
@@ -958,7 +963,7 @@ class ConverterIrJSON extends WebService
         }
 
         $linkageSchemaLinks = array();
-
+       
         foreach($subjects as $subject)
         {
           $subjectURI = $xml->getURI($subject);
@@ -1008,7 +1013,7 @@ class ConverterIrJSON extends WebService
                     }
                   }
                 }
-
+               
                 if($predicateName == "")
                 {
                   /*! @todo: custom linkage file */

@@ -64,8 +64,7 @@ function IndexOntologiesDirectory($dir)
           if($wsq->getStatus() != 200)
           {
             echo "Web service error: (status: " . strip_tags($wsq->getStatus()) . ") "
-              . strip_tags($wsq->getStatusMessage()) . " - " . strip_tags($wsq->getStatusMessageDescription())
-              . "\n----------\n$records\n----------\n";
+              . strip_tags($wsq->getStatusMessage()) . " - " . strip_tags($wsq->getStatusMessageDescription());
           }
 
           unset($wsq);

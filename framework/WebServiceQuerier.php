@@ -126,8 +126,10 @@ class WebServiceQuerier
 
     if($xml_data === FALSE)
     {
+      $data =
+      substr($xml_data, strpos($xml_data, "\r\n\r\n") + 4, strlen($xml_data) - (strpos($xml_data, "\r\n\r\n") - 4));       
+      
       // Can't reach the remote server
-
       $this->queryStatus = "503";
       $this->queryStatusMessage = "Service Unavailable";
       $this->queryStatusMessageDescription = "Can't reach remote server (" . curl_error($ch) . ")";

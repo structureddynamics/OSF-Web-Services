@@ -1089,7 +1089,7 @@ class Sparql extends WebService
         "http://localhost:8890/sparql?default-graph-uri=" . urlencode($this->dataset) . "&query="
         . urlencode($this->query) . "&format=" . urlencode($queryFormat));
 
-      curl_setopt($ch, CURLOPT_HTTPHEADER, array( "Accept: " . $this->conneg->getMime() ));
+      curl_setopt($ch, CURLOPT_HTTPHEADER, array( "Accept: " . $queryFormat ));
       curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
       curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
       curl_setopt($ch, CURLOPT_HEADER, TRUE);

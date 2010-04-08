@@ -1,3 +1,18 @@
 You can access the install & setup manual at this URL:
 
 http://openstructs.org/structwsf/installation-guide
+
+
+
+== Global structWSF Statistics ==
+
+If you want to participate to the Global structWSF Statistics, you only have to subscribe your structWSF network
+at this address:
+
+  http://openstructs.org/structwsf/stats/subscribe
+               
+You only have to put the URL where this script can be queried, and your stats will be automatically
+aggregated with stats of other structWSF networks.
+               
+If you want to use that script for any reason, you have to set the value of the 
+$enableStatisticsBroadcast variable to TRUE in the file statisticsBroker.php

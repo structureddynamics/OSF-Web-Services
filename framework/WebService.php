@@ -46,7 +46,7 @@ abstract class WebService
   protected $db_dsn = "";
 
   /*! @brief Database host */
-  protected $db_host = "";
+  protected $db_host = "localhost";
 
   /*! @brief DTD URL of the web service */
   protected $dtdBaseURL = "";
@@ -68,6 +68,9 @@ abstract class WebService
 
   /*! @brief Path to the ontologies description files (in RDFS and OWL) */
   protected $ontologies_files_folder = "";
+
+  /*! @brief Hostname where to send queries to the Solr instance */
+  protected $solr_host = "localhost";
 
   /*! @brief Path to the structWSF ontological structure */
   protected $ontological_structure_folder = "";
@@ -110,6 +113,7 @@ abstract class WebService
     $this->wsf_local_ip = $network_ini["network"]["wsf_local_ip"];
 
     $this->wsf_solr_core = $data_ini["solr"]["wsf_solr_core"];
+    $this->solr_host = $data_ini["solr"]["host"];
 
     $this->ontologies_files_folder = $data_ini["ontologies"]["ontologies_files_folder"];
     $this->ontological_structure_folder = $data_ini["ontologies"]["ontological_structure_folder"];

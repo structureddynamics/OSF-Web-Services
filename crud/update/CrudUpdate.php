@@ -823,7 +823,7 @@ class CrudUpdate extends WebService
 
         // Index in Solr
 
-        $solr = new Solr($this->wsf_solr_core);
+        $solr = new Solr($this->wsf_solr_core, $this->solr_host);
 
         foreach($irsUri as $subject)
         {

@@ -618,7 +618,10 @@ class CrudCreate extends WebService
           {
             $irs[$uri] = $resourceIndex[$uri];
           }
-
+           
+          $test = $rdfxmlSerializer->getSerializedIndex($irs);
+          
+          
           $this->db->query("DB.DBA.RDF_LOAD_RDFXML_MT('"
             . str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($irs)) . "', '" . $this->dataset . "', '"
             . $this->dataset . "')");
@@ -734,7 +737,7 @@ class CrudCreate extends WebService
 
           // Index in Solr
 
-          $solr = new Solr($this->wsf_solr_core);
+          $solr = new Solr($this->wsf_solr_core, $this->solr_host);
 
           foreach($irsUri as $subject)
           {

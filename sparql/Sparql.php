@@ -1086,7 +1086,7 @@ class Sparql extends WebService
       //      $this->query .= " limit ".$this->limit." offset ".$this->offset;
 
       curl_setopt($ch, CURLOPT_URL,
-        "http://localhost:8890/sparql?default-graph-uri=" . urlencode($this->dataset) . "&query="
+        $this->wsf_base_url . ":8890/sparql?default-graph-uri=" . urlencode($this->dataset) . "&query="
         . urlencode($this->query) . "&format=" . urlencode($queryFormat));
 
       curl_setopt($ch, CURLOPT_HTTPHEADER, array( "Accept: " . $queryFormat ));

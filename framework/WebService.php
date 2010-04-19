@@ -75,6 +75,9 @@ abstract class WebService
   /*! @brief Path to the structWSF ontological structure */
   protected $ontological_structure_folder = "";
 
+  /*! @brief Name of the logging table on the Virtuoso instance */
+  protected $log_table = "SD.WSF.ws_queries_log";
+
 /*! @brief   Auto commit handled by the Solr data management systems. If this parameter is true, then this means
  *         Solr will handle the commit operation by itself. If it is false, then the web services will trigger the commit
  *         operations. Usually, Auto-commit should be handled by Solr when the size of the dataset is too big, otherwise
@@ -116,6 +119,10 @@ abstract class WebService
     if(isset($data_ini["triplestore"]["host"]))
     {
       $this->db_host = $data_ini["triplestore"]["host"];
+    }
+    if(isset($data_ini["triplestore"]["log_table"]))
+    {
+      $this->log_table = $data_ini["triplestore"]["log_table"];
     }
     
     if(isset($data_ini["datasets"]["dtd_base"]))

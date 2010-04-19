@@ -55,7 +55,7 @@
 
     $db = new DB_Virtuoso($data_ini["triplestore"]["username"], $data_ini["triplestore"]["password"],
       $data_ini["triplestore"]["dsn"], $data_ini["triplestore"]["host"]);
-
+                  
 
     $sparql = " select count(?record) as ?nb_records
                 from <".$data_ini["datasets"]["wsf_graph"]."datasets/>
@@ -123,7 +123,7 @@
     
     $statisticsXML .= "  <webservices>\n";
 
-    $resultset = @$db->query("select distinct requested_web_service from SD.WSF.ws_queries_log");
+    $resultset = @$db->query("select distinct requested_web_service from ".$data_ini["triplestore"]["log_table"]);
 
     $webservices = array();
     
@@ -137,7 +137,7 @@
     
     foreach($webservices as $ws)
     {
-      $resultset = @$db->query("select count(*) from SD.WSF.ws_queries_log where requested_web_service = '$ws'");
+      $resultset = @$db->query("select count(*) from ".$data_ini["triplestore"]["log_table"]." where requested_web_service = '$ws'");
 
       $nbQueries = "0";    
       if(!odbc_error())
@@ -146,7 +146,7 @@
       }      
       
 
-      $resultset = @$db->query("select avg(request_processing_time) as average from SD.WSF.ws_queries_log where 
+      $resultset = @$db->query("select avg(request_processing_time) as average from ".$data_ini["triplestore"]["log_table"]." where 
                                 requested_web_service = '$ws'");
 
       $averageTime = "0";    
@@ -160,7 +160,7 @@
       $statisticsXML .= "      <httpMessages>\n";
       
       $resultset = @$db->query("select distinct request_http_response_status, count(request_http_response_status) as nb 
-                                from SD.WSF.ws_queries_log where requested_web_service = '$ws' 
+                                from ".$data_ini["triplestore"]["log_table"]." where requested_web_service = '$ws' 
                                 group by request_http_response_status");
 
       if(!odbc_error())
@@ -177,7 +177,7 @@
 
       $statisticsXML .= "      <requestedMimes>\n";
       
-      $resultset = @$db->query("select distinct requested_mime, count(requested_mime) as nb from SD.WSF.ws_queries_log ".
+      $resultset = @$db->query("select distinct requested_mime, count(requested_mime) as nb from ".$data_ini["triplestore"]["log_table"]." ".
                                "where requested_web_service = '$ws' group by requested_mime");
 
       if(!odbc_error())

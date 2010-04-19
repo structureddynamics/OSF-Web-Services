@@ -71,14 +71,14 @@ class Logger
     $requestProcessingTime, $requestHttpResponseStatus, $requesterUserAgent = "")
   {
     include_once("WebService.php");
-
+    
     $data_ini = parse_ini_file(WebService::$data_ini . "data.ini", TRUE);
 
     $this->db = new DB_Virtuoso($data_ini["triplestore"]["username"], $data_ini["triplestore"]["password"],
       $data_ini["triplestore"]["dsn"], $data_ini["triplestore"]["host"]);
 
     $this->db->query(
-      "insert into SD.WSF.ws_queries_log(requested_web_service, requester_ip, request_parameters, requested_mime, request_datetime, request_processing_time, request_http_response_status, requester_user_agent) values('"
+      "insert into ".$data_ini["triplestore"]["log_table"]."(requested_web_service, requester_ip, request_parameters, requested_mime, request_datetime, request_processing_time, request_http_response_status, requester_user_agent) values('"
       . str_replace("'", "\'", $requestedWebService) . "', '" . str_replace("'", "\'", $requesterIp) . "', '"
       . str_replace("'", "\'", $requestParameters) . "', '" . str_replace("'", "\'", $requestedMime) . "', '"
       . str_replace("'", "\'", $requestTime) . "', '" . str_replace("'", "\'", $requestProcessingTime) . "', '"

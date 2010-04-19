@@ -100,23 +100,64 @@ abstract class WebService
     $data_ini = parse_ini_file(self::$data_ini . "data.ini", TRUE);
     $network_ini = parse_ini_file(self::$network_ini . "network.ini", TRUE);
 
-    $this->db_username = $data_ini["triplestore"]["username"];
-    $this->db_password = $data_ini["triplestore"]["password"];
-    $this->db_dsn = $data_ini["triplestore"]["dsn"];
-    $this->db_host = $data_ini["triplestore"]["host"];
+    if(isset($data_ini["triplestore"]["username"]))
+    {
+      $this->db_username = $data_ini["triplestore"]["username"];
+    }
+    
+    if(isset($data_ini["triplestore"]["password"]))
+    {
+      $this->db_password = $data_ini["triplestore"]["password"];
+    }
+    if(isset($data_ini["triplestore"]["dsn"]))
+    {
+      $this->db_dsn = $data_ini["triplestore"]["dsn"];
+    }
+    if(isset($data_ini["triplestore"]["host"]))
+    {
+      $this->db_host = $data_ini["triplestore"]["host"];
+    }
+    
+    if(isset($data_ini["datasets"]["dtd_base"]))
+    {
+      $this->dtdBaseUrl = $data_ini["datasets"]["dtd_base"];
+    }
+    if(isset($data_ini["datasets"]["wsf_graph"]))
+    {
+      $this->wsf_graph = $data_ini["datasets"]["wsf_graph"];
+    }
+    
+    if(isset($network_ini["network"]["wsf_base_url"]))
+    {
+      $this->wsf_base_url = $network_ini["network"]["wsf_base_url"];
+    }
+    if(isset($network_ini["network"]["wsf_base_path"]))
+    {
+      $this->wsf_base_path = $network_ini["network"]["wsf_base_path"];
+    }
+    if(isset($network_ini["network"]["wsf_local_ip"]))
+    {
+      $this->wsf_local_ip = $network_ini["network"]["wsf_local_ip"];
+    }
 
-    $this->dtdBaseUrl = $data_ini["datasets"]["dtd_base"];
-    $this->wsf_graph = $data_ini["datasets"]["wsf_graph"];
+    if(isset($data_ini["solr"]["wsf_solr_core"]))
+    {
+      $this->wsf_solr_core = $data_ini["solr"]["wsf_solr_core"];
+    }
+    
+    if(isset($data_ini["solr"]["host"]))
+    {
+      $this->solr_host = $data_ini["solr"]["host"];
+    }
 
-    $this->wsf_base_url = $network_ini["network"]["wsf_base_url"];
-    $this->wsf_base_path = $network_ini["network"]["wsf_base_path"];
-    $this->wsf_local_ip = $network_ini["network"]["wsf_local_ip"];
-
-    $this->wsf_solr_core = $data_ini["solr"]["wsf_solr_core"];
-    $this->solr_host = $data_ini["solr"]["host"];
-
-    $this->ontologies_files_folder = $data_ini["ontologies"]["ontologies_files_folder"];
-    $this->ontological_structure_folder = $data_ini["ontologies"]["ontological_structure_folder"];
+    if(isset($data_ini["ontologies"]["ontologies_files_folder"]))
+    {
+      $this->ontologies_files_folder = $data_ini["ontologies"]["ontologies_files_folder"];
+    }
+    if(isset($data_ini["ontologies"]["ontological_structure_folder"]))
+    {
+      $this->ontological_structure_folder = $data_ini["ontologies"]["ontological_structure_folder"];
+    }
 
     if(strtolower($data_ini["solr"]["solr_auto_commit"]) == "true" || $data_ini["solr"]["solr_auto_commit"] == "1")
     {

@@ -402,11 +402,12 @@ class Conneg
 
         if(($mime == "text/plain" && array_search("text/plain", $this->supported_serializations) !== FALSE)
           || ($mime == "text/*" && array_search("text/*", $this->supported_serializations) !== FALSE)
+          || ($mime == "application/*" && array_search("application/*", $this->supported_serializations) !== FALSE)
             || ($mime == "*/*" && array_search("*/*", $this->supported_serializations) !== FALSE))
         {
           $this->status = 200;
           $this->statusMsg = "OK";
-          $this->mime = "application/rdf+n3";
+          $this->mime = "text/xml";
 
           $notAcceptable406 = FALSE;
 
@@ -442,6 +443,17 @@ class Conneg
           $this->status = 200;
           $this->statusMsg = "OK";
           $this->mime = "text/xml";
+
+          $notAcceptable406 = FALSE;
+
+          break;
+        }
+
+        if($mime == "application/xml" && array_search("application/xml", $this->supported_serializations) !== FALSE)
+        {
+          $this->status = 200;
+          $this->statusMsg = "OK";
+          $this->mime = "application/xml";
 
           $notAcceptable406 = FALSE;
 

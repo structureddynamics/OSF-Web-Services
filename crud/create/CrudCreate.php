@@ -619,9 +619,6 @@ class CrudCreate extends WebService
             $irs[$uri] = $resourceIndex[$uri];
           }
            
-          $test = $rdfxmlSerializer->getSerializedIndex($irs);
-          
-          
           $this->db->query("DB.DBA.RDF_LOAD_RDFXML_MT('"
             . str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($irs)) . "', '" . $this->dataset . "', '"
             . $this->dataset . "')");

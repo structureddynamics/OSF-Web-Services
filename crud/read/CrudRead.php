@@ -341,8 +341,12 @@ class CrudRead extends WebService
         {
           foreach($values as $value)
           {
-            if($value[1] == "http://www.w3.org/2001/XMLSchema#string")
+            if($value[1] != NULL)
             {
+              /*
+                @TODO The internal XML structure of structWSF should be enhanced with datatypes such as xsd:double, int, 
+                      literal, etc.
+              */
               $pred = $xml->createPredicate($property);
               $object = $xml->createObjectContent($this->xmlEncode($value[0]));
               $pred->appendChild($object);

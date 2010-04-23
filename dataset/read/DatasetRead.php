@@ -341,8 +341,12 @@ class DatasetRead extends WebService
             {
               if(gettype($key) == "integer" && $value != "")
               {
-                if($dd->metaDescription[$predicate]["type"] == "http://www.w3.org/2001/XMLSchema#string")
+                if($dd->metaDescription[$predicate]["type"] != NULL)
                 {
+                  /*
+                    @TODO The internal XML structure of structWSF should be enhanced with datatypes such as xsd:double, int, 
+                          literal, etc.
+                  */                  
                   $pred = $xml->createPredicate($predicate);
                   $object = $xml->createObjectContent($this->xmlEncode($value));
                   $pred->appendChild($object);

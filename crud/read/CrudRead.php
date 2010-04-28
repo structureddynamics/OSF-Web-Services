@@ -55,6 +55,9 @@ class CrudRead extends WebService
   /*! @brief Description of one or multiple datasets */
   private $datasetsDescription = array();
 
+/*! @brief The global datasetis the set of all datasets on an instance. TRUE == we query the global dataset, FALSE we don't. */
+  private $globalDataset = FALSE;
+
   /*! @brief Namespaces/Prefixes binding */
   private $namespaces =
     array ("http://www.w3.org/2002/07/owl#" => "owl", "http://www.w3.org/1999/02/22-rdf-syntax-ns#" => "rdf",
@@ -89,6 +92,12 @@ class CrudRead extends WebService
                           "level": "Warning",
                           "name": "Missing Dataset URIs",
                           "description": "Not all dataset URIs have been defined for each requested record URI. Remember that each URI of the list of URIs have to have a matching dataset URI in the datasets list."
+                        },
+                        "_202": {
+                          "id": "WS-CRUD-READ-202",
+                          "level": "Warning",
+                          "name": "Record URI(s) not existing or not accessible",
+                          "description": "The requested record URI(s) are not existing in this structWSF instance, or are not accessible to the requester. This error is only sent when no data URI are defined."
                         },
                         "_300": {
                           "id": "WS-CRUD-READ-300",
@@ -153,6 +162,12 @@ class CrudRead extends WebService
     $this->db = new DB_Virtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 
     $this->dataset = $dataset;
+
+    // If no dataset URI is defined for this query, we simply query all datasets accessible by the requester.
+    if($this->dataset == "")
+    {
+      $this->globalDataset = TRUE;
+    }
 
     $this->resourceUri = $uri;
 
@@ -219,52 +234,111 @@ class CrudRead extends WebService
   */
   protected function validateQuery()
   {
-    $datasets = explode(";", $this->dataset);
-
-    $datasets = array_unique($datasets);
-
-    // Validate for each requested records of each dataset
-    foreach($datasets as $dataset)
+    /*
+      Check if dataset(s) URI(s) have been defined for this request. If not, then we query the
+      AuthLister web service endpoint to get the list of datasets accessible by this user to see
+      if the URI he wants to read is defined in one of these accessible dataset. 
+     */
+    if($this->globalDataset === TRUE)
     {
-      // Validation of the "requester_ip" to make sure the system that is sending the query as the rights.
-      $ws_av = new AuthValidator($this->requester_ip, $dataset, $this->uri);
+      include_once("../../auth/lister/AuthLister.php");
 
-      $ws_av->pipeline_conneg("text/xml", $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(),
-        $this->conneg->getAcceptLanguage());
+      $ws_al = new AuthLister("access_user", "", $this->registered_ip, $this->wsf_local_ip);
 
-      $ws_av->process();
+      $ws_al->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
+        $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
 
-      if($ws_av->pipeline_getResponseHeaderStatus() != 200)
+      $ws_al->process();
+
+      $xml = new ProcessorXML();
+      $xml->loadXML($ws_al->pipeline_getResultset());
+
+      $accesses = $xml->getSubjectsByType("wsf:Access");
+
+      $accessibleDatasets = array();
+      
+      foreach($accesses as $access)
       {
-        $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
-        $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
-        $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-        $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
-          $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
-          $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
+        $predicates = $xml->getPredicatesByType($access, "wsf:datasetAccess");
+        $objects = $xml->getObjects($predicates->item(0));
+        $datasetUri = $xml->getURI($objects->item(0));
+
+        $predicates = $xml->getPredicatesByType($access, "wsf:read");
+        $objects = $xml->getObjects($predicates->item(0));
+        $read = $xml->getContent($objects->item(0));
+
+        if(strtolower($read) == "true")
+        {
+          $this->dataset .= "$datasetUri;";
+          array_push($accessibleDatasets, $datasetUri);
+        }
+      }
+
+      if(count($accessibleDatasets) <= 0)
+      {
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_202->name);
+        $this->conneg->setError($this->errorMessenger->_202->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_202->name, $this->errorMessenger->_202->description, "",
+          $this->errorMessenger->_202->level);
 
         return;
       }
 
-      unset($ws_av);
+      unset($ws_al);
 
-      // Validation of the "registered_ip" to make sure the user of this system has the rights
-      $ws_av = new AuthValidator($this->registered_ip, $dataset, $this->uri);
+      $this->dataset = rtrim($this->dataset, ";");
+    }
+    else
+    {
+      $datasets = explode(";", $this->dataset);
 
-      $ws_av->pipeline_conneg("text/xml", $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(),
-        $this->conneg->getAcceptLanguage());
+      $datasets = array_unique($datasets);
 
-      $ws_av->process();
-
-      if($ws_av->pipeline_getResponseHeaderStatus() != 200)
+      // Validate for each requested records of each dataset
+      foreach($datasets as $dataset)
       {
-        $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
-        $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
-        $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-        $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
-          $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
-          $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
-        return;
+        // Validation of the "requester_ip" to make sure the system that is sending the query as the rights.
+        $ws_av = new AuthValidator($this->requester_ip, $dataset, $this->uri);
+
+        $ws_av->pipeline_conneg("text/xml", $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(),
+          $this->conneg->getAcceptLanguage());
+
+        $ws_av->process();
+
+        if($ws_av->pipeline_getResponseHeaderStatus() != 200)
+        {
+          $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
+          $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
+          $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
+          $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
+            $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
+            $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
+
+          return;
+        }
+
+        unset($ws_av);
+
+        // Validation of the "registered_ip" to make sure the user of this system has the rights
+        $ws_av = new AuthValidator($this->registered_ip, $dataset, $this->uri);
+
+        $ws_av->pipeline_conneg("text/xml", $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(),
+          $this->conneg->getAcceptLanguage());
+
+        $ws_av->process();
+
+        if($ws_av->pipeline_getResponseHeaderStatus() != 200)
+        {
+          $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
+          $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
+          $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
+          $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
+            $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
+            $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
+          return;
+        }
       }
     }
   }
@@ -479,21 +553,23 @@ class CrudRead extends WebService
       }
     }
 
-    // Check if we have the same number of URIs than Dataset URIs
-    $uris = explode(";", $this->resourceUri);
-
-    $datasets = explode(";", $this->dataset);
-
-    if(count($uris) != count($datasets))
+    // Check if we have the same number of URIs than Dataset URIs (only if at least one dataset URI is defined).
+    if($this->globalDataset === FALSE)
     {
-      $this->conneg->setStatus(400);
-      $this->conneg->setStatusMsg("Bad Request");
-      $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
-      $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
-        $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, "",
-        $this->errorMessenger->_201->level);
+      $uris = explode(";", $this->resourceUri);
+      $datasets = explode(";", $this->dataset);
 
-      return;
+      if(count($uris) != count($datasets))
+      {
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
+        $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, "",
+          $this->errorMessenger->_201->level);
+
+        return;
+      }
     }
   }
 
@@ -854,65 +930,65 @@ class CrudRead extends WebService
                 $json_part .= "            \"".parent::jsonEncode($predicateType)."\": { \n";
                 $json_part .= "                \"uri\": \"".parent::jsonEncode($objectURI)."\", \n";
                 
-                                // Check if there is a reification statement for this object.
-                                  $reifies = $xml->getReificationStatements($object);
-                                
-                                  $nbReification = 0;
-                                
-                                  foreach($reifies as $reify)
-                                  {
-                                    $nbReification++;
-                                    
-                                    if($nbReification > 0)
-                                    {
-                                      $json_part .= "               \"reifies\": [\n";
-                                    }
-                                    
-                                    $json_part .= "                 { \n";
-                                    $json_part .= "                     \"type\": \"wsf:objectLabel\", \n";
-                                    $json_part .= "                     \"value\": \"".parent::jsonEncode($xml->getValue($reify))."\" \n";
-                                    $json_part .= "                 },\n";
-                                  }
-                                  
-                                  if($nbReification > 0)
-                                  {
-                                    $json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
-                                    
-                                    $json_part .= "               ]\n";
-                                  }
-                                  else
-                                  {
-                                    $json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
-                                  }                
-                                                  
-                                  
-                                  $json_part .= "                } \n";
-                                  $json_part .= "          },\n";
-                                }
+                          // Check if there is a reification statement for this object.
+                            $reifies = $xml->getReificationStatements($object);
+                          
+                            $nbReification = 0;
+                          
+                            foreach($reifies as $reify)
+                            {
+                              $nbReification++;
+                              
+                              if($nbReification > 0)
+                              {
+                                $json_part .= "               \"reifies\": [\n";
                               }
+                              
+                              $json_part .= "                 { \n";
+                              $json_part .= "                     \"type\": \"wsf:objectLabel\", \n";
+                              $json_part .= "                     \"value\": \"".parent::jsonEncode($xml->getValue($reify))."\" \n";
+                              $json_part .= "                 },\n";
                             }
                             
-                            if(strlen($json_part) > 0)
+                            if($nbReification > 0)
                             {
                               $json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
-                            }            
-                            
-                            if($nbPredicates > 0)
-                            {
-                              $json_part .= "        ]\n";
+                              
+                              $json_part .= "               ]\n";
                             }
+                            else
+                            {
+                              $json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
+                            }                
+                                            
                             
-                            $json_part .= "      },\n";          
+                            $json_part .= "                } \n";
+                            $json_part .= "          },\n";
                           }
-                          
-                          if(strlen($json_part) > 0)
-                          {
-                            $json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
-                          }
-                          
-                  
-                          return($json_part);    
-                          */
+                        }
+                      }
+                      
+                      if(strlen($json_part) > 0)
+                      {
+                        $json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
+                      }            
+                      
+                      if($nbPredicates > 0)
+                      {
+                        $json_part .= "        ]\n";
+                      }
+                      
+                      $json_part .= "      },\n";          
+                    }
+                    
+                    if(strlen($json_part) > 0)
+                    {
+                      $json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
+                    }
+                    
+            
+                    return($json_part);    
+                    */
       break;
 
       case "application/rdf+n3":
@@ -1355,9 +1431,30 @@ class CrudRead extends WebService
 
         $query = "";
 
-        // Archiving suject triples
-        $query = $this->db->build_sparql_query("select ?p ?o (DATATYPE(?o)) as ?otype from <" . $d . "> where {<" . $u
-          . "> ?p ?o.}", array ('p', 'o', 'otype'), FALSE);
+        if($this->globalDataset === FALSE)
+        {
+          $d = str_ireplace("%3B", ";", $datasets[$key]);
+
+          // Archiving suject triples
+          $query = $this->db->build_sparql_query("select ?p ?o (DATATYPE(?o)) as ?otype from <" . $d . "> where {<" . $u
+            . "> ?p ?o.}", array ('p', 'o', 'otype'), FALSE);
+        }
+        else
+        {
+          $d = "";
+
+          foreach($datasets as $dataset)
+          {
+            if($dataset != "")
+            {
+              $d .= " from named <$dataset> ";
+            }
+          }
+
+          // Archiving suject triples
+          $query = $this->db->build_sparql_query("select ?p ?o (DATATYPE(?o)) as ?otype $d where {graph ?g{<" . $u
+            . "> ?p ?o.}}", array ('p', 'o', 'otype'), FALSE);
+        }
 
         $resultset = $this->db->query($query);
 
@@ -1401,8 +1498,30 @@ class CrudRead extends WebService
         // Archiving object triples
         if(strtolower($this->include_linksback) == "true")
         {
-          $query = $this->db->build_sparql_query("select ?s ?p from <" . $d . "> where {?s ?p <" . $u . ">.}",
-            array ('s', 'p'), FALSE);
+
+          $query = "";
+
+          if($this->globalDataset === FALSE)
+          {
+            $query = $this->db->build_sparql_query("select ?s ?p from <" . $d . "> where {?s ?p <" . $u . ">.}",
+              array ('s', 'p'), FALSE);
+          }
+          else
+          {
+            $d = "";
+
+            foreach($datasets as $dataset)
+            {
+              if($dataset != "")
+              {
+                $d .= " from named <$dataset> ";
+              }
+            }
+
+            $query =
+              $this->db->build_sparql_query("select ?s ?p $d where {graph ?g{?s ?p <" . $u . ">.}}", array ('s', 'p'),
+                FALSE);
+          }
 
           $resultset = $this->db->query($query);
 
@@ -1435,16 +1554,48 @@ class CrudRead extends WebService
         // Get reification triples
         if(strtolower($this->include_reification) == "true")
         {
-          $query = "  select ?rei_p ?rei_o ?p ?o from <" . $d . "reification/> 
-                  where 
-                  {
-                    ?statement <http://www.w3.org/1999/02/22-rdf-syntax-ns#subject> <"
-            . $u
-            . ">.
-                    ?statement <http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate> ?rei_p.
-                    ?statement <http://www.w3.org/1999/02/22-rdf-syntax-ns#object> ?rei_o.
-                    ?statement ?p ?o.
-                  }";
+
+          $query = "";
+
+          if($this->globalDataset === FALSE)
+          {
+            $query = "  select ?rei_p ?rei_o ?p ?o from <" . $d . "reification/> 
+                    where 
+                    {
+                      ?statement <http://www.w3.org/1999/02/22-rdf-syntax-ns#subject> <"
+              . $u
+              . ">.
+                      ?statement <http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate> ?rei_p.
+                      ?statement <http://www.w3.org/1999/02/22-rdf-syntax-ns#object> ?rei_o.
+                      ?statement ?p ?o.
+                    }";
+          }
+          else
+          {
+            $d = "";
+
+            foreach($datasets as $dataset)
+            {
+              if($dataset != "")
+              {
+                $d .= " from named <" . $dataset . "reification/> ";
+              }
+            }
+
+            $query = "  select ?rei_p ?rei_o ?p ?o $d 
+                    where 
+                    {
+                      graph ?g
+                      {
+                        ?statement <http://www.w3.org/1999/02/22-rdf-syntax-ns#subject> <"
+              . $u
+                . ">.
+                        ?statement <http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate> ?rei_p.
+                        ?statement <http://www.w3.org/1999/02/22-rdf-syntax-ns#object> ?rei_o.
+                        ?statement ?p ?o.
+                      }
+                    }";
+          }
 
           $query = $this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
             array ('rei_p', 'rei_o', 'p', 'o'), FALSE);

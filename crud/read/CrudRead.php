@@ -256,7 +256,7 @@ class CrudRead extends WebService
       $accesses = $xml->getSubjectsByType("wsf:Access");
 
       $accessibleDatasets = array();
-      
+
       foreach($accesses as $access)
       {
         $predicates = $xml->getPredicatesByType($access, "wsf:datasetAccess");
@@ -671,30 +671,16 @@ class CrudRead extends WebService
         $d = str_replace("/wsf/datasets/", "/conStruct/datasets/", $d) . "resource/";
         ///////////////
 
-        // Inline dataset description
-        $inlineDatasetDescription =
-          "
-        
-            <subject type=\"http://rdfs.org/ns/void#Dataset\" uri=\"" . $d
-          . "\">
-              <predicate type=\"http://purl.org/ontology/iron#schema\">
-                <object type=\"rdfs:Literal\">http://www.bibkn.org/drupal/bibjson/bibjson_schema.json</object>
-              </predicate>
-              <predicate type=\"http://purl.org/ontology/iron#linkage\">
-                <object type=\"rdfs:Literal\">http://www.bibkn.org/drupal/bibjson/iron_linkage.json</object>
-              </predicate>
-              <predicate type=\"http://purl.org/ontology/iron#linkage\">
-                <object type=\"rdfs:Literal\">http://www.bibkn.org/drupal/bibjson/schramm_linkage.json</object>
-              </predicate>
-            </subject>
-          </resultset>
-        
-        ";
 
-        $documentToConvert = str_replace("</resultset>", $inlineDatasetDescription, $documentToConvert);
+        /*
+          @TODO In the future, we will have to include the dataset's meta-data information in the data to convert.
+                This meta-data include: its name, description, creator, maintainer, owner, schema and linkage.
+                
+                This will be done by querying the DatasetRead web service endpoint for the "$d" dataset
+        */
 
         $ws_irv =
-          new ConverterIrJSON($documentToConvert, "text/xml", "false", $this->registered_ip, $this->requester_ip);
+          new ConverterIrJSON($documentToConvert, "text/xml", "true", $this->registered_ip, $this->requester_ip);
 
         $ws_irv->pipeline_conneg("application/iron+json", $this->conneg->getAcceptCharset(),
           $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
@@ -930,65 +916,65 @@ class CrudRead extends WebService
                 $json_part .= "            \"".parent::jsonEncode($predicateType)."\": { \n";
                 $json_part .= "                \"uri\": \"".parent::jsonEncode($objectURI)."\", \n";
                 
-                          // Check if there is a reification statement for this object.
-                            $reifies = $xml->getReificationStatements($object);
-                          
-                            $nbReification = 0;
-                          
-                            foreach($reifies as $reify)
-                            {
-                              $nbReification++;
-                              
-                              if($nbReification > 0)
-                              {
-                                $json_part .= "               \"reifies\": [\n";
+                                // Check if there is a reification statement for this object.
+                                  $reifies = $xml->getReificationStatements($object);
+                                
+                                  $nbReification = 0;
+                                
+                                  foreach($reifies as $reify)
+                                  {
+                                    $nbReification++;
+                                    
+                                    if($nbReification > 0)
+                                    {
+                                      $json_part .= "               \"reifies\": [\n";
+                                    }
+                                    
+                                    $json_part .= "                 { \n";
+                                    $json_part .= "                     \"type\": \"wsf:objectLabel\", \n";
+                                    $json_part .= "                     \"value\": \"".parent::jsonEncode($xml->getValue($reify))."\" \n";
+                                    $json_part .= "                 },\n";
+                                  }
+                                  
+                                  if($nbReification > 0)
+                                  {
+                                    $json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
+                                    
+                                    $json_part .= "               ]\n";
+                                  }
+                                  else
+                                  {
+                                    $json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
+                                  }                
+                                                  
+                                  
+                                  $json_part .= "                } \n";
+                                  $json_part .= "          },\n";
+                                }
                               }
-                              
-                              $json_part .= "                 { \n";
-                              $json_part .= "                     \"type\": \"wsf:objectLabel\", \n";
-                              $json_part .= "                     \"value\": \"".parent::jsonEncode($xml->getValue($reify))."\" \n";
-                              $json_part .= "                 },\n";
                             }
                             
-                            if($nbReification > 0)
+                            if(strlen($json_part) > 0)
                             {
                               $json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
-                              
-                              $json_part .= "               ]\n";
-                            }
-                            else
-                            {
-                              $json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
-                            }                
-                                            
+                            }            
                             
-                            $json_part .= "                } \n";
-                            $json_part .= "          },\n";
+                            if($nbPredicates > 0)
+                            {
+                              $json_part .= "        ]\n";
+                            }
+                            
+                            $json_part .= "      },\n";          
                           }
-                        }
-                      }
-                      
-                      if(strlen($json_part) > 0)
-                      {
-                        $json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
-                      }            
-                      
-                      if($nbPredicates > 0)
-                      {
-                        $json_part .= "        ]\n";
-                      }
-                      
-                      $json_part .= "      },\n";          
-                    }
-                    
-                    if(strlen($json_part) > 0)
-                    {
-                      $json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
-                    }
-                    
-            
-                    return($json_part);    
-                    */
+                          
+                          if(strlen($json_part) > 0)
+                          {
+                            $json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
+                          }
+                          
+                  
+                          return($json_part);    
+                          */
       break;
 
       case "application/rdf+n3":

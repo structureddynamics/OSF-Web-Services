@@ -1078,7 +1078,7 @@ class DatasetRead extends WebService
           // We have to add the meta information if available
           if($meta != "" && $this->addMeta == "true")
           {
-            $query = "select ?p ?o (str(DATATYPE(?o))) as ?otype
+            $query = "select ?p ?o (str(DATATYPE(?o))) as ?otype (LANG(?o)) as ?olang
                     from <" . $this->wsf_graph . "datasets/>
                     where
                     {
@@ -1087,7 +1087,7 @@ class DatasetRead extends WebService
 
             $resultset =
               @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
-                array ('p', 'o', 'otype'), FALSE));
+                array ('p', 'o', 'otype', 'olang'), FALSE));
 
             $contributors = array();
 
@@ -1109,6 +1109,7 @@ class DatasetRead extends WebService
                 $predicate = odbc_result($resultset, 1);
                 $object = odbc_result($resultset, 2);
                 $otype = odbc_result($resultset, 3);
+                $olang = odbc_result($resultset, 4);
 
                 if(isset($metaDescription[$predicate]))
                 {
@@ -1117,7 +1118,16 @@ class DatasetRead extends WebService
                 else
                 {
                   $metaDescription[$predicate] = array( $object );
-                  $metaDescription[$predicate]["type"] = $otype;
+                  
+                  if($olang && $olang != "")
+                  {
+                    /* If a language is defined for an object, we force its type to be xsd:string */
+                    $metaDescription[$predicate]["type"] = "http://www.w3.org/2001/XMLSchema#string";
+                  }
+                  else
+                  {
+                    $metaDescription[$predicate]["type"] = $otype;
+                  }
                 }
               }
             }
@@ -1231,7 +1241,7 @@ class DatasetRead extends WebService
             // We have to add the meta information if available
             if($meta != "" && $this->addMeta == "true")
             {
-              $query = "select ?p ?o (str(DATATYPE(?o))) as ?otype
+              $query = "select ?p ?o (str(DATATYPE(?o))) as ?otype (LANG(?o)) as ?olang
                       from <" . $this->wsf_graph . "datasets/>
                       where
                       {
@@ -1240,7 +1250,7 @@ class DatasetRead extends WebService
 
               $resultset =
                 @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
-                  array ('p', 'o', 'otype'), FALSE));
+                  array ('p', 'o', 'otype', 'olang'), FALSE));
 
               $contributors = array();
 
@@ -1262,6 +1272,7 @@ class DatasetRead extends WebService
                   $predicate = odbc_result($resultset, 1);
                   $object = odbc_result($resultset, 2);
                   $otype = odbc_result($resultset, 3);
+                  $olang = odbc_result($resultset, 4);
 
                   if(isset($metaDescription[$predicate]))
                   {
@@ -1270,7 +1281,16 @@ class DatasetRead extends WebService
                   else
                   {
                     $metaDescription[$predicate] = array( $object );
-                    $metaDescription[$predicate]["type"] = $otype;
+                    
+                    if($olang && $olang != "")
+                    {
+                      /* If a language is defined for an object, we force its type to be xsd:string */
+                      $metaDescription[$predicate]["type"] = "http://www.w3.org/2001/XMLSchema#string";
+                    }
+                    else
+                    {                    
+                      $metaDescription[$predicate]["type"] = $otype;
+                    }
                   }
                 }
               }

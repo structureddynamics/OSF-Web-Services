@@ -1411,6 +1411,7 @@ class CrudRead extends WebService
 
       foreach($uris as $key => $u)
       {
+
         // Decode potentially encoded ";" character.
         $u = str_ireplace("%3B", ";", $u);
         $d = str_ireplace("%3B", ";", $datasets[$key]);
@@ -1422,8 +1423,9 @@ class CrudRead extends WebService
           $d = str_ireplace("%3B", ";", $datasets[$key]);
 
           // Archiving suject triples
-          $query = $this->db->build_sparql_query("select ?p ?o (DATATYPE(?o)) as ?otype from <" . $d . "> where {<" . $u
-            . "> ?p ?o.}", array ('p', 'o', 'otype'), FALSE);
+          $query = $this->db->build_sparql_query("select ?p ?o (DATATYPE(?o)) as ?otype (LANG(?o)) as ?olang "
+            . "from <" . $d . "> where {<" . $u
+            . "> ?p ?o.}", array ('p', 'o', 'otype', 'olang'), FALSE);
         }
         else
         {
@@ -1438,8 +1440,9 @@ class CrudRead extends WebService
           }
 
           // Archiving suject triples
-          $query = $this->db->build_sparql_query("select ?p ?o (DATATYPE(?o)) as ?otype $d where {graph ?g{<" . $u
-            . "> ?p ?o.}}", array ('p', 'o', 'otype'), FALSE);
+          $query = $this->db->build_sparql_query("select ?p ?o (DATATYPE(?o)) as ?otype (LANG(?o)) as ?olang "
+            . " $d where {graph ?g{<" . $u
+            . "> ?p ?o.}}", array ('p', 'o', 'otype', 'olang'), FALSE);
         }
 
         $resultset = $this->db->query($query);
@@ -1460,13 +1463,22 @@ class CrudRead extends WebService
           $o = odbc_result($resultset, 2);
 
           $otype = odbc_result($resultset, 3);
+          $olang = odbc_result($resultset, 4);
 
           if(!isset($this->subjectTriples[$u][$p]))
           {
             $this->subjectTriples[$u][$p] = array();
           }
 
-          array_push($this->subjectTriples[$u][$p], array ($o, $otype));
+          if($olang && $olang != "")
+          {
+            /* If a language is defined for an object, we force its type to be xsd:string */
+            array_push($this->subjectTriples[$u][$p], array ($o, "http://www.w3.org/2001/XMLSchema#string"));  
+          }
+          else
+          {
+            array_push($this->subjectTriples[$u][$p], array ($o, $otype));  
+          }
         }
 
         if(count($this->subjectTriples) <= 0)
@@ -1484,7 +1496,6 @@ class CrudRead extends WebService
         // Archiving object triples
         if(strtolower($this->include_linksback) == "true")
         {
-
           $query = "";
 
           if($this->globalDataset === FALSE)

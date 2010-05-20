@@ -649,7 +649,7 @@ class OntologyCreate extends WebService
           }
 
           $query = $this->db->build_sparql_query("select ?s from <" . $this->wsf_graph
-            . "ontologies/> where {?s a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Class>.}", array( 's' ), FALSE);
+            . "ontologies/> where {?s a <http://www.w3.org/2000/01/rdf-schema#Class>.}", array( 's' ), FALSE);
 
           $resultset = $this->db->query($query);
 

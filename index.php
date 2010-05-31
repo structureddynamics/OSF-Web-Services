@@ -19,7 +19,7 @@
 	
 	// The Web server has to have writing permissions on the SID directory
 	// This variable as to be properly setuped in to have a properly working SID.
-	$sidDirectory = "//";
+	$sidDirectory = "";
 	
 	if(($hFile = @fopen($sidDirectory."server.sid", "x+")) === FALSE)
 	{

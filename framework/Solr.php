@@ -168,10 +168,15 @@ class Solr
   {
     $ch = curl_init();
 
-    curl_setopt($ch, CURLOPT_HEADER, 0);
-    curl_setopt($ch, CURLOPT_URL, $this->selectUrl . "?" . str_replace(" ", "%20", $query));
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+  
+    $headers = array( "Content-Type: text/xml" );    
 
+    curl_setopt($ch, CURLOPT_HEADER, 0);
+    curl_setopt($ch, CURLOPT_URL, $this->selectUrl);
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $query);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    
     $data = curl_exec($ch);
 
     if(curl_errno($ch))

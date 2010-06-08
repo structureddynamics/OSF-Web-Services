@@ -54,6 +54,9 @@ class OntologyCreate extends WebService
 
   /*! @brief Requester's IP used for request validation */
   private $requester_ip = "";
+  
+  /*! @brief URI of the inference rules set to use to create the ontological structure. */
+  private $rulesSetURI = "";
 
   /*! @brief Error messages of this web service */
   private $errorMessenger =
@@ -212,6 +215,8 @@ class OntologyCreate extends WebService
     $this->ontology = str_replace("'", "\'", $ontology);
     $this->mime = $mime;
     $this->action = $action;
+    
+    $this->rulesSetURI = "wsf_inference_rule".ereg_replace("[^A-Za-z0-9]", "", $this->wsf_base_url);
 
     if($this->registered_ip == "")
     {
@@ -552,7 +557,7 @@ class OntologyCreate extends WebService
         if($this->action == "recreate_inference")
         {
           // Clean the inference table
-          $this->db->query("rdfs_rule_set('wsf_inference_rule1', '" . $this->wsf_graph . "ontologies/inferred/', 1)");
+          $this->db->query("rdfs_rule_set('".$this->rulesSetURI."', '" . $this->wsf_graph . "ontologies/inferred/', 1)");
 
           if(odbc_error())
           {
@@ -567,7 +572,7 @@ class OntologyCreate extends WebService
           }
 
           // Recreatethe inference table
-          $this->db->query("rdfs_rule_set('wsf_inference_rule1', '" . $this->wsf_graph . "ontologies/inferred/')");
+          $this->db->query("rdfs_rule_set('".$this->rulesSetURI."', '" . $this->wsf_graph . "ontologies/inferred/')");
 
           if(odbc_error())
           {

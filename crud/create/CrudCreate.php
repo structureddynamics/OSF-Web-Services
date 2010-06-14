@@ -524,10 +524,18 @@ class CrudCreate extends WebService
 
         if(count($parser->getErrors()) > 0)
         {
+          $errorsOutput = "";
+          $errors = $parser->getErrors();
+
+          foreach($errors as $key => $error)
+          {
+            $errorsOutput .= "[Error #$key] $error\n";
+          }
+
           $this->conneg->setStatus(400);
           $this->conneg->setStatusMsg("Bad Request");
           $this->conneg->setError($this->errorMessenger->_301->id, $this->errorMessenger->ws,
-            $this->errorMessenger->_301->name, $this->errorMessenger->_301->description, "",
+            $this->errorMessenger->_301->name, $this->errorMessenger->_301->description, $errorsOutput,
             $this->errorMessenger->_301->level);
 
           return;
@@ -618,7 +626,7 @@ class CrudCreate extends WebService
           {
             $irs[$uri] = $resourceIndex[$uri];
           }
-           
+
           $this->db->query("DB.DBA.RDF_LOAD_RDFXML_MT('"
             . str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($irs)) . "', '" . $this->dataset . "', '"
             . $this->dataset . "')");

@@ -134,7 +134,18 @@ class DatasetCreate extends WebService
     }
   }
 
-  /*!   @brief Validate a query to this web service
+  /*! @brief Validate a query to this web service
+  
+      @details If a user wants to create a new dataset on a given structWSF web service endpoint,
+      he has to have access to the "http://.../wsf/datasets/" graph with Create privileges. If
+      the users doesn't have these permissions, then he won't be able to create a new dataset
+      on the instance.
+      
+      By default, only the administrators have such an access on a structWSF instance. However
+      a system administrator can choose to make the "http://.../wsf/datasets/" world creatable,
+      which would mean that anybody could create new datasets on the instance. Additionally
+      an administrator could setup these permissions for a single user too. This user could create
+      new datasets, but he won't be able to delete the ones from others, etc.
               
       \n
       
@@ -148,6 +159,9 @@ class DatasetCreate extends WebService
   */
   protected function validateQuery()
   {
+
+    // Only users that have "Create" access to the "http://.../wsf/datasets/" graph can create new dataset
+    // in the structWSF instance.
     $ws_av = new AuthValidator($this->requester_ip, $this->wsf_graph . "datasets/", $this->uri);
 
     $ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
@@ -446,6 +460,98 @@ class DatasetCreate extends WebService
 
         return;
       }
+
+      /* 
+        If the dataset has been created, the next step is to create the permissions for this user (full crud)
+        and for the public one (no crud).
+      */
+
+      /* Get the list of web services registered to this structWSF instance. */
+      $ws_al = new AuthLister("ws", $this->datasetUri, $this->requester_ip, $this->wsf_local_ip);
+
+      $ws_al->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
+        $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
+
+      $ws_al->process();
+
+      if($ws_al->pipeline_getResponseHeaderStatus() != 200)
+      {
+        $this->conneg->setStatus($ws_al->pipeline_getResponseHeaderStatus());
+        $this->conneg->setStatusMsg($ws_al->pipeline_getResponseHeaderStatusMsg());
+        $this->conneg->setStatusMsgExt($ws_al->pipeline_getResponseHeaderStatusMsgExt());
+        $this->conneg->setError($ws_al->pipeline_getError()->id, $ws_al->pipeline_getError()->webservice,
+          $ws_al->pipeline_getError()->name, $ws_al->pipeline_getError()->description,
+          $ws_al->pipeline_getError()->debugInfo, $ws_al->pipeline_getError()->level);
+
+        return;
+      }
+
+      /* Get all web services */
+      $webservices = "";
+
+      $xml = new ProcessorXML();
+      $xml->loadXML($ws_al->pipeline_getResultset());
+
+      $webServiceElements = $xml->getXPath('//predicate/object[attribute::type="wsf:WebService"]');
+
+      foreach($webServiceElements as $element)
+      {
+        $webservices .= $xml->getURI($element) . ";";
+      }
+
+      $webservices = substr($webservices, 0, strlen($webservices) - 1);
+
+      unset($ws_al);
+      unset($xml);
+
+      /* Register full CRUD for the creator of the dataset, for the dataset's ID */
+
+      $ws_ara = new AuthRegistrarAccess("True;True;True;True", $webservices, $this->datasetUri, "create", "",
+        $this->requester_ip, $this->wsf_local_ip);
+
+      $ws_ara->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
+        $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
+
+      $ws_ara->process();
+
+      if($ws_ara->pipeline_getResponseHeaderStatus() != 200)
+      {
+        $this->conneg->setStatus($ws_ara->pipeline_getResponseHeaderStatus());
+        $this->conneg->setStatusMsg($ws_ara->pipeline_getResponseHeaderStatusMsg());
+        $this->conneg->setStatusMsgExt($ws_ara->pipeline_getResponseHeaderStatusMsgExt());
+        $this->conneg->setError($ws_ara->pipeline_getError()->id, $ws_ara->pipeline_getError()->webservice,
+          $ws_ara->pipeline_getError()->name, $ws_ara->pipeline_getError()->description,
+          $ws_ara->pipeline_getError()->debugInfo, $ws_ara->pipeline_getError()->level);
+
+        return;
+      }
+
+      unset($ws_ara);
+
+      /* Register no CRUD for the public user, for the dataset's ID */
+
+      $ws_ara =
+        new AuthRegistrarAccess("False;False;False;False", $webservices, $this->datasetUri, "create", "", "0.0.0.0",
+          $this->wsf_local_ip);
+
+      $ws_ara->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
+        $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
+
+      $ws_ara->process();
+
+      if($ws_ara->pipeline_getResponseHeaderStatus() != 200)
+      {
+        $this->conneg->setStatus($ws_ara->pipeline_getResponseHeaderStatus());
+        $this->conneg->setStatusMsg($ws_ara->pipeline_getResponseHeaderStatusMsg());
+        $this->conneg->setStatusMsgExt($ws_ara->pipeline_getResponseHeaderStatusMsgExt());
+        $this->conneg->setError($ws_ara->pipeline_getError()->id, $ws_ara->pipeline_getError()->webservice,
+          $ws_ara->pipeline_getError()->name, $ws_ara->pipeline_getError()->description,
+          $ws_ara->pipeline_getError()->debugInfo, $ws_ara->pipeline_getError()->level);
+
+        return;
+      }
+
+      unset($ws_ara);
     }
   }
 }

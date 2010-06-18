@@ -157,7 +157,16 @@ class DatasetUpdate extends WebService
     }
   }
 
-  /*!   @brief Validate a query to this web service
+  /*! @brief Validate a query to this web service
+      
+      @details If a user wants to update information about a dataset on a given structWSF web service endpoint,
+      he has to have access to the "http://.../wsf/datasets/" graph with Update privileges, or to have
+      Update privileges on the dataset URI itself. If the users doesn't have these permissions, 
+      then he won't be able to update the description of the dataset on that instance.
+      
+      By default, the administrators, and the creator of the dataset, have such an access on a structWSF instance. 
+      However a system administrator can choose to make the "http://.../wsf/datasets/" world updatable,
+      which would mean that anybody could update information about the datasets on the instance.      
               
       \n
       
@@ -171,6 +180,7 @@ class DatasetUpdate extends WebService
   */
   protected function validateQuery()
   {
+    // Check if the requester has access to the main "http://.../wsf/datasets/" graph.
     $ws_av = new AuthValidator($this->requester_ip, $this->wsf_graph . "datasets/", $this->uri);
 
     $ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
@@ -180,14 +190,25 @@ class DatasetUpdate extends WebService
 
     if($ws_av->pipeline_getResponseHeaderStatus() != 200)
     {
-      $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
-      $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
-      $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-      $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
-        $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
-        $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
+      // If he doesn't, then check if he has access to the dataset itself
+      $ws_av2 = new AuthValidator($this->requester_ip, $this->datasetUri, $this->uri);
 
-      return;
+      $ws_av2->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
+        $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
+
+      $ws_av2->process();
+
+      if($ws_av2->pipeline_getResponseHeaderStatus() != 200)
+      {
+        $this->conneg->setStatus($ws_av2->pipeline_getResponseHeaderStatus());
+        $this->conneg->setStatusMsg($ws_av2->pipeline_getResponseHeaderStatusMsg());
+        $this->conneg->setStatusMsgExt($ws_av2->pipeline_getResponseHeaderStatusMsgExt());
+        $this->conneg->setError($ws_av2->pipeline_getError()->id, $ws_av2->pipeline_getError()->webservice,
+          $ws_av2->pipeline_getError()->name, $ws_av2->pipeline_getError()->description,
+          $ws_av2->pipeline_getError()->debugInfo, $ws_av2->pipeline_getError()->level);
+
+        return;
+      }
     }
   }
 

@@ -34,6 +34,8 @@ include_once("../../framework/ProcessorXML.php");
 
 include_once("DatasetCreate.php");
 include_once("../../auth/validator/AuthValidator.php");
+include_once("../../auth/registrar/access/AuthRegistrarAccess.php");
+include_once("../../auth/lister/AuthLister.php");
 
 include_once("../../framework/Logger.php");
 

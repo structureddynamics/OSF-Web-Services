@@ -143,7 +143,7 @@ class AuthValidator extends WebService
       \n\n\n
   */
   function __construct($requester_ip, $requested_datasets, $requested_ws_uri)
-  {
+  { 
     parent::__construct();
 
     $this->db = new DB_Virtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);

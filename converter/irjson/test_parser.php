@@ -1,12 +1,13 @@
 <?php
+include_once("Dataset.php");
 
-        include_once("Dataset.php");
-        include_once("InstanceRecord.php");
-        include_once("LinkageSchema.php");
-        include_once("StructureSchema.php");
-        include_once("irJSONParser.php");
+include_once("InstanceRecord.php");
+include_once("LinkageSchema.php");
+include_once("StructureSchema.php");
+include_once("irJSONParser.php");
 
-        $irJSONFile = "{
+$irJSONFile =
+  "{
                                                     \"dataset\": {
                                                         \"id\": \"http://bibserver.berkeley.edu/datasets/\",
                                                         \"prefLabel\": \"Publications of James Pitman\",
@@ -244,65 +245,75 @@
                                                     ]
                                                 }";
 
+$parser = new irJSONParser($irJSONFile);
 
-        $parser = new irJSONParser($irJSONFile);
-       
-        if(count($parser->jsonErrors) > 0)
-        {
-                echo "<h2>JSON Parsing Errors</h2>";
-               
-                echo "<ul>\n";
-                foreach($parser->jsonErrors as $error)
-                {
-                        echo "<li>$error</li>\n";
-                }
-                echo "<ul>\n";
-        }
-       
-        if(count($parser->irjsonErrors) > 0)
-        {
-                echo "<h2>irJSON Parsing Errors</h2>";
-               
-                echo "<ul>\n";
-                foreach($parser->irjsonErrors as $error)
-                {
-                        echo "<li>$error</li>\n";
-                }
-                echo "<ul>\n";
-        }
-       
-        if(count($parser->irjsonNotices) > 0)
-        {
-                echo "<h2>irJSON Parsing Notices</h2>";
-               
-                echo "<ul>\n";
-                foreach($parser->irjsonNotices as $notice)
-                {
-                        echo "<li>$notice</li>\n";
-                }
-                echo "<ul>\n";
-        }
-       
-       
-        echo "<h2>Dataset description</h2>";
-        echo "<pre>";
-        var_dump($parser->dataset);
-        echo "</pre>";
-       
+if(count($parser->jsonErrors) > 0)
+{
+  echo "<h2>JSON Parsing Errors</h2>";
 
-        echo "<h2>Linkage Schema description</h2>";
-        echo "<pre>";
-        var_dump($parser->linkageSchemas);
-        echo "</pre>";
+  echo "<ul>\n";
 
-        echo "<h2>Structure Schema description</h2>";
-        echo "<pre>";
-        var_dump($parser->structureSchemas);
-        echo "</pre>";
+  foreach($parser->jsonErrors as $error)
+  {
+    echo "<li>$error</li>\n";
+  }
 
-        echo "<h2>Instance Records</h2>";
-        echo "<pre>";
-        var_dump($parser->instanceRecords);
-        echo "</pre>";
+  echo "<ul>\n";
+}
 
+if(count($parser->irjsonErrors) > 0)
+{
+  echo "<h2>irJSON Parsing Errors</h2>";
+
+  echo "<ul>\n";
+
+  foreach($parser->irjsonErrors as $error)
+  {
+    echo "<li>$error</li>\n";
+  }
+
+  echo "<ul>\n";
+}
+
+if(count($parser->irjsonNotices) > 0)
+{
+  echo "<h2>irJSON Parsing Notices</h2>";
+
+  echo "<ul>\n";
+
+  foreach($parser->irjsonNotices as $notice)
+  {
+    echo "<li>$notice</li>\n";
+  }
+
+  echo "<ul>\n";
+}
+
+echo "<h2>Dataset description</h2>";
+
+echo "<pre>";
+var_dump($parser->dataset);
+
+echo "</pre>";
+
+echo "<h2>Linkage Schema description</h2>";
+
+echo "<pre>";
+var_dump($parser->linkageSchemas);
+
+echo "</pre>";
+
+echo "<h2>Structure Schema description</h2>";
+
+echo "<pre>";
+var_dump($parser->structureSchemas);
+
+echo "</pre>";
+
+echo "<h2>Instance Records</h2>";
+
+echo "<pre>";
+var_dump($parser->instanceRecords);
+
+echo "</pre>";
 ?>

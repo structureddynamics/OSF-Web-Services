@@ -1,35 +1,35 @@
 <?php
 
-	/*! @ingroup WsConverterBibtex */
-	//@{ 
+/*! @ingroup WsConverterBibtex */
+//@{
 
-	/*! @file \ws\converter\bibtex\BibtexItem.php
-		 @brief Define a bibtex item
-		
-		 \n\n
-	 
-		 @author Frederick Giasson, Structured Dynamics LLC.
+/*! @file \ws\converter\bibtex\BibtexItem.php
+   @brief Define a bibtex item
+  
+   \n\n
+ 
+   @author Frederick Giasson, Structured Dynamics LLC.
 
-		 \n\n\n
-	 */
+   \n\n\n
+ */
 
 
-	/*!	 @brief Bibtex item description
-							
-			\n
-			
-			@author Frederick Giasson, Structured Dynamics LLC.
-		
-			\n\n\n
-	*/
+/*!   @brief Bibtex item description
+            
+    \n
+    
+    @author Frederick Giasson, Structured Dynamics LLC.
+  
+    \n\n\n
+*/
 
 class BibtexItem
 {
-	public $itemType = ""; // The Bibtex entry type.
-	public $itemID = ""; // The Bibtex entry ID.
-	
-/*	
-	public $address = ""; // Publisher's address (usually just the city, but can be the full address for lesser-known publishers)
+  public $itemType = ""; // The Bibtex entry type.
+  public $itemID = "";   // The Bibtex entry ID.
+
+/*  
+  public $address = ""; // Publisher's address (usually just the city, but can be the full address for lesser-known publishers)
     public $annote = ""; // An annotation for annotated bibliography styles (not typical)
     public $author = ""; // The name(s) of the author(s) (in the case of more than one author, separated by and)
     public $booktitle = ""; // The title of the book, if only part of it is being cited
@@ -56,145 +56,132 @@ class BibtexItem
     public $volume = ""; // The volume of a journal or multi-volume book
     public $year = ""; // The year of publication (or, if unpublished, the year of creation)
 */
-	public $properties = array();
-	
-	function __construct()
-	{
-	}
-	
-	function __destruct() 
-	{
-	}
-	
-	public function addType($type)
-	{
-		$this->itemType = $type;
-	}
-	
-	public function addID($id)
-	{
-		$this->itemID = $id;
-	}
-	
-	public function addProperty($property, $value)
-	{
-		$this->properties[$property] = $value;
-	
-/*	
-		switch($property)
-		{
-			case "address":
-				$this->address = $value;
-			break;
-			
-			case "annote":
-				$this->annote = $value;
-			break;
-			
-			case "author":
-				$this->author = $value;
-			break;
-			
-			case "booktitle":
-				$this->booktitle = $value;
-			break;
-			
-			case "chapter":
-				$this->chapter = $value;
-			break;
-			
-			case "crossref":
-				$this->crossref = $value;
-			break;
-			
-			case "edition":
-				$this->edition = $value;
-			break;
-			
-			case "editor":
-				$this->editor = $value;
-			break;
-			
-			case "eprint":
-				$this->eprint = $value;
-			break;
-			
-			case "howpublished":
-				$this->howpublished = $value;
-			break;
-			
-			case "institution":
-				$this->institution = $value;
-			break;
-			
-			case "journal":
-				$this->journal = $value;
-			break;
-			
-			case "key":
-				$this->key = $value;
-			break;
-			
-			case "month":
-				$this->month = $value;
-			break;
-			
-			case "note":
-				$this->note = $value;
-			break;
+  public $properties = array();
 
-			case "number":
-				$this->number = $value;
-			break;
-			
-			case "organization":
-				$this->organization = $value;
-			break;
-			
-			case "pages":
-				$this->pages = $value;
-			break;
-			
-			case "publisher":
-				$this->publisher = $value;
-			break;
-			
-			case "school":
-				$this->school = $value;
-			break;
-			
-			case "series":
-				$this->series = $value;
-			break;
-			
-			case "title":
-				$this->title = $value;
-			break;
-		
-			case "type":
-				$this->type = $value;
-			break;
-			
-			case "url":
-				$this->url = $value;
-			break;
-			
-			case "volume":
-				$this->volume = $value;
-			break;
-			
-			case "year":
-				$this->year = $value;
-			break;
-			
-			default:
-			break;
-		}
-*/		
-	}	
-	
+  function __construct() { }
+
+  function __destruct() { }
+
+  public function addType($type) { $this->itemType = $type; }
+
+  public function addID($id) { $this->itemID = $id; }
+
+  public function addProperty($property, $value) { $this->properties[$property] = $value;
+
+  /*  
+      switch($property)
+      {
+        case "address":
+          $this->address = $value;
+        break;
+        
+        case "annote":
+          $this->annote = $value;
+        break;
+        
+        case "author":
+          $this->author = $value;
+        break;
+        
+        case "booktitle":
+          $this->booktitle = $value;
+        break;
+        
+        case "chapter":
+          $this->chapter = $value;
+        break;
+        
+        case "crossref":
+          $this->crossref = $value;
+        break;
+        
+        case "edition":
+          $this->edition = $value;
+        break;
+        
+        case "editor":
+          $this->editor = $value;
+        break;
+        
+        case "eprint":
+          $this->eprint = $value;
+        break;
+        
+        case "howpublished":
+          $this->howpublished = $value;
+        break;
+        
+        case "institution":
+          $this->institution = $value;
+        break;
+        
+        case "journal":
+          $this->journal = $value;
+        break;
+        
+        case "key":
+          $this->key = $value;
+        break;
+        
+        case "month":
+          $this->month = $value;
+        break;
+        
+        case "note":
+          $this->note = $value;
+        break;
+  
+        case "number":
+          $this->number = $value;
+        break;
+        
+        case "organization":
+          $this->organization = $value;
+        break;
+        
+        case "pages":
+          $this->pages = $value;
+        break;
+        
+        case "publisher":
+          $this->publisher = $value;
+        break;
+        
+        case "school":
+          $this->school = $value;
+        break;
+        
+        case "series":
+          $this->series = $value;
+        break;
+        
+        case "title":
+          $this->title = $value;
+        break;
+      
+        case "type":
+          $this->type = $value;
+        break;
+        
+        case "url":
+          $this->url = $value;
+        break;
+        
+        case "volume":
+          $this->volume = $value;
+        break;
+        
+        case "year":
+          $this->year = $value;
+        break;
+        
+        default:
+        break;
+      }
+  */
+  }
 }
 
-	//@} 
+//@}
 
 ?>

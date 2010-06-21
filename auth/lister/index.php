@@ -1,22 +1,24 @@
 <?php
 
 /*! @ingroup WsAuth Authentication / Registration Web Service  */
-//@{ 
+//@{
 
 /*! @file \ws\auth\lister\index.php
-	 @brief Entry point of a query for the Auth Validator web service
-	 @details Each time a query is sent to this web service, this index.php script will create the web service class
-				   and will process it. The resultset, or error, will be returned to the user in the HTTP header & body query.
-	
-	 \n\n
+   @brief Entry point of a query for the Auth Validator web service
+   @details Each time a query is sent to this web service, this index.php script will create the web service class
+           and will process it. The resultset, or error, will be returned to the user in the HTTP header & body query.
+  
+   \n\n
  
-	 @author Frederick Giasson, Structured Dynamics LLC.
+   @author Frederick Giasson, Structured Dynamics LLC.
 
-	 \n\n\n
+   \n\n\n
  */
 
-ini_set("display_errors", "Off");		// Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
-ini_set("memory_limit","64M");
+ini_set("display_errors",
+  "Off"); // Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
+
+ini_set("memory_limit", "64M");
 
 // Database connectivity procedures
 include_once("../../framework/db.php");
@@ -38,76 +40,78 @@ include_once("../../framework/Logger.php");
 // Type of the thing to be listed
 $mode = "dataset";
 
-if(isset($_GET['mode'])) 
+if(isset($_GET['mode']))
 {
-    $mode = $_GET['mode'];
+  $mode = $_GET['mode'];
 }
 
 $registered_ip = "";
 
-if(isset($_GET['registered_ip'])) 
+if(isset($_GET['registered_ip']))
 {
-    $registered_ip = $_GET['registered_ip'];
+  $registered_ip = $_GET['registered_ip'];
 }
 
 $dataset = "";
 
-if(isset($_GET['dataset'])) 
+if(isset($_GET['dataset']))
 {
-    $dataset = $_GET['dataset'];
+  $dataset = $_GET['dataset'];
 }
 
-$mtime = microtime(); 
-$mtime = explode(' ', $mtime); 
-$mtime = $mtime[1] + $mtime[0]; 
-$starttime = $mtime; 
+$mtime = microtime();
+$mtime = explode(' ', $mtime);
+$mtime = $mtime[1] + $mtime[0];
+$starttime = $mtime;
 
 $start_datetime = date("Y-m-d h:i:s");
 
 $requester_ip = "0.0.0.0";
+
 if(isset($_SERVER['REMOTE_ADDR']))
 {
-	$requester_ip = $_SERVER['REMOTE_ADDR'];
+  $requester_ip = $_SERVER['REMOTE_ADDR'];
 }
 
 $parameters = "";
+
 if(isset($_SERVER['REQUEST_URI']))
 {
-	$parameters = $_SERVER['REQUEST_URI'];
-	
-	$pos = strpos($parameters, "?");
-	
-	if($pos !== FALSE)
-	{
-		$parameters = substr($parameters, $pos, strlen($parameters) - $pos);
-	}
+  $parameters = $_SERVER['REQUEST_URI'];
+
+  $pos = strpos($parameters, "?");
+
+  if($pos !== FALSE)
+  {
+    $parameters = substr($parameters, $pos, strlen($parameters) - $pos);
+  }
 }
 elseif(isset($_SERVER['PHP_SELF']))
 {
-	$parameters = $_SERVER['PHP_SELF'];
+  $parameters = $_SERVER['PHP_SELF'];
 }
 
 $ws_al = new AuthLister($mode, $dataset, $registered_ip, $requester_ip);
 
-$ws_al->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+$ws_al->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
+  $_SERVER['HTTP_ACCEPT_LANGUAGE']);
 
 $ws_al->process();
 
 $ws_al->ws_respond($ws_al->ws_serialize());
 
+$mtime = microtime();
+$mtime = explode(" ", $mtime);
+$mtime = $mtime[1] + $mtime[0];
+$endtime = $mtime;
+$totaltime = ($endtime - $starttime);
+
+$logger = new Logger("auth_lister", $requester_ip,
+  "?mode=" . $mode . "&dataset=" . $dataset . "&registered_ip=" . $registered_ip . "&requester_ip=$requester_ip",
+  $_SERVER['HTTP_ACCEPT'], $start_datetime, $totaltime, $ws_al->pipeline_getResponseHeaderStatus(),
+  $_SERVER['HTTP_USER_AGENT']);
 
 
-
-$mtime = microtime(); 
-$mtime = explode(" ", $mtime); 
-$mtime = $mtime[1] + $mtime[0]; 
-$endtime = $mtime; 
-$totaltime = ($endtime - $starttime); 
-
-$logger = new Logger("auth_lister", $requester_ip, "?mode=".$mode."&dataset=".$dataset."&registered_ip=".$registered_ip."&requester_ip=$requester_ip", $_SERVER['HTTP_ACCEPT'], $start_datetime, $totaltime, $ws_al->pipeline_getResponseHeaderStatus(), $_SERVER['HTTP_USER_AGENT']);
-
-
-	//@} 
-
+//@}
 
 ?>

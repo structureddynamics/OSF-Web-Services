@@ -343,6 +343,46 @@ switch($action)
               ";
   break;
 
+  case "create_world_readable_dataset_read":
+      $rdf = "@prefix wsf: <http://purl.org/ontology/wsf#> .
+              @prefix void: <http://rdfs.org/ns/void#> .
+              @prefix dcterms: <http://purl.org/dc/terms/> .
+              @prefix foaf: <http://xmlns.com/foaf/0.1/> .
+              @prefix owl: <http://www.w3.org/2002/07/owl#> .
+              @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+              @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+              @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+              
+              <$server_address/wsf/access/" . md5("$server_address/wsf/datasets/0.0.0.0/") . "> rdf:type wsf:Access ;
+                wsf:registeredIP \"0.0.0.0\" ;
+                wsf:create \"False\" ;
+                wsf:read \"True\" ;
+                wsf:update \"False\" ;
+                wsf:delete \"False\" ;
+                wsf:webServiceAccess <$server_address/wsf/ws/dataset/read/> ;
+                wsf:datasetAccess <$server_address/wsf/datasets/> .";
+  break;
+
+  case "create_world_creatable_dataset_create":
+      $rdf = "@prefix wsf: <http://purl.org/ontology/wsf#> .
+              @prefix void: <http://rdfs.org/ns/void#> .
+              @prefix dcterms: <http://purl.org/dc/terms/> .
+              @prefix foaf: <http://xmlns.com/foaf/0.1/> .
+              @prefix owl: <http://www.w3.org/2002/07/owl#> .
+              @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+              @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+              @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+              
+              <$server_address/wsf/access/" . md5("$server_address/wsf/datasets/0.0.0.0/") . "> rdf:type wsf:Access ;
+                wsf:registeredIP \"0.0.0.0\" ;
+                wsf:create \"True\" ;
+                wsf:read \"False\" ;
+                wsf:update \"False\" ;
+                wsf:delete \"False\" ;
+                wsf:webServiceAccess <$server_address/wsf/ws/dataset/create/> ;
+                wsf:datasetAccess <$server_address/wsf/datasets/> .";
+  break;
+  
   case "create_user_full_access":
     $rdf = "@prefix wsf: <http://purl.org/ontology/wsf#> .
             @prefix void: <http://rdfs.org/ns/void#> .

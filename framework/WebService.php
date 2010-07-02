@@ -1,9 +1,8 @@
 <?php
-
 /*! @defgroup WsFramework Framework for the Web Services */
 //@{
 
-/*! @file \ws\framework\WebService.php
+/*!@file \ws\framework\WebService.php
    @brief An abstract atomic web service class
   
    \n\n
@@ -13,8 +12,8 @@
    \n\n\n
 */
 
-/*!   @brief A Web Service abstract class
-     @details This abstract class is used to define a web service that can interact with external webservices, or web services in a pipeline (compound), in a RESTful way.
+/*! @brief A Web Service abstract class
+    @details This abstract class is used to define a web service that can interact with external webservices, or web services in a pipeline (compound), in a RESTful way.
 
     \n
 
@@ -27,7 +26,6 @@
 
     \n\n\n
 */
-
 abstract class WebService
 {
   /*! @brief data.ini file folder */
@@ -102,6 +100,100 @@ abstract class WebService
     // Load INI settings
     $data_ini = parse_ini_file(self::$data_ini . "data.ini", TRUE);
     $network_ini = parse_ini_file(self::$network_ini . "network.ini", TRUE);
+    
+    // Check if we can read the files
+    if($data_ini === FALSE || $network_ini === FALSE)
+    {
+      // Get the web service reference
+      $webservice = substr($_SERVER["SCRIPT_NAME"], 0, strrpos($_SERVER["SCRIPT_NAME"], "/") + 1);
+      
+      // Get the query MIME
+      $mimes = array();
+
+      $header = $_SERVER['HTTP_ACCEPT'];
+
+      if(strlen($header) > 0)
+      {
+        // break up string into pieces (languages and q factors)
+        preg_match_all('/([^,]+)/', $header, $accepts);
+
+        foreach($accepts[0] as $accept)
+        {
+          $foo = explode(";", str_replace(" ", "", $accept));
+
+          if(isset($foo[1]))
+          {
+            if(stripos($foo[1], "q=") !== FALSE)
+            {
+              $foo[1] = str_replace("q=", "", $foo[1]);
+            }
+            else
+            {
+              $foo[1] = "1";
+            }
+          }
+          else
+          {
+            array_push($foo, "1");
+          }
+
+          $mimes[$foo[0]] = $foo[1];
+        }
+
+        // In the case that there is a Accept: header, but that it is empty. We set it to: anything.
+        if(count($mimes) <= 0)
+        {
+          $mimes["*/*"] = 1;
+        }
+
+        arsort($mimes, SORT_NUMERIC);
+      }
+
+      $errorMime = "";
+
+      foreach($mimes as $mime => $q)
+      {
+        $mime = strtolower($mime);
+
+        switch($mime)
+        {
+          case "application/rdf+xml":
+          case "text/xml":
+          case "application/sparql-results+xml":
+          case "application/xhtml+rdfa":
+          case "text/html":
+            $errorMime = "text/xml";
+          break;
+
+          case "application/sparql-results+json":
+          case "application/iron+json":
+          case "application/json":
+          case "application/bib+json":
+            $errorMime = "application/json";
+          break;
+        }
+
+        if($errorMime != "")
+        {
+          break;
+        }
+      }
+      
+      // Create the error object
+      include_once("Error.php"); 
+      
+      $error = new Error("HTTP-500", $webservice, "Error", 
+                         "Can't read the data.ini and/or the network.ini configuration files on the server.",
+                         "", $errorMime, "Fatal");
+
+      // Return the error according to the requested mime.
+      header("HTTP/1.1 500 Internal Server Error");
+      header("Content-Type: $errorMime");
+
+      echo $error->getError();
+
+      die;      
+    }
 
     if(isset($data_ini["triplestore"]["username"]))
     {
@@ -487,7 +579,7 @@ function handleFatalPhpError()
     {
       $mime = strtolower($mime);
 
-      switch($q)
+      switch($mime)
       {
         case "application/rdf+xml":
         case "text/xml":

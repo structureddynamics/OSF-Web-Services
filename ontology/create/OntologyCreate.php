@@ -271,7 +271,6 @@ class OntologyCreate extends WebService
   */
   protected function validateQuery()
   {
-    return;
     $ws_av = new AuthValidator($this->requester_ip, $this->wsf_graph . "ontologies/", $this->uri);
 
     $ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
@@ -290,6 +289,25 @@ class OntologyCreate extends WebService
 
       return;
     }
+    
+    // Validation of the "registered_ip" to make sure the user of this system has the rights
+    $ws_av = new AuthValidator($this->registered_ip, $this->wsf_graph . "ontologies/", $this->uri);
+
+    $ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
+      $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
+
+    $ws_av->process();
+
+    if($ws_av->pipeline_getResponseHeaderStatus() != 200)
+    {
+      $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
+      $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
+      $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
+      $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
+        $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
+        $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
+      return;
+    }    
   }
 
   /*!   @brief Returns the error structure

@@ -198,47 +198,11 @@ class Sparql extends WebService
   */
   protected function validateQuery()
   {
-    return;
-
-    // Validation of the "requester_ip" to make sure the system that is sending the query as the rights.
-    $ws_av = new AuthValidator($this->requester_ip, $this->dataset, $this->uri);
-
-    $ws_av->pipeline_conneg("*/*", $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(),
-      $this->conneg->getAcceptLanguage());
-
-    $ws_av->process();
-
-    if($ws_av->pipeline_getResponseHeaderStatus() != 200)
-    {
-      $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
-      $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
-      $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-      $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
-        $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
-        $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
-      return;
-    }
-
-    unset($ws_av);
-
-    // Validation of the "registered_ip" to make sure the user of this system has the rights
-    $ws_av = new AuthValidator($this->registered_ip, $this->dataset, $this->uri);
-
-    $ws_av->pipeline_conneg("*/*", $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(),
-      $this->conneg->getAcceptLanguage());
-
-    $ws_av->process();
-
-    if($ws_av->pipeline_getResponseHeaderStatus() != 200)
-    {
-      $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
-      $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
-      $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-      $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
-        $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
-        $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
-      return;
-    }
+  // Here we can have a performance problem when "dataset = all" if we perform the authentication using AuthValidator.
+  // Since AuthValidator doesn't support multiple datasets at the same time, we will use the AuthLister web service
+  // in the process() function and check if the user has the permissions to "read" these datasets.
+  //
+  // This means that the validation of these queries doesn't happen at this level.
   }
 
   /*!   @brief Returns the error structure
@@ -1053,6 +1017,42 @@ class Sparql extends WebService
 
       // Validate all graphs of the query. If one of the graph is not accessible to the user, we just return
       // and error for this SPARQL query.
+      foreach($graphs as $graph)
+      {
+        if(substr($graph, strlen($graph) - 12, 12) == "reification/")
+        {
+          $graph = substr($graph, 0, strlen($graph) - 12);
+        }
+
+        $ws_av = new AuthValidator($this->registered_ip, $graph, $this->uri);
+
+        $ws_av->pipeline_conneg("*/*", $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(),
+          $this->conneg->getAcceptLanguage());
+
+        $ws_av->process();
+
+        if($ws_av->pipeline_getResponseHeaderStatus() != 200)
+        {
+          $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
+          $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
+          $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
+          $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
+            $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
+            $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
+
+          return;
+        }
+      }
+      
+      /*
+        if registered_ip != requester_ip, this means that the query is sent by a registered system
+        on the behalf of someone else. In this case, we want to make sure that that system 
+        (the one that send the actual query) has access to the same datasets. Otherwise, it means that
+        it tries to personificate that registered_ip user.
+        
+        Validate all graphs of the query. If one of the graph is not accessible to the syste, we just return
+        and error for this SPARQL query.  
+      */
       foreach($graphs as $graph)
       {
         if(substr($graph, strlen($graph) - 12, 12) == "reification/")

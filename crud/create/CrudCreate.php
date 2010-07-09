@@ -133,7 +133,6 @@ class CrudCreate extends WebService
 
     $this->db = new DB_Virtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 
-    $this->registered_ip = $registered_ip;
     $this->requester_ip = $requester_ip;
     $this->dataset = $dataset;
 
@@ -141,9 +140,13 @@ class CrudCreate extends WebService
     $this->mime = $mime;
     $this->mode = $mode;
 
-    if($this->registered_ip == "")
+    if($registered_ip == "")
     {
       $this->registered_ip = $requester_ip;
+    }
+    else
+    {
+      $this->registered_ip = $registered_ip;
     }
 
     if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
@@ -161,7 +164,7 @@ class CrudCreate extends WebService
         $this->registered_ip = $requester_ip;
       }
     }
-
+    
     $this->uri = $this->wsf_base_url . "/wsf/ws/crud/create/";
     $this->title = "Crud Create Web Service";
     $this->crud_usage = new CrudUsage(TRUE, FALSE, FALSE, FALSE);
@@ -216,23 +219,27 @@ class CrudCreate extends WebService
 
     unset($ws_av);
 
-    // Validation of the "registered_ip" to make sure the user of this system has the rights
-    $ws_av = new AuthValidator($this->registered_ip, $this->dataset, $this->uri);
+    // If the system send a query on the behalf of another user, we validate that other user as well
+    if($this->registered_ip != $this->requester_ip)
+    {    
+      // Validation of the "registered_ip" to make sure the user of this system has the rights
+      $ws_av = new AuthValidator($this->registered_ip, $this->dataset, $this->uri);
 
-    $ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
-      $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
+      $ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
+        $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
 
-    $ws_av->process();
+      $ws_av->process();
 
-    if($ws_av->pipeline_getResponseHeaderStatus() != 200)
-    {
-      $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
-      $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
-      $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-      $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
-        $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
-        $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
-      return;
+      if($ws_av->pipeline_getResponseHeaderStatus() != 200)
+      {
+        $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
+        $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
+        $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
+        $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
+          $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
+          $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
+        return;
+      }
     }
   }
 

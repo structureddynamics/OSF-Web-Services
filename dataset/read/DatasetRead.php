@@ -233,6 +233,41 @@ class DatasetRead extends WebService
         return;
       }
     }
+           
+    // If the system send a query on the behalf of another user, we validate that other user as well
+    if($this->registered_ip != $this->requester_ip)
+    {
+      // Check if the requester has access to the main "http://.../wsf/datasets/" graph.
+      $ws_av = new AuthValidator($this->registered_ip, $this->wsf_graph . "datasets/", $this->uri);
+
+      $ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
+        $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
+
+      $ws_av->process();
+
+      if($ws_av->pipeline_getResponseHeaderStatus() != 200)
+      {
+        // If he doesn't, then check if he has access to the dataset itself
+        $ws_av2 = new AuthValidator($this->registered_ip, $this->datasetUri, $this->uri);
+
+        $ws_av2->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
+          $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
+
+        $ws_av2->process();
+
+        if($ws_av2->pipeline_getResponseHeaderStatus() != 200)
+        {
+          $this->conneg->setStatus($ws_av2->pipeline_getResponseHeaderStatus());
+          $this->conneg->setStatusMsg($ws_av2->pipeline_getResponseHeaderStatusMsg());
+          $this->conneg->setStatusMsgExt($ws_av2->pipeline_getResponseHeaderStatusMsgExt());
+          $this->conneg->setError($ws_av2->pipeline_getError()->id, $ws_av2->pipeline_getError()->webservice,
+            $ws_av2->pipeline_getError()->name, $ws_av2->pipeline_getError()->description,
+            $ws_av2->pipeline_getError()->debugInfo, $ws_av2->pipeline_getError()->level);
+
+          return;
+        }
+      }     
+    }       
   }
 
   /*!   @brief Normalize the remaining of a URI

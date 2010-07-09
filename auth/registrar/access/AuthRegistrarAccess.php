@@ -158,7 +158,6 @@ class AuthRegistrarAccess extends WebService
 
     $this->db = new DB_Virtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 
-    $this->registered_ip = $registered_ip;
     $this->target_access_uri = $target_access_uri;
 
     $crud = explode(";", $crud);
@@ -171,6 +170,15 @@ class AuthRegistrarAccess extends WebService
     $this->dataset = $dataset;
     $this->requester_ip = $requester_ip;
     $this->action = $action;
+
+    if($registered_ip == "")
+    {
+      $this->registered_ip = $requester_ip;
+    }
+    else
+    {
+      $this->registered_ip = $registered_ip;
+    }
 
     if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
     {
@@ -187,7 +195,7 @@ class AuthRegistrarAccess extends WebService
         $this->registered_ip = $requester_ip;
       }
     }
-
+    
     $this->uri = $this->wsf_base_url . "/wsf/ws/auth/registrar/access/";
     $this->title = "Authentication Access Registration Web Service";
     $this->crud_usage = new CrudUsage(TRUE, TRUE, FALSE, FALSE);
@@ -236,6 +244,27 @@ class AuthRegistrarAccess extends WebService
         $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
         $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
     }
+    
+    // If the system send a query on the behalf of another user, we validate that other user as well
+    if($this->registered_ip != $this->requester_ip)
+    {
+      $ws_av = new AuthValidator($this->registered_ip, $this->wsf_graph, $this->uri);
+
+      $ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
+        $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
+
+      $ws_av->process();
+
+      if($ws_av->pipeline_getResponseHeaderStatus() != 200)
+      {
+        $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
+        $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
+        $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
+        $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
+          $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
+          $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
+      }
+    }    
   }
 
   /*!   @brief Normalize the remaining of a URI

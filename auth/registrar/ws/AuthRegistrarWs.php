@@ -118,7 +118,7 @@ class AuthRegistrarWs extends WebService
     
       \n\n\n
   */
-  function __construct($registered_title, $registered_endpoint, $registered_crud_usage, $registered_uri, $requester_ip)
+  function __construct($registered_title, $registered_endpoint, $registered_crud_usage, $registered_uri, $registered_ip, $requester_ip)
   {
     parent::__construct();
 
@@ -130,6 +130,31 @@ class AuthRegistrarWs extends WebService
     $this->registered_uri = $registered_uri;
     $this->requester_ip = $requester_ip;
 
+    if($registered_ip == "")
+    {
+      $this->registered_ip = $requester_ip;
+    }
+    else
+    {
+      $this->registered_ip = $registered_ip;
+    }
+
+    if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
+    {
+      $pos = strpos($this->registered_ip, "::");
+
+      if($pos !== FALSE)
+      {
+        $account = substr($this->registered_ip, $pos + 2, strlen($this->registered_ip) - ($pos + 2));
+
+        $this->registered_ip = $requester_ip . "::" . $account;
+      }
+      else
+      {
+        $this->registered_ip = $requester_ip;
+      }
+    }   
+    
     $this->uri = $this->wsf_base_url . "/wsf/ws/auth/registrar/ws/";
     $this->title = "Authentication Web Service Registration Web Service";
     $this->crud_usage = new CrudUsage(TRUE, TRUE, FALSE, FALSE);
@@ -178,6 +203,27 @@ class AuthRegistrarWs extends WebService
         $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
         $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
     }
+    
+    // If the system send a query on the behalf of another user, we validate that other user as well
+    if($this->registered_ip != $this->requester_ip)
+    {
+      $ws_av = new AuthValidator($this->registered_ip, $this->wsf_graph, $this->uri);
+
+      $ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
+        $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
+
+      $ws_av->process();
+
+      if($ws_av->pipeline_getResponseHeaderStatus() != 200)
+      {
+        $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
+        $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
+        $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
+        $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
+          $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
+          $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
+      }
+    }    
   }
 
   /*!   @brief Returns the error structure

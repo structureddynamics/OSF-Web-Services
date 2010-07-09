@@ -339,9 +339,9 @@ class Sparql extends WebService
               }
             }
           }
-
-          $resultset->appendChild($subject);
         }
+        
+        $resultset->appendChild($subject);
       }
 
       return ($this->injectDoctype($xml->saveXML($resultset)));
@@ -972,7 +972,7 @@ class Sparql extends WebService
       \n\n\n
   */
   public function process()
-  {
+  {           
     // Make sure there was no conneg error prior to this process call
     if($this->conneg->getStatus() == 200)
     {
@@ -1165,6 +1165,7 @@ class Sparql extends WebService
               }
             }
 
+            // process URI
             if($boundType == "uri")
             {
               if(!isset($this->instanceRecordsObjectResource[$s][$p]))
@@ -1177,6 +1178,7 @@ class Sparql extends WebService
               }
             }
 
+            // Process Literal
             if($boundType == "literal")
             {
               if(!isset($this->instanceRecordsObjectLiteral[$s][$p]))
@@ -1186,6 +1188,19 @@ class Sparql extends WebService
               else
               {
                 array_push($this->instanceRecordsObjectLiteral[$s][$p], $o);
+              }
+            }
+            
+            // Process BNode
+            if($boundType == "bnode")
+            {
+              if(!isset($this->instanceRecordsObjectResource[$s][$p]))
+              {
+                $this->instanceRecordsObjectResource[$s][$p] = array( $o );
+              }
+              else
+              {
+                array_push($this->instanceRecordsObjectResource[$s][$p], $o);
               }
             }
           }

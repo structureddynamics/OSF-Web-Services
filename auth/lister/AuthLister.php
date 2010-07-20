@@ -134,13 +134,16 @@ class AuthLister extends WebService
     $this->db = new DB_Virtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 
     $this->requester_ip = $requester_ip;
-    $this->registered_ip = $registered_ip;
     $this->mode = $mode;
     $this->dataset = $dataset;
 
-    if($this->registered_ip == "")
+    if($registered_ip == "")
     {
       $this->registered_ip = $requester_ip;
+    }
+    else
+    {
+      $this->registered_ip = $registered_ip;
     }
 
     if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
@@ -191,7 +194,6 @@ class AuthLister extends WebService
   */
   protected function validateQuery()
   {
-    // We shouldnt validate & reject a query that request having access to the list of datasets fro any users (including
     // publicly accessible users)
     if($this->mode != "dataset" && $this->mode != "access_user")
     {

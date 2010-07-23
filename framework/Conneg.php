@@ -235,6 +235,7 @@ class Conneg
       case "text/xml":
       case "text/html":
       case "application/sparql-results+xml":
+      case "application/rdf+n3":
         $mime = "text/xml";
       break;
 
@@ -245,7 +246,6 @@ class Conneg
         $mime = "application/json";
       break;
 
-      case "application/rdf+n3":
       case "text/tsv":
       case "text/csv":
       case "application/x-bibtex":

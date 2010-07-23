@@ -114,7 +114,7 @@ class ConverterIrJSON extends WebService
               
       \n
       
-      @param[in] $document Text of a Bibtex document
+      @param[in] $document Text of a irJSON document
       @param[in] $docmime Mime type of the document
       @param[in] $registered_ip Target IP address registered in the WSF
       @param[in] $requester_ip IP address of the requester
@@ -164,7 +164,7 @@ class ConverterIrJSON extends WebService
     $this->irJSONResources = array();
 
     $this->uri = $this->wsf_base_url . "/wsf/ws/converter/irjson/";
-    $this->title = "Instance Record Vocabulary Converter Web Service";
+    $this->title = "irJSON Converter Web Service";
     $this->crud_usage = new CrudUsage(FALSE, TRUE, FALSE, FALSE);
     $this->endpoint = $this->wsf_base_url . "/ws/converter/irjson/";
 

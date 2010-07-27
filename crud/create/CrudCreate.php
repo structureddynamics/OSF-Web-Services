@@ -76,12 +76,6 @@ class CrudCreate extends WebService
                           "name": "No dataset specified",
                           "description": "No dataset URI defined for this query"
                         },
-                        "_300": {
-                          "id": "WS-CRUD-CREATE-300",
-                          "level": "Fatal",
-                          "name": "Can\'t create data",
-                          "description": "Can\'t create data of the specified format"
-                        },
                         "_301": {
                           "id": "WS-CRUD-CREATE-301",
                           "level": "Warning",
@@ -510,18 +504,6 @@ class CrudCreate extends WebService
       // If the query is still valid
       if($this->conneg->getStatus() == 200)
       {
-        if($this->mime != "application/rdf+xml" && $this->mime != "application/rdf+n3")
-        {
-          $this->conneg->setStatus(400);
-          $this->conneg->setStatusMsg("Bad Request");
-          $this->conneg->setStatusMsgExt($this->errorMessenger->_300->name);
-          $this->conneg->setError($this->errorMessenger->_300->id, $this->errorMessenger->ws,
-            $this->errorMessenger->_300->name, $this->errorMessenger->_300->description,
-            "Can't create data of format: " . $this->mime, $this->errorMessenger->_300->level);
-
-          return;
-        }
-
         // Get triples from ARC for some offline processing.
         $parser = ARC2::getRDFParser();
         $parser->parse($this->dataset, $this->document);

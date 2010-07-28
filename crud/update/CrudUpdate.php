@@ -111,13 +111,7 @@ class CrudUpdate extends WebService
                           "level": "Fatal",
                           "name": "Can\'t commit changes to the Solr index",
                           "description": "An error occured when we tried to commit changes to the Solr index"  
-                        },
-                        "_306": {
-                          "id": "WS-CRUD-CREATE-306",
-                          "level": "Fatal",
-                          "name": "Can\'t create data",
-                          "description": "Can\'t create data of the specified format"
-                        },    
+                        },  
                         "_307": {
                           "id": "WS-CRUD-CREATE-307",
                           "level": "Warning",
@@ -523,18 +517,6 @@ class CrudUpdate extends WebService
       if($this->conneg->getStatus() == 200)
       {
         // Step #0: Parse the file using ARC2 to populate the Solr index.
-        if($this->mime != "application/rdf+xml" && $this->mime != "application/rdf+n3")
-        {
-          $this->conneg->setStatus(400);
-          $this->conneg->setStatusMsg("Bad Request");
-          $this->conneg->setStatusMsgExt($this->errorMessenger->_306->name);
-          $this->conneg->setError($this->errorMessenger->_306->id, $this->errorMessenger->ws,
-            $this->errorMessenger->_306->name, $this->errorMessenger->_306->description,
-            "Can't create data of format: " . $this->mime, $this->errorMessenger->_306->level);
-
-          return;
-        }
-
         // Get triples from ARC for some offline processing.
         $parser = ARC2::getRDFParser();
         $parser->parse($this->dataset, $this->document);

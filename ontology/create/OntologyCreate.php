@@ -54,7 +54,7 @@ class OntologyCreate extends WebService
 
   /*! @brief Requester's IP used for request validation */
   private $requester_ip = "";
-  
+
   /*! @brief URI of the inference rules set to use to create the ontological structure. */
   private $rulesSetURI = "";
 
@@ -215,8 +215,8 @@ class OntologyCreate extends WebService
     $this->ontology = str_replace("'", "\'", $ontology);
     $this->mime = $mime;
     $this->action = $action;
-    
-    $this->rulesSetURI = "wsf_inference_rule".ereg_replace("[^A-Za-z0-9]", "", $this->wsf_base_url);
+
+    $this->rulesSetURI = "wsf_inference_rule" . ereg_replace("[^A-Za-z0-9]", "", $this->wsf_base_url);
 
     if($this->registered_ip == "")
     {
@@ -292,7 +292,7 @@ class OntologyCreate extends WebService
 
     // If the system send a query on the behalf of another user, we validate that other user as well
     if($this->registered_ip != $this->requester_ip)
-    {    
+    {
       // Validation of the "registered_ip" to make sure the user of this system has the rights
       $ws_av = new AuthValidator($this->registered_ip, $this->wsf_graph . "ontologies/", $this->uri);
 
@@ -310,7 +310,7 @@ class OntologyCreate extends WebService
           $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
           $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
         return;
-      }    
+      }
     }
   }
 
@@ -579,7 +579,8 @@ class OntologyCreate extends WebService
         if($this->action == "recreate_inference")
         {
           // Clean the inference table
-          $this->db->query("rdfs_rule_set('".$this->rulesSetURI."', '" . $this->wsf_graph . "ontologies/inferred/', 1)");
+          $this->db->query("rdfs_rule_set('" . $this->rulesSetURI . "', '" . $this->wsf_graph
+            . "ontologies/inferred/', 1)");
 
           if(odbc_error())
           {
@@ -594,7 +595,8 @@ class OntologyCreate extends WebService
           }
 
           // Recreatethe inference table
-          $this->db->query("rdfs_rule_set('".$this->rulesSetURI."', '" . $this->wsf_graph . "ontologies/inferred/')");
+          $this->db->query("rdfs_rule_set('" . $this->rulesSetURI . "', '" . $this->wsf_graph
+            . "ontologies/inferred/')");
 
           if(odbc_error())
           {
@@ -993,8 +995,24 @@ class OntologyCreate extends WebService
         $properties = array();
 
         $query =
-          $this->db->build_sparql_query("select distinct ?s ?domain ?range from <" . $this->wsf_graph
-            . "ontologies/> where {?s a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>. optional{{?s <http://www.w3.org/2000/01/rdf-schema#domain> ?domain.} union { ?s <http://www.w3.org/2000/01/rdf-schema#range> ?range.}}}",
+          $this->db->build_sparql_query("
+            select distinct ?s ?domain ?range from <" . $this->wsf_graph
+            . "ontologies/> 
+            where 
+            {
+              ?s a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>. 
+              
+              optional
+              {
+                {
+                  ?s <http://www.w3.org/2000/01/rdf-schema#domain> ?domain.
+                } 
+                union 
+                { 
+                  ?s <http://www.w3.org/2000/01/rdf-schema#range> ?range.
+                }
+              }
+            }",
             array ('s', 'domain', 'range'), FALSE);
 
         $resultset = $this->db->query($query);
@@ -1048,8 +1066,23 @@ class OntologyCreate extends WebService
         }
 
         $query =
-          $this->db->build_sparql_query("select distinct ?s ?domain ?range from <" . $this->wsf_graph
-            . "ontologies/> where {?s a <http://www.w3.org/2002/07/owl#DatatypeProperty>. optional{{?s <http://www.w3.org/2000/01/rdf-schema#domain> ?domain.} union {?s <http://www.w3.org/2000/01/rdf-schema#range> ?range.}}}",
+          $this->db->build_sparql_query("
+            select distinct ?s ?domain ?range from <" . $this->wsf_graph
+            . "ontologies/> 
+            where 
+            {
+              ?s a <http://www.w3.org/2002/07/owl#DatatypeProperty>. 
+              optional
+              {
+                {
+                  ?s <http://www.w3.org/2000/01/rdf-schema#domain> ?domain.
+                } 
+                union 
+                {
+                  ?s <http://www.w3.org/2000/01/rdf-schema#range> ?range.
+                }
+              }
+            }",
             array ('s', 'domain', 'range'), FALSE);
 
         $resultset = $this->db->query($query);
@@ -1103,8 +1136,23 @@ class OntologyCreate extends WebService
         }
 
         $query =
-          $this->db->build_sparql_query("select distinct ?s ?domain ?range from <" . $this->wsf_graph
-            . "ontologies/> where {?s a <http://www.w3.org/2002/07/owl#ObjectProperty>. optional{{?s <http://www.w3.org/2000/01/rdf-schema#domain> ?domain.} union {?s <http://www.w3.org/2000/01/rdf-schema#range> ?range.}}}",
+          $this->db->build_sparql_query("
+            select distinct ?s ?domain ?range from <" . $this->wsf_graph
+            . "ontologies/> 
+            where 
+            {
+              ?s a <http://www.w3.org/2002/07/owl#ObjectProperty>. 
+              optional
+              {
+                {
+                  ?s <http://www.w3.org/2000/01/rdf-schema#domain> ?domain.
+                } 
+                union 
+                {
+                  ?s <http://www.w3.org/2000/01/rdf-schema#range> ?range.
+                }
+              }
+            }",
             array ('s', 'domain', 'range'), FALSE);
 
         $resultset = $this->db->query($query);
@@ -1157,8 +1205,6 @@ class OntologyCreate extends WebService
         //          echo "-- TEST-3 --";
         }
 
-
-        /*
         foreach($properties as $property => $domainsRanges)
         {
           // Domains
@@ -1166,75 +1212,83 @@ class OntologyCreate extends WebService
           {
             if($domainsRanges[0] == "http://www.w3.org/2002/07/owl#Thing")
             {
-              $this->db->query("exst('sparql insert into graph <".$this->wsf_graph."ontologies/inferred/> {<$property> <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.w3.org/2002/07/owl#Thing>.}')");
+              $this->db->query("exst('sparql insert into graph <" . $this->wsf_graph
+                . "ontologies/inferred/> {<$property> <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.w3.org/2002/07/owl#Thing>.}')");
             }
             else
             {
               if(isset($classHierarchy->classes[$domainsRanges[0]]))
               {
                 $subClasses = $classHierarchy->getSubClasses($domainsRanges[0]);
-                
+
                 foreach($subClasses as $sp)
                 {
-                  $this->db->query("exst('sparql insert into graph <".$this->wsf_graph."ontologies/inferred/> {<$property> <http://www.w3.org/2000/01/rdf-schema#domain> <".$sp->name.">.}')");
-                  
-                  $this->addEquivalentClass($inferredOntologiesGraph, $property, "http://www.w3.org/2000/01/rdf-schema#domain", $sp->name);
-                }  
+                  $this->db->query("exst('sparql insert into graph <" . $this->wsf_graph
+                    . "ontologies/inferred/> {<$property> <http://www.w3.org/2000/01/rdf-schema#domain> <" . $sp->name
+                    . ">.}')");
+
+                  $this->addEquivalentClass($inferredOntologiesGraph, $property,
+                    "http://www.w3.org/2000/01/rdf-schema#domain", $sp->name);
+                }
               }
               else
               {
-                $this->db->query("exst('sparql insert into graph <".$this->wsf_graph."ontologies/inferred/> {<$property> <http://www.w3.org/2000/01/rdf-schema#domain> <$domainsRanges[0]>.}')");
-                
-                $this->addEquivalentClass($inferredOntologiesGraph, $property, "http://www.w3.org/2000/01/rdf-schema#domain", $domainsRanges[0]);
-              }  
+                $this->db->query("exst('sparql insert into graph <" . $this->wsf_graph
+                  . "ontologies/inferred/> {<$property> <http://www.w3.org/2000/01/rdf-schema#domain> <$domainsRanges[0]>.}')");
+
+                $this->addEquivalentClass($inferredOntologiesGraph, $property,
+                  "http://www.w3.org/2000/01/rdf-schema#domain", $domainsRanges[0]);
+              }
             }
           }
-          
+
           // Ranges
           if($domainsRanges[1] != "")
           {
             if($domainsRanges[1] == "http://www.w3.org/2002/07/owl#Thing")
             {
-              $this->db->query("exst('sparql insert into graph <".$this->wsf_graph."ontologies/inferred/> {<$property> <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2002/07/owl#Thing>.}')");
+              $this->db->query("exst('sparql insert into graph <" . $this->wsf_graph
+                . "ontologies/inferred/> {<$property> <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2002/07/owl#Thing>.}')");
             }
             else
             {
               if(isset($classHierarchy->classes[$domainsRanges[1]]))
               {
                 $subClasses = $classHierarchy->getSubClasses($domainsRanges[1]);
-                
+
                 foreach($subClasses as $sp)
                 {
-                  $this->db->query("exst('sparql insert into graph <".$this->wsf_graph."ontologies/inferred/> {<$property> <http://www.w3.org/2000/01/rdf-schema#range> <".$sp->name.">.}')");
-                  
-                  $this->addEquivalentClass($inferredOntologiesGraph, $property, "http://www.w3.org/2000/01/rdf-schema#range", $sp->name);
-                }  
+                  $this->db->query("exst('sparql insert into graph <" . $this->wsf_graph
+                    . "ontologies/inferred/> {<$property> <http://www.w3.org/2000/01/rdf-schema#range> <" . $sp->name
+                    . ">.}')");
+
+                  $this->addEquivalentClass($inferredOntologiesGraph, $property,
+                    "http://www.w3.org/2000/01/rdf-schema#range", $sp->name);
+                }
               }
               else
               {
-                $this->db->query("exst('sparql insert into graph <".$this->wsf_graph."ontologies/inferred/> {<$property> <http://www.w3.org/2000/01/rdf-schema#range> <$domainsRanges[1]>.}')");
-        
-                $this->addEquivalentClass($inferredOntologiesGraph, $property, "http://www.w3.org/2000/01/rdf-schema#range", $domainsRanges[1]);
-              }  
+                $this->db->query("exst('sparql insert into graph <" . $this->wsf_graph
+                  . "ontologies/inferred/> {<$property> <http://www.w3.org/2000/01/rdf-schema#range> <$domainsRanges[1]>.}')");
+
+                $this->addEquivalentClass($inferredOntologiesGraph, $property,
+                  "http://www.w3.org/2000/01/rdf-schema#range", $domainsRanges[1]);
+              }
             }
-          }  
-        }    
-        
+          }
+        }
+
         if(odbc_error())
         {
           $this->conneg->setStatus(400);
           $this->conneg->setStatusMsg("Bad Request");
           $this->conneg->setStatusMsgExt($this->errorMessenger->_313->name);
-          $this->conneg->setError($this->errorMessenger->_313->id, 
-                            $this->errorMessenger->ws, 
-                            $this->errorMessenger->_313->name, 
-                            $this->errorMessenger->_313->description, 
-                            odbc_errormsg(),
-                            $this->errorMessenger->_313->level);
-                            
-          return;          
-          
-        }        */
+          $this->conneg->setError($this->errorMessenger->_313->id, $this->errorMessenger->ws,
+            $this->errorMessenger->_313->name, $this->errorMessenger->_313->description, odbc_errormsg(),
+            $this->errorMessenger->_313->level);
+
+          return;
+        }
 
 
         // Step #9: processing the unionOf domains and ranges if needed.
@@ -1300,48 +1354,106 @@ class OntologyCreate extends WebService
         }
 
 
-        /*
-        
-        
         // Ranges
-        $query = $this->db->build_sparql_query("SELECT ?s ?unionOf FROM <".$this->wsf_graph."ontologies/> WHERE { ?s <http://www.w3.org/2000/01/rdf-schema#range> ?o. ?o <http://www.w3.org/2002/07/owl#unionOf> ?unionOf.}", array ('s', 'unionOf'), FALSE);
-        
+        $query =
+          $this->db->build_sparql_query("SELECT ?s ?unionOf FROM <" . $this->wsf_graph
+            . "ontologies/> WHERE { ?s <http://www.w3.org/2000/01/rdf-schema#range> ?o. ?o <http://www.w3.org/2002/07/owl#unionOf> ?unionOf.}",
+            array ('s', 'unionOf'), FALSE);
+
         $resultset = $this->db->query($query);
-        
+
         while(odbc_fetch_row($resultset))
         {
           $property = odbc_result($resultset, 1);
           $union = odbc_result($resultset, 2);
-          
+
           $unionClasses = array();
-          
+
           $this->getUnionOf($union, $unionClasses);
-        
+
           foreach($unionClasses as $uc)
           {
             if(isset($classHierarchy->classes[$uc]))
             {
               $subClasses = $classHierarchy->getSubClasses($uc);
-              
+
               foreach($subClasses as $sp)
               {
-                $this->db->query("exst('sparql insert into graph <".$this->wsf_graph."ontologies/inferred/> {<$property> <http://www.w3.org/2000/01/rdf-schema#range> <".$sp->name.">.}')");
-        
-                $this->addEquivalentClass($inferredOntologiesGraph, $property, "http://www.w3.org/2000/01/rdf-schema#range", $sp->name);
-              }  
+                $this->db->query("exst('sparql insert into graph <" . $this->wsf_graph
+                  . "ontologies/inferred/> {<$property> <http://www.w3.org/2000/01/rdf-schema#range> <" . $sp->name
+                  . ">.}')");
+
+                $this->addEquivalentClass($inferredOntologiesGraph, $property,
+                  "http://www.w3.org/2000/01/rdf-schema#range", $sp->name);
+              }
             }
-            
-            $this->db->query("exst('sparql insert into graph <".$this->wsf_graph."ontologies/inferred/> {<$property> <http://www.w3.org/2000/01/rdf-schema#range> <$uc>.}')");
-            
-            $this->addEquivalentClass($inferredOntologiesGraph, $property, "http://www.w3.org/2000/01/rdf-schema#range", $uc);
+
+            $this->db->query("exst('sparql insert into graph <" . $this->wsf_graph
+              . "ontologies/inferred/> {<$property> <http://www.w3.org/2000/01/rdf-schema#range> <$uc>.}')");
+
+            $this->addEquivalentClass($inferredOntologiesGraph, $property, "http://www.w3.org/2000/01/rdf-schema#range",
+              $uc);
           }
-        }          
-        
+        }
+
         if(odbc_error())
         {
           echo "-- TEST-5 --";
         }
-        */
+
+        # Step 9.5: for each property of the structure, we define their range & domains
+        foreach($propertyHierarchy->properties as $property)
+        {
+          // Get domains
+          $query = $this->db->build_sparql_query("
+              select distinct ?domain from <" . $this->wsf_graph . "ontologies/inferred/> 
+              where 
+              {
+                <" . $property->name . "> <http://www.w3.org/2000/01/rdf-schema#domain> ?domain.
+              }", array( 'domain' ), FALSE);
+
+          $resultset = $this->db->query($query);
+
+          while(odbc_fetch_row($resultset))
+          {
+            $domain = odbc_result($resultset, 1);
+
+            array_push($property->domain, $domain);
+          }
+
+          // Get ranges
+          $query = $this->db->build_sparql_query("
+              select distinct ?range from <" . $this->wsf_graph . "ontologies/inferred/> 
+              where 
+              {
+                <" . $property->name . "> <http://www.w3.org/2000/01/rdf-schema#range> ?range.
+              }", array( 'range' ), FALSE);
+
+          $resultset = $this->db->query($query);
+
+          while(odbc_fetch_row($resultset))
+          {
+            $range = odbc_result($resultset, 1);
+
+            array_push($property->range, $range);
+          }
+        }
+
+        // Each domain and ranges that doesn't have anything defined so far will be tagged as "owl:Thing".
+        // If the range or a domain of a predicate is not defined, owl:Thing is assumed...
+
+        foreach($propertyHierarchy->properties as $property)
+        {
+          if(count($property->domain) <= 0)
+          {
+            array_push($property->domain, "http://www.w3.org/2002/07/owl#Thing");
+          }
+
+          if(count($property->range) <= 0)
+          {
+            array_push($property->range, "http://www.w3.org/2002/07/owl#Thing");
+          }
+        }
 
         $classHierarchy = serialize($classHierarchy);
         $classHierarchy = str_replace(array ("\n", "\r"), array ("", ""), $classHierarchy);

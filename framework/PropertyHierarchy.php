@@ -40,7 +40,10 @@ class PropertyHierarchy
     
       \n\n\n
   */
-  function __construct($rootProperty) { $this->properties[$rootProperty] = new PropertyNode($rootProperty, ""); }
+  function __construct($rootProperty)
+  {
+    $this->properties[$rootProperty] = new PropertyNode($rootProperty, "");
+  }
 
   function __destruct() { }
 
@@ -261,6 +264,74 @@ class PropertyHierarchy
 
     return (FALSE);
   }
+
+
+  /*!   @brief Return an array of predicates for which the target class is in their domain.
+              
+      \n
+      
+      @param[in] $class URI of the target class
+      
+      @return returns An array of properties URI for which the target class belong to their class extension.
+    
+      @author Frederick Giasson, Structured Dynamics LLC.
+    
+      \n\n\n
+  */
+  public function inDomainOf($class)
+  {
+    $inDomain = array();
+
+    foreach($this->properties as $property)
+    {
+      if(array_search($class, $property->domain) !== FALSE)
+      {
+        array_push($inDomain, $property->name);
+      }
+    }
+
+    return ($inDomain);
+  }
+
+  /*!   @brief Return an array of predicates for which the target class is in their range.
+              
+      \n
+      
+      @param[in] $class URI of the target class
+      
+      @return returns An array of properties URI for which the target class belong to their class extension.
+    
+      @author Frederick Giasson, Structured Dynamics LLC.
+    
+      \n\n\n
+  */
+  public function inRangeOf($class)
+  {
+    $inRange = array();
+
+    foreach($this->properties as $property)
+    {
+      if(array_search($class, $property->range) !== FALSE)
+      {
+        array_push($inRange, $property->name);
+      }
+    }
+
+    return ($inRange);
+  }
+
+  public function getProperty($propertyURI)
+  {
+    foreach($this->properties as $property)
+    {
+      if($property->name == $propertyURI)
+      {
+        return ($property);
+      }
+    }
+
+    return (NULL);
+  }
 }
 
 
@@ -283,11 +354,22 @@ class propertyNode
   /*! @brief Description of the property */
   public $description = "";
 
+  /*    public $displayCluster = "generic";
+      public $displayCardinality = "*";
+      public $displayKind = "string";
+      public $displayPriority = 1;
+  */
   /*! @brief Array of references to the sub-properties of this property */
   public $subPropertyOf = array();
 
   /*! @brief Array of references to the super-properties of this property */
   public $superPropertyOf = array();
+
+  /*! @brief Exostive list of all inferred classes part of the class extension of the domain of this property. */
+  public $domain = array();
+
+  /*! @brief Exostive list of all inferred classes part of the class extension of the range of this property. */
+  public $range = array();
 
   /*!   @brief Constructor
               

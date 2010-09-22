@@ -298,7 +298,8 @@ class ConverterCommON extends WebService
           // Serialize the type(s) used to define the record
           if(count($type) == 1)
           {
-            $structXML .= "<subject type=\"" . $type[0] . "\" uri=\"" . $recordId . "\">\n";
+            $structXML .= "<subject type=\"" . $this->xmlEncode($type[0]) . "\" uri=\"" . $this->xmlEncode($recordId) . 
+                                                                                                                "\">\n";
           }
           else
           {
@@ -310,7 +311,8 @@ class ConverterCommON extends WebService
             {
               if($first === TRUE)
               {
-                $structXML .= "<subject type=\"" . $t . "\" uri=\"" . $recordId . "\">\n";
+                $structXML .= "<subject type=\"" . $this->xmlEncode($t) . "\" uri=\"" . $this->xmlEncode($recordId) . 
+                                                                                                                "\">\n";
                 $first = FALSE;
               }
               else
@@ -318,7 +320,7 @@ class ConverterCommON extends WebService
                 // Multiple types defined for this subject.
                 $structXML .= "
                   <predicate type=\"rdf:type\">
-                    <object uri=\"" . $t . "\">1282</object>
+                    <object uri=\"" . $this->xmlEncode($t) . "\">1282</object>
                   </predicate>
                 ";
               }
@@ -351,7 +353,8 @@ class ConverterCommON extends WebService
                         $reiProperty = $datasetID . substr($reifiedAttribute, 1, strlen($reifiedAttribute) - 1);
                       }
                       // @TODO: Check if "@" or "@@"
-                      $reifications .= "<reify type=\"" . $reiProperty . "\" value=\"" . $this->xmlEncode($reiValue) . "\" />\n";
+                      $reifications .= "<reify type=\"" . $this->xmlEncode($reiProperty) . "\" value=\"" . 
+                                        $this->xmlEncode($reiValue) . "\" />\n";
                     }
                   }                  
 
@@ -371,9 +374,9 @@ class ConverterCommON extends WebService
                     if($reifications != "")
                     {
                       $structXML .= "
-                        <predicate type=\"" . $p . "\">
-                          <object uri=\"" . $datasetID . $value["value"] . "\">
-                            " . $reifications . "
+                        <predicate type=\"" . $this->xmlEncode($p) . "\">
+                          <object uri=\"" . $this->xmlEncode($datasetID . $value["value"]) . "\">
+                            " . $this->xmlEncode($reifications) . "
                           </object>
                         </predicate>
                       ";                    
@@ -381,8 +384,8 @@ class ConverterCommON extends WebService
                     else
                     {
                       $structXML .= "
-                        <predicate type=\"" . $p . "\">
-                          <object uri=\"" . $datasetID . $value["value"] . "\" />
+                        <predicate type=\"" . $this->xmlEncode($p) . "\">
+                          <object uri=\"" . $this->xmlEncode($datasetID . $value["value"]) . "\" />
                         </predicate>
                       ";                    
                     }
@@ -393,9 +396,9 @@ class ConverterCommON extends WebService
                     if($reifications != "")
                     {
                       $structXML .= "
-                        <predicate type=\"" . $p . "\">
-                          <object uri=\"" . $value["value"] . "\">
-                            " . $reifications . "
+                        <predicate type=\"" . $this->xmlEncode($p) . "\">
+                          <object uri=\"" . $this->xmlEncode($value["value"]) . "\">
+                            " . $this->xmlEncode($reifications) . "
                           </object>
                         </predicate>
                       ";                    
@@ -403,8 +406,8 @@ class ConverterCommON extends WebService
                     else
                     {
                       $structXML .= "
-                        <predicate type=\"" . $p . "\">
-                          <object uri=\"" . $value["value"] . "\" />
+                        <predicate type=\"" . $this->xmlEncode($p) . "\">
+                          <object uri=\"" . $this->xmlEncode($value["value"]) . "\" />
                         </predicate>
                       ";                    
                     }                   
@@ -416,7 +419,7 @@ class ConverterCommON extends WebService
                     
                     // The value is a literal
                     $structXML .= "
-                      <predicate type=\"" . $p . "\">
+                      <predicate type=\"" . $this->xmlEncode($p) . "\">
                         <object type=\"rdfs:Literal\">".$this->xmlEncode($value["value"])."</object>
                       </predicate>
                     ";                    

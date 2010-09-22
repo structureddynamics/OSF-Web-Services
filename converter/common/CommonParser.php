@@ -1255,15 +1255,14 @@ class CommonParser
                 $p = $baseOntology . substr($property, 1, strlen($property) - 1);
               }
 
-              // Check if the value is a local record reference
               if(substr($value["value"], 0, 1) == "@")
               {
-                $n3 .= "<" . $recordId . "> <" . $p . "> <" . $baseInstance . $value["value"] . "> .\n";
+                $n3 .= "<" . $recordId . "> <" . $p . "> <" . $baseInstance . substr($value["value"],1) . "> .\n";
               }
               // Check if the value is an external record reference
               elseif(substr($value["value"], 0, 2) == "@@")
               {
-                $n3 .= "<" . $recordId . "> <" . $p . "> <" . $value["value"] . "> .\n";
+                $n3 .= "<" . $recordId . "> <" . $p . "> <" . substr($value["value"],2) . "> .\n";
               }
               else
               {
@@ -1286,7 +1285,6 @@ class CommonParser
                   {
                     $reiProperty = $baseOntology . substr($reifiedAttribute, 1, strlen($reifiedAttribute) - 1);
 
-                  }
                   
                   // @TODO: Check if "@" or "@@"
                   foreach($reiValues as $reiValue)
@@ -1299,6 +1297,22 @@ class CommonParser
                       . "\"\"\" ;\n";
                     $n3ReificationStatements .= "    <" . $reiProperty . "> \"\"\"" . $this->escapeN3($reiValue)
                       . "\"\"\" .\n\n";
+                    }
+                  }
+                  else
+                  {
+                    // @TODO: Check if "@" or "@@"
+                    foreach($reiValues as $reiValue)
+                    {
+                      $n3ReificationStatements .= "_:" . md5($recordId . $p . $value["value"]) . " a rdf:Statement ;\n";
+
+                      $n3ReificationStatements .= "    rdf:subject <" . $recordId . "> ;\n";
+                      $n3ReificationStatements .= "    rdf:predicate <" . $p . "> ;\n";
+                      $n3ReificationStatements .= "    rdf:object \"\"\"" . $this->escapeN3($value["value"])
+                        . "\"\"\" ;\n";
+                      $n3ReificationStatements .= "    <" . $rp . "> \"\"\"" . $this->escapeN3($reiValue)
+                        . "\"\"\" .\n\n";
+                    }
                   }
                 }
               }

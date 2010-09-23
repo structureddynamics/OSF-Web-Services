@@ -333,7 +333,7 @@ class Sparql extends WebService
               foreach($values as $value)
               {
                 $pred = $xml->createPredicate($property);
-                $object = $xml->createObjectContent($this->xmlEncode($value));
+                $object = $xml->createObjectContent($value);
                 $pred->appendChild($object);
                 $subject->appendChild($pred);
               }
@@ -408,18 +408,6 @@ class Sparql extends WebService
         $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
           $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, "",
           $this->errorMessenger->_200->level);
-
-        return;
-      }
-
-      if($this->dataset == "")
-      {
-        $this->conneg->setStatus(400);
-        $this->conneg->setStatusMsg("Bad Request");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
-        $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, "",
-          $this->errorMessenger->_201->level);
 
         return;
       }
@@ -799,7 +787,8 @@ class Sparql extends WebService
             $nsId++;
           }
 
-          $rdf_part .= "\n    <" . $this->namespaces[$ns1[0]] . ":" . $ns1[1] . " rdf:about=\"$subjectURI\">\n";
+          $rdf_part .= "\n    <" . $this->namespaces[$ns1[0]] . ":" . $ns1[1] . " rdf:about=\"".
+                                                                                  $this->xmlEncode($subjectURI)."\">\n";
 
           $predicates = $xml->getPredicates($subject);
 
@@ -840,7 +829,7 @@ class Sparql extends WebService
                 }
 
                 $rdf_part .= "        <" . $this->namespaces[$ns[0]] . ":" . $ns[1]
-                  . " rdf:resource=\"$objectURI\" />\n";
+                  . " rdf:resource=\"".$this->xmlEncode($objectURI)."\" />\n";
               }
             }
           }
@@ -1014,6 +1003,18 @@ class Sparql extends WebService
       {
         array_push($graphs, $match);
       }
+      
+      if($this->dataset == "" &&  count($graphs) <= 0)
+      {
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
+        $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, "",
+          $this->errorMessenger->_201->level);
+
+        return;
+      }      
 
       // Validate all graphs of the query. If one of the graph is not accessible to the user, we just return
       // and error for this SPARQL query.
@@ -1042,7 +1043,7 @@ class Sparql extends WebService
 
           return;
         }
-      }
+      }        
       
       /*
         if registered_ip != requester_ip, this means that the query is sent by a registered system

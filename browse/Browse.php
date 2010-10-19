@@ -281,7 +281,7 @@ class Browse extends WebService
       if(isset($result["prefLabel"]))
       {
         $pred = $xml->createPredicate(Namespaces::$iron . "prefLabel");
-        $object = $xml->createObjectContent($this->xmlEncode($result["prefLabel"]));
+        $object = $xml->createObjectContent($result["prefLabel"]);
         $pred->appendChild($object);
         $subject->appendChild($pred);
       }
@@ -292,7 +292,7 @@ class Browse extends WebService
         foreach($result["altLabel"] as $altLabel)
         {
           $pred = $xml->createPredicate(Namespaces::$iron . "altLabel");
-          $object = $xml->createObjectContent($this->xmlEncode($altLabel));
+          $object = $xml->createObjectContent($altLabel);
           $pred->appendChild($object);
           $subject->appendChild($pred);
         }
@@ -302,7 +302,7 @@ class Browse extends WebService
       if(isset($result["description"]))
       {
         $pred = $xml->createPredicate(Namespaces::$iron . "description");
-        $object = $xml->createObjectContent($this->xmlEncode($result["description"]));
+        $object = $xml->createObjectContent($result["description"]);
         $pred->appendChild($object);
         $subject->appendChild($pred);
       }
@@ -316,7 +316,7 @@ class Browse extends WebService
           foreach($values as $value)
           {
             $pred = $xml->createPredicate($property);
-            $object = $xml->createObjectContent($this->xmlEncode($value));
+            $object = $xml->createObjectContent($value);
             $pred->appendChild($object);
             $subject->appendChild($pred);
           }
@@ -382,7 +382,7 @@ class Browse extends WebService
         $subject->appendChild($pred);
 
         $pred = $xml->createPredicate("http://purl.org/ontology/aggregate#count");
-        $object = $xml->createObjectContent($this->xmlEncode($fcount));
+        $object = $xml->createObjectContent($fcount);
         $pred->appendChild($object);
         $subject->appendChild($pred);
 
@@ -411,7 +411,7 @@ class Browse extends WebService
           $subject->appendChild($pred);
 
           $pred = $xml->createPredicate("http://purl.org/ontology/aggregate#count");
-          $object = $xml->createObjectContent($this->xmlEncode($fcount));
+          $object = $xml->createObjectContent($fcount);
           $pred->appendChild($object);
           $subject->appendChild($pred);
 
@@ -439,7 +439,7 @@ class Browse extends WebService
         $subject->appendChild($pred);
 
         $pred = $xml->createPredicate("http://purl.org/ontology/aggregate#count");
-        $object = $xml->createObjectContent($this->xmlEncode($fcount));
+        $object = $xml->createObjectContent($fcount);
         $pred->appendChild($object);
         $subject->appendChild($pred);
 
@@ -467,7 +467,7 @@ class Browse extends WebService
         $subject->appendChild($pred);
 
         $pred = $xml->createPredicate("http://purl.org/ontology/aggregate#count");
-        $object = $xml->createObjectContent($this->xmlEncode($fcount));
+        $object = $xml->createObjectContent($fcount);
         $pred->appendChild($object);
         $subject->appendChild($pred);
 
@@ -850,7 +850,8 @@ class Browse extends WebService
             $nsId++;
           }
 
-          $rdf_part .= "\n    <" . $this->namespaces[$ns1[0]] . ":" . $ns1[1] . " rdf:about=\"$subjectURI\">\n";
+          $rdf_part .= "\n    <" . $this->namespaces[$ns1[0]] . ":" . $ns1[1] . " rdf:about=\"".
+                                                                          $this->xmlEncode($subjectURI)."\">\n";
 
           $predicates = $xml->getPredicates($subject);
 
@@ -891,7 +892,7 @@ class Browse extends WebService
                 }
 
                 $rdf_part .= "        <" . $this->namespaces[$ns[0]] . ":" . $ns[1]
-                  . " rdf:resource=\"$objectURI\" />\n";
+                  . " rdf:resource=\"".$this->xmlEncode($objectURI)."\" />\n";
               }
             }
           }
@@ -1048,10 +1049,12 @@ class Browse extends WebService
               foreach($reifies as $reify)
               {
                 $rdf_reification .= "<rdf:Statement rdf:about=\""
-                  . md5($xml->getURI($subject) . $predicateType . $xml->getURI($object)) . "\">\n";
-                $rdf_reification .= "    <rdf:subject rdf:resource=\"" . $xml->getURI($subject) . "\" />\n";
-                $rdf_reification .= "    <rdf:predicate rdf:resource=\"" . $predicateType . "\" />\n";
-                $rdf_reification .= "    <rdf:object rdf:resource=\"" . $xml->getURI($object) . "\" />\n";
+                  . md5($xml->getURI($subject) . $predicateType . $this->xmlEncode($xml->getURI($object))) . "\">\n";
+                $rdf_reification .= "    <rdf:subject rdf:resource=\"" . $this->xmlEncode($xml->getURI($subject)) . 
+                                                                                                              "\" />\n";
+                $rdf_reification .= "    <rdf:predicate rdf:resource=\"" . $this->xmlEncode($predicateType) . "\" />\n";
+                $rdf_reification .= "    <rdf:object rdf:resource=\"" . $this->xmlEncode($xml->getURI($object)) . 
+                                                                                                              "\" />\n";
                 $rdf_reification .= "    <wsf:objectLabel>" . $this->xmlEncode($xml->getValue($reify))
                   . "</wsf:objectLabel>\n";
                 $rdf_reification .= "</rdf:Statement>  \n\n";

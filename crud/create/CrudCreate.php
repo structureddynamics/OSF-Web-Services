@@ -136,7 +136,16 @@ class CrudCreate extends WebService
     $this->requester_ip = $requester_ip;
     $this->dataset = $dataset;
     
-    $this->document = utf8_encode($document);
+    if (extension_loaded("mbstring") && mb_detect_encoding($document, "UTF-8") != "UTF-8")
+    {
+      $this->document = utf8_encode($document);
+    }
+    else //we have to assume the input is UTF-8
+    {
+      $this->document = $document;
+    }
+    
+    
     $this->mime = $mime;
     $this->mode = $mode;
 

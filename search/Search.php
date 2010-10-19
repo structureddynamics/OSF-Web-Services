@@ -292,7 +292,7 @@ class Search extends WebService
       if(isset($result["prefLabel"]))
       {
         $pred = $xml->createPredicate(Namespaces::$iron . "prefLabel");
-        $object = $xml->createObjectContent($this->xmlEncode($result["prefLabel"]));
+        $object = $xml->createObjectContent($result["prefLabel"]);
         $pred->appendChild($object);
         $subject->appendChild($pred);
       }
@@ -303,7 +303,7 @@ class Search extends WebService
         foreach($result["altLabel"] as $altLabel)
         {
           $pred = $xml->createPredicate(Namespaces::$iron . "altLabel");
-          $object = $xml->createObjectContent($this->xmlEncode($altLabel));
+          $object = $xml->createObjectContent($altLabel);
           $pred->appendChild($object);
           $subject->appendChild($pred);
         }
@@ -313,7 +313,7 @@ class Search extends WebService
       if(isset($result["description"]))
       {
         $pred = $xml->createPredicate(Namespaces::$iron . "description");
-        $object = $xml->createObjectContent($this->xmlEncode($result["description"]));
+        $object = $xml->createObjectContent($result["description"]);
         $pred->appendChild($object);
         $subject->appendChild($pred);
       }
@@ -327,7 +327,7 @@ class Search extends WebService
           foreach($values as $value)
           {
             $pred = $xml->createPredicate($property);
-            $object = $xml->createObjectContent($this->xmlEncode($value));
+            $object = $xml->createObjectContent($value);
             $pred->appendChild($object);
             $subject->appendChild($pred);
           }
@@ -390,7 +390,7 @@ class Search extends WebService
         $subject->appendChild($pred);
 
         $pred = $xml->createPredicate("aggr:count");
-        $object = $xml->createObjectContent($this->xmlEncode($fcount));
+        $object = $xml->createObjectContent($fcount);
         $pred->appendChild($object);
         $subject->appendChild($pred);
 
@@ -418,7 +418,7 @@ class Search extends WebService
           $subject->appendChild($pred);
 
           $pred = $xml->createPredicate("aggr:count");
-          $object = $xml->createObjectContent($this->xmlEncode($fcount));
+          $object = $xml->createObjectContent($fcount);
           $pred->appendChild($object);
           $subject->appendChild($pred);
 
@@ -442,7 +442,7 @@ class Search extends WebService
         $subject->appendChild($pred);
 
         $pred = $xml->createPredicate("aggr:count");
-        $object = $xml->createObjectContent($this->xmlEncode($fcount));
+        $object = $xml->createObjectContent($fcount);
         $pred->appendChild($object);
         $subject->appendChild($pred);
 
@@ -468,7 +468,7 @@ class Search extends WebService
         $subject->appendChild($pred);
 
         $pred = $xml->createPredicate("aggr:count");
-        $object = $xml->createObjectContent($this->xmlEncode($fcount));
+        $object = $xml->createObjectContent($fcount);
         $pred->appendChild($object);
         $subject->appendChild($pred);
 
@@ -864,7 +864,8 @@ class Search extends WebService
             $nsId++;
           }
 
-          $rdf_part .= "\n    <" . $this->namespaces[$ns1[0]] . ":" . $ns1[1] . " rdf:about=\"$subjectURI\">\n";
+          $rdf_part .= "\n    <" . $this->namespaces[$ns1[0]] . ":" . $ns1[1] . " rdf:about=\"".
+                                                                                  $this->xmlEncode($subjectURI)."\">\n";
 
           $predicates = $xml->getPredicates($subject);
 
@@ -905,7 +906,7 @@ class Search extends WebService
                 }
 
                 $rdf_part .= "        <" . $this->namespaces[$ns[0]] . ":" . $ns[1]
-                  . " rdf:resource=\"$objectURI\" />\n";
+                  . " rdf:resource=\"".$this->xmlEncode($objectURI)."\" />\n";
               }
             }
           }
@@ -1063,10 +1064,12 @@ class Search extends WebService
               foreach($reifies as $reify)
               {
                 $rdf_reification .= "<rdf:Statement rdf:about=\""
-                  . md5($xml->getURI($subject) . $predicateType . $xml->getURI($object)) . "\">\n";
-                $rdf_reification .= "    <rdf:subject rdf:resource=\"" . $xml->getURI($subject) . "\" />\n";
-                $rdf_reification .= "    <rdf:predicate rdf:resource=\"" . $predicateType . "\" />\n";
-                $rdf_reification .= "    <rdf:object rdf:resource=\"" . $xml->getURI($object) . "\" />\n";
+                  . $this->xmlEncode(md5($xml->getURI($subject) . $predicateType . $xml->getURI($object))) . "\">\n";
+                $rdf_reification .= "    <rdf:subject rdf:resource=\"" . $this->xmlEncode($xml->getURI($subject)) . 
+                                                                                                              "\" />\n";
+                $rdf_reification .= "    <rdf:predicate rdf:resource=\"" . $this->xmlEncode($predicateType) . "\" />\n";
+                $rdf_reification .= "    <rdf:object rdf:resource=\"" . $this->xmlEncode($xml->getURI($object)) . 
+                                                                                                              "\" />\n";
                 $rdf_reification .= "    <wsf:objectLabel>" . $this->xmlEncode($xml->getValue($reify))
                   . "</wsf:objectLabel>\n";
                 $rdf_reification .= "</rdf:Statement>  \n\n";
@@ -1275,13 +1278,41 @@ class Search extends WebService
         return;
       }
 
+      /* 
+        Check if characters of the Solr query language is used for this query. If some does, we *only* take
+        them to create the query.
+      */
+      $useLuceneSyntax = FALSE;
+      $specialChars = array('"', 'AND', 'OR', '?', '*', '~', '+', '-', 'NOT', '&&', '||', '!', '^');
+      
+      foreach($specialChars as $char)
+      {
+        if(strpos($this->query, $char) !== FALSE)
+        {
+          $useLuceneSyntax = TRUE;
+          break;          
+        }
+      }
+      
+      
       if($this->attributes == "all")
       {
-        $solrQuery = "q=%22" . urlencode(implode(" +", explode(" ", $this->query))) . "%22~5&start=" . $this->page
-          . "&rows=" . $this->items
-          . (strtolower($this->includeAggregates) == "true" ? "&facet=true&facet.limit=-1&facet.field=type"
-          . (strtolower($this->inference) == "on" ? "&facet.field=inferred_type" : "")
-            . "&facet.field=dataset&facet.field=attribute&facet.mincount=1" : "");
+        if(!$useLuceneSyntax)
+        {
+          $solrQuery = "q=%22" . urlencode(implode(" +", explode(" ", $this->query))) . "%22~5&start=" . $this->page
+            . "&rows=" . $this->items
+            . (strtolower($this->includeAggregates) == "true" ? "&facet=true&facet.limit=-1&facet.field=type"
+            . (strtolower($this->inference) == "on" ? "&facet.field=inferred_type" : "")
+              . "&facet.field=dataset&facet.field=attribute&facet.mincount=1" : "");
+        }
+        else
+        {
+          $solrQuery = "q=" . urlencode($this->query) . "&start=" . $this->page
+            . "&rows=" . $this->items
+            . (strtolower($this->includeAggregates) == "true" ? "&facet=true&facet.limit=-1&facet.field=type"
+            . (strtolower($this->inference) == "on" ? "&facet.field=inferred_type" : "")
+              . "&facet.field=dataset&facet.field=attribute&facet.mincount=1" : "");
+        }
       }
       else
       {
@@ -1305,24 +1336,48 @@ class Search extends WebService
           switch(urldecode($attribute))
           {
             case Namespaces::$iron . "prefLabel":
-              //              $solrQuery .= "(prefLabel:".urlencode(implode("+", explode(" ", $this->query))).")";
-              $solrQuery .= "prefLabel:(" . urlencode(implode(" +", explode(" ", $this->query))) . ")";
+              if(!$useLuceneSyntax)
+              {
+                $solrQuery .= "prefLabel:(" . urlencode(implode(" +", explode(" ", $this->query))) . ")";
+              }
+              else
+              {
+                $solrQuery .= "prefLabel:(" . urlencode($this->query) . ")";
+              }
             break;
 
             case Namespaces::$iron . "altLabel":
-              //              $solrQuery .= "(altLabel:".urlencode(implode("+", explode(" ", $this->query))).")";
-              $solrQuery .= "altLabel:(" . urlencode(implode(" +", explode(" ", $this->query))) . ")";
+              if(!$useLuceneSyntax)
+              {
+                $solrQuery .= "altLabel:(" . urlencode(implode(" +", explode(" ", $this->query))) . ")";
+              }
+              else
+              {
+                $solrQuery .= "altLabel:(" . urlencode($this->query) . ")";                
+              }
             break;
 
             case Namespaces::$iron . "description":
-              //              $solrQuery .= "(description:".urlencode(implode("+", explode(" ", $this->query))).")";
-              $solrQuery .= "description:(" . urlencode(implode(" +", explode(" ", $this->query))) . ")";
+              if(!$useLuceneSyntax)
+              {
+                $solrQuery .= "description:(" . urlencode(implode(" +", explode(" ", $this->query))) . ")";
+              }
+              else
+              {
+                $solrQuery .= "description:(" . urlencode($this->query) . ")";
+              }
             break;
 
             default:
-//              $solrQuery .= "(".urlencode($attribute)."_attr:".urlencode(implode("+", explode(" ", $this->query))).")";
-              $solrQuery .= "" . urlencode($attribute) . "_attr:("
-                . urlencode(implode(" +", explode(" ", $this->query))) . ")";
+              if(!$useLuceneSyntax)
+              {
+                $solrQuery .= "" . urlencode($attribute) . "_attr:("
+                              . urlencode(implode(" +", explode(" ", $this->query))) . ")";
+              }
+              else
+              {
+                $solrQuery .= "" . urlencode($attribute) . "_attr:(" . urlencode($this->query) . ")";
+              }
             break;
           }
         }

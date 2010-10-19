@@ -594,7 +594,7 @@ class OntologyCreate extends WebService
             return;
           }
 
-          // Recreatethe inference table
+          // Recreate the inference table
           $this->db->query("rdfs_rule_set('" . $this->rulesSetURI . "', '" . $this->wsf_graph
             . "ontologies/inferred/')");
 
@@ -1279,7 +1279,8 @@ class OntologyCreate extends WebService
         }
 
         if(odbc_error())
-        {
+        { 
+          /*
           $this->conneg->setStatus(400);
           $this->conneg->setStatusMsg("Bad Request");
           $this->conneg->setStatusMsgExt($this->errorMessenger->_313->name);
@@ -1288,6 +1289,7 @@ class OntologyCreate extends WebService
             $this->errorMessenger->_313->level);
 
           return;
+          */
         }
 
 

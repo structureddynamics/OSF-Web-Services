@@ -251,7 +251,7 @@ class ConverterTsv extends WebService
             $value = $propertyValue[1];
 
             $pred = $xml->createPredicate($property);
-            $object = $xml->createObjectContent($this->xmlEncode($value));
+            $object = $xml->createObjectContent($value);
 
             $pred->appendChild($object);
             $subject->appendChild($pred);
@@ -564,7 +564,8 @@ class ConverterTsv extends WebService
             $nsId++;
           }
 
-          $rdf_part .= "\n    <" . $namespaces[$stNs] . ":" . $stExtension . " rdf:about=\"$subjectURI\">\n";
+          $rdf_part .= "\n    <" . $namespaces[$stNs] . ":" . $stExtension . " rdf:about=\"".
+                                                                                  $this->xmlEncode($subjectURI)."\">\n";
 
           $predicates = $xml->getPredicates($subject);
 
@@ -609,7 +610,7 @@ class ConverterTsv extends WebService
                 }
 
                 $rdf_part .= "        <" . $namespaces[$ptNs] . ":" . $ptExtension
-                  . " rdf:resource=\"$objectURI\" />\n";
+                  . " rdf:resource=\"".$this->xmlEncode($objectURI)."\" />\n";
               }
             }
           }

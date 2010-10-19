@@ -1,12 +1,11 @@
 <?php
 
-/*! @defgroup WsCrud Crud Web Service */
+/*! @defgroup WsTracker Tracker Web Service */
 //@{
 
-/*! @file \ws\crud\delete\CrudDelete.php
-   @brief Define the Crud Delete web service
+/*! @file \ws\tracker\create\TrackerCreate.php
+   @brief Define the Crud Create web service
 
-  
    \n\n
  
    @author Frederick Giasson, Structured Dynamics LLC.
@@ -15,7 +14,7 @@
  */
 
 
-/*!   @brief CRUD Delete web service. It removes record instances within dataset indexes on different systems (Virtuoso, Solr, etc).
+/*!   @brief Tracker Create web service. It tracks changes in the state of records.
             
     \n
     
@@ -24,7 +23,7 @@
     \n\n\n
 */
 
-class CrudDelete extends WebService
+class TrackerCreate extends WebService
 {
   /*! @brief Database connection */
   private $db;
@@ -36,18 +35,30 @@ class CrudDelete extends WebService
   private $dtdURL;
 
   /*! @brief Supported serialization mime types by this Web service */
-  public static $supportedSerializations =
-    array ("application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*",
-      "*/*");
+  public static $supportedSerializations = array ("text/xml", "text/*", "*/*");
 
   /*! @brief IP being registered */
   private $registered_ip = "";
+  
+  /*! @brief  Dataset where the record is indexed */
+  private $fromDataset = "";
 
-  /*! @brief Dataset where to index the resource*/
-  private $dataset;
+  /*! @brief  Record that got changed */
+  private $record = "";
 
-  /*! @brief URI of the resource to delete */
-  private $resourceUri;
+  /*! @brief  Action that has been performed on the record */
+  private $action = "";
+
+  /*! @brief  Serialization of the state (usually RDF description) of the record prior the performance of the 
+              action on the record. */
+  private $previousState = "";
+
+  /*! @brief  MIME type of the serialization of the previous state of a record. Usually, application/rdf+xml or 
+              application/rdf+n3. */
+  private $previousStateMime = "";
+
+  /*! @brief  Performer of the action on the target record. */
+  private $performer = "";
 
   /*! @brief Requester's IP used for request validation */
   private $requester_ip = "";
@@ -55,72 +66,78 @@ class CrudDelete extends WebService
   /*! @brief Error messages of this web service */
   private $errorMessenger =
     '{
-      "ws": "/ws/crud/delete/",
+      "ws": "/ws/tracker/create/",
       "_200": {
-        "id": "WS-CRUD-DELETE-200",
-        "level": "Warning",
-        "name": "No resource URI to delete specified",
-        "description": "No resource URI has been defined for this query"
+        "id": "WS-TRACKER-CREATE-200",
+        "level": "Fatal",
+        "name": "No dataset provenance defined.",
+        "description": "The provenance of the record as to be specified."
       },
       "_201": {
-        "id": "WS-CRUD-DELETE-201",
-        "level": "Warning",
-        "name": "No dataset specified",
-        "description": "No dataset URI defined for this query"
-      },
-      "_300": {
-        "id": "WS-CRUD-DELETE-300",
+        "id": "WS-TRACKER-CREATE-201",
         "level": "Fatal",
-        "name": "Can\'t delete the record in the triple store",
-        "description": "An error occured when we tried to delete that record in the triple store"
+        "name": "State serialization mime not supported.",
+        "description": "Only the application/rdf+xml and application/rdf+n3 mime types are supported by the tracker."
       },
-      "_301": {
-        "id": "WS-CRUD-DELETE-301",
+      "_202": {
+        "id": "WS-TRACKER-CREATE-202",
         "level": "Fatal",
-        "name": "Can\'t delete the record in Solr",
-        "description": "An error occured when we tried to delete that record in Solr"
+        "name": "No record defined",
+        "description": "No changed record has been defined for this query."
       },
-      "_302": {
-        "id": "WS-CRUD-DELETE-302",
+      "_203": {
+        "id": "WS-TRACKER-CREATE-203",
         "level": "Fatal",
-        "name": "Can\'t commit changes to the Solr index",
-        "description": "An error occured when we tried to commit changes to the Solr index"
+        "name": "No performer defined.",
+        "description": "The performer of the action needs to be defined."
       },
-      "_303": {
-        "id": "WS-CRUD-CREATE-303",
+      "_204": {
+        "id": "WS-TRACKER-CREATE-204",
         "level": "Fatal",
-        "name": "Can\'t create a tracking record for one of the input records",
-        "description": "We can\'t create the records because we can\'t ensure that we have a track of their changes."
-      }  
+        "name": "Unsupported action",
+        "description": "Only the actions \'delete\', \'create\' and \'update\' are supported by the tracker"
+      }
     }';
 
 
-  /*!   @brief Constructor
-       @details   Initialize the Crud Delete
+/*!   @brief Constructor
+     @details   Initialize the Crud Create
       
-      @param[in] $uri URI of the instance record to delete
-      @param[in] $dataset URI of the dataset where the instance record is indexed
-      @param[in] $registered_ip Target IP address registered in the WSF
-      @param[in] $requester_ip IP address of the requester
-              
-      \n
-      
-      @return returns NULL
+    @param[in] $fromDataset Dataset where the record is indexed
+    @param[in] $record Record that got changed
+    @param[in] $action Action that has been performed on the record
+    @param[in] $previousState Serialization of the state (usually RDF description) of the record prior the 
+                              performance of the action on the record.
+    @param[in] $previousStateMime MIME type of the serialization of the previous state of a record. Usually, 
+                                  application/rdf+xml or application/rdf+n3.
+    @param[in] $performer Performer of the action on the target record.
+    @param[in] $registered_ip Target IP address registered in the WSF
+    @param[in] $requester_ip IP address of the requester
+            
+    \n
     
-      @author Frederick Giasson, Structured Dynamics LLC.
-    
-      \n\n\n
-  */
-  function __construct($uri, $dataset, $registered_ip, $requester_ip)
+    @return returns NULL
+  
+    @author Frederick Giasson, Structured Dynamics LLC.
+  
+    \n\n\n
+*/
+  function __construct($fromDataset, $record, $action, $previousState, $previousStateMime, $performer,  $registered_ip, $requester_ip)
   {
     parent::__construct();
 
     $this->db = new DB_Virtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 
     $this->requester_ip = $requester_ip;
-    $this->dataset = $dataset;
-    $this->resourceUri = $uri;
 
+    $this->fromDataset = $fromDataset;
+    $this->record = $record;
+    $this->action = $action;
+//    $this->previousState = urlencode(gzencode($previousState));
+    $this->previousState = base64_encode(gzencode($previousState));
+    $this->previousStateMime = $previousStateMime;
+    $this->performer = $performer;
+    
     if($registered_ip == "")
     {
       $this->registered_ip = $requester_ip;
@@ -145,13 +162,13 @@ class CrudDelete extends WebService
         $this->registered_ip = $requester_ip;
       }
     }
+    
+    $this->uri = $this->wsf_base_url . "/wsf/ws/tracker/create/";
+    $this->title = "Tracker Create Web Service";
+    $this->crud_usage = new CrudUsage(TRUE, FALSE, FALSE, FALSE);
+    $this->endpoint = $this->wsf_base_url . "/ws/tracker/create/";
 
-    $this->uri = $this->wsf_base_url . "/wsf/ws/crud/delete/";
-    $this->title = "Crud Delete Web Service";
-    $this->crud_usage = new CrudUsage(FALSE, FALSE, FALSE, TRUE);
-    $this->endpoint = $this->wsf_base_url . "/ws/crud/delete/";
-
-    $this->dtdURL = "auth/CrudDelete.dtd";
+    $this->dtdURL = "auth/TrackerCreate.dtd";
 
     $this->errorMessenger = json_decode($this->errorMessenger);
   }
@@ -166,7 +183,7 @@ class CrudDelete extends WebService
     }
   }
 
-  /*!   @brief Validate a query to this web service
+  /*!  @brief Validate a query to this web service
               
       \n
       
@@ -179,7 +196,7 @@ class CrudDelete extends WebService
   protected function validateQuery()
   {
     // Validation of the "requester_ip" to make sure the system that is sending the query as the rights.
-    $ws_av = new AuthValidator($this->requester_ip, $this->dataset, $this->uri);
+    $ws_av = new AuthValidator($this->requester_ip, $this->wsf_graph."track/", $this->uri);
 
     $ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
       $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
@@ -204,7 +221,7 @@ class CrudDelete extends WebService
     if($this->registered_ip != $this->requester_ip)
     {    
       // Validation of the "registered_ip" to make sure the user of this system has the rights
-      $ws_av = new AuthValidator($this->registered_ip, $this->dataset, $this->uri);
+      $ws_av = new AuthValidator($this->registered_ip, $this->wsf_graph."track/", $this->uri);
 
       $ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
         $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
@@ -265,7 +282,7 @@ class CrudDelete extends WebService
   {
     $posHeader = strpos($xmlDoc, '"?>') + 3;
     $xmlDoc = substr($xmlDoc, 0, $posHeader)
-      . "\n<!DOCTYPE resultset PUBLIC \"-//Structured Dynamics LLC//Crud Delete DTD 0.1//EN\" \"" . $this->dtdBaseURL
+      . "\n<!DOCTYPE resultset PUBLIC \"-//Structured Dynamics LLC//Tracker Create DTD 0.1//EN\" \"" . $this->dtdBaseURL
         . $this->dtdURL . "\">" . substr($xmlDoc, $posHeader, strlen($xmlDoc) - $posHeader);
 
     return ($xmlDoc);
@@ -292,11 +309,10 @@ class CrudDelete extends WebService
   public function ws_conneg($accept, $accept_charset, $accept_encoding, $accept_language)
   {
     $this->conneg =
-      new Conneg($accept, $accept_charset, $accept_encoding, $accept_language, CrudDelete::$supportedSerializations);
+      new Conneg($accept, $accept_charset, $accept_encoding, $accept_language, TrackerCreate::$supportedSerializations);
 
     // Check for errors
-
-    if($this->uri == "")
+    if($this->fromDataset == "")
     {
       $this->conneg->setStatus(400);
       $this->conneg->setStatusMsg("Bad Request");
@@ -304,41 +320,50 @@ class CrudDelete extends WebService
       $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
         $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, "",
         $this->errorMessenger->_200->level);
-
       return;
     }
 
-    if($this->dataset == "")
+    if($this->previousStateMime != "application/rdf+xml" && $this->previousStateMime != "application/rdf+n3")
     {
       $this->conneg->setStatus(400);
       $this->conneg->setStatusMsg("Bad Request");
       $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
       $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
-        $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, "",
+        $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, ($this->mime),
         $this->errorMessenger->_201->level);
-
       return;
     }
 
-    // Check if the dataset is created
-
-    $ws_dr = new DatasetRead($this->dataset, "false", "self",
-      $this->wsf_local_ip); // Here the one that makes the request is the WSF (internal request).
-
-    $ws_dr->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
-      $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
-
-    $ws_dr->process();
-
-    if($ws_dr->pipeline_getResponseHeaderStatus() != 200)
+    if($this->record == "")
     {
-      $this->conneg->setStatus($ws_dr->pipeline_getResponseHeaderStatus());
-      $this->conneg->setStatusMsg($ws_dr->pipeline_getResponseHeaderStatusMsg());
-      $this->conneg->setStatusMsgExt($ws_dr->pipeline_getResponseHeaderStatusMsgExt());
-      $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
-        $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
-        $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_202->name);
+      $this->conneg->setError($this->errorMessenger->_202->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_202->name, $this->errorMessenger->_202->description, "",
+        $this->errorMessenger->_202->level);
+      return;
+    }    
+    
+    if($this->performer == "")
+    {
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_203->name);
+      $this->conneg->setError($this->errorMessenger->_203->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_203->name, $this->errorMessenger->_203->description, "",
+        $this->errorMessenger->_203->level);
+      return;
+    }
 
+    if($this->action != "delete" && $this->action != "update" && $this->action != "create")
+    {
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_204->name);
+      $this->conneg->setError($this->errorMessenger->_204->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_204->name, $this->errorMessenger->_204->description, "",
+        $this->errorMessenger->_204->level);
       return;
     }
   }
@@ -465,7 +490,7 @@ class CrudDelete extends WebService
   }
 
 
-  /*!   @brief Delete an instance record from all systems that are indexing it 9usually Virtuoso and Solr)
+  /*!   @brief Index the new instance records within all the systems that need it (usually Solr + Virtuoso).
               
       \n
       
@@ -483,132 +508,50 @@ class CrudDelete extends WebService
       // If the query is still valid
       if($this->conneg->getStatus() == 200)
       {
+        $dateTime = date("c");
+
+        /*
+          Ordered changes for a record using sparql and this part of the WSF ontology.
         
-        // Track the record description changes
-        if($this->track_delete === TRUE)
-        {
-          // First check if the record is already existing for this record, within this dataset.
-          include_once("../read/CrudRead.php"); 
-
-          $ws_cr = new CrudRead($this->resourceUri, $this->dataset, FALSE, TRUE, $this->registered_ip, $this->requester_ip);
-          
-          $ws_cr->ws_conneg("application/rdf+xml", "utf-8", "identity", "en");
-
-          $ws_cr->process();
-
-          $oldRecordDescription = $ws_cr->ws_serialize();
-          
-          $ws_cr_error = $ws_cr->pipeline_getError();
-          
-          if($ws_cr->pipeline_getResponseHeaderStatus() != 200)
+          sparql select * from <http://.../wsf/track/> where 
           {
-            // An error occured. Since we can't get the past state of a record, we have to send an error
-            // for the CrudUpdate call since we can't create a tracking record for this record.
-            $this->conneg->setStatus(400);
-            $this->conneg->setStatusMsg("Bad Request");
-            $this->conneg->setError($this->errorMessenger->_303->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_303->name, $this->errorMessenger->_303->description, 
-              "We can't create a track record for the following record: ".$this->resourceUri,
-              $this->errorMessenger->_303->level);
-              
-            break;
-          }    
-          
-          $endpoint = "";
-          if($this->tracking_endpoint != "")
-          {
-            // We send the query to a remove tracking endpoint
-            $endpoint = $this->tracking_endpoint."create/";
+            ?s <http://purl.org/ontology/wsf#record> <http://.../wsf/datasets/67/resource/Welfare> .
+
+            ?s <http://purl.org/ontology/wsf#changeTime> ?time.
           }
-          else
-          {
-            // We send the query to a local tracking endpoint
-            $endpoint = $this->wsf_base_url."/ws/tracker/create/";
-          }
-          
-          include_once("../../framework/WebServiceQuerier.php");                                                  
-          
-          $wsq = new WebServiceQuerier($endpoint, "post",
-            "text/xml", "from_dataset=" . urlencode($this->dataset) .
-            "&record=" . urlencode($this->resourceUri) .
-            "&action=delete" .
-            "&previous_state=" . urlencode($oldRecordDescription) .
-            "&previous_state_mime=" . urlencode("application/rdf+xml") .
-            "&performer=" . urlencode($this->registered_ip) .
-            "&registered_ip=self");
-
-          if($wsq->getStatus() != 200)
-          {
-            $this->conneg->setStatus($wsq->getStatus());
-            $this->conneg->setStatusMsg($wsq->getStatusMessage());
-            /*
-            $this->conneg->setError($this->errorMessenger->_302->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_302->name, $this->errorMessenger->_302->description, odbc_errormsg(),
-              $this->errorMessenger->_302->level);                
-            */
-          }
-
-          unset($wsq);              
-        }        
+          ORDER BY asc(xsd:dateTime(?time));
+        */
         
-        // Delete all triples for this URI in that dataset
-        $query = "delete from <" . $this->dataset . ">
-                { 
-                  <" . $this->resourceUri . "> ?p ?o. 
-                }
-                where
-                {
-                  <" . $this->resourceUri . "> ?p ?o. 
-                }";
-
-        @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-          FALSE));
+        $trackRecord = "<".$this->wsf_graph."track/record/".md5($dateTime.$this->record.$this->fromDataset)."> 
+                         a <http://purl.org/ontology/wsf#ChangeState> ;";
+                         
+        $trackRecord .= "<http://purl.org/ontology/wsf#record> <".$this->record."> ;";
+        $trackRecord .= "<http://purl.org/ontology/wsf#fromDataset> <".$this->fromDataset."> ;";
+        $trackRecord .= "<http://purl.org/ontology/wsf#changeTime> \"".$dateTime."\"^^xsd:dateTime ;";
+        $trackRecord .= "<http://purl.org/ontology/wsf#action> \"".$this->action."\" ;";
+        $trackRecord .= "<http://purl.org/ontology/wsf#previousState> \"\"\"".$this->previousState."\"\"\" ;";
+        $trackRecord .= "<http://purl.org/ontology/wsf#previousStateMime> \"".$this->previousStateMime."\" ;";
+        $trackRecord .= "<http://purl.org/ontology/wsf#performer> \"".$this->performer."\" .";
+        
+        $this->db->query("DB.DBA.TTLP_MT('"
+          . addslashes($trackRecord) . "', '" . $this->wsf_graph."track/" . "', '"
+          . $this->wsf_graph."track/" . "')");
 
         if(odbc_error())
         {
-          $this->conneg->setStatus(500);
-          $this->conneg->setStatusMsg("Internal Error");
-          $this->conneg->setStatusMsgExt($this->errorMessenger->_300->name);
-          $this->conneg->setError($this->errorMessenger->_300->id, $this->errorMessenger->ws,
-            $this->errorMessenger->_300->name, $this->errorMessenger->_300->description, odbc_errormsg(),
-            $this->errorMessenger->_300->level);
+          $this->conneg->setStatus(400);
+          $this->conneg->setStatusMsg("Bad Request");
+          $this->conneg->setError($this->errorMessenger->_302->id, $this->errorMessenger->ws,
+            $this->errorMessenger->_302->name, $this->errorMessenger->_302->description, odbc_errormsg(),
+            $this->errorMessenger->_302->level);
 
           return;
-        }
-
-        // Delete the Solr document in the Solr index
-        $solr = new Solr($this->wsf_solr_core, $this->solr_host);
-
-        if(!$solr->deleteInstanceRecord($this->resourceUri, $this->dataset))
-        {
-          $this->conneg->setStatus(500);
-          $this->conneg->setStatusMsg("Internal Error");
-          $this->conneg->setStatusMsgExt($this->errorMessenger->_301->name);
-          $this->conneg->setError($this->errorMessenger->_301->id, $this->errorMessenger->ws,
-            $this->errorMessenger->_301->name, $this->errorMessenger->_301->description, odbc_errormsg(),
-            $this->errorMessenger->_301->level);
-
-          return;
-        }
-
-        if($this->solr_auto_commit === FALSE)
-        {
-          if(!$solr->commit())
-          {
-            $this->conneg->setStatus(500);
-            $this->conneg->setStatusMsg("Internal Error");
-            $this->conneg->setStatusMsgExt($this->errorMessenger->_302->name);
-            $this->conneg->setError($this->errorMessenger->_302->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_302->name, $this->errorMessenger->_302->description, odbc_errormsg(),
-              $this->errorMessenger->_302->level);
-
-            return;
-          }
         }
       }
     }
   }
 }
+
 
 //@}
 

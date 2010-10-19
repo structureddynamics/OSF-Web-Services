@@ -72,6 +72,22 @@ abstract class WebService
 
   /*! @brief Path to the structWSF ontological structure */
   protected $ontological_structure_folder = "";
+  
+  /*! @brief Enable the tracking of records changes from the Crud Create web service endpoint */
+  protected $track_create = FALSE;
+
+  /*! @brief Enable the tracking of records changes from the Crud Update web service endpoint */
+  protected $track_update = FALSE;
+
+  /*! @brief Enable the tracking of records changes from the Crud Delete web service endpoint */
+  protected $track_delete = FALSE;
+
+  /*! @brief Specifies a specific WSF tracking web service endpoint URL to access the tracking endpoint. 
+             This is useful to put all the record changes tracking on a different, dedicated purposes, 
+             WSF server. If this parameter is commented, we will use the wsf_base_url to access the 
+             tracking endpoints. If it is uncommented, then we will use the endpoint specified by this
+             parameter. */
+  protected $tracking_endpoint = "";
 
   /*! @brief Name of the logging table on the Virtuoso instance */
   protected $log_table = "SD.WSF.ws_queries_log";
@@ -239,6 +255,34 @@ abstract class WebService
       $this->wsf_local_ip = $network_ini["network"]["wsf_local_ip"];
     }
 
+    
+    if(isset($network_ini["tracking"]["track_create"]))
+    {
+      if(strtolower($network_ini["tracking"]["track_create"]) == "true" || $data_ini["tracking"]["track_create"] == "1")
+      {
+        $this->track_create = TRUE;
+      }
+    }
+    if(isset($network_ini["tracking"]["track_update"]))
+    {
+      if(strtolower($network_ini["tracking"]["track_update"]) == "true" || $data_ini["tracking"]["track_update"] == "1")
+      {
+        $this->track_update = TRUE;
+      }
+    }
+    if(isset($network_ini["tracking"]["track_delete"]))
+    {
+      if(strtolower($network_ini["tracking"]["track_delete"]) == "true" || $data_ini["tracking"]["track_delete"] == "1")
+      {
+        $this->track_delete = TRUE;
+      }
+    }
+    if(isset($network_ini["tracking"]["tracking_endpoint"]))
+    {
+      $this->tracking_endpoint = $network_ini["tracking"]["tracking_endpoint"];
+    }
+    
+    
     if(isset($data_ini["solr"]["wsf_solr_core"]))
     {
       $this->wsf_solr_core = $data_ini["solr"]["wsf_solr_core"];
@@ -473,7 +517,14 @@ abstract class WebService
       \n\n\n
   */
   public function xmlEncode($string)
-    { return str_replace(array ("\\", "&", "<", ">"), array ("%5C", "&amp;", "&lt;", "&gt;"), $string); }
+  { 
+    // Replace all the possible entities by their character. That way, we won't "double encode" 
+    // these entities. Otherwise, we can endup with things such as "&amp;amp;" which some
+    // XML parsers doesn't seem to like (and throws errors).
+    $string = str_replace(array ("%5C", "&amp;", "&lt;", "&gt;"), array ("\\", "&", "<", ">"), $string);
+    
+    return str_replace(array ("\\", "&", "<", ">"), array ("%5C", "&amp;", "&lt;", "&gt;"), $string); 
+  }
 
   /*!   @brief Encode a string to put in a JSON value
               

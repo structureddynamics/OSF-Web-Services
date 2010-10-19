@@ -117,7 +117,13 @@ class CrudUpdate extends WebService
                           "level": "Warning",
                           "name": "Can\'t parse RDF document",
                           "description": "Can\'t parse the specified RDF document"
-                        }
+                        },
+                        "_308": {
+                          "id": "WS-CRUD-CREATE-308",
+                          "level": "Fatal",
+                          "name": "Can\'t create a tracking record for one of the input records",
+                          "description": "We can\'t create the records because we can\'t ensure that we have a track of their changes."
+                        }                          
                       }';
 
 
@@ -519,13 +525,15 @@ class CrudUpdate extends WebService
         // Step #0: Parse the file using ARC2 to populate the Solr index.
         // Get triples from ARC for some offline processing.
         $parser = ARC2::getRDFParser();
-        $parser->parse($this->dataset, $this->document);
+        $parser->parse($this->dataset, $this->document);   
+
         $rdfxmlSerializer = ARC2::getRDFXMLSerializer();
 
         $resourceIndex = $parser->getSimpleIndex(0);
 
         if(count($parser->getErrors()) > 0)
         {
+          $errors = $parser->getErrors();
           $this->conneg->setStatus(400);
           $this->conneg->setStatusMsg("Bad Request");
           $this->conneg->setError($this->errorMessenger->_307->id, $this->errorMessenger->ws,
@@ -577,6 +585,82 @@ class CrudUpdate extends WebService
             array_push($irsUri, $resource);
           }
         }
+        
+        // Track the record description changes
+        if($this->track_update === TRUE)
+        {
+          foreach($irsUri as $uri)
+          {
+            // First check if the record is already existing for this record, within this dataset.
+            include_once("../read/CrudRead.php"); 
+
+            $ws_cr = new CrudRead($uri, $this->dataset, FALSE, TRUE, $this->registered_ip, $this->requester_ip);
+            
+            $ws_cr->ws_conneg("application/rdf+xml", "utf-8", "identity", "en");
+
+            $ws_cr->process();
+
+            $oldRecordDescription = $ws_cr->ws_serialize();
+            
+            $ws_cr_error = $ws_cr->pipeline_getError();
+            
+            if($ws_cr->pipeline_getResponseHeaderStatus() == 400 && $ws_cr_error->id == "WS-CRUD-READ-300")
+            {
+              // The record is not existing within this dataset, so we simply move-on
+              continue;
+            }          
+            elseif($ws_cr->pipeline_getResponseHeaderStatus() != 200)
+            {
+              // An error occured. Since we can't get the past state of a record, we have to send an error
+              // for the CrudUpdate call since we can't create a tracking record for this record.
+              $this->conneg->setStatus(400);
+              $this->conneg->setStatusMsg("Bad Request");
+              $this->conneg->setError($this->errorMessenger->_308->id, $this->errorMessenger->ws,
+                $this->errorMessenger->_308->name, $this->errorMessenger->_308->description, 
+                "We can't create a track record for the following record: $uri",
+                $this->errorMessenger->_308->level);
+                
+              break;
+            }    
+            
+            $endpoint = "";
+            if($this->tracking_endpoint != "")
+            {
+              // We send the query to a remove tracking endpoint
+              $endpoint = $this->tracking_endpoint."create/";
+            }
+            else
+            {
+              // We send the query to a local tracking endpoint
+              $endpoint = $this->wsf_base_url."/ws/tracker/create/";
+            }
+            
+            include_once("../../framework/WebServiceQuerier.php");                                                  
+            
+            $wsq = new WebServiceQuerier($endpoint, "post",
+              "text/xml", "from_dataset=" . urlencode($this->dataset) .
+              "&record=" . urlencode($uri) .
+              "&action=update" .
+              "&previous_state=" . urlencode($oldRecordDescription) .
+              "&previous_state_mime=" . urlencode("application/rdf+xml") .
+              "&performer=" . urlencode($this->registered_ip) .
+              "&registered_ip=self");
+
+            if($wsq->getStatus() != 200)
+            {
+              $this->conneg->setStatus($wsq->getStatus());
+              $this->conneg->setStatusMsg($wsq->getStatusMessage());
+              /*
+              $this->conneg->setError($this->errorMessenger->_302->id, $this->errorMessenger->ws,
+                $this->errorMessenger->_302->name, $this->errorMessenger->_302->description, odbc_errormsg(),
+                $this->errorMessenger->_302->level);                
+              */
+            }
+
+            unset($wsq);              
+          }
+        }        
+        
 
         // Step #1: indexing the incomming rdf document in its own temporary graph
         $tempGraphUri = "temp-graph-" . md5($this->document);

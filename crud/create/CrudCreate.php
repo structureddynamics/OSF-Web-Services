@@ -57,50 +57,56 @@ class CrudCreate extends WebService
   /*! @brief Error messages of this web service */
   private $errorMessenger =
     '{
-                        "ws": "/ws/crud/create/",
-                        "_200": {
-                          "id": "WS-CRUD-CREATE-200",
-                          "level": "Warning",
-                          "name": "No RDF document to index",
-                          "description": "No RDF document has been defined for this query"
-                        },
-                        "_201": {
-                          "id": "WS-CRUD-CREATE-201",
-                          "level": "Warning",
-                          "name": "Unknown MIME type for this RDF document",
-                          "description": "An unknown MIME type has been defined for this RDF document"
-                        },
-                        "_202": {
-                          "id": "WS-CRUD-CREATE-202",
-                          "level": "Warning",
-                          "name": "No dataset specified",
-                          "description": "No dataset URI defined for this query"
-                        },
-                        "_301": {
-                          "id": "WS-CRUD-CREATE-301",
-                          "level": "Warning",
-                          "name": "Can\'t parse RDF document",
-                          "description": "Can\'t parse the specified RDF document"
-                        },
-                        "_302": {
-                          "id": "WS-CRUD-CREATE-302",
-                          "level": "Warning",
-                          "name": "Syntax error in the RDF document",
-                          "description": "A syntax error exists in the specified RDF document"
-                        },
-                        "_303": {
-                          "id": "WS-CRUD-CREATE-303",
-                          "level": "Fatal",
-                          "name": "Can\'t update the Solr index",
-                          "description": "An error occured when we tried to update the Solr index"
-                        },
-                        "_304": {
-                          "id": "WS-CRUD-CREATE-304",
-                          "level": "Fatal",
-                          "name": "Can\'t commit changes to the Solr index",
-                          "description": "An error occured when we tried to commit changes to the Solr index"
-                        }  
-                      }';
+        "ws": "/ws/crud/create/",
+        "_200": {
+          "id": "WS-CRUD-CREATE-200",
+          "level": "Notice",
+          "name": "No RDF document to index",
+          "description": "No RDF document has been defined for this query"
+        },
+        "_201": {
+          "id": "WS-CRUD-CREATE-201",
+          "level": "Warning",
+          "name": "Unknown MIME type for this RDF document",
+          "description": "An unknown MIME type has been defined for this RDF document"
+        },
+        "_202": {
+          "id": "WS-CRUD-CREATE-202",
+          "level": "Warning",
+          "name": "No dataset specified",
+          "description": "No dataset URI defined for this query"
+        },
+        "_301": {
+          "id": "WS-CRUD-CREATE-301",
+          "level": "Warning",
+          "name": "Can\'t parse RDF document",
+          "description": "Can\'t parse the specified RDF document"
+        },
+        "_302": {
+          "id": "WS-CRUD-CREATE-302",
+          "level": "Warning",
+          "name": "Syntax error in the RDF document",
+          "description": "A syntax error exists in the specified RDF document"
+        },
+        "_303": {
+          "id": "WS-CRUD-CREATE-303",
+          "level": "Fatal",
+          "name": "Can\'t update the Solr index",
+          "description": "An error occured when we tried to update the Solr index"
+        },
+        "_304": {
+          "id": "WS-CRUD-CREATE-304",
+          "level": "Fatal",
+          "name": "Can\'t commit changes to the Solr index",
+          "description": "An error occured when we tried to commit changes to the Solr index"
+        },  
+        "_305": {
+          "id": "WS-CRUD-CREATE-305",
+          "level": "Fatal",
+          "name": "Can\'t create a tracking record for one of the input records",
+          "description": "We can\'t create the records because we can\'t ensure that we have a track of their changes."
+        }  
+      }';
 
 
 /*!   @brief Constructor
@@ -129,7 +135,7 @@ class CrudCreate extends WebService
 
     $this->requester_ip = $requester_ip;
     $this->dataset = $dataset;
-
+    
     $this->document = utf8_encode($document);
     $this->mime = $mime;
     $this->mode = $mode;
@@ -142,7 +148,7 @@ class CrudCreate extends WebService
     {
       $this->registered_ip = $registered_ip;
     }
-
+    
     if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
     {
       $pos = strpos($this->registered_ip, "::");
@@ -605,355 +611,445 @@ class CrudCreate extends WebService
             array_push($irsUri, $resource);
           }
         }
-
-        // Index all the instance records in the dataset
-        if($this->mode == "full" || $this->mode == "triplestore")
+        
+        // Fourth: Track the record description changes
+        if($this->track_create === TRUE)
         {
-          $irs = array();
-
           foreach($irsUri as $uri)
           {
-            $irs[$uri] = $resourceIndex[$uri];
+            // First check if the record is already existing for this record, within this dataset.
+            include_once("../read/CrudRead.php"); 
+            
+            $ws_cr = new CrudRead($uri, $this->dataset, FALSE, TRUE, $this->registered_ip, $this->requester_ip);
+            
+            $ws_cr->ws_conneg("application/rdf+xml", "utf-8", "identity", "en");
+
+            $ws_cr->process();
+
+            $oldRecordDescription = $ws_cr->ws_serialize();
+            
+            $ws_cr_error = $ws_cr->pipeline_getError();
+            
+            if($ws_cr->pipeline_getResponseHeaderStatus() == 400 && $ws_cr_error->id == "WS-CRUD-READ-300")
+            {
+              // The record is not existing within this dataset, so we simply move-on
+              continue;
+            }          
+            elseif($ws_cr->pipeline_getResponseHeaderStatus() != 200)
+            {
+              // An error occured. Since we can't get the past state of a record, we have to send an error
+              // for the CrudCreate call since we can't create a tracking record for this record.
+              $this->conneg->setStatus(400);
+              $this->conneg->setStatusMsg("Bad Request");
+              $this->conneg->setError($this->errorMessenger->_305->id, $this->errorMessenger->ws,
+                $this->errorMessenger->_305->name, $this->errorMessenger->_305->description, 
+                "We can't create a track record for the following record: $uri",
+                $this->errorMessenger->_305->level);
+                
+              break;
+            }    
+            
+            $endpoint = "";
+            if($this->tracking_endpoint != "")
+            {
+              // We send the query to a remove tracking endpoint
+              $endpoint = $this->tracking_endpoint."create/";
+            }
+            else
+            {
+              // We send the query to a local tracking endpoint
+              $endpoint = $this->wsf_base_url."/ws/tracker/create/";
+            }
+
+            include_once("../../framework/WebServiceQuerier.php");                                                  
+            
+            $wsq = new WebServiceQuerier($endpoint, "post",
+              "text/xml", "from_dataset=" . urlencode($this->dataset) .
+              "&record=" . urlencode($uri) .
+              "&action=create" .
+              "&previous_state=" . urlencode($oldRecordDescription) .
+              "&previous_state_mime=" . urlencode("application/rdf+xml") .
+              "&performer=" . urlencode($this->registered_ip) .
+              "&registered_ip=self");
+
+            if($wsq->getStatus() != 200)
+            {
+              $this->conneg->setStatus($wsq->getStatus());
+              $this->conneg->setStatusMsg($wsq->getStatusMessage());
+              /*
+              $this->conneg->setError($this->errorMessenger->_302->id, $this->errorMessenger->ws,
+                $this->errorMessenger->_302->name, $this->errorMessenger->_302->description, odbc_errormsg(),
+                $this->errorMessenger->_302->level);                
+              */
+            }
+
+            unset($wsq);              
           }
-
-          $this->db->query("DB.DBA.RDF_LOAD_RDFXML_MT('"
-            . str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($irs)) . "', '" . $this->dataset . "', '"
-            . $this->dataset . "')");
-
-          if(odbc_error())
+        }        
+        
+        // If the query is still valid
+        if($this->conneg->getStatus() == 200)        
+        {
+          // Index all the instance records in the dataset
+          if($this->mode == "full" || $this->mode == "triplestore")
           {
-            $this->conneg->setStatus(400);
-            $this->conneg->setStatusMsg("Bad Request");
-            $this->conneg->setError($this->errorMessenger->_302->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_302->name, $this->errorMessenger->_302->description, odbc_errormsg(),
-              $this->errorMessenger->_302->level);
+            $irs = array();
 
-            return;
-          }
-
-          unset($irs);
-
-          // Index all the reification statements into the statements graph
-          $statements = array();
-
-          foreach($statementsUri as $uri)
-          {
-            $statements[$uri] = $resourceIndex[$uri];
-          }
-
-          $this->db->query("DB.DBA.RDF_LOAD_RDFXML_MT('"
-            . str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($statements)) . "', '" . $this->dataset
-              . "reification/', '" . $this->dataset . "reification/')");
-
-          if(odbc_error())
-          {
-            $this->conneg->setStatus(400);
-            $this->conneg->setStatusMsg("Bad Request");
-            $this->conneg->setError($this->errorMessenger->_302->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_302->name, $this->errorMessenger->_302->description, odbc_errormsg(),
-              $this->errorMessenger->_302->level);
-            return;
-          }
-
-          unset($statements);
-
-// Link the dataset description of the file, by using the wsf:meta property, to its internal description (dataset graph description)
-          if($datasetUri != "")
-          {
-            $datasetRes[$datasetUri] = $resourceIndex[$datasetUri];
-
-            $datasetRes[$this->dataset] =
-              array( "http://purl.org/ontology/wsf#meta" => array( array ("value" => $datasetUri, "type" => "uri") ) );
-
-            $datasetDescription = $resourceIndex[$datasetRes];
-
-// Make the link between the dataset description and its "meta" description (all other information than its basic description)
+            foreach($irsUri as $uri)
+            {
+              $irs[$uri] = $resourceIndex[$uri];
+            }
+            
             $this->db->query("DB.DBA.RDF_LOAD_RDFXML_MT('"
-              . str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($datasetRes)) . "', '" . $this->wsf_graph
-                . "datasets/', '" . $this->wsf_graph . "datasets/')");
+              . str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($irs)) . "', '" . $this->dataset . "', '"
+              . $this->dataset . "')");
 
             if(odbc_error())
             {
               $this->conneg->setStatus(400);
               $this->conneg->setStatusMsg("Bad Request");
               $this->conneg->setError($this->errorMessenger->_302->id, $this->errorMessenger->ws,
-                $this->errorMessenger->_302->name, $this->errorMessenger->_302->description, "",
+                $this->errorMessenger->_302->name, $this->errorMessenger->_302->description, odbc_errormsg(),
+                $this->errorMessenger->_302->level);
+
+              return;
+            }
+
+            unset($irs);
+
+            // Index all the reification statements into the statements graph
+            $statements = array();
+
+            foreach($statementsUri as $uri)
+            {
+              $statements[$uri] = $resourceIndex[$uri];
+            }
+
+            $this->db->query("DB.DBA.RDF_LOAD_RDFXML_MT('"
+              . str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($statements)) . "', '" . $this->dataset
+                . "reification/', '" . $this->dataset . "reification/')");
+
+            if(odbc_error())
+            {
+              $this->conneg->setStatus(400);
+              $this->conneg->setStatusMsg("Bad Request");
+              $this->conneg->setError($this->errorMessenger->_302->id, $this->errorMessenger->ws,
+                $this->errorMessenger->_302->name, $this->errorMessenger->_302->description, odbc_errormsg(),
                 $this->errorMessenger->_302->level);
               return;
             }
 
-            unset($datasetRes);
-          }
-        }
+            unset($statements);
 
-        if($this->mode == "full" || $this->mode == "searchindex")
-        {
-          $labelProperties = array (Namespaces::$iron . "prefLabel", Namespaces::$iron . "altLabel",
-            Namespaces::$skos_2008 . "prefLabel", Namespaces::$skos_2008 . "altLabel",
-            Namespaces::$skos_2004 . "prefLabel", Namespaces::$skos_2004 . "altLabel", Namespaces::$rdfs . "label",
-            Namespaces::$dcterms . "title", Namespaces::$foaf . "name", Namespaces::$foaf . "givenName",
-            Namespaces::$foaf . "family_name");
-
-          $descriptionProperties = array (Namespaces::$iron . "description", Namespaces::$dcterms . "description",
-            Namespaces::$skos_2008 . "definition", Namespaces::$skos_2004 . "definition");
-
-          /*!
-                  @todo Fixing this to use the DB.
-                  
-                  // This method is currently not working. The problem is that we ahve an issue in CrudCreate and Virtuoso's
-                  // LONG VARCHAR column. It appears that there is a bug somewhere in the "php -> odbc -> virtuoso" path.
-                  // If we are not requesting to return the LONG VARCHAR column, everything works fine.
-          */
-          /*    
-                   $resultset = $this->db->query("select * from SD.WSF.ws_ontologies where struct_type = 'class'");
-                  
-                  odbc_binmode($resultset, ODBC_BINMODE_PASSTHRU);
-                  odbc_longreadlen($resultset, 16384);       
-                  
-                  odbc_fetch_row($resultset);
-                  $classHierarchy = unserialize(odbc_result($resultset, "struct"));
-                  
-                  if (odbc_error())
-                  {
-                    $this->conneg->setStatus(500);
-                    $this->conneg->setStatusMsg("Internal Error");
-                    $this->conneg->setStatusMsgExt("Error #crud-create-103");  
-                    return;
-                  }          
-          */
-
-          $filename = rtrim($this->ontological_structure_folder, "/") . "/classHierarchySerialized.srz";
-
-          $file = fopen($filename, "r");
-          $classHierarchy = fread($file, filesize($filename));
-          $classHierarchy = unserialize($classHierarchy);
-          fclose($file);
-
-          // Index in Solr
-
-          $solr = new Solr($this->wsf_solr_core, $this->solr_host);
-
-          foreach($irsUri as $subject)
-          {
-            // Skip Bnodes indexation in Solr
-            // One of the prerequise is that each records indexed in Solr (and then available in Search and Browse)
-            // should have a URI. Bnodes are simply skiped.
-
-            if(stripos($subject, "_:arc") !== FALSE)
+            /* Link the dataset description of the file, by using the wsf:meta property, 
+               to its internal description (dataset graph description)
+            */
+            if($datasetUri != "")
             {
-              continue;
-            }
+              $datasetRes[$datasetUri] = $resourceIndex[$datasetUri];
 
-            $add = "<add><doc><field name=\"uid\">" . md5($this->dataset . $subject) . "</field>";
-            $add .= "<field name=\"uri\">$subject</field>";
-            $add .= "<field name=\"dataset\">" . $this->dataset . "</field>";
+              $datasetRes[$this->dataset] =
+                array( "http://purl.org/ontology/wsf#meta" => array( array ("value" => $datasetUri, "type" => "uri") ) );
 
-            // Get types for this subject.
-            $types = array();
+              $datasetDescription = $resourceIndex[$datasetRes];
 
-            foreach($resourceIndex[$subject]["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"] as $value)
-            {
-              array_push($types, $value["value"]);
+              /*  Make the link between the dataset description and its "meta" description (all other 
+                  information than its basic description)
+              */
+              $this->db->query("DB.DBA.RDF_LOAD_RDFXML_MT('"
+                . str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($datasetRes)) . "', '" . $this->wsf_graph
+                  . "datasets/', '" . $this->wsf_graph . "datasets/')");
 
-              $add .= "<field name=\"type\">" . $value["value"] . "</field>";
-            }
-
-            // get the preferred and alternative labels for this resource
-            $prefLabelFound = FALSE;
-
-            foreach($labelProperties as $property)
-            {
-              if(isset($resourceIndex[$subject][$property]) && !$prefLabelFound)
+              if(odbc_error())
               {
-                $prefLabelFound = TRUE;
-                $add .= "<field name=\"prefLabel\">" . $this->xmlEncode($resourceIndex[$subject][$property][0]["value"])
-                  . "</field>";
-                $add .= "<field name=\"attribute\">" . $this->xmlEncode(Namespaces::$iron . "prefLabel") . "</field>";
+                $this->conneg->setStatus(400);
+                $this->conneg->setStatusMsg("Bad Request");
+                $this->conneg->setError($this->errorMessenger->_302->id, $this->errorMessenger->ws,
+                  $this->errorMessenger->_302->name, $this->errorMessenger->_302->description, "",
+                  $this->errorMessenger->_302->level);
+                return;
               }
-              elseif(isset($resourceIndex[$subject][$property]))
+
+              unset($datasetRes);
+            }
+          }
+          
+          // Index everything in Solr
+          if($this->mode == "full" || $this->mode == "searchindex")
+          {
+            $labelProperties = array (Namespaces::$iron . "prefLabel", Namespaces::$iron . "altLabel",
+              Namespaces::$skos_2008 . "prefLabel", Namespaces::$skos_2008 . "altLabel",
+              Namespaces::$skos_2004 . "prefLabel", Namespaces::$skos_2004 . "altLabel", Namespaces::$rdfs . "label",
+              Namespaces::$dcterms . "title", Namespaces::$foaf . "name", Namespaces::$foaf . "givenName",
+              Namespaces::$foaf . "family_name");
+
+            $descriptionProperties = array (Namespaces::$iron . "description", Namespaces::$dcterms . "description",
+              Namespaces::$skos_2008 . "definition", Namespaces::$skos_2004 . "definition");
+
+            /*!
+                    @todo Fixing this to use the DB.
+                    
+                    // This method is currently not working. The problem is that we ahve an issue in CrudCreate and Virtuoso's
+                    // LONG VARCHAR column. It appears that there is a bug somewhere in the "php -> odbc -> virtuoso" path.
+                    // If we are not requesting to return the LONG VARCHAR column, everything works fine.
+            */
+            /*    
+                     $resultset = $this->db->query("select * from SD.WSF.ws_ontologies where struct_type = 'class'");
+                    
+                    odbc_binmode($resultset, ODBC_BINMODE_PASSTHRU);
+                    odbc_longreadlen($resultset, 16384);       
+                    
+                    odbc_fetch_row($resultset);
+                    $classHierarchy = unserialize(odbc_result($resultset, "struct"));
+                    
+                    if (odbc_error())
+                    {
+                      $this->conneg->setStatus(500);
+                      $this->conneg->setStatusMsg("Internal Error");
+                      $this->conneg->setStatusMsgExt("Error #crud-create-103");  
+                      return;
+                    }          
+            */
+
+            $filename = rtrim($this->ontological_structure_folder, "/") . "/classHierarchySerialized.srz";
+
+            $file = fopen($filename, "r");
+            $classHierarchy = fread($file, filesize($filename));
+            $classHierarchy = unserialize($classHierarchy);
+            fclose($file);
+
+            // Index in Solr
+
+            $solr = new Solr($this->wsf_solr_core, $this->solr_host);
+
+            foreach($irsUri as $subject)
+            {
+              // Skip Bnodes indexation in Solr
+              // One of the prerequise is that each records indexed in Solr (and then available in Search and Browse)
+              // should have a URI. Bnodes are simply skiped.
+
+              if(stripos($subject, "_:arc") !== FALSE)
               {
-                foreach($resourceIndex[$subject][$property] as $value)
+                continue;
+              }
+
+              $add = "<add><doc><field name=\"uid\">" . md5($this->dataset . $subject) . "</field>";
+              $add .= "<field name=\"uri\">".$this->xmlEncode($subject)."</field>";
+              $add .= "<field name=\"dataset\">" . $this->dataset . "</field>";
+
+              // Get types for this subject.
+              $types = array();
+
+              foreach($resourceIndex[$subject]["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"] as $value)
+              {
+                array_push($types, $value["value"]);
+
+                $add .= "<field name=\"type\">" . $this->xmlEncode($value["value"]) . "</field>";
+              }
+
+              // get the preferred and alternative labels for this resource
+              $prefLabelFound = FALSE;
+
+              foreach($labelProperties as $property)
+              {
+                if(isset($resourceIndex[$subject][$property]) && !$prefLabelFound)
                 {
-                  $add .= "<field name=\"altLabel\">" . $this->xmlEncode($value["value"]) . "</field>";
-                  $add .= "<field name=\"attribute\">" . $this->xmlEncode(Namespaces::$iron . "altLabel") . "</field>";
+                  $prefLabelFound = TRUE;
+                  $add .= "<field name=\"prefLabel\">" . $this->xmlEncode($resourceIndex[$subject][$property][0]["value"])
+                    . "</field>";
+                  $add .= "<field name=\"attribute\">" . $this->xmlEncode(Namespaces::$iron . "prefLabel") . "</field>";
+                }
+                elseif(isset($resourceIndex[$subject][$property]))
+                {
+                  foreach($resourceIndex[$subject][$property] as $value)
+                  {
+                    $add .= "<field name=\"altLabel\">" . $this->xmlEncode($value["value"]) . "</field>";
+                    $add .= "<field name=\"attribute\">" . $this->xmlEncode(Namespaces::$iron . "altLabel") . "</field>";
+                  }
                 }
               }
-            }
 
-            // get the description of the resource
-            foreach($descriptionProperties as $property)
-            {
-              if(isset($resourceIndex[$subject][$property]))
+              // get the description of the resource
+              foreach($descriptionProperties as $property)
               {
-                $add .= "<field name=\"description\">"
-                  . $this->xmlEncode($resourceIndex[$subject][$property][0]["value"]) . "</field>";
-                $add .= "<field name=\"attribute\">" . $this->xmlEncode(Namespaces::$iron . "description") . "</field>";
-                break;
-              }
-            }
-
-            // Add the prefURL if available
-            if(isset($resourceIndex[$subject][$iron . "prefURL"]))
-            {
-              $add .= "<field name=\"prefURL\">"
-                . $this->xmlEncode($resourceIndex[$subject][$iron . "prefURL"][0]["value"]) . "</field>";
-              $add .= "<field name=\"attribute\">" . $this->xmlEncode(Namespaces::$iron . "prefURL") . "</field>";
-            }
-
-            // Get properties with the type of the object
-            foreach($resourceIndex[$subject] as $predicate => $values)
-            {
-              if(array_search($predicate, $labelProperties) === FALSE
-                && array_search($predicate, $descriptionProperties) === FALSE && $predicate != Namespaces::$iron
-                . "prefURL") // skip label & description & prefURL properties
-              {
-                foreach($values as $value)
+                if(isset($resourceIndex[$subject][$property]))
                 {
-                  if($value["type"] == "literal")
+                  $add .= "<field name=\"description\">"
+                    . $this->xmlEncode($resourceIndex[$subject][$property][0]["value"]) . "</field>";
+                  $add .= "<field name=\"attribute\">" . $this->xmlEncode(Namespaces::$iron . "description") . "</field>";
+                  break;
+                }
+              }
+
+              // Add the prefURL if available
+              if(isset($resourceIndex[$subject][$iron . "prefURL"]))
+              {
+                $add .= "<field name=\"prefURL\">"
+                  . $this->xmlEncode($resourceIndex[$subject][$iron . "prefURL"][0]["value"]) . "</field>";
+                $add .= "<field name=\"attribute\">" . $this->xmlEncode(Namespaces::$iron . "prefURL") . "</field>";
+              }
+
+              // Get properties with the type of the object
+              foreach($resourceIndex[$subject] as $predicate => $values)
+              {
+                if(array_search($predicate, $labelProperties) === FALSE
+                  && array_search($predicate, $descriptionProperties) === FALSE && $predicate != Namespaces::$iron
+                  . "prefURL") // skip label & description & prefURL properties
+                {
+                  foreach($values as $value)
                   {
-                    $add .= "<field name=\"" . urlencode($predicate) . "_attr\">" . $this->xmlEncode($value["value"])
-                      . "</field>";
-                    $add .= "<field name=\"attribute\">" . $this->xmlEncode($predicate) . "</field>";
-
-// Check if there is a reification statement for that triple. If there is one, we index it in the index as:
-// <property> <text>
-// Note: Eventually we could want to update the Solr index to include a new "reifiedText" field.
-                    foreach($statementsUri as $statementUri)
+                    if($value["type"] == "literal")
                     {
-                      if($resourceIndex[$statementUri]["http://www.w3.org/1999/02/22-rdf-syntax-ns#subject"][0]["value"]
-                        == $subject
-                          && $resourceIndex[$statementUri]["http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate"][0][
-                            "value"] == $predicate
-                          && $resourceIndex[$statementUri]["http://www.w3.org/1999/02/22-rdf-syntax-ns#object"][0][
-                            "value"] == $value["value"])
-                      {
-                        foreach($resourceIndex[$statementUri] as $reiPredicate => $reiValues)
-                        {
-                          if($reiPredicate != "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-                            && $reiPredicate != "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject"
-                            && $reiPredicate != "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate"
-                            && $reiPredicate != "http://www.w3.org/1999/02/22-rdf-syntax-ns#object")
-                          {
-                            foreach($reiValues as $reiValue)
-                            {
-                              if($reiValue["type"] == "literal")
-                              {
-                                // Attribute used to reify information to a statement.
-                                $add .= "<field name=\"" . urlencode($reiPredicate) . "_reify_attr\">"
-                                  . $this->xmlEncode($predicate) .
-                                  "</field>";
-
-                                $add .= "<field name=\"" . urlencode($reiPredicate) . "_reify_obj\">"
-                                  . $this->xmlEncode($value["value"]) .
-                                  "</field>";
-
-                                $add .= "<field name=\"" . urlencode($reiPredicate) . "_reify_value\">"
-                                  . $this->xmlEncode($reiValue["value"]) .
-                                  "</field>";
-
-                                $add .= "<field name=\"attribute\">" . $this->xmlEncode($reiPredicate) . "</field>";
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                  elseif($value["type"] == "uri")
-                  {
-                    // If it is an object property, we want to bind labels of the resource referenced by that
-                    // object property to the current resource. That way, if we have "paul" -- know --> "bob", and the
-                    // user send a seach query for "bob", then "paul" will be returned as well.
-                    $query = $this->db->build_sparql_query("select ?p ?o from <" . $this->dataset . "> where {<"
-                      . $value["value"] . "> ?p ?o.}", array ('p', 'o'), FALSE);
-
-                    $resultset3 = $this->db->query($query);
-
-                    $subjectTriples = array();
-
-                    while(odbc_fetch_row($resultset3))
-                    {
-                      $p = odbc_result($resultset3, 1);
-                      $o = odbc_result($resultset3, 2);
-
-                      if(!isset($subjectTriples[$p]))
-                      {
-                        $subjectTriples[$p] = array();
-                      }
-
-                      array_push($subjectTriples[$p], $o);
-                    }
-
-                    unset($resultset3);
-
-                    // We allign all label properties values in a single string so that we can search over all of them.
-                    $labels = "";
-
-                    foreach($labelProperties as $property)
-                    {
-                      if(isset($subjectTriples[$property]))
-                      {
-                        $labels .= $subjectTriples[$property][0] . " ";
-                      }
-                    }
-
-                    if($labels != "")
-                    {
-                      $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj\">" . $this->xmlEncode($labels)
+                      $add .= "<field name=\"" . urlencode($predicate) . "_attr\">" . $this->xmlEncode($value["value"])
                         . "</field>";
-                      $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_uri\">"
-                        . $this->xmlEncode($value["value"]) . "</field>";
                       $add .= "<field name=\"attribute\">" . $this->xmlEncode($predicate) . "</field>";
-                    }
 
-// Check if there is a reification statement for that triple. If there is one, we index it in the index as:
-// <property> <text>
-// Note: Eventually we could want to update the Solr index to include a new "reifiedText" field.
-                    $statementAdded = FALSE;
-
-                    foreach($statementsUri as $statementUri)
-                    {
-                      if($resourceIndex[$statementUri]["http://www.w3.org/1999/02/22-rdf-syntax-ns#subject"][0]["value"]
-                        == $subject
-                          && $resourceIndex[$statementUri]["http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate"][0][
-                            "value"] == $predicate
-                          && $resourceIndex[$statementUri]["http://www.w3.org/1999/02/22-rdf-syntax-ns#object"][0][
-                            "value"] == $value["value"])
+                      /* 
+                         Check if there is a reification statement for that triple. If there is one, we index it in 
+                         the index as:
+                         <property> <text>
+                         Note: Eventually we could want to update the Solr index to include a new "reifiedText" field.
+                      */
+                      foreach($statementsUri as $statementUri)
                       {
-                        foreach($resourceIndex[$statementUri] as $reiPredicate => $reiValues)
+                        if($resourceIndex[$statementUri]["http://www.w3.org/1999/02/22-rdf-syntax-ns#subject"][0]["value"]
+                          == $subject
+                            && $resourceIndex[$statementUri]["http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate"][0][
+                              "value"] == $predicate
+                            && $resourceIndex[$statementUri]["http://www.w3.org/1999/02/22-rdf-syntax-ns#object"][0][
+                              "value"] == $value["value"])
                         {
-                          if($reiPredicate != "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-                            && $reiPredicate != "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject"
-                            && $reiPredicate != "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate"
-                            && $reiPredicate != "http://www.w3.org/1999/02/22-rdf-syntax-ns#object")
+                          foreach($resourceIndex[$statementUri] as $reiPredicate => $reiValues)
                           {
-                            foreach($reiValues as $reiValue)
+                            if($reiPredicate != "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+                              && $reiPredicate != "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject"
+                              && $reiPredicate != "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate"
+                              && $reiPredicate != "http://www.w3.org/1999/02/22-rdf-syntax-ns#object")
                             {
-                              if($reiValue["type"] == "literal")
+                              foreach($reiValues as $reiValue)
                               {
-                                // Attribute used to reify information to a statement.
-                                $add .= "<field name=\"" . urlencode($reiPredicate) . "_reify_attr_obj\">"
-                                  . $this->xmlEncode($predicate) .
-                                  "</field>";
+                                if($reiValue["type"] == "literal")
+                                {
+                                  // Attribute used to reify information to a statement.
+                                  $add .= "<field name=\"" . urlencode($reiPredicate) . "_reify_attr\">"
+                                    . $this->xmlEncode($predicate) .
+                                    "</field>";
 
-                                $add .= "<field name=\"" . urlencode($reiPredicate) . "_reify_obj\">"
-                                  . $this->xmlEncode($value["value"]) .
-                                  "</field>";
+                                  $add .= "<field name=\"" . urlencode($reiPredicate) . "_reify_obj\">"
+                                    . $this->xmlEncode($value["value"]) .
+                                    "</field>";
 
-                                $add .= "<field name=\"" . urlencode($reiPredicate) . "_reify_value\">"
-                                  . $this->xmlEncode($reiValue["value"]) .
-                                  "</field>";
+                                  $add .= "<field name=\"" . urlencode($reiPredicate) . "_reify_value\">"
+                                    . $this->xmlEncode($reiValue["value"]) .
+                                    "</field>";
 
-                                $add .= "<field name=\"attribute\">" . $this->xmlEncode($reiPredicate) . "</field>";
-                                $statementAdded = TRUE;
-                                break;
+                                  $add .= "<field name=\"attribute\">" . $this->xmlEncode($reiPredicate) . "</field>";
+                                }
                               }
                             }
                           }
+                        }
+                      }
+                    }
+                    elseif($value["type"] == "uri")
+                    {
+                      // If it is an object property, we want to bind labels of the resource referenced by that
+                      // object property to the current resource. That way, if we have "paul" -- know --> "bob", and the
+                      // user send a seach query for "bob", then "paul" will be returned as well.
+                      $query = $this->db->build_sparql_query("select ?p ?o from <" . $this->dataset . "> where {<"
+                        . $value["value"] . "> ?p ?o.}", array ('p', 'o'), FALSE);
 
-                          if($statementAdded)
+                      $resultset3 = $this->db->query($query);
+
+                      $subjectTriples = array();
+
+                      while(odbc_fetch_row($resultset3))
+                      {
+                        $p = odbc_result($resultset3, 1);
+                        $o = odbc_result($resultset3, 2);
+
+                        if(!isset($subjectTriples[$p]))
+                        {
+                          $subjectTriples[$p] = array();
+                        }
+
+                        array_push($subjectTriples[$p], $o);
+                      }
+
+                      unset($resultset3);
+
+                      // We allign all label properties values in a single string so that we can search over all of them.
+                      $labels = "";
+
+                      foreach($labelProperties as $property)
+                      {
+                        if(isset($subjectTriples[$property]))
+                        {
+                          $labels .= $subjectTriples[$property][0] . " ";
+                        }
+                      }
+
+                      if($labels != "")
+                      {
+                        $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj\">" . $this->xmlEncode($labels)
+                          . "</field>";
+                        $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_uri\">"
+                          . $this->xmlEncode($value["value"]) . "</field>";
+                        $add .= "<field name=\"attribute\">" . $this->xmlEncode($predicate) . "</field>";
+                      }
+
+                      /* 
+                        Check if there is a reification statement for that triple. If there is one, we index it in the 
+                        index as:
+                        <property> <text>
+                        Note: Eventually we could want to update the Solr index to include a new "reifiedText" field.
+                      */
+                      $statementAdded = FALSE;
+
+                      foreach($statementsUri as $statementUri)
+                      {
+                        if($resourceIndex[$statementUri]["http://www.w3.org/1999/02/22-rdf-syntax-ns#subject"][0]["value"]
+                          == $subject
+                            && $resourceIndex[$statementUri]["http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate"][0][
+                              "value"] == $predicate
+                            && $resourceIndex[$statementUri]["http://www.w3.org/1999/02/22-rdf-syntax-ns#object"][0][
+                              "value"] == $value["value"])
+                        {
+                          foreach($resourceIndex[$statementUri] as $reiPredicate => $reiValues)
                           {
-                            break;
+                            if($reiPredicate != "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+                              && $reiPredicate != "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject"
+                              && $reiPredicate != "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate"
+                              && $reiPredicate != "http://www.w3.org/1999/02/22-rdf-syntax-ns#object")
+                            {
+                              foreach($reiValues as $reiValue)
+                              {
+                                if($reiValue["type"] == "literal")
+                                {
+                                  // Attribute used to reify information to a statement.
+                                  $add .= "<field name=\"" . urlencode($reiPredicate) . "_reify_attr_obj\">"
+                                    . $this->xmlEncode($predicate) .
+                                    "</field>";
+
+                                  $add .= "<field name=\"" . urlencode($reiPredicate) . "_reify_obj\">"
+                                    . $this->xmlEncode($value["value"]) .
+                                    "</field>";
+
+                                  $add .= "<field name=\"" . urlencode($reiPredicate) . "_reify_value\">"
+                                    . $this->xmlEncode($reiValue["value"]) .
+                                    "</field>";
+
+                                  $add .= "<field name=\"attribute\">" . $this->xmlEncode($reiPredicate) . "</field>";
+                                  $statementAdded = TRUE;
+                                  break;
+                                }
+                              }
+                            }
+
+                            if($statementAdded)
+                            {
+                              break;
+                            }
                           }
                         }
                       }
@@ -961,55 +1057,55 @@ class CrudCreate extends WebService
                   }
                 }
               }
-            }
 
-            // Get all types by inference
-            foreach($types as $type)
-            {
-              $superClasses = $classHierarchy->getSuperClasses($type);
-
-              foreach($superClasses as $sc)
+              // Get all types by inference
+              foreach($types as $type)
               {
-                $add .= "<field name=\"inferred_type\">" . $this->xmlEncode($sc->name) . "</field>";
+                $superClasses = $classHierarchy->getSuperClasses($type);
+
+                foreach($superClasses as $sc)
+                {
+                  $add .= "<field name=\"inferred_type\">" . $this->xmlEncode($sc->name) . "</field>";
+                }
               }
-            }
 
-            $add .= "</doc></add>";
+              $add .= "</doc></add>";
 
-            if(!$solr->update($add))
-            {
-              $this->conneg->setStatus(500);
-              $this->conneg->setStatusMsg("Internal Error");
-              $this->conneg->setError($this->errorMessenger->_303->id, $this->errorMessenger->ws,
-                $this->errorMessenger->_303->name, $this->errorMessenger->_303->description, "",
-                $this->errorMessenger->_303->level);
-              return;
-            }
-          }
-
-          if($this->solr_auto_commit === FALSE)
-          {
-            if(!$solr->commit())
-            {
-              $this->conneg->setStatus(500);
-              $this->conneg->setStatusMsg("Internal Error");
-              $this->conneg->setError($this->errorMessenger->_304->id, $this->errorMessenger->ws,
-                $this->errorMessenger->_304->name, $this->errorMessenger->_304->description, "",
-                $this->errorMessenger->_304->level);
-              return;
-            }
-          }
-        }
-      /*        
-              // Optimisation can be time consuming "on-the-fly" (which decrease user's experience)
-              if(!$solr->optimize())
+              if(!$solr->update($add))
               {
                 $this->conneg->setStatus(500);
                 $this->conneg->setStatusMsg("Internal Error");
-                $this->conneg->setStatusMsgExt("Error #crud-create-106");
-                return;          
+                $this->conneg->setError($this->errorMessenger->_303->id, $this->errorMessenger->ws,
+                  $this->errorMessenger->_303->name, $this->errorMessenger->_303->description, "",
+                  $this->errorMessenger->_303->level);
+                return;
               }
-      */
+            }
+
+            if($this->solr_auto_commit === FALSE)
+            {
+              if(!$solr->commit())
+              {
+                $this->conneg->setStatus(500);
+                $this->conneg->setStatusMsg("Internal Error");
+                $this->conneg->setError($this->errorMessenger->_304->id, $this->errorMessenger->ws,
+                  $this->errorMessenger->_304->name, $this->errorMessenger->_304->description, "",
+                  $this->errorMessenger->_304->level);
+                return;
+              }
+            }
+          }
+        /*        
+                // Optimisation can be time consuming "on-the-fly" (which decrease user's experience)
+                if(!$solr->optimize())
+                {
+                  $this->conneg->setStatus(500);
+                  $this->conneg->setStatusMsg("Internal Error");
+                  $this->conneg->setStatusMsgExt("Error #crud-create-106");
+                  return;          
+                }
+        */
+        }
       }
     }
   }

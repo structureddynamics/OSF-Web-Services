@@ -49,11 +49,13 @@ $rdf = "";
 include_once("../framework/WebService.php");
 
 $data_ini = parse_ini_file(WebService::$data_ini . "data.ini", TRUE);
+$network_ini = parse_ini_file(WebService::$network_ini . "network.ini", TRUE);
 
 $username = $data_ini["triplestore"]["username"];
 $password = $data_ini["triplestore"]["password"];
 $dsn = $data_ini["triplestore"]["dsn"];
 $host = $data_ini["triplestore"]["host"];
+$wsf_local_ip = $network_ini["network"]["wsf_local_ip"];
 
 switch($action)
 {
@@ -382,6 +384,42 @@ switch($action)
                 wsf:webServiceAccess <$server_address/wsf/ws/dataset/create/> ;
                 wsf:datasetAccess <$server_address/wsf/datasets/> .";
   break;
+  
+  case "create_tracker_ws":
+    $rdf =
+      "@prefix wsf: <http://purl.org/ontology/wsf#> .
+            @prefix void: <http://rdfs.org/ns/void#> .
+            @prefix dcterms: <http://purl.org/dc/terms/> .
+            @prefix foaf: <http://xmlns.com/foaf/0.1/> .
+            @prefix owl: <http://www.w3.org/2002/07/owl#> .
+            @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+            @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+            @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+            
+            <$server_address/wsf/> wsf:hasWebService <$server_address/wsf/ws/tracker/create/> .
+              
+            <$server_address/wsf/ws/tracker/create/> rdf:type wsf:WebService ;
+              dcterms:title \"Tracker Create web service\" ;
+              wsf:endpoint \"\"\"$server_address/ws/tracker/create/\"\"\";
+              wsf:hasCrudUsage <$server_address/wsf/usage/tracker/create/> .
+            
+            <$server_address/wsf/usage/tracker/create/> rdf:type wsf:CrudUsage ;
+              wsf:create \"True\" ;
+              wsf:read \"False\" ;
+              wsf:update \"False\" ;
+              wsf:delete \"False\" .                
+              
+            <$server_address/wsf/access/5b2b633495a58612b63724ef71729ea6102> rdf:type wsf:Access ;
+              dcterms:description \"\"\"This access is used to enable the authentication registrar web service to register new web services to the WSF\"\"\";
+              wsf:registeredIP \"$wsf_local_ip\" ;
+              wsf:create \"True\" ;
+              wsf:read \"True\" ;
+              wsf:update \"True\" ;
+              wsf:delete \"True\" ;
+              wsf:webServiceAccess <$server_address/wsf/ws/tracker/create/> ;
+              wsf:datasetAccess <$server_address/wsf/track/> .";
+  break;
+  
   
   case "create_user_full_access":
     $rdf = "@prefix wsf: <http://purl.org/ontology/wsf#> .

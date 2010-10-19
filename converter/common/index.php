@@ -15,10 +15,11 @@
    \n\n\n
  */
 
-ini_set("display_errors",
-  "Off"); // Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
+// Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
+ini_set("display_errors", "Off"); 
 
-ini_set("memory_limit", "64M");
+ini_set("memory_limit", "256M");
+set_time_limit(2700);
 
 
 // Database connectivity procedures

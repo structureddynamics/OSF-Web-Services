@@ -320,7 +320,7 @@ class ConverterIrJSON extends WebService
                     $prop = $this->getLinkedProperty($property, $linkageSchema);
 
                     $pred = $xml->createPredicate($prop);
-                    $object = $xml->createObjectContent($this->xmlEncode($value));
+                    $object = $xml->createObjectContent($value);
 
                     $pred->appendChild($object);
                     $datasetSubject->appendChild($pred);
@@ -380,7 +380,7 @@ class ConverterIrJSON extends WebService
                           // Reify all metaData attributes/values
                           $metaProp = $this->getLinkedProperty($metaAttribute, $linkageSchema);
 
-                          $reify = $xml->createReificationStatement($metaProp, $this->xmlEncode($metaValue));
+                          $reify = $xml->createReificationStatement($metaProp, $metaValue);
                           $object->appendChild($reify);
                         }
                       }
@@ -475,7 +475,7 @@ class ConverterIrJSON extends WebService
                       $prop = $this->getLinkedProperty($property, $linkageSchema);
 
                       $pred = $xml->createPredicate($prop);
-                      $object = $xml->createObjectContent($this->xmlEncode($value));
+                      $object = $xml->createObjectContent($value);
 
                       $pred->appendChild($object);
                       $subject->appendChild($pred);
@@ -534,7 +534,7 @@ class ConverterIrJSON extends WebService
                             // Reify all metaData attributes/values
                             $metaProp = $this->getLinkedProperty($metaAttribute, $linkageSchema);
 
-                            $reify = $xml->createReificationStatement($metaProp, $this->xmlEncode($metaValue));
+                            $reify = $xml->createReificationStatement($metaProp, $metaValue);
                             $object->appendChild($reify);
                           }
                         }
@@ -1613,7 +1613,8 @@ else
               $nsId++;
             }
 
-            $rdf_part .= "\n    <" . $this->namespaces[$stNs] . ":" . $stExtension . " rdf:about=\"$subjectURI\">\n";
+            $rdf_part .= "\n    <" . $this->namespaces[$stNs] . ":" . $stExtension . " rdf:about=\"".
+                                                                                  $this->xmlEncode($subjectURI)."\">\n";
 
             $predicates = $xml->getPredicates($subject);
 
@@ -1658,7 +1659,7 @@ else
                   }
 
                   $rdf_part .= "        <" . $this->namespaces[$ptNs] . ":" . $ptExtension
-                    . " rdf:resource=\"$objectURI\" />\n";
+                    . " rdf:resource=\"".$this->xmlEncode($objectURI)."\" />\n";
                 }
               }
             }
@@ -1787,10 +1788,13 @@ else
                 {
                   //                  $rdf_reification .= "    <rdf:Statement>\n";
                   $rdf_reification .= "    <rdf:Statement rdf:about=\""
-                    . md5($xml->getURI($subject) . $predicateType . $xml->getURI($object)) . "\">\n";
-                  $rdf_reification .= "        <rdf:subject rdf:resource=\"" . $xml->getURI($subject) . "\" />\n";
-                  $rdf_reification .= "        <rdf:predicate rdf:resource=\"" . $predicateType . "\" />\n";
-                  $rdf_reification .= "        <rdf:object rdf:resource=\"" . $xml->getURI($object) . "\" />\n";
+                    . $this->xmlEncode(md5($xml->getURI($subject) . $predicateType . $xml->getURI($object))) . "\">\n";
+                  $rdf_reification .= "        <rdf:subject rdf:resource=\"" . $this->xmlEncode($xml->getURI($subject)) 
+                                                                                                            . "\" />\n";
+                  $rdf_reification .= "        <rdf:predicate rdf:resource=\"" . $this->xmlEncode($predicateType) . 
+                                                                                                              "\" />\n";
+                  $rdf_reification .= "        <rdf:object rdf:resource=\"" . $this->xmlEncode($xml->getURI($object)) . 
+                                                                                                              "\" />\n";
                 }
 
                 $first++;

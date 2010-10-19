@@ -340,22 +340,22 @@ class AuthLister extends WebService
         }
 
         $pred = $xml->createPredicate("wsf:create");
-        $object = $xml->createObjectContent($this->xmlEncode($access[2]));
+        $object = $xml->createObjectContent($access[2]);
         $pred->appendChild($object);
         $subject->appendChild($pred);
 
         $pred = $xml->createPredicate("wsf:read");
-        $object = $xml->createObjectContent($this->xmlEncode($access[3]));
+        $object = $xml->createObjectContent($access[3]);
         $pred->appendChild($object);
         $subject->appendChild($pred);
 
         $pred = $xml->createPredicate("wsf:update");
-        $object = $xml->createObjectContent($this->xmlEncode($access[4]));
+        $object = $xml->createObjectContent($access[4]);
         $pred->appendChild($object);
         $subject->appendChild($pred);
 
         $pred = $xml->createPredicate("wsf:delete");
-        $object = $xml->createObjectContent($this->xmlEncode($access[5]));
+        $object = $xml->createObjectContent($access[5]);
         $pred->appendChild($object);
         $subject->appendChild($pred);
 
@@ -720,7 +720,7 @@ class AuthLister extends WebService
 
               foreach($objects as $object)
               {
-                $rdf_part .= "    <rdf:li rdf:resource=\"" . $xml->getURI($object) . "\" />\n";
+                $rdf_part .= "    <rdf:li rdf:resource=\"" . $this->xmlEncode($xml->getURI($object)) . "\" />\n";
               }
             }
           }
@@ -742,7 +742,7 @@ class AuthLister extends WebService
             $predicates = $xml->getPredicatesByType($access, "wsf:datasetAccess");
             $objects = $xml->getObjectsByType($predicates->item(0), "void:Dataset");
 
-            $rdf_part .= "<wsf:datasetAccess rdf:resource=\"" . $xml->getURI($objects->item(0)) . "\" />\n";
+            $rdf_part .= "<wsf:datasetAccess rdf:resource=\"" . $this->xmlEncode($xml->getURI($objects->item(0))) . "\" />\n";
 
 
             // Get crud

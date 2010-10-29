@@ -147,7 +147,7 @@ class WebServiceQuerier
         }
         else
         {
-          $this->error = new Error("WSF-600", "Fatal", $ws, "Query too big", 
+          $this->error = new QuerierError("WSF-600", "Fatal", $ws, "Query too big", 
                                    "The query sent to the structWSF endpoint is too big given
                                     the current settings of the instance. The size of the
                                     query is ".number_format(strlen($this->parameters), 0, " ", " ")." bytes, 
@@ -175,7 +175,7 @@ class WebServiceQuerier
       $this->queryStatusMessageDescription = "Can't reach remote server (" . curl_error($ch) . ")";
       $this->queryResultset = $data;
 
-      $this->error = new Error("HTTP-500", "Warning", $this->url, "Can't reach remote server",
+      $this->error = new QuerierError("HTTP-500", "Warning", $this->url, "Can't reach remote server",
         "Can't reach remote server (" . curl_error($ch) . ")", $data);
 
       return;
@@ -208,7 +208,7 @@ class WebServiceQuerier
       $ws = $ws[0];
       $ws = substr($ws, 0, strrpos($ws, "/") + 1);
 
-      $this->error = new Error("HTTP-500", "Fatal", $ws, "Parsing Error", "PHP Parsing Error", $data);
+      $this->error = new QuerierError("HTTP-500", "Fatal", $ws, "Parsing Error", "PHP Parsing Error", $data);
 
       return;
     }
@@ -227,7 +227,7 @@ class WebServiceQuerier
       $ws = $ws[0];
       $ws = substr($ws, 0, strrpos($ws, "/") + 1);
 
-      $this->error = new Error("HTTP-500", "Fatal", $ws, "Fatal Error", "PHP uncatched Fatal Error", $data);
+      $this->error = new QuerierError("HTTP-500", "Fatal", $ws, "Fatal Error", "PHP uncatched Fatal Error", $data);
     }
 
     // We have to continue. Let fix this to 200 OK so that this never raise errors within the WSF
@@ -270,7 +270,7 @@ class WebServiceQuerier
           $errorDebugInfo);
         $errorDebugInfo = $errorDebugInfo[1];
 
-        $this->error = new Error($errorId, $errorLevel, $errorWS, $errorName, $errorDescription, $errorDebugInfo);
+        $this->error = new QuerierError($errorId, $errorLevel, $errorWS, $errorName, $errorDescription, $errorDebugInfo);
 
         return;
       }
@@ -357,7 +357,7 @@ class WebServiceQuerier
   
     \n\n\n
 */
-class Error
+class QuerierError
 {
   /*! @brief ID of the error */
   public $id = 0;
@@ -403,6 +403,7 @@ class Error
     $this->description = $description;
     $this->debugInfo = $debugInfo;
   }
+  
 
   function __destruct(){}
 }

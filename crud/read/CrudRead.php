@@ -1471,14 +1471,41 @@ class CrudRead extends WebService
             $this->subjectTriples[$u][$p] = array();
           }
 
+          $objectType = "";
           if($olang && $olang != "")
           {
             /* If a language is defined for an object, we force its type to be xsd:string */
-            array_push($this->subjectTriples[$u][$p], array ($o, "http://www.w3.org/2001/XMLSchema#string"));  
+            $objectType = "http://www.w3.org/2001/XMLSchema#string";
           }
           else
           {
-            array_push($this->subjectTriples[$u][$p], array ($o, $otype));  
+            $objectType = $otype;
+          }
+  
+          if($this->globalDataset === TRUE) 
+          {
+            /** 
+            * If we are using the globalDataset, there is a possibility that triples get duplicated
+            * if the same triples, exists in two different datasets. It is why we have to filter them there
+            * so that we don't duplicate them in the serialized dataset.
+            */
+            $found = FALSE;
+            foreach($this->subjectTriples[$u][$p] as $value)
+            {
+              if($o == $value[0])
+              {
+                $found = TRUE;
+              }
+            }
+            
+            if($found === FALSE)
+            {
+              array_push($this->subjectTriples[$u][$p], array ($o, $objectType));  
+            }
+          }
+          else
+          {
+            array_push($this->subjectTriples[$u][$p], array ($o, $objectType));  
           }
         }
 

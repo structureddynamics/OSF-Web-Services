@@ -124,7 +124,7 @@ class DatasetUpdate extends WebService
     
       \n\n\n
   */
-  function __construct($uri, $title, $description, $contributors, $modified, $requester_ip)
+  function __construct($uri, $title, $description, $contributors, $modified, $registered_ip, $requester_ip)
   {
     parent::__construct();
 
@@ -136,6 +136,31 @@ class DatasetUpdate extends WebService
     $this->contributors = $contributors;
     $this->modified = $modified;
     $this->requester_ip = $requester_ip;
+    
+    if($registered_ip == "")
+    {
+      $this->registered_ip = $requester_ip;
+    }
+    else
+    {
+      $this->registered_ip = $registered_ip;
+    }
+
+    if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
+    {
+      $pos = strpos($this->registered_ip, "::");
+
+      if($pos !== FALSE)
+      {
+        $account = substr($this->registered_ip, $pos + 2, strlen($this->registered_ip) - ($pos + 2));
+
+        $this->registered_ip = $requester_ip . "::" . $account;
+      }
+      else
+      {
+        $this->registered_ip = $requester_ip;
+      }
+    }    
 
     $this->uri = $this->wsf_base_url . "/wsf/ws/dataset/update/";
     $this->title = "Dataset Update Web Service";
@@ -210,6 +235,41 @@ class DatasetUpdate extends WebService
         return;
       }
     }
+    
+    // If the system send a query on the behalf of another user, we validate that other user as well
+    if($this->registered_ip != $this->requester_ip)
+    {
+      // Check if the requester has access to the main "http://.../wsf/datasets/" graph.
+      $ws_av = new AuthValidator($this->registered_ip, $this->wsf_graph . "datasets/", $this->uri);
+
+      $ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
+        $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
+
+      $ws_av->process();
+
+      if($ws_av->pipeline_getResponseHeaderStatus() != 200)
+      {
+        // If he doesn't, then check if he has access to the dataset itself
+        $ws_av2 = new AuthValidator($this->registered_ip, $this->datasetUri, $this->uri);
+
+        $ws_av2->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
+          $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
+
+        $ws_av2->process();
+
+        if($ws_av2->pipeline_getResponseHeaderStatus() != 200)
+        {
+          $this->conneg->setStatus($ws_av2->pipeline_getResponseHeaderStatus());
+          $this->conneg->setStatusMsg($ws_av2->pipeline_getResponseHeaderStatusMsg());
+          $this->conneg->setStatusMsgExt($ws_av2->pipeline_getResponseHeaderStatusMsgExt());
+          $this->conneg->setError($ws_av2->pipeline_getError()->id, $ws_av2->pipeline_getError()->webservice,
+            $ws_av2->pipeline_getError()->name, $ws_av2->pipeline_getError()->description,
+            $ws_av2->pipeline_getError()->debugInfo, $ws_av2->pipeline_getError()->level);
+
+          return;
+        }
+      }     
+    }    
   }
 
   /*!   @brief Returns the error structure

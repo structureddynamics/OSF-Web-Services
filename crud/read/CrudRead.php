@@ -422,7 +422,7 @@ class CrudRead extends WebService
                       literal, etc.
               */
               $pred = $xml->createPredicate($property);
-              $object = $xml->createObjectContent($this->xmlEncode($value[0]));
+              $object = $xml->createObjectContent($value[0]);
               $pred->appendChild($object);
 
               if(isset($this->reificationTriples[$u][$property][$value[0]]))
@@ -1046,7 +1046,8 @@ class CrudRead extends WebService
             $nsId++;
           }
 
-          $rdf_part .= "\n    <" . $this->namespaces[$ns1[0]] . ":" . $ns1[1] . " rdf:about=\"$subjectURI\">\n";
+          $rdf_part .= "\n    <" . $this->namespaces[$ns1[0]] . ":" . $ns1[1] . " rdf:about=\"".
+                                                                            $this->xmlEncode($subjectURI)."\">\n";
 
           $predicates = $xml->getPredicates($subject);
 
@@ -1087,7 +1088,7 @@ class CrudRead extends WebService
                 }
 
                 $rdf_part .= "        <" . $this->namespaces[$ns[0]] . ":" . $ns[1]
-                  . " rdf:resource=\"$objectURI\" />\n";
+                  . " rdf:resource=\"".$this->xmlEncode($objectURI)."\" />\n";
               }
             }
           }
@@ -1264,10 +1265,10 @@ class CrudRead extends WebService
                 }
 
                 $rdf_reification .= "<rdf:Statement rdf:about=\""
-                  . md5($xml->getURI($subject) . $predicateType . $xml->getURI($object)) . "\">\n";
-                $rdf_reification .= "    <rdf:subject rdf:resource=\"" . $xml->getURI($subject) . "\" />\n";
-                $rdf_reification .= "    <rdf:predicate rdf:resource=\"" . $predicateType . "\" />\n";
-                $rdf_reification .= "    <rdf:object rdf:resource=\"" . $xml->getURI($object) . "\" />\n";
+                  . $this->xmlEncode(md5($xml->getURI($subject) . $predicateType . $xml->getURI($object))) . "\">\n";
+                $rdf_reification .= "    <rdf:subject rdf:resource=\"" . $xml->getURI($this->xmlEncode($subject)) . "\" />\n";
+                $rdf_reification .= "    <rdf:predicate rdf:resource=\"" . $this->xmlEncode($predicateType) . "\" />\n";
+                $rdf_reification .= "    <rdf:object rdf:resource=\"" . $this->xmlEncode($xml->getURI($object)) . "\" />\n";
                 $rdf_reification .= "    <" . $this->namespaces[$ns[0]] . ":" . $ns[1] . ">"
                   . $this->xmlEncode($xml->getValue($reify)) . "</$reifyPredicate>\n";
                 $rdf_reification .= "</rdf:Statement>  \n\n";
@@ -1470,14 +1471,41 @@ class CrudRead extends WebService
             $this->subjectTriples[$u][$p] = array();
           }
 
+          $objectType = "";
           if($olang && $olang != "")
           {
             /* If a language is defined for an object, we force its type to be xsd:string */
-            array_push($this->subjectTriples[$u][$p], array ($o, "http://www.w3.org/2001/XMLSchema#string"));  
+            $objectType = "http://www.w3.org/2001/XMLSchema#string";
           }
           else
           {
-            array_push($this->subjectTriples[$u][$p], array ($o, $otype));  
+            $objectType = $otype;
+          }
+  
+          if($this->globalDataset === TRUE) 
+          {
+            /** 
+            * If we are using the globalDataset, there is a possibility that triples get duplicated
+            * if the same triples, exists in two different datasets. It is why we have to filter them there
+            * so that we don't duplicate them in the serialized dataset.
+            */
+            $found = FALSE;
+            foreach($this->subjectTriples[$u][$p] as $value)
+            {
+              if($o == $value[0])
+              {
+                $found = TRUE;
+              }
+            }
+            
+            if($found === FALSE)
+            {
+              array_push($this->subjectTriples[$u][$p], array ($o, $objectType));  
+            }
+          }
+          else
+          {
+            array_push($this->subjectTriples[$u][$p], array ($o, $objectType));  
           }
         }
 

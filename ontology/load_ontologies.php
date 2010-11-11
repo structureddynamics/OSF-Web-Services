@@ -36,10 +36,9 @@ $ontologiesFilesPath = $data_ini["ontologies"]["ontologies_files_folder"];
 // Before doing anything, lets remove the ontologies graph & ontologies-inference rules & graphs
 
 $rulesSetURI = "wsf_inference_rule".ereg_replace("[^A-Za-z0-9]", "", $network_ini["network"]["wsf_base_url"]);
-echo $rulesSetURI;
 $db->query("exst('rdfs_rule_set('".$rulesSetURI."', '" . $data_ini["datasets"]["wsf_graph"] . "ontologies/inferred/', 1)')");
 $db->query("exst('sparql clear graph <" . $data_ini["datasets"]["wsf_graph"] . "ontologies/>')");
-$db->query("exst('	sparql clear graph <" . $data_ini["datasets"]["wsf_graph"] . "ontologies/inferred/>')");
+$db->query("exst('sparql clear graph <" . $data_ini["datasets"]["wsf_graph"] . "ontologies/inferred/>')");
 
 $db->close();
 

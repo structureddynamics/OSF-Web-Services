@@ -833,7 +833,7 @@ class ConverterBibtex extends WebService
           $subjectURI = $xml->getURI($subject);
           $subjectType = $xml->getType($subject);
 
-          $rdf_part .= "\n    <$subjectType rdf:about=\"$subjectURI\">\n";
+          $rdf_part .= "\n    <$subjectType rdf:about=\"".$this->xmlEncode($subjectURI)."\">\n";
 
           $predicates = $xml->getPredicates($subject);
 
@@ -854,7 +854,7 @@ class ConverterBibtex extends WebService
               else
               {
                 $objectURI = $xml->getURI($object);
-                $rdf_part .= "        <$predicateType rdf:resource=\"$objectURI\" />\n";
+                $rdf_part .= "        <$predicateType rdf:resource=\"".$this->xmlEncode($objectURI)."\" />\n";
               }
             }
           }

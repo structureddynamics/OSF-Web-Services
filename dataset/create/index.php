@@ -86,6 +86,14 @@ if(isset($_SERVER['REMOTE_ADDR']))
   $requester_ip = $_SERVER['REMOTE_ADDR'];
 }
 
+// Optional IP
+$registered_ip = "";
+
+if(isset($_GET['registered_ip']))
+{
+  $registered_ip = $_GET['registered_ip'];
+}
+
 $parameters = "";
 
 if(isset($_SERVER['REQUEST_URI']))
@@ -104,7 +112,7 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_dc = new DatasetCreate($uri, $title, $description, $creator, $requester_ip);
+$ws_dc = new DatasetCreate($uri, $title, $description, $creator, $registered_ip, $requester_ip);
 
 $ws_dc->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
   $_SERVER['HTTP_ACCEPT_LANGUAGE']);

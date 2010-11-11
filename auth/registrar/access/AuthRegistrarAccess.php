@@ -549,9 +549,9 @@ class AuthRegistrarAccess extends WebService
       {
         if(strtolower($this->action) == "create")
         {
-// Create and describe the resource being registered
-// Note: we make sure we remove any previously defined triples that we are about to re-enter in the graph. All information other than these new properties
-//          will remain in the graph
+          // Create and describe the resource being registered
+          // Note: we make sure we remove any previously defined triples that we are about to re-enter in the graph. 
+          //       All information other than these new properties will remain in the graph
 
           $query = "delete from graph <" . $this->wsf_graph . ">
                   { 

@@ -198,47 +198,11 @@ class Sparql extends WebService
   */
   protected function validateQuery()
   {
-    return;
-
-    // Validation of the "requester_ip" to make sure the system that is sending the query as the rights.
-    $ws_av = new AuthValidator($this->requester_ip, $this->dataset, $this->uri);
-
-    $ws_av->pipeline_conneg("*/*", $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(),
-      $this->conneg->getAcceptLanguage());
-
-    $ws_av->process();
-
-    if($ws_av->pipeline_getResponseHeaderStatus() != 200)
-    {
-      $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
-      $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
-      $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-      $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
-        $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
-        $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
-      return;
-    }
-
-    unset($ws_av);
-
-    // Validation of the "registered_ip" to make sure the user of this system has the rights
-    $ws_av = new AuthValidator($this->registered_ip, $this->dataset, $this->uri);
-
-    $ws_av->pipeline_conneg("*/*", $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(),
-      $this->conneg->getAcceptLanguage());
-
-    $ws_av->process();
-
-    if($ws_av->pipeline_getResponseHeaderStatus() != 200)
-    {
-      $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
-      $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
-      $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-      $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
-        $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
-        $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
-      return;
-    }
+  // Here we can have a performance problem when "dataset = all" if we perform the authentication using AuthValidator.
+  // Since AuthValidator doesn't support multiple datasets at the same time, we will use the AuthLister web service
+  // in the process() function and check if the user has the permissions to "read" these datasets.
+  //
+  // This means that the validation of these queries doesn't happen at this level.
   }
 
   /*!   @brief Returns the error structure
@@ -369,15 +333,15 @@ class Sparql extends WebService
               foreach($values as $value)
               {
                 $pred = $xml->createPredicate($property);
-                $object = $xml->createObjectContent($this->xmlEncode($value));
+                $object = $xml->createObjectContent($value);
                 $pred->appendChild($object);
                 $subject->appendChild($pred);
               }
             }
           }
-
-          $resultset->appendChild($subject);
         }
+        
+        $resultset->appendChild($subject);
       }
 
       return ($this->injectDoctype($xml->saveXML($resultset)));
@@ -444,18 +408,6 @@ class Sparql extends WebService
         $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
           $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, "",
           $this->errorMessenger->_200->level);
-
-        return;
-      }
-
-      if($this->dataset == "")
-      {
-        $this->conneg->setStatus(400);
-        $this->conneg->setStatusMsg("Bad Request");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
-        $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, "",
-          $this->errorMessenger->_201->level);
 
         return;
       }
@@ -835,7 +787,8 @@ class Sparql extends WebService
             $nsId++;
           }
 
-          $rdf_part .= "\n    <" . $this->namespaces[$ns1[0]] . ":" . $ns1[1] . " rdf:about=\"$subjectURI\">\n";
+          $rdf_part .= "\n    <" . $this->namespaces[$ns1[0]] . ":" . $ns1[1] . " rdf:about=\"".
+                                                                                  $this->xmlEncode($subjectURI)."\">\n";
 
           $predicates = $xml->getPredicates($subject);
 
@@ -876,7 +829,7 @@ class Sparql extends WebService
                 }
 
                 $rdf_part .= "        <" . $this->namespaces[$ns[0]] . ":" . $ns[1]
-                  . " rdf:resource=\"$objectURI\" />\n";
+                  . " rdf:resource=\"".$this->xmlEncode($objectURI)."\" />\n";
               }
             }
           }
@@ -1008,7 +961,7 @@ class Sparql extends WebService
       \n\n\n
   */
   public function process()
-  {
+  {           
     // Make sure there was no conneg error prior to this process call
     if($this->conneg->getStatus() == 200)
     {
@@ -1050,9 +1003,57 @@ class Sparql extends WebService
       {
         array_push($graphs, $match);
       }
+      
+      if($this->dataset == "" &&  count($graphs) <= 0)
+      {
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
+        $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, "",
+          $this->errorMessenger->_201->level);
+
+        return;
+      }      
 
       // Validate all graphs of the query. If one of the graph is not accessible to the user, we just return
       // and error for this SPARQL query.
+      foreach($graphs as $graph)
+      {
+        if(substr($graph, strlen($graph) - 12, 12) == "reification/")
+        {
+          $graph = substr($graph, 0, strlen($graph) - 12);
+        }
+
+        $ws_av = new AuthValidator($this->registered_ip, $graph, $this->uri);
+
+        $ws_av->pipeline_conneg("*/*", $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(),
+          $this->conneg->getAcceptLanguage());
+
+        $ws_av->process();
+
+        if($ws_av->pipeline_getResponseHeaderStatus() != 200)
+        {
+          $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
+          $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
+          $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
+          $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
+            $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
+            $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
+
+          return;
+        }
+      }        
+      
+      /*
+        if registered_ip != requester_ip, this means that the query is sent by a registered system
+        on the behalf of someone else. In this case, we want to make sure that that system 
+        (the one that send the actual query) has access to the same datasets. Otherwise, it means that
+        it tries to personificate that registered_ip user.
+        
+        Validate all graphs of the query. If one of the graph is not accessible to the syste, we just return
+        and error for this SPARQL query.  
+      */
       foreach($graphs as $graph)
       {
         if(substr($graph, strlen($graph) - 12, 12) == "reification/")
@@ -1165,6 +1166,7 @@ class Sparql extends WebService
               }
             }
 
+            // process URI
             if($boundType == "uri")
             {
               if(!isset($this->instanceRecordsObjectResource[$s][$p]))
@@ -1177,6 +1179,7 @@ class Sparql extends WebService
               }
             }
 
+            // Process Literal
             if($boundType == "literal")
             {
               if(!isset($this->instanceRecordsObjectLiteral[$s][$p]))
@@ -1186,6 +1189,19 @@ class Sparql extends WebService
               else
               {
                 array_push($this->instanceRecordsObjectLiteral[$s][$p], $o);
+              }
+            }
+            
+            // Process BNode
+            if($boundType == "bnode")
+            {
+              if(!isset($this->instanceRecordsObjectResource[$s][$p]))
+              {
+                $this->instanceRecordsObjectResource[$s][$p] = array( $o );
+              }
+              else
+              {
+                array_push($this->instanceRecordsObjectResource[$s][$p], $o);
               }
             }
           }

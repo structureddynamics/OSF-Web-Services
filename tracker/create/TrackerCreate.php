@@ -1,11 +1,11 @@
 <?php
 
-/*! @ingroup WsAuth Authentication / Registration Web Service */
+/*! @defgroup WsTracker Tracker Web Service */
 //@{
 
-/*! @file \ws\auth\registrar\ws\AuthRegistrarWs.php
-   @brief Define the Authentication / Registration web service
-  
+/*! @file \ws\tracker\create\TrackerCreate.php
+   @brief Define the Crud Create web service
+
    \n\n
  
    @author Frederick Giasson, Structured Dynamics LLC.
@@ -14,7 +14,7 @@
  */
 
 
-/*!   @brief AuthRegister WS Web Service. It registers a Web Service endpoint on the structWSF instance
+/*!   @brief Tracker Create web service. It tracks changes in the state of records.
             
     \n
     
@@ -23,7 +23,7 @@
     \n\n\n
 */
 
-class AuthRegistrarWs extends WebService
+class TrackerCreate extends WebService
 {
   /*! @brief Database connection */
   private $db;
@@ -35,21 +35,30 @@ class AuthRegistrarWs extends WebService
   private $dtdURL;
 
   /*! @brief Supported serialization mime types by this Web service */
-  public static $supportedSerializations =
-    array ("application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*",
-      "*/*");
+  public static $supportedSerializations = array ("text/xml", "text/*", "*/*");
 
-  /*! @brief Title of the service being registered */
-  private $registered_title = "";
+  /*! @brief IP being registered */
+  private $registered_ip = "";
+  
+  /*! @brief  Dataset where the record is indexed */
+  private $fromDataset = "";
 
-  /*! @brief Endpoint of the service being registered */
-  private $registered_endpoint = "";
+  /*! @brief  Record that got changed */
+  private $record = "";
 
-  /*! @brief CRUD usage of the service being registered */
-  private $registered_crud_usage = "";
+  /*! @brief  Action that has been performed on the record */
+  private $action = "";
 
-  /*! @brief Web service URI being registered */
-  private $registered_uri = "";
+  /*! @brief  Serialization of the state (usually RDF description) of the record prior the performance of the 
+              action on the record. */
+  private $previousState = "";
+
+  /*! @brief  MIME type of the serialization of the previous state of a record. Usually, application/rdf+xml or 
+              application/rdf+n3. */
+  private $previousStateMime = "";
+
+  /*! @brief  Performer of the action on the target record. */
+  private $performer = "";
 
   /*! @brief Requester's IP used for request validation */
   private $requester_ip = "";
@@ -57,79 +66,78 @@ class AuthRegistrarWs extends WebService
   /*! @brief Error messages of this web service */
   private $errorMessenger =
     '{
-                        "ws": "/ws/auth/registrar/ws/",
-                        "_200": {
-                          "id": "WS-AUTH-REGISTRAR-WS-200",
-                          "level": "Warning",
-                          "name": "No endpoint URL",
-                          "description": "No endpoint URL defined for this query."
-                        },
-                        "_201": {
-                          "id": "WS-AUTH-REGISTRAR-WS-201",
-                          "level": "Warning",
-                          "name": "No crud usage defined",
-                          "description": "No crud usage defined for this query."
-                        },
-                        "_202": {
-                          "id": "WS-AUTH-REGISTRAR-WS-202",
-                          "level": "Warning",
-                          "name": "No web service URI defined",
-                          "description": "No web service URI defined for this query."
-                        },
-                        "_203": {
-                          "id": "WS-AUTH-REGISTRAR-WS-203",
-                          "level": "Fatal",
-                          "name": "Can\'t check of the web service was already registered to this WSF",
-                          "description": "An error occured when we tried to check if the web service was already registered to this web service network."
-                        },
-                        "_204": {
-                          "id": "WS-AUTH-REGISTRAR-WS-204",
-                          "level": "Warning",
-                          "name": "Web service already registered",
-                          "description": "This web service is already registered to this Web Service Framework."
-                        },
-                        "_300": {
-                          "id": "WS-AUTH-REGISTRAR-WS-300",
-                          "level": "Fatal",
-                          "name": "Can\'t register this web service to the network",
-                          "description": "An error occured when we tried to register this new web service to the network."
-                        }  
-                      }';
+      "ws": "/ws/tracker/create/",
+      "_200": {
+        "id": "WS-TRACKER-CREATE-200",
+        "level": "Fatal",
+        "name": "No dataset provenance defined.",
+        "description": "The provenance of the record as to be specified."
+      },
+      "_201": {
+        "id": "WS-TRACKER-CREATE-201",
+        "level": "Fatal",
+        "name": "State serialization mime not supported.",
+        "description": "Only the application/rdf+xml and application/rdf+n3 mime types are supported by the tracker."
+      },
+      "_202": {
+        "id": "WS-TRACKER-CREATE-202",
+        "level": "Fatal",
+        "name": "No record defined",
+        "description": "No changed record has been defined for this query."
+      },
+      "_203": {
+        "id": "WS-TRACKER-CREATE-203",
+        "level": "Fatal",
+        "name": "No performer defined.",
+        "description": "The performer of the action needs to be defined."
+      },
+      "_204": {
+        "id": "WS-TRACKER-CREATE-204",
+        "level": "Fatal",
+        "name": "Unsupported action",
+        "description": "Only the actions \'delete\', \'create\' and \'update\' are supported by the tracker"
+      }
+    }';
 
 
-  /*!   @brief Constructor
-       @details   Initialize the Auth Web Service
-              
-      \n
+/*!   @brief Constructor
+     @details   Initialize the Crud Create
       
-      @param[in] $registered_title Title of the web service to register
-      @param[in] $registered_endpoint URL of the endpoint where to send the HTTP queries
-      @param[in] $registered_crud_usage   A quadruple with a value "True" or "False" defined as 
-                                <Create;Read;Update;Delete>. Each value is separated by the ";" 
-                                character. an example of such a quadruple is: "crud_usage=True;True;False;False", 
-                                meaning: Create = True, Read = True, Update = False and Delete = False
-      @param[in] $registered_uri URI of the web service endpoint to register
-      @param[in] $requester_ip IP address of the requester
-      
-      
-      @return returns NULL
+    @param[in] $fromDataset Dataset where the record is indexed
+    @param[in] $record Record that got changed
+    @param[in] $action Action that has been performed on the record
+    @param[in] $previousState Serialization of the state (usually RDF description) of the record prior the 
+                              performance of the action on the record.
+    @param[in] $previousStateMime MIME type of the serialization of the previous state of a record. Usually, 
+                                  application/rdf+xml or application/rdf+n3.
+    @param[in] $performer Performer of the action on the target record.
+    @param[in] $registered_ip Target IP address registered in the WSF
+    @param[in] $requester_ip IP address of the requester
+            
+    \n
     
-      @author Frederick Giasson, Structured Dynamics LLC.
-    
-      \n\n\n
-  */
-  function __construct($registered_title, $registered_endpoint, $registered_crud_usage, $registered_uri, $registered_ip, $requester_ip)
+    @return returns NULL
+  
+    @author Frederick Giasson, Structured Dynamics LLC.
+  
+    \n\n\n
+*/
+  function __construct($fromDataset, $record, $action, $previousState, $previousStateMime, $performer,  $registered_ip, $requester_ip)
   {
     parent::__construct();
 
     $this->db = new DB_Virtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 
-    $this->registered_title = $registered_title;
-    $this->registered_endpoint = $registered_endpoint;
-    $this->registered_crud_usage = $registered_crud_usage;
-    $this->registered_uri = $registered_uri;
     $this->requester_ip = $requester_ip;
 
+    $this->fromDataset = $fromDataset;
+    $this->record = $record;
+    $this->action = $action;
+//    $this->previousState = urlencode(gzencode($previousState));
+    $this->previousState = base64_encode(gzencode($previousState));
+    $this->previousStateMime = $previousStateMime;
+    $this->performer = $performer;
+    
     if($registered_ip == "")
     {
       $this->registered_ip = $requester_ip;
@@ -153,14 +161,14 @@ class AuthRegistrarWs extends WebService
       {
         $this->registered_ip = $requester_ip;
       }
-    }   
+    }
     
-    $this->uri = $this->wsf_base_url . "/wsf/ws/auth/registrar/ws/";
-    $this->title = "Authentication Web Service Registration Web Service";
-    $this->crud_usage = new CrudUsage(TRUE, TRUE, FALSE, FALSE);
-    $this->endpoint = $this->wsf_base_url . "/ws/auth/registrar/ws/";
+    $this->uri = $this->wsf_base_url . "/wsf/ws/tracker/create/";
+    $this->title = "Tracker Create Web Service";
+    $this->crud_usage = new CrudUsage(TRUE, FALSE, FALSE, FALSE);
+    $this->endpoint = $this->wsf_base_url . "/ws/tracker/create/";
 
-    $this->dtdURL = "auth/authRegistrarWs.dtd";
+    $this->dtdURL = "auth/TrackerCreate.dtd";
 
     $this->errorMessenger = json_decode($this->errorMessenger);
   }
@@ -175,7 +183,7 @@ class AuthRegistrarWs extends WebService
     }
   }
 
-  /*!   @brief Validate a query to this web service
+  /*!  @brief Validate a query to this web service
               
       \n
       
@@ -187,7 +195,8 @@ class AuthRegistrarWs extends WebService
   */
   protected function validateQuery()
   {
-    $ws_av = new AuthValidator($this->requester_ip, $this->wsf_graph, $this->uri);
+    // Validation of the "requester_ip" to make sure the system that is sending the query as the rights.
+    $ws_av = new AuthValidator($this->requester_ip, $this->wsf_graph."track/", $this->uri);
 
     $ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
       $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
@@ -202,12 +211,17 @@ class AuthRegistrarWs extends WebService
       $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
         $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
         $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
+
+      return;
     }
-    
+
+    unset($ws_av);
+
     // If the system send a query on the behalf of another user, we validate that other user as well
     if($this->registered_ip != $this->requester_ip)
-    {
-      $ws_av = new AuthValidator($this->registered_ip, $this->wsf_graph, $this->uri);
+    {    
+      // Validation of the "registered_ip" to make sure the user of this system has the rights
+      $ws_av = new AuthValidator($this->registered_ip, $this->wsf_graph."track/", $this->uri);
 
       $ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
         $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
@@ -222,8 +236,9 @@ class AuthRegistrarWs extends WebService
         $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
           $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
           $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
+        return;
       }
-    }    
+    }
   }
 
   /*!   @brief Returns the error structure
@@ -267,8 +282,8 @@ class AuthRegistrarWs extends WebService
   {
     $posHeader = strpos($xmlDoc, '"?>') + 3;
     $xmlDoc = substr($xmlDoc, 0, $posHeader)
-      . "\n<!DOCTYPE resultset PUBLIC \"-//Structured Dynamics LLC//Auth Registrar WS DTD 0.1//EN\" \""
-      . $this->dtdBaseURL . $this->dtdURL . "\">" . substr($xmlDoc, $posHeader, strlen($xmlDoc) - $posHeader);
+      . "\n<!DOCTYPE resultset PUBLIC \"-//Structured Dynamics LLC//Tracker Create DTD 0.1//EN\" \"" . $this->dtdBaseURL
+        . $this->dtdURL . "\">" . substr($xmlDoc, $posHeader, strlen($xmlDoc) - $posHeader);
 
     return ($xmlDoc);
   }
@@ -293,11 +308,11 @@ class AuthRegistrarWs extends WebService
   */
   public function ws_conneg($accept, $accept_charset, $accept_encoding, $accept_language)
   {
-    $this->conneg = new Conneg($accept, $accept_charset, $accept_encoding, $accept_language,
-      AuthRegistrarWs::$supportedSerializations);
+    $this->conneg =
+      new Conneg($accept, $accept_charset, $accept_encoding, $accept_language, TrackerCreate::$supportedSerializations);
 
     // Check for errors
-    if($this->registered_endpoint == "")
+    if($this->fromDataset == "")
     {
       $this->conneg->setStatus(400);
       $this->conneg->setStatusMsg("Bad Request");
@@ -308,19 +323,18 @@ class AuthRegistrarWs extends WebService
       return;
     }
 
-    if($this->registered_crud_usage == "")
+    if($this->previousStateMime != "application/rdf+xml" && $this->previousStateMime != "application/rdf+n3")
     {
       $this->conneg->setStatus(400);
       $this->conneg->setStatusMsg("Bad Request");
       $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
       $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
-        $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, "",
+        $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, ($this->mime),
         $this->errorMessenger->_201->level);
-
       return;
     }
 
-    if($this->registered_uri == "")
+    if($this->record == "")
     {
       $this->conneg->setStatus(400);
       $this->conneg->setStatusMsg("Bad Request");
@@ -328,47 +342,30 @@ class AuthRegistrarWs extends WebService
       $this->conneg->setError($this->errorMessenger->_202->id, $this->errorMessenger->ws,
         $this->errorMessenger->_202->name, $this->errorMessenger->_202->description, "",
         $this->errorMessenger->_202->level);
-
       return;
-    }
-
-    // Check if the web service is already registered
-    $resultset =
-      $this->db->query($this->db->build_sparql_query("select ?wsf ?crudUsage from <" . $this->wsf_graph
-        . "> where {?wsf a <http://purl.org/ontology/wsf#WebServiceFramework>. ?wsf <http://purl.org/ontology/wsf#hasWebService> <$this->registered_uri>. <$this->registered_uri> <http://purl.org/ontology/wsf#hasCrudUsage> ?crudUsage.}",
-        array ('wsf', 'crudUsage'), FALSE));
-
-    if(odbc_error())
+    }    
+    
+    if($this->performer == "")
     {
-      $this->conneg->setStatus(500);
-      $this->conneg->setStatusMsg("Internal Error");
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
       $this->conneg->setStatusMsgExt($this->errorMessenger->_203->name);
       $this->conneg->setError($this->errorMessenger->_203->id, $this->errorMessenger->ws,
         $this->errorMessenger->_203->name, $this->errorMessenger->_203->description, "",
         $this->errorMessenger->_203->level);
-
       return;
     }
-    elseif(odbc_fetch_row($resultset))
+
+    if($this->action != "delete" && $this->action != "update" && $this->action != "create")
     {
-      $wsf = odbc_result($resultset, 1);
-      $crud_usage = odbc_result($resultset, 2);
-
-      if($wsf != "" && $crud_usage != "")
-      {
-        $this->conneg->setStatus(400);
-        $this->conneg->setStatusMsg("Bad Request");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_204->name);
-        $this->conneg->setError($this->errorMessenger->_204->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_204->name, $this->errorMessenger->_204->description, "",
-          $this->errorMessenger->_204->level);
-
-        unset($resultset);
-        return;
-      }
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_204->name);
+      $this->conneg->setError($this->errorMessenger->_204->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_204->name, $this->errorMessenger->_204->description, "",
+        $this->errorMessenger->_204->level);
+      return;
     }
-
-    unset($resultset);
   }
 
   /*!   @brief Do content negotiation as an internal, pipelined, Web Service that is part of a Compound Web Service
@@ -493,7 +490,7 @@ class AuthRegistrarWs extends WebService
   }
 
 
-  /*!   @brief Register a new Web Service endpoint to the structWSF instance
+  /*!   @brief Index the new instance records within all the systems that need it (usually Solr + Virtuoso).
               
       \n
       
@@ -511,56 +508,42 @@ class AuthRegistrarWs extends WebService
       // If the query is still valid
       if($this->conneg->getStatus() == 200)
       {
-// Create and describe the resource being registered
-// Note: we make sure we remove any previously defined triples that we are about to re-enter in the graph. All information other than these new properties
-//       will remain in the graph
+        $dateTime = date("c");
 
-        $query = "delete from <" . $this->wsf_graph . ">
-                { 
-                  <$this->registered_uri> a <http://purl.org/ontology/wsf#WebService> .
-                  <$this->registered_uri> <http://purl.org/dc/terms/title> ?title . 
-                  <$this->registered_uri> <http://purl.org/ontology/wsf#endpoint> ?endpoint .
-                  <$this->registered_uri> <http://purl.org/ontology/wsf#hasCrudUsage> ?crud_usage .
-                  ?crud_usage ?crud_property ?crud_value .
-                }
-                where
-                {
-                  graph <" . $this->wsf_graph . ">
-                  {
-                    <$this->registered_uri> a <http://purl.org/ontology/wsf#WebService> .
-                    <$this->registered_uri> <http://purl.org/dc/terms/title> ?title . 
-                    <$this->registered_uri> <http://purl.org/ontology/wsf#endpoint> ?endpoint .
-                    <$this->registered_uri> <http://purl.org/ontology/wsf#hasCrudUsage> ?crud_usage .
-                    ?crud_usage ?crud_property ?crud_value .
-                  }
-                }
-                insert into <" . $this->wsf_graph . ">
-                {
-                  <$this->registered_uri> a <http://purl.org/ontology/wsf#WebService> .
-                  <$this->registered_uri> <http://purl.org/dc/terms/title> \"$this->registered_title\" .
-                  <$this->registered_uri> <http://purl.org/ontology/wsf#endpoint> \"$this->registered_endpoint\" .
-                  <$this->registered_uri> <http://purl.org/ontology/wsf#hasCrudUsage> <" . $this->registered_uri . "usage/> .
-                  
-                  <" . $this->registered_uri . "usage/> a <http://purl.org/ontology/wsf#CrudUsage> ;
-                  <http://purl.org/ontology/wsf#create> " . ($this->crud_usage->create ? "\"True\"" : "\"False\"") . " ;
-                  <http://purl.org/ontology/wsf#read> " . ($this->crud_usage->read ? "\"True\"" : "\"False\"") . " ;
-                  <http://purl.org/ontology/wsf#update> " . ($this->crud_usage->update ? "\"True\"" : "\"False\"") . " ;
-                  <http://purl.org/ontology/wsf#delete> " . ($this->crud_usage->delete ? "\"True\"" : "\"False\"") . " .
-                  
-                  <" . $this->wsf_graph . "> <http://purl.org/ontology/wsf#hasWebService> <$this->registered_uri>.
-                }";
+        /*
+          Ordered changes for a record using sparql and this part of the WSF ontology.
+        
+          sparql select * from <http://.../wsf/track/> where 
+          {
+            ?s <http://purl.org/ontology/wsf#record> <http://.../wsf/datasets/67/resource/Welfare> .
 
-        @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-          FALSE));
+            ?s <http://purl.org/ontology/wsf#changeTime> ?time.
+          }
+          ORDER BY asc(xsd:dateTime(?time));
+        */
+        
+        $trackRecord = "<".$this->wsf_graph."track/record/".md5($dateTime.$this->record.$this->fromDataset)."> 
+                         a <http://purl.org/ontology/wsf#ChangeState> ;";
+                         
+        $trackRecord .= "<http://purl.org/ontology/wsf#record> <".$this->record."> ;";
+        $trackRecord .= "<http://purl.org/ontology/wsf#fromDataset> <".$this->fromDataset."> ;";
+        $trackRecord .= "<http://purl.org/ontology/wsf#changeTime> \"".$dateTime."\"^^xsd:dateTime ;";
+        $trackRecord .= "<http://purl.org/ontology/wsf#action> \"".$this->action."\" ;";
+        $trackRecord .= "<http://purl.org/ontology/wsf#previousState> \"\"\"".$this->previousState."\"\"\" ;";
+        $trackRecord .= "<http://purl.org/ontology/wsf#previousStateMime> \"".$this->previousStateMime."\" ;";
+        $trackRecord .= "<http://purl.org/ontology/wsf#performer> \"".$this->performer."\" .";
+        
+        $this->db->query("DB.DBA.TTLP_MT('"
+          . addslashes($trackRecord) . "', '" . $this->wsf_graph."track/" . "', '"
+          . $this->wsf_graph."track/" . "')");
 
         if(odbc_error())
         {
-          $this->conneg->setStatus(500);
-          $this->conneg->setStatusMsg("Internal Error");
-          $this->conneg->setStatusMsgExt($this->errorMessenger->_300->name);
-          $this->conneg->setError($this->errorMessenger->_300->id, $this->errorMessenger->ws,
-            $this->errorMessenger->_300->name, $this->errorMessenger->_300->description, odbc_errormsg(),
-            $this->errorMessenger->_300->level);
+          $this->conneg->setStatus(400);
+          $this->conneg->setStatusMsg("Bad Request");
+          $this->conneg->setError($this->errorMessenger->_302->id, $this->errorMessenger->ws,
+            $this->errorMessenger->_302->name, $this->errorMessenger->_302->description, odbc_errormsg(),
+            $this->errorMessenger->_302->level);
 
           return;
         }
@@ -568,6 +551,7 @@ class AuthRegistrarWs extends WebService
     }
   }
 }
+
 
 //@}
 

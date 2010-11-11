@@ -1,5 +1,7 @@
 <?php
 
+  // $Id$
+
 /*! @defgroup WsFramework Framework for the Web Services */
 //@{
 
@@ -49,12 +51,30 @@ class WebServiceQuerier
   /*! @brief Resultset of the query */
   private $queryResultset = "";
 
+  /*! @brief Internal error ID of the queried web sevice */
+  private $errorId = "";
+
+  /*! @brief Internal error name of the queried web sevice */
+  private $errorName = "";
+
+  /*! @brief Internal error description of the queried web sevice */
+  private $errorDescription = "";
+
+  /*! @brief Internal error debug information of the queried web sevice */
+  private $errorDebugInfo = "";
+
+  /*! @brief Internal error of the queried web service. The error doesn't necessarly come from the
+   *            queried web service endpoint in the case of a compound web service.
+   */
+  public $error;
+
   /*!   @brief Constructor
     
       @param[in] $url URL of the web service endpoint to query
       @param[in] $method HTTP method to use to query the endpoint (GET or POST)
       @param[in] $mime Mime type of the resultset that has to be returned by the web service endpoint
       @param[in] $parameters Parameters to send to the endpoint 
+      @param[in] $timeout Timeout (in milliseconds) before ending the query to a remote web service.
           
       \n
       
@@ -64,17 +84,18 @@ class WebServiceQuerier
     
       \n\n\n
   */
-  function __construct($url, $method, $mime, $parameters)
+  function __construct($url, $method, $mime, $parameters, $timeout = 0)
   {
     $this->url = $url;
     $this->method = $method;
     $this->parameters = $parameters;
     $this->mime = $mime;
+    $this->timeout = $timeout;
 
     $this->queryWebService();
   }
 
-  function __destruct() { }
+  function __destruct(){}
 
   /*!   @brief Send a query to a web service endpoint.
     
@@ -86,35 +107,54 @@ class WebServiceQuerier
   */
   function queryWebService()
   {
-    if(isset($_GET["wsf_debug"]))
-    {
-      //  Start TIMER
-      //  -----------
-      $stimer = explode(' ', microtime());
-      $stimer = $stimer[1] + $stimer[0];
-    //  -----------
-    }
-
     $ch = curl_init();
 
-    switch($this->method)
+    switch ($this->method)
     {
       case "get":
         curl_setopt($ch, CURLOPT_URL, $this->url . "?" . $this->parameters);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array( "Accept: $this->mime" ));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array("Accept: $this->mime"));
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        
+        if ($this->timeout > 0)
+        {
+          curl_setopt($ch, CURLOPT_TIMEOUT, $this->timeout);
+        }
         curl_setopt($ch, CURLOPT_HEADER, TRUE);
       break;
 
       case "post":
-        curl_setopt($ch, CURLOPT_URL, $this->url);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array( "Accept: $this->mime" ));
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $this->parameters);
-        curl_setopt($ch, CURLOPT_HEADER, TRUE);
+        // Check if the size of the converted file is bigger than the maximum file size
+        // we can upload via Curl.
+        $uploadMaxFileSize = ini_get("post_max_size");
+        $uploadMaxFileSize = str_replace("M", "000000", $uploadMaxFileSize);
+        
+        if($uploadMaxFileSize > strlen($this->parameters))
+        {
+          curl_setopt($ch, CURLOPT_URL, $this->url);
+          curl_setopt($ch, CURLOPT_HTTPHEADER, array("Accept: $this->mime"));
+          curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+          curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+          curl_setopt($ch, CURLOPT_POST, 1);
+          curl_setopt($ch, CURLOPT_POSTFIELDS, $this->parameters);
+          
+          if ($this->timeout > 0)
+          {
+            curl_setopt($ch, CURLOPT_TIMEOUT, $this->timeout);
+          }
+          curl_setopt($ch, CURLOPT_HEADER, TRUE);
+        }
+        else
+        {
+          $this->error = new QuerierError("WSF-600", "Fatal", $ws, "Query too big", 
+                                   "The query sent to the structWSF endpoint is too big given
+                                    the current settings of the instance. The size of the
+                                    query is ".number_format(strlen($this->parameters), 0, " ", " ")." bytes, 
+                                    and the autorized size of the query is ".$uploadMaxFileSize." bytes", $data);
+          
+          return(FALSE);
+        }
       break;
 
       default:
@@ -124,10 +164,10 @@ class WebServiceQuerier
 
     $xml_data = curl_exec($ch);
 
-    if($xml_data === FALSE)
+    if ($xml_data === FALSE)
     {
       $data =
-      substr($xml_data, strpos($xml_data, "\r\n\r\n") + 4, strlen($xml_data) - (strpos($xml_data, "\r\n\r\n") - 4));       
+      substr($xml_data, strpos($xml_data, "\r\n\r\n") + 4, strlen($xml_data) - (strpos($xml_data, "\r\n\r\n") - 4));      
       
       // Can't reach the remote server
       $this->queryStatus = "503";
@@ -135,15 +175,8 @@ class WebServiceQuerier
       $this->queryStatusMessageDescription = "Can't reach remote server (" . curl_error($ch) . ")";
       $this->queryResultset = $data;
 
-      if(isset($_GET["wsf_debug"]))
-      {
-        drupal_set_message(t(
-          "Web service query: [[url: $this->url] [method: $this->method] [mime: $this->mime] [parameters: $this->parameters]] (status: @status) @status_message - @status_message_description. [[[["
-          . str_replace(array ("<", ">", "\r", "\n"), array ("&lt;", "&gt;", "<br>", "<br>"), $data) . "]]]]",
-          array ("@status" => strip_tags($this->getStatus()),
-            "@status_message" => strip_tags($this->getStatusMessage()),
-            "@status_message_description" => strip_tags($this->getStatusMessageDescription()))), "error", TRUE);
-      }
+      $this->error = new QuerierError("HTTP-500", "Warning", $this->url, "Can't reach remote server",
+        "Can't reach remote server (" . curl_error($ch) . ")", $data);
 
       return;
     }
@@ -159,44 +192,46 @@ class WebServiceQuerier
     curl_close($ch);
 
     // check returned message
-
     $this->queryStatus = substr($header, 9, 3);
     $this->queryStatusMessage = substr($header, 13, strpos($header, "\r\n") - 13);
 
-    if(isset($_GET["wsf_debug"]))
+    // Make sure that we don't have a PHP Parsing error in the resultset. If it is the case, we have to return an error
+    if (stripos($data, "<b>Parse error</b>") !== false)
     {
-      //  End TIMER
-      //  ---------
-      $etimer = explode(' ', microtime());
-      $etimer = $etimer[1] + $etimer[0];
-      $execTime = $etimer - $stimer;
-      //  ---------
+      $this->queryStatus = "500";
+      $this->queryStatusMessage = "Internal Server Error";
+      $this->queryStatusMessageDescription = "Parsing Error";
+      $this->queryResultset = $data;
 
-      switch($_GET["wsf_debug"])
-      {
-        case "1":
-          drupal_set_message(t(
-            "Web service query: [[url: <b>$this->url</b>] [method: $this->method] [mime: $this->mime] [parameters: $this->parameters] [execution time: <b>@exectime</b>]] (status: @status) @status_message - @status_message_description. [[[["
-            . str_replace(array ("<", ">", "\r", "\n"), array ("&lt;", "&gt;", "<br>", "<br>"), $data) . "]]]]",
-            array ("@status" => strip_tags($this->getStatus()),
-              "@status_message" => strip_tags($this->getStatusMessage()),
-              "@status_message_description" => strip_tags($this->getStatusMessageDescription()),
-              "@exectime" => $execTime)), "warning", TRUE);
-        break;
+      preg_match("/\/ws\/(.*)\/.*\.php/Uim", $data, $ws);
 
-        case "2":
-          drupal_set_message(t(
-            "Web service query: [[url: <b>$this->url</b>] [method: $this->method] [mime: $this->mime] [parameters: $this->parameters] [execution time: <b>@exectime</b>]] (status: @status) @status_message - @status_message_description.",
-            array ("@status" => strip_tags($this->getStatus()),
-              "@status_message" => strip_tags($this->getStatusMessage()),
-              "@status_message_description" => strip_tags($this->getStatusMessageDescription()),
-              "@exectime" => $execTime)), "warning", TRUE);
-        break;
-      }
+      $ws = $ws[0];
+      $ws = substr($ws, 0, strrpos($ws, "/") + 1);
+
+      $this->error = new QuerierError("HTTP-500", "Fatal", $ws, "Parsing Error", "PHP Parsing Error", $data);
+
+      return;
+    }
+
+    // Make sure that we don't have any rogue PHP uncatched fatal error in the resultset. If it is the case, 
+    // we have to return an error
+    if (stripos($data, "<b>Fatal error</b>") !== false)
+    {
+      $this->queryStatus = "500";
+      $this->queryStatusMessage = "Internal Server Error";
+      $this->queryStatusMessageDescription = "Fatal Error";
+      $this->queryResultset = $data;
+
+      preg_match("/\/ws\/(.*)\/.*\.php/Uim", $data, $ws);
+
+      $ws = $ws[0];
+      $ws = substr($ws, 0, strrpos($ws, "/") + 1);
+
+      $this->error = new QuerierError("HTTP-500", "Fatal", $ws, "Fatal Error", "PHP uncatched Fatal Error", $data);
     }
 
     // We have to continue. Let fix this to 200 OK so that this never raise errors within the WSF
-    if($this->queryStatus == "100")
+    if ($this->queryStatus == "100")
     {
       $this->queryStatus = "200";
       $this->queryStatusMessage = "OK";
@@ -205,9 +240,42 @@ class WebServiceQuerier
       return;
     }
 
-    if($this->queryStatus != "200")
+    if ($this->queryStatus != "200")
     {
-      $this->queryStatusMessageDescription = str_replace(array ("\r", "\n"), "", $data);
+      $this->queryStatusMessageDescription = str_replace(array(
+        "\r",
+        "\n"
+      ), "", $data);
+
+      // XML error messages
+      if (strpos($this->queryStatusMessageDescription, "<error>"))
+      {
+        preg_match("/.*<id>(.*)<\/id>.*/Uim", $this->queryStatusMessageDescription, $errorId);
+        $errorId = $errorId[1];
+
+        preg_match("/.*<level>(.*)<\/level>.*/Uim", $this->queryStatusMessageDescription, $errorLevel);
+        $errorLevel = $errorLevel[1];
+
+        preg_match("/.*<webservice>(.*)<\/webservice>.*/Uim", $this->queryStatusMessageDescription, $errorWS);
+        $errorWS = $errorWS[1];
+
+        preg_match("/.*<name>(.*)<\/name>.*/Uim", $this->queryStatusMessageDescription, $errorName);
+        $errorName = $errorName[1];
+
+        preg_match("/.*<description>(.*)<\/description>.*/Uim", $this->queryStatusMessageDescription,
+          $errorDescription);
+        $errorDescription = $errorDescription[1];
+
+        preg_match("/.*<debugInformation>(.*)<\/debugInformation>.*/Uim", $this->queryStatusMessageDescription,
+          $errorDebugInfo);
+        $errorDebugInfo = $errorDebugInfo[1];
+
+        $this->error = new QuerierError($errorId, $errorLevel, $errorWS, $errorName, $errorDescription, $errorDebugInfo);
+
+        return;
+      }
+
+    // JSON error messages
     }
     else
     {
@@ -227,7 +295,10 @@ class WebServiceQuerier
     
       \n\n\n
   */
-  public function getStatus() { return $this->queryStatus; }
+  public function getStatus()
+  {
+    return $this->queryStatus;
+  }
 
   /*!   @brief Get the message of the status of the query
               
@@ -239,7 +310,10 @@ class WebServiceQuerier
     
       \n\n\n
   */
-  public function getStatusMessage() { return $this->queryStatusMessage; }
+  public function getStatusMessage()
+  {
+    return $this->queryStatusMessage;
+  }
 
   /*!   @brief Get the extended message of the status of the query
               
@@ -251,7 +325,10 @@ class WebServiceQuerier
     
       \n\n\n
   */
-  public function getStatusMessageDescription() { return $this->queryStatusMessageDescription; }
+  public function getStatusMessageDescription()
+  {
+    return $this->queryStatusMessageDescription;
+  }
 
   /*!   @brief Get the resultset of a query
               
@@ -263,9 +340,72 @@ class WebServiceQuerier
     
       \n\n\n
   */
-  public function getResultset() { return $this->queryResultset; }
+  public function getResultset()
+  {
+    return $this->queryResultset;
+  }
 }
 
 //@}
+
+
+/*!   @brief The class managing creation of error messages
+            
+    \n
+    
+    @author Frederick Giasson, Structured Dynamics LLC.
+  
+    \n\n\n
+*/
+class QuerierError
+{
+  /*! @brief ID of the error */
+  public $id = 0;
+
+  /*! @brief Level of the error */
+  public $level = 0;
+
+  /*! @brief URI of the web service that caused this error */
+  public $webservice = "";
+
+  /*! @brief Name of the error */
+  public $name = "";
+
+  /*! @brief Description of the error */
+  public $description = "";
+
+  /*! @brief Debug information for this error */
+  public $debugInfo = "";
+
+  /*!   @brief Constructor 
+              
+      \n
+      
+      @param[in] $id ID of the error
+      @param[in] $level Level of the error (notice, warning, fatal)
+      @param[in] $webservice URI of the web service that caused this error
+      @param[in] $name Name of the error
+      @param[in] $description Description of the error
+      @param[in] $debugInfo Debug information for this error
+      
+      @return returns NULL
+    
+      @author Frederick Giasson, Structured Dynamics LLC.
+    
+      \n\n\n
+  */
+  function __construct($id, $level, $webservice, $name, $description, $debugInfo)
+  {
+    $this->id = $id;
+    $this->level = strtolower($level);
+    $this->webservice = $webservice;
+    $this->name = $name;
+    $this->description = $description;
+    $this->debugInfo = $debugInfo;
+  }
+  
+
+  function __destruct(){}
+}
 
 ?>

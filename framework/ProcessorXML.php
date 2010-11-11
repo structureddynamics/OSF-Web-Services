@@ -84,14 +84,14 @@ class ProcessorXML
 
     // The TYPE attribute
     $type_attr = $this->dom->createAttribute("type");
-    $type_attr_value = $this->dom->createTextNode($type);
+    $type_attr_value = $this->dom->createTextNode($this->xmlEncode($type));
 
     $subject->appendChild($type_attr);
     $type_attr->appendChild($type_attr_value);
 
     // The URI attribute
     $uri_attr = $this->dom->createAttribute("uri");
-    $uri_attr_value = $this->dom->createTextNode($uri);
+    $uri_attr_value = $this->dom->createTextNode($this->xmlEncode($uri));
 
     $subject->appendChild($uri_attr);
     $uri_attr->appendChild($uri_attr_value);
@@ -151,7 +151,7 @@ class ProcessorXML
 
     // The TYPE attribute
     $type_attr = $this->dom->createAttribute("type");
-    $type_attr_value = $this->dom->createTextNode($type);
+    $type_attr_value = $this->dom->createTextNode($this->xmlEncode($type));
 
     $predicate->appendChild($type_attr);
     $type_attr->appendChild($type_attr_value);
@@ -181,7 +181,7 @@ class ProcessorXML
     if($type != "")
     {
       $type_attr = $this->dom->createAttribute("type");
-      $type_attr_value = $this->dom->createTextNode($type);
+      $type_attr_value = $this->dom->createTextNode($this->xmlEncode($type));
 
       $object->appendChild($type_attr);
       $type_attr->appendChild($type_attr_value);
@@ -189,7 +189,7 @@ class ProcessorXML
 
     // The URI attribute
     $uri_attr = $this->dom->createAttribute("uri");
-    $uri_attr_value = $this->dom->createTextNode($uri);
+    $uri_attr_value = $this->dom->createTextNode($this->xmlEncode($uri));
 
     $object->appendChild($uri_attr);
     $uri_attr->appendChild($uri_attr_value);
@@ -198,7 +198,7 @@ class ProcessorXML
     {
       // The LABEL attribute
       $label_attr = $this->dom->createAttribute("label");
-      $label_attr_value = $this->dom->createTextNode($label);
+      $label_attr_value = $this->dom->createTextNode($this->xmlEncode($label));
 
       $object->appendChild($label_attr);
       $label_attr->appendChild($label_attr_value);
@@ -222,7 +222,7 @@ class ProcessorXML
   */
   function createObjectContent($content)
   {
-    $objectContent = $this->dom->createElement("object", $content);
+    $objectContent = $this->dom->createElement("object", $this->xmlEncode($content));
 
     // The TYPE attribute
     $type_attr = $this->dom->createAttribute("type");
@@ -257,14 +257,14 @@ class ProcessorXML
 
     // The TYPE attribute
     $type_attr = $this->dom->createAttribute("type");
-    $type_attr_value = $this->dom->createTextNode($type);
+    $type_attr_value = $this->dom->createTextNode($this->xmlEncode($type));
 
     $reify->appendChild($type_attr);
     $type_attr->appendChild($type_attr_value);
 
     // The VALUE attribute
     $value_attr = $this->dom->createAttribute("value");
-    $value_attr_value = $this->dom->createTextNode($value);
+    $value_attr_value = $this->dom->createTextNode($this->xmlEncode($value));
 
     $reify->appendChild($value_attr);
     $value_attr->appendChild($value_attr_value);
@@ -820,6 +820,28 @@ class ProcessorXML
 
     return ("");
   }
+  
+  /*!   @brief Encode content to be included in XML files
+              
+      \n
+      
+      @param[in] $string The content string to be encoded
+      
+      @return returns the encoded string
+    
+      @author Frederick Giasson, Structured Dynamics LLC.
+    
+      \n\n\n
+  */
+  function xmlEncode($string)
+  { 
+    // Replace all the possible entities by their character. That way, we won't "double encode" 
+    // these entities. Otherwise, we can endup with things such as "&amp;amp;" which some
+    // XML parsers doesn't seem to like (and throws errors).
+    $string = str_replace(array ("%5C", "&amp;", "&lt;", "&gt;"), array ("\\", "&", "<", ">"), $string);
+    
+    return str_replace(array ("\\", "&", "<", ">"), array ("%5C", "&amp;", "&lt;", "&gt;"), $string); 
+  }  
 }
 
 //@}

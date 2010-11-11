@@ -233,6 +233,41 @@ class DatasetRead extends WebService
         return;
       }
     }
+           
+    // If the system send a query on the behalf of another user, we validate that other user as well
+    if($this->registered_ip != $this->requester_ip)
+    {
+      // Check if the requester has access to the main "http://.../wsf/datasets/" graph.
+      $ws_av = new AuthValidator($this->registered_ip, $this->wsf_graph . "datasets/", $this->uri);
+
+      $ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
+        $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
+
+      $ws_av->process();
+
+      if($ws_av->pipeline_getResponseHeaderStatus() != 200)
+      {
+        // If he doesn't, then check if he has access to the dataset itself
+        $ws_av2 = new AuthValidator($this->registered_ip, $this->datasetUri, $this->uri);
+
+        $ws_av2->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
+          $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
+
+        $ws_av2->process();
+
+        if($ws_av2->pipeline_getResponseHeaderStatus() != 200)
+        {
+          $this->conneg->setStatus($ws_av2->pipeline_getResponseHeaderStatus());
+          $this->conneg->setStatusMsg($ws_av2->pipeline_getResponseHeaderStatusMsg());
+          $this->conneg->setStatusMsgExt($ws_av2->pipeline_getResponseHeaderStatusMsgExt());
+          $this->conneg->setError($ws_av2->pipeline_getError()->id, $ws_av2->pipeline_getError()->webservice,
+            $ws_av2->pipeline_getError()->name, $ws_av2->pipeline_getError()->description,
+            $ws_av2->pipeline_getError()->debugInfo, $ws_av2->pipeline_getError()->level);
+
+          return;
+        }
+      }     
+    }       
   }
 
   /*!   @brief Normalize the remaining of a URI
@@ -310,7 +345,7 @@ class DatasetRead extends WebService
         if($dd->title != "")
         {
           $pred = $xml->createPredicate("dcterms:title");
-          $object = $xml->createObjectContent($this->xmlEncode($dd->title));
+          $object = $xml->createObjectContent($dd->title);
           $pred->appendChild($object);
           $subject->appendChild($pred);
         }
@@ -318,20 +353,20 @@ class DatasetRead extends WebService
         if($dd->description != "")
         {
           $pred = $xml->createPredicate("dcterms:description");
-          $object = $xml->createObjectContent($this->xmlEncode($dd->description));
+          $object = $xml->createObjectContent($dd->description);
           $pred->appendChild($object);
           $subject->appendChild($pred);
         }
 
         $pred = $xml->createPredicate("dcterms:created");
-        $object = $xml->createObjectContent($this->xmlEncode($dd->created));
+        $object = $xml->createObjectContent($dd->created);
         $pred->appendChild($object);
         $subject->appendChild($pred);
 
         if($dd->modified != "")
         {
           $pred = $xml->createPredicate("dcterms:modified");
-          $object = $xml->createObjectContent($this->xmlEncode($dd->modified));
+          $object = $xml->createObjectContent($dd->modified);
           $pred->appendChild($object);
           $subject->appendChild($pred);
         }
@@ -369,7 +404,7 @@ class DatasetRead extends WebService
         literal, etc.
 */
                   $pred = $xml->createPredicate($predicate);
-                  $object = $xml->createObjectContent($this->xmlEncode($value));
+                  $object = $xml->createObjectContent($value);
                   $pred->appendChild($object);
                   $subjectMeta->appendChild($pred);
                 }
@@ -798,7 +833,7 @@ class DatasetRead extends WebService
 
         $dataset_uri = $xml->getURI($dataset->item(0));
 
-        $rdf_part .= "<void:Dataset rdf:about=\"$dataset_uri\">\n";
+        $rdf_part .= "<void:Dataset rdf:about=\"".$this->xmlEncode($dataset_uri)."\">\n";
 
         // Get title
         $predicates = $xml->getPredicatesByType($dataset->item(0), "dcterms:title");
@@ -806,7 +841,7 @@ class DatasetRead extends WebService
         if($predicates->item(0))
         {
           $objects = $xml->getObjectsByType($predicates->item(0), "rdfs:Literal");
-          $rdf_part .= "<dcterms:title>" . $xml->getContent($objects->item(0)) . "</dcterms:title>\n";
+          $rdf_part .= "<dcterms:title>" . $this->xmlEncode($xml->getContent($objects->item(0))) . "</dcterms:title>\n";
         }
 
         // Get description
@@ -815,7 +850,8 @@ class DatasetRead extends WebService
         if($predicates->item(0))
         {
           $objects = $xml->getObjectsByType($predicates->item(0), "rdfs:Literal");
-          $rdf_part .= "<dcterms:description>" . $xml->getContent($objects->item(0)) . "</dcterms:description>\n";
+          $rdf_part .= "<dcterms:description>" . $this->xmlEncode($xml->getContent($objects->item(0))) . 
+                                                                                            "</dcterms:description>\n";
         }
 
         // Get created
@@ -824,7 +860,8 @@ class DatasetRead extends WebService
         if($predicates->item(0))
         {
           $objects = $xml->getObjectsByType($predicates->item(0), "rdfs:Literal");
-          $rdf_part .= "<dcterms:created>" . $xml->getContent($objects->item(0)) . "</dcterms:created>\n";
+          $rdf_part .= "<dcterms:created>" . $this->xmlEncode($xml->getContent($objects->item(0))) . 
+                                                                                                "</dcterms:created>\n";
         }
 
         // Get modified
@@ -833,7 +870,8 @@ class DatasetRead extends WebService
         if($predicates->item(0))
         {
           $objects = $xml->getObjectsByType($predicates->item(0), "rdfs:Literal");
-          $rdf_part .= "<dcterms:modified>" . $xml->getContent($objects->item(0)) . "</dcterms:modified>\n";
+          $rdf_part .= "<dcterms:modified>" . $this->xmlEncode($xml->getContent($objects->item(0))) . 
+                                                                                                "</dcterms:modified>\n";
         }
 
         // Get creator
@@ -842,7 +880,8 @@ class DatasetRead extends WebService
         foreach($predicates as $predicate)
         {
           $objects = $xml->getObjectsByType($predicate, "sioc:User");
-          $rdf_part .= "<dcterms:creator rdf:resource=\"" . $xml->getURI($objects->item(0)) . "\" />\n";
+          $rdf_part .= "<dcterms:creator rdf:resource=\"" . $this->xmlEncode($xml->getURI($objects->item(0))) . 
+                                                                                                              "\" />\n";
         }
 
         // Get contributors
@@ -851,7 +890,8 @@ class DatasetRead extends WebService
         foreach($predicates as $predicate)
         {
           $objects = $xml->getObjectsByType($predicate, "sioc:User");
-          $rdf_part .= "<dcterms:contributor rdf:resource=\"" . $xml->getURI($objects->item(0)) . "\" />\n";
+          $rdf_part .= "<dcterms:contributor rdf:resource=\"" . $this->xmlEncode($xml->getURI($objects->item(0))) . 
+                                                                                                              "\" />\n";
         }
 
         $rdf_part .= "</void:Dataset>\n";

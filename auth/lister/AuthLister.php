@@ -134,13 +134,16 @@ class AuthLister extends WebService
     $this->db = new DB_Virtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 
     $this->requester_ip = $requester_ip;
-    $this->registered_ip = $registered_ip;
     $this->mode = $mode;
     $this->dataset = $dataset;
 
-    if($this->registered_ip == "")
+    if($registered_ip == "")
     {
       $this->registered_ip = $requester_ip;
+    }
+    else
+    {
+      $this->registered_ip = $registered_ip;
     }
 
     if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
@@ -191,7 +194,6 @@ class AuthLister extends WebService
   */
   protected function validateQuery()
   {
-    // We shouldnt validate & reject a query that request having access to the list of datasets fro any users (including
     // publicly accessible users)
     if($this->mode != "dataset" && $this->mode != "access_user")
     {
@@ -338,22 +340,22 @@ class AuthLister extends WebService
         }
 
         $pred = $xml->createPredicate("wsf:create");
-        $object = $xml->createObjectContent($this->xmlEncode($access[2]));
+        $object = $xml->createObjectContent($access[2]);
         $pred->appendChild($object);
         $subject->appendChild($pred);
 
         $pred = $xml->createPredicate("wsf:read");
-        $object = $xml->createObjectContent($this->xmlEncode($access[3]));
+        $object = $xml->createObjectContent($access[3]);
         $pred->appendChild($object);
         $subject->appendChild($pred);
 
         $pred = $xml->createPredicate("wsf:update");
-        $object = $xml->createObjectContent($this->xmlEncode($access[4]));
+        $object = $xml->createObjectContent($access[4]);
         $pred->appendChild($object);
         $subject->appendChild($pred);
 
         $pred = $xml->createPredicate("wsf:delete");
-        $object = $xml->createObjectContent($this->xmlEncode($access[5]));
+        $object = $xml->createObjectContent($access[5]);
         $pred->appendChild($object);
         $subject->appendChild($pred);
 
@@ -718,7 +720,7 @@ class AuthLister extends WebService
 
               foreach($objects as $object)
               {
-                $rdf_part .= "    <rdf:li rdf:resource=\"" . $xml->getURI($object) . "\" />\n";
+                $rdf_part .= "    <rdf:li rdf:resource=\"" . $this->xmlEncode($xml->getURI($object)) . "\" />\n";
               }
             }
           }
@@ -740,7 +742,7 @@ class AuthLister extends WebService
             $predicates = $xml->getPredicatesByType($access, "wsf:datasetAccess");
             $objects = $xml->getObjectsByType($predicates->item(0), "void:Dataset");
 
-            $rdf_part .= "<wsf:datasetAccess rdf:resource=\"" . $xml->getURI($objects->item(0)) . "\" />\n";
+            $rdf_part .= "<wsf:datasetAccess rdf:resource=\"" . $this->xmlEncode($xml->getURI($objects->item(0))) . "\" />\n";
 
 
             // Get crud

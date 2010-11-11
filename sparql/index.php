@@ -46,13 +46,26 @@ if(isset($_POST['query']))
   $query = $_POST['query'];
 }
 
-// Types to filter
+// Datasets to target with the sparql query
 $dataset = "";
 
 if(isset($_POST['dataset']))
 {
   $dataset = $_POST['dataset'];
 }
+  
+// Datasets to target with the sparql query (optional) -- only used for consistency with the SPARQL protocol
+if(isset($_POST['default-graph-uri']) && $dataset == "")
+{
+  $dataset = $_POST['default-graph-uri'];
+}
+
+// Datasets to target with the sparql query (optional) -- only used for consistency with the SPARQL protocol
+if(isset($_POST['named-graph-uri']) && $dataset == "")
+{
+  $dataset = $_POST['named-graph-uri'];
+}
+
 
 // Limit of the number of results to return in the resultset
 $limit = 2000;

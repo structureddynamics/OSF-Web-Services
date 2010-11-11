@@ -281,7 +281,7 @@ class Browse extends WebService
       if(isset($result["prefLabel"]))
       {
         $pred = $xml->createPredicate(Namespaces::$iron . "prefLabel");
-        $object = $xml->createObjectContent($this->xmlEncode($result["prefLabel"]));
+        $object = $xml->createObjectContent($result["prefLabel"]);
         $pred->appendChild($object);
         $subject->appendChild($pred);
       }
@@ -292,7 +292,7 @@ class Browse extends WebService
         foreach($result["altLabel"] as $altLabel)
         {
           $pred = $xml->createPredicate(Namespaces::$iron . "altLabel");
-          $object = $xml->createObjectContent($this->xmlEncode($altLabel));
+          $object = $xml->createObjectContent($altLabel);
           $pred->appendChild($object);
           $subject->appendChild($pred);
         }
@@ -302,7 +302,7 @@ class Browse extends WebService
       if(isset($result["description"]))
       {
         $pred = $xml->createPredicate(Namespaces::$iron . "description");
-        $object = $xml->createObjectContent($this->xmlEncode($result["description"]));
+        $object = $xml->createObjectContent($result["description"]);
         $pred->appendChild($object);
         $subject->appendChild($pred);
       }
@@ -316,7 +316,7 @@ class Browse extends WebService
           foreach($values as $value)
           {
             $pred = $xml->createPredicate($property);
-            $object = $xml->createObjectContent($this->xmlEncode($value));
+            $object = $xml->createObjectContent($value);
             $pred->appendChild($object);
             $subject->appendChild($pred);
           }
@@ -382,7 +382,7 @@ class Browse extends WebService
         $subject->appendChild($pred);
 
         $pred = $xml->createPredicate("http://purl.org/ontology/aggregate#count");
-        $object = $xml->createObjectContent($this->xmlEncode($fcount));
+        $object = $xml->createObjectContent($fcount);
         $pred->appendChild($object);
         $subject->appendChild($pred);
 
@@ -411,7 +411,7 @@ class Browse extends WebService
           $subject->appendChild($pred);
 
           $pred = $xml->createPredicate("http://purl.org/ontology/aggregate#count");
-          $object = $xml->createObjectContent($this->xmlEncode($fcount));
+          $object = $xml->createObjectContent($fcount);
           $pred->appendChild($object);
           $subject->appendChild($pred);
 
@@ -439,7 +439,7 @@ class Browse extends WebService
         $subject->appendChild($pred);
 
         $pred = $xml->createPredicate("http://purl.org/ontology/aggregate#count");
-        $object = $xml->createObjectContent($this->xmlEncode($fcount));
+        $object = $xml->createObjectContent($fcount);
         $pred->appendChild($object);
         $subject->appendChild($pred);
 
@@ -467,7 +467,7 @@ class Browse extends WebService
         $subject->appendChild($pred);
 
         $pred = $xml->createPredicate("http://purl.org/ontology/aggregate#count");
-        $object = $xml->createObjectContent($this->xmlEncode($fcount));
+        $object = $xml->createObjectContent($fcount);
         $pred->appendChild($object);
         $subject->appendChild($pred);
 
@@ -850,7 +850,8 @@ class Browse extends WebService
             $nsId++;
           }
 
-          $rdf_part .= "\n    <" . $this->namespaces[$ns1[0]] . ":" . $ns1[1] . " rdf:about=\"$subjectURI\">\n";
+          $rdf_part .= "\n    <" . $this->namespaces[$ns1[0]] . ":" . $ns1[1] . " rdf:about=\"".
+                                                                          $this->xmlEncode($subjectURI)."\">\n";
 
           $predicates = $xml->getPredicates($subject);
 
@@ -891,7 +892,7 @@ class Browse extends WebService
                 }
 
                 $rdf_part .= "        <" . $this->namespaces[$ns[0]] . ":" . $ns[1]
-                  . " rdf:resource=\"$objectURI\" />\n";
+                  . " rdf:resource=\"".$this->xmlEncode($objectURI)."\" />\n";
               }
             }
           }
@@ -1048,10 +1049,12 @@ class Browse extends WebService
               foreach($reifies as $reify)
               {
                 $rdf_reification .= "<rdf:Statement rdf:about=\""
-                  . md5($xml->getURI($subject) . $predicateType . $xml->getURI($object)) . "\">\n";
-                $rdf_reification .= "    <rdf:subject rdf:resource=\"" . $xml->getURI($subject) . "\" />\n";
-                $rdf_reification .= "    <rdf:predicate rdf:resource=\"" . $predicateType . "\" />\n";
-                $rdf_reification .= "    <rdf:object rdf:resource=\"" . $xml->getURI($object) . "\" />\n";
+                  . md5($xml->getURI($subject) . $predicateType . $this->xmlEncode($xml->getURI($object))) . "\">\n";
+                $rdf_reification .= "    <rdf:subject rdf:resource=\"" . $this->xmlEncode($xml->getURI($subject)) . 
+                                                                                                              "\" />\n";
+                $rdf_reification .= "    <rdf:predicate rdf:resource=\"" . $this->xmlEncode($predicateType) . "\" />\n";
+                $rdf_reification .= "    <rdf:object rdf:resource=\"" . $this->xmlEncode($xml->getURI($object)) . 
+                                                                                                              "\" />\n";
                 $rdf_reification .= "    <wsf:objectLabel>" . $this->xmlEncode($xml->getValue($reify))
                   . "</wsf:objectLabel>\n";
                 $rdf_reification .= "</rdf:Statement>  \n\n";
@@ -1168,7 +1171,6 @@ class Browse extends WebService
       $solrQuery = "";
 
       // Get all datasets accessible to that user
-
       $accessibleDatasets = array();
 
       $ws_al = new AuthLister("access_user", "", $this->registered_ip, $this->wsf_local_ip);
@@ -1198,6 +1200,56 @@ class Browse extends WebService
           array_push($accessibleDatasets, $datasetUri);
         }
       }
+      
+      unset($ws_al);
+      
+      /*
+        if registered_ip != requester_ip, this means that the query is sent by a registered system
+        on the behalf of someone else. In this case, we want to make sure that that system 
+        (the one that send the actual query) has access to the same datasets. Otherwise, it means that
+        it tries to personificate that registered_ip user.
+      */
+      if($this->registered_ip != $this->requester_ip)
+      {
+        // Get all datasets accessible to that system
+        $accessibleDatasetsSystem = array();
+
+        $ws_al = new AuthLister("access_user", "", $this->requester_ip, $this->wsf_local_ip);
+
+        $ws_al->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
+          $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
+
+        $ws_al->process();
+
+        $xml = new ProcessorXML();
+        $xml->loadXML($ws_al->pipeline_getResultset());
+
+        $accesses = $xml->getSubjectsByType("wsf:Access");
+
+        foreach($accesses as $access)
+        {
+          $predicates = $xml->getPredicatesByType($access, "wsf:datasetAccess");
+          $objects = $xml->getObjects($predicates->item(0));
+          $datasetUri = $xml->getURI($objects->item(0));
+
+          $predicates = $xml->getPredicatesByType($access, "wsf:read");
+          $objects = $xml->getObjects($predicates->item(0));
+          $read = $xml->getContent($objects->item(0));
+
+          if(strtolower($read) == "true")
+          {
+            array_push($accessibleDatasetsSystem, $datasetUri);
+          }
+        }      
+        
+        unset($ws_al);         
+      
+        /*
+          Finally we use the intersection of the two set of dataset URIs as the list of accessible
+          datasets to include for the query.
+        */ 
+        $accessibleDatasets = array_intersect($accessibleDatasets, $accessibleDatasetsSystem);
+      }
 
       if(count($accessibleDatasets) <= 0)
       {
@@ -1209,8 +1261,6 @@ class Browse extends WebService
           $this->errorMessenger->_300->level);
         return;
       }
-
-      unset($ws_al);
 
       if(strtolower($this->datasets) == "all")
       {

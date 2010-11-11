@@ -102,7 +102,7 @@ class DatasetCreate extends WebService
     
       \n\n\n
   */
-  function __construct($uri, $datasetTitle = "", $description = "", $creator = "", $requester_ip)
+  function __construct($uri, $datasetTitle = "", $description = "", $creator = "", $registered_ip, $requester_ip)
   {
     parent::__construct();
 
@@ -114,6 +114,31 @@ class DatasetCreate extends WebService
     $this->creator = $creator;
     $this->requester_ip = $requester_ip;
 
+    if($registered_ip == "")
+    {
+      $this->registered_ip = $requester_ip;
+    }
+    else
+    {
+      $this->registered_ip = $registered_ip;
+    }
+
+    if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
+    {
+      $pos = strpos($this->registered_ip, "::");
+
+      if($pos !== FALSE)
+      {
+        $account = substr($this->registered_ip, $pos + 2, strlen($this->registered_ip) - ($pos + 2));
+
+        $this->registered_ip = $requester_ip . "::" . $account;
+      }
+      else
+      {
+        $this->registered_ip = $requester_ip;
+      }
+    }    
+    
     $this->uri = $this->wsf_base_url . "/wsf/ws/dataset/create/";
     $this->title = "Dataset Create Web Service";
     $this->crud_usage = new CrudUsage(TRUE, FALSE, FALSE, FALSE);
@@ -159,7 +184,6 @@ class DatasetCreate extends WebService
   */
   protected function validateQuery()
   {
-
     // Only users that have "Create" access to the "http://.../wsf/datasets/" graph can create new dataset
     // in the structWSF instance.
     $ws_av = new AuthValidator($this->requester_ip, $this->wsf_graph . "datasets/", $this->uri);
@@ -180,6 +204,29 @@ class DatasetCreate extends WebService
 
       return;
     }
+    
+    // If the system send a query on the behalf of another user, we validate that other user as well
+    if($this->registered_ip != $this->requester_ip)
+    {
+      $ws_av = new AuthValidator($this->registered_ip, $this->wsf_graph . "datasets/", $this->uri);
+
+      $ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
+        $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
+
+      $ws_av->process();
+
+      if($ws_av->pipeline_getResponseHeaderStatus() != 200)
+      {
+        $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
+        $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
+        $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
+        $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
+          $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
+          $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
+
+        return;
+      }
+    }    
   }
 
   /*!   @brief Returns the error structure

@@ -38,17 +38,17 @@ class Solr
     
       \n\n\n
   */
-  function __construct($core = "", $host = "localhost")
+  function __construct($core = "", $host = "localhost", $port = "8983")
   {
     if($core != "")
     {
-      $this->updateUrl = "http://$host:8983/solr/$core/update";
-      $this->selectUrl = "http://$host:8983/solr/$core/select";
+      $this->updateUrl = "http://$host:$port/solr/$core/update";
+      $this->selectUrl = "http://$host:$port/solr/$core/select";
     }
     else
     {
-      $this->updateUrl = "http://$host:8983/solr/update";
-      $this->selectUrl = "http://$host:8983/solr/select";
+      $this->updateUrl = "http://$host:$port/solr/update";
+      $this->selectUrl = "http://$host:$port/solr/select";
     }
   }
 

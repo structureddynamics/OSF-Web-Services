@@ -89,6 +89,13 @@ abstract class WebService
              parameter. */
   protected $tracking_endpoint = "";
 
+  /*! @brief Port number where the triple store server is reachable */
+  protected $triplestore_port = "8890";
+
+  /*! @brief Port number where the Solr store server is reachable */
+  protected $solr_port = "8890";
+
+  
   /*! @brief Name of the logging table on the Virtuoso instance */
   protected $log_table = "SD.WSF.ws_queries_log";
 
@@ -280,8 +287,7 @@ abstract class WebService
     if(isset($network_ini["tracking"]["tracking_endpoint"]))
     {
       $this->tracking_endpoint = $network_ini["tracking"]["tracking_endpoint"];
-    }
-    
+    } 
     
     if(isset($data_ini["solr"]["wsf_solr_core"]))
     {
@@ -300,6 +306,14 @@ abstract class WebService
     if(isset($data_ini["ontologies"]["ontological_structure_folder"]))
     {
       $this->ontological_structure_folder = $data_ini["ontologies"]["ontological_structure_folder"];
+    }
+    if(isset($data_ini["triplestore"]["port"]))
+    {
+      $this->triplestore_port = $data_ini["triplestore"]["port"];
+    }
+    if(isset($data_ini["solr"]["port"]))
+    {
+      $this->solr_port = $data_ini["solr"]["port"];
     }
 
     if(strtolower($data_ini["solr"]["solr_auto_commit"]) == "true" || $data_ini["solr"]["solr_auto_commit"] == "1")

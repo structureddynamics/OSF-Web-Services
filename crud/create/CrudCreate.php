@@ -829,7 +829,7 @@ class CrudCreate extends WebService
 
             // Index in Solr
 
-            $solr = new Solr($this->wsf_solr_core, $this->solr_host);
+            $solr = new Solr($this->wsf_solr_core, $this->solr_host, $this->solr_port);
 
             foreach($irsUri as $subject)
             {

@@ -94,6 +94,30 @@ class Sparql extends WebService
                           "name": "The maximum number of records returned within the same slice is 2000. Use multiple queries with the OFFSET parameter to build-up the entire resultset.",
                           "description": "The maximum number of records returned within the same slice is 2000. Use multiple queries with the OFFSET parameter to build-up the entire resultset."
                         },
+                        "_203": {
+                          "id": "WS-SPARQL-203",
+                          "level": "Warning",
+                          "name": "SPARUL not permitted.",
+                          "description": "No SPARUL queries are permitted for this sparql endpoint."
+                        },
+                        "_204": {
+                          "id": "WS-SPARQL-204",
+                          "level": "Warning",
+                          "name": "CONSTRUCT not permitted.",
+                          "description": "The SPARQL CONSTRUCT clause is not permitted for this sparql endpoint. Please change you mime type if you want to get the resultset in a specific format."
+                        },
+                        "_205": {
+                          "id": "WS-SPARQL-205",
+                          "level": "Warning",
+                          "name": "GRAPH not permitted.",
+                          "description": "The SPARQL GRAPH clause is not permitted for this sparql endpoint. Please change your SPARQL query to specify the datasets you want to query with the FROM and FROM NAMED sparql clauses, or with the dataset parameter."
+                        },                        
+                        "_206": {
+                          "id": "WS-SPARQL-206",
+                          "level": "Warning",
+                          "name": "Dataset not accessible.",
+                          "description": "You don\' have access to the dataset URI you specified in the dataset parameter of this query."
+                        },                        
                         "_300": {
                           "id": "WS-SPARQL-300",
                           "level": "Warning",
@@ -198,11 +222,28 @@ class Sparql extends WebService
   */
   protected function validateQuery()
   {
-  // Here we can have a performance problem when "dataset = all" if we perform the authentication using AuthValidator.
-  // Since AuthValidator doesn't support multiple datasets at the same time, we will use the AuthLister web service
-  // in the process() function and check if the user has the permissions to "read" these datasets.
-  //
-  // This means that the validation of these queries doesn't happen at this level.
+    // Validating the access of the dataset specified as input parameter if defined.
+    if($this->dataset != "")
+    {
+      $ws_av = new AuthValidator($this->registered_ip, $this->dataset, $this->uri);
+
+      $ws_av->pipeline_conneg("*/*", $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(),
+        $this->conneg->getAcceptLanguage());
+
+      $ws_av->process();
+
+      if($ws_av->pipeline_getResponseHeaderStatus() != 200)
+      {
+        $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
+        $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
+        $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
+        $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
+          $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
+          $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
+
+        return;
+      }      
+    }
   }
 
   /*!   @brief Returns the error structure
@@ -979,15 +1020,63 @@ class Sparql extends WebService
       }
 
       $ch = curl_init();
-
-      // Remove any potential reference to any graph in the sparql query.
-      /*      
-            // Remove "from" clause
-            $this->query = preg_replace("/([\s]*from[\s]*<.*>[\s]*)/Uim", "", $this->query);
       
-            // Remove "from named" clauses
-            $this->query = preg_replace("/([\s]*from[\s]*named[\s]*<.*>[\s]*)/Uim", "", $this->query);
-      */
+      // Normalize the query to remove the return carriers and line feeds
+      // This is performed to help matching the regular expressions patterns.
+      $this->query = str_replace(array("\r", "\n"), " ", $this->query);
+      
+      // remove the possible starting "sparql"
+      $this->query = preg_replace("/^[\s\t]*sparql[\s\t]*/Uim", "", $this->query);
+      
+      // Drop any SPARUL queries
+      // Reference: http://www.w3.org/Submission/SPARQL-Update/
+      if(preg_match_all("/^[\s\t]*modify[\s\t]*/Uim", $this->query, $matches) > 0 ||
+         preg_match_all("/^[\s\t]*delete[\s\t]*/Uim", $this->query, $matches) > 0 ||
+         preg_match_all("/^[\s\t]*insert[\s\t]*/Uim", $this->query, $matches) > 0 ||
+         preg_match_all("/^[\s\t]*load[\s\t]*/Uim", $this->query, $matches) > 0 ||
+         preg_match_all("/^[\s\t]*clear[\s\t]*/Uim", $this->query, $matches) > 0 ||
+         preg_match_all("/^[\s\t]*create[\s\t]*/Uim", $this->query, $matches) > 0 ||
+         preg_match_all("/^[\s\t]*drop[\s\t]*/Uim", $this->query, $matches) > 0)
+      {
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_203->name);
+        $this->conneg->setError($this->errorMessenger->_203->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_203->name, $this->errorMessenger->_203->description, "",
+          $this->errorMessenger->_203->level);
+
+        return;               
+      }
+
+      // Drop any SPARQL query with a CONSTRUCT clause
+      if(preg_match_all("/^[\s\t]*construct[\s\t]*</Uim", $this->query, $matches) > 0)
+      {
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_204->name);
+        $this->conneg->setError($this->errorMessenger->_204->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_204->name, $this->errorMessenger->_204->description, "",
+          $this->errorMessenger->_204->level);
+
+        return;               
+      }
+      
+      // Drop any SPARQL query with a GRAPH clause
+      if(preg_match_all("/[\s\t]*graph[\s\t]*</Uim", $this->query, $matches) > 0 ||
+         preg_match_all("/[\s\t]*graph[\s\t]*\?/Uim", $this->query, $matches) > 0 ||
+         preg_match_all("/[\s\t]*graph[\s\t]*[a-zA-Z0-9\-_]*:/Uim", $this->query, $matches) > 0)
+      {
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_205->name);
+        $this->conneg->setError($this->errorMessenger->_205->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_205->name, $this->errorMessenger->_205->description, "",
+          $this->errorMessenger->_205->level);
+
+        return;               
+      }
+      
+      // Get all the "from" and "from named" clauses so that we validate if the user has access to them.
       $graphs = array();
 
       preg_match_all("/([\s\t]*from[\s\t]*<(.*)>[\s\t]*)/Uim", $this->query, $matches);
@@ -1087,7 +1176,7 @@ class Sparql extends WebService
       //      $this->query .= " limit ".$this->limit." offset ".$this->offset;
 
       curl_setopt($ch, CURLOPT_URL,
-        $this->wsf_base_url . ":8890/sparql?default-graph-uri=" . urlencode($this->dataset) . "&query="
+        $this->db_host . ":" . $this->triplestore_port . "/sparql?default-graph-uri=" . urlencode($this->dataset) . "&query="
         . urlencode($this->query) . "&format=" . urlencode($queryFormat));
 
       curl_setopt($ch, CURLOPT_HTTPHEADER, array( "Accept: " . $queryFormat ));

@@ -146,9 +146,17 @@ class CrudUpdate extends WebService
 
     $this->requester_ip = $requester_ip;
     $this->dataset = $dataset;
-    $this->document = $document;
     $this->mime = $mime;
 
+    if (extension_loaded("mbstring") && mb_detect_encoding($document, "UTF-8", TRUE) != "UTF-8")
+    {                   
+      $this->document = utf8_encode($document);
+    }
+    else //we have to assume the input is UTF-8
+    {
+      $this->document = $document;
+    }    
+    
     if($registered_ip == "")
     {
       $this->registered_ip = $requester_ip;

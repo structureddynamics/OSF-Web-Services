@@ -66,6 +66,11 @@ class Sparql extends WebService
     array ("http://www.w3.org/2002/07/owl#" => "owl", "http://www.w3.org/1999/02/22-rdf-syntax-ns#" => "rdf",
       "http://www.w3.org/2000/01/rdf-schema#" => "rdfs", "http://purl.org/ontology/wsf#" => "wsf");
 
+  /*! @brief Determine if this is a CONSTRUCT SPARQL query */
+  private $isConstructQuery = FALSE;
+  
+  /*! @brief Determine if this is a CONSTRUCT SPARQL query */
+  private $isDescribeQuery = FALSE;
 
   /*! @brief Supported MIME serializations by this web service */
   public static $supportedSerializations =
@@ -271,122 +276,115 @@ class Sparql extends WebService
   */
   public function pipeline_getResultset()
   {
-    if($this->conneg->getMime() == "application/sparql-results+xml"
-      || $this->conneg->getMime() == "application/sparql-results+json")
+    $labelProperties =
+      array (Namespaces::$dcterms . "title", Namespaces::$foaf . "name", Namespaces::$foaf . "givenName",
+        Namespaces::$foaf . "family_name", Namespaces::$rdfs . "label", Namespaces::$skos_2004 . "prefLabel",
+        Namespaces::$skos_2004 . "altLabel", Namespaces::$skos_2008 . "prefLabel",
+        Namespaces::$skos_2008 . "altLabel");
+
+    $xml = new ProcessorXML();
+
+    // Creation of the RESULTSET
+    $resultset = $xml->createResultset();
+
+    // Creation of the prefixes elements.
+    $void = $xml->createPrefix("owl", "http://www.w3.org/2002/07/owl#");
+    $resultset->appendChild($void);
+    $rdf = $xml->createPrefix("rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#");
+    $resultset->appendChild($rdf);
+    $dcterms = $xml->createPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
+    $resultset->appendChild($dcterms);
+    $dcterms = $xml->createPrefix("wsf", "http://purl.org/ontology/wsf#");
+    $resultset->appendChild($dcterms);
+
+    $subject;
+
+    foreach($this->instanceRecordsObjectResource as $uri => $result)
     {
-      return $this->sparqlContent;
-    }
-    else
-    {
-      $labelProperties =
-        array (Namespaces::$dcterms . "title", Namespaces::$foaf . "name", Namespaces::$foaf . "givenName",
-          Namespaces::$foaf . "family_name", Namespaces::$rdfs . "label", Namespaces::$skos_2004 . "prefLabel",
-          Namespaces::$skos_2004 . "altLabel", Namespaces::$skos_2008 . "prefLabel",
-          Namespaces::$skos_2008 . "altLabel");
-
-      $xml = new ProcessorXML();
-
-      // Creation of the RESULTSET
-      $resultset = $xml->createResultset();
-
-      // Creation of the prefixes elements.
-      $void = $xml->createPrefix("owl", "http://www.w3.org/2002/07/owl#");
-      $resultset->appendChild($void);
-      $rdf = $xml->createPrefix("rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#");
-      $resultset->appendChild($rdf);
-      $dcterms = $xml->createPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
-      $resultset->appendChild($dcterms);
-      $dcterms = $xml->createPrefix("wsf", "http://purl.org/ontology/wsf#");
-      $resultset->appendChild($dcterms);
-
-      $subject;
-
-      foreach($this->instanceRecordsObjectResource as $uri => $result)
+      // Assigning types
+      if(isset($result["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"]))
       {
-        // Assigning types
-        if(isset($result["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"]))
+        foreach($result["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"] as $key => $type)
         {
-          foreach($result["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"] as $key => $type)
+          if($key > 0)
           {
-            if($key > 0)
-            {
-              $pred = $xml->createPredicate("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
-              $object = $xml->createObject("", $type);
-              $pred->appendChild($object);
-              $subject->appendChild($pred);
-            }
-            else
-            {
-              $subject = $xml->createSubject($type, $uri);
-            }
+            $pred = $xml->createPredicate("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
+            $object = $xml->createObject("", $type);
+            $pred->appendChild($object);
+            $subject->appendChild($pred);
+          }
+          else
+          {
+            $subject = $xml->createSubject($type, $uri);
           }
         }
-        else
-        {
-          $subject = $xml->createSubject("http://www.w3.org/2002/07/owl#Thing", $uri);
-        }
+      }
+      else
+      {
+        $subject = $xml->createSubject("http://www.w3.org/2002/07/owl#Thing", $uri);
+      }
 
-        // Assigning object resource properties
-        foreach($result as $property => $values)
+      // Assigning object resource properties
+      foreach($result as $property => $values)
+      {
+        if($property != "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+        {
+          foreach($values as $value)
+          {
+            $label = "";
+
+            foreach($labelProperties as $labelProperty)
+            {
+              if($this->instanceRecordsObjectLiteral[$value])
+              {
+                // The object resource is part of the resultset
+                // This mainly occurs when we export complete datasets
+
+                if(isset($this->instanceRecordsObjectLiteral[$value][$labelProperty]))
+                {
+                  $label = $this->instanceRecordsObjectLiteral[$value][$labelProperty][0];
+                  break;
+                }
+              }
+              else
+              {
+              // The object resource is not part of the resultset
+              // In the future, we can send another sparql query to get its label.
+              }
+            }
+
+            $pred = $xml->createPredicate($property);
+            $object = $xml->createObject("", $value, ($label != "" ? $label : ""));
+            $pred->appendChild($object);
+
+            $subject->appendChild($pred);
+          }
+        }
+      }
+
+      // Assigning object literal properties
+      if(isset($this->instanceRecordsObjectLiteral[$uri]))
+      {
+        foreach($this->instanceRecordsObjectLiteral[$uri] as $property => $values)
         {
           if($property != "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
           {
             foreach($values as $value)
             {
-              $label = "";
-
-              foreach($labelProperties as $labelProperty)
-              {
-                if($this->instanceRecordsObjectLiteral[$value])
-                {
-                  // The object resource is part of the resultset
-                  // This mainly occurs when we export complete datasets
-
-                  if(isset($this->instanceRecordsObjectLiteral[$value][$labelProperty]))
-                  {
-                    $label = $this->instanceRecordsObjectLiteral[$value][$labelProperty][0];
-                    break;
-                  }
-                }
-                else
-                {
-                // The object resource is not part of the resultset
-                // In the future, we can send another sparql query to get its label.
-                }
-              }
-
               $pred = $xml->createPredicate($property);
-              $object = $xml->createObject("", $value, ($label != "" ? $label : ""));
+              $object = $xml->createObjectContent($value);
               $pred->appendChild($object);
-
               $subject->appendChild($pred);
             }
           }
         }
-
-        // Assigning object literal properties
-        if(isset($this->instanceRecordsObjectLiteral[$uri]))
-        {
-          foreach($this->instanceRecordsObjectLiteral[$uri] as $property => $values)
-          {
-            if($property != "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
-            {
-              foreach($values as $value)
-              {
-                $pred = $xml->createPredicate($property);
-                $object = $xml->createObjectContent($value);
-                $pred->appendChild($object);
-                $subject->appendChild($pred);
-              }
-            }
-          }
-        }
-        
-        $resultset->appendChild($subject);
       }
-
-      return ($this->injectDoctype($xml->saveXML($resultset)));
+      
+      $resultset->appendChild($subject);
     }
+
+    return ($this->injectDoctype($xml->saveXML($resultset)));
+
   }
 
   /*!   @brief Inject the DOCType in a XML document
@@ -922,45 +920,55 @@ class Sparql extends WebService
   */
   public function ws_serialize()
   {
-    switch($this->conneg->getMime())
+    if($this->conneg->getMime() == "application/sparql-results+xml"
+      || $this->conneg->getMime() == "application/sparql-results+json"
+      || $this->isDescribeQuery === TRUE
+      || $this->isConstructQuery === TRUE)
     {
-      case "application/rdf+n3":
-        $rdf_document = "";
-        $rdf_document .= "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n";
-        $rdf_document .= "@prefix wsf: <http://purl.org/ontology/wsf#> .\n";
+      return $this->sparqlContent;
+    }
+    else
+    {    
+      switch($this->conneg->getMime())
+      {
+        case "application/rdf+n3":
+          $rdf_document = "";
+          $rdf_document .= "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n";
+          $rdf_document .= "@prefix wsf: <http://purl.org/ontology/wsf#> .\n";
 
-        $rdf_document .= $this->pipeline_serialize();
+          $rdf_document .= $this->pipeline_serialize();
 
-        $rdf_document .= $this->pipeline_serialize_reification();
+          $rdf_document .= $this->pipeline_serialize_reification();
 
-        return $rdf_document;
-      break;
+          return $rdf_document;
+        break;
 
-      case "application/rdf+xml":
-        $rdf_document = "";
-        $rdf_document .= "<?xml version=\"1.0\"?>\n";
+        case "application/rdf+xml":
+          $rdf_document = "";
+          $rdf_document .= "<?xml version=\"1.0\"?>\n";
 
-        $rdf_document .= $this->pipeline_serialize();
+          $rdf_document .= $this->pipeline_serialize();
 
-        $rdf_document .= $this->pipeline_serialize_reification();
+          $rdf_document .= $this->pipeline_serialize_reification();
 
-        $rdf_document .= "</rdf:RDF>";
+          $rdf_document .= "</rdf:RDF>";
 
-        return $rdf_document;
-      break;
+          return $rdf_document;
+        break;
 
-      case "application/json":
-        $json_document = "";
-        $json_document .= "{\n";
-        $json_document .= $this->pipeline_serialize();
-        $json_document .= "}";
+        case "application/json":
+          $json_document = "";
+          $json_document .= "{\n";
+          $json_document .= $this->pipeline_serialize();
+          $json_document .= "}";
 
-        return ($json_document);
-      break;
+          return ($json_document);
+        break;
 
-      default:
-        return $this->pipeline_getResultset();
-      break;
+        default:
+          return $this->pipeline_getResultset();
+        break;
+      }
     }
   }
 
@@ -1090,10 +1098,10 @@ class Sparql extends WebService
       }
 
       // Detect any CONSTRUCT clause
-      $isConstructQuery = FALSE;
+      $this->isConstructQuery = FALSE;
       if(preg_match_all("/^[\s\t]*construct[\s\t]*/Uim", $noPrologQuery, $matches) > 0)
       {
-        $isConstructQuery = TRUE;
+        $this->isConstructQuery = TRUE;
         /*
         $this->conneg->setStatus(400);
         $this->conneg->setStatusMsg("Bad Request");
@@ -1131,10 +1139,10 @@ class Sparql extends WebService
       // "DESCRIBE <test>" -- IRI_REF
       // "DESCRIBE a:" -- PrefixedName
       
-      $isDescribeQuery = FALSE;
+      $this->isDescribeQuery = FALSE;
       if(preg_match("/^[\s\t]*describe[\s\t]*/Uim", $noPrologQuery, $matches) > 0)
       {
-        $isDescribeQuery = TRUE;
+        $this->isDescribeQuery = TRUE;
       }    
       
       preg_match_all("/^[\s\t]*describe[\s\t]*<(.*)>/Uim", $noPrologQuery, $matches);  
@@ -1280,8 +1288,8 @@ class Sparql extends WebService
       if($this->conneg->getMime() == "application/sparql-results+json" || 
          $this->conneg->getMime() == "application/sparql-results+xml" || 
          $this->conneg->getMime() == "text/html" ||
-         $isDescribeQuery === TRUE ||
-         $isConstructQuery === TRUE)
+         $this->isDescribeQuery === TRUE ||
+         $this->isConstructQuery === TRUE)
       {
         $queryFormat = $this->conneg->getMime();
       }
@@ -1340,17 +1348,15 @@ class Sparql extends WebService
 
       // If a DESCRIBE query as been requested by the user, then we simply returns what is returned by
       // the triple store. We don't have any convertion to do here.
-      if($isDescribeQuery === TRUE)
+      if($this->isDescribeQuery === TRUE)
       {
-         echo $this->sparqlContent;
          return;
       }
 
       // If a CONSTRUCT query as been requested by the user, then we simply returns what is returned by
       // the triple store. We don't have any convertion to do here.
-      if($isConstructQuery === TRUE)
+      if($this->isConstructQuery === TRUE)
       {
-         echo $this->sparqlContent;
          return;
       }
       

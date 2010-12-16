@@ -232,6 +232,7 @@ class Conneg
     {
       case "application/rdf+xml":
       case "application/xhtml+rdfa":
+      case "text/rdf+n3":
       case "text/xml":
       case "text/html":
       case "application/sparql-results+xml":
@@ -243,6 +244,7 @@ class Conneg
       case "application/json":
       case "application/iron+json":
       case "application/bib+json":
+      case "application/rdf+json":
         $mime = "application/json";
       break;
 
@@ -388,7 +390,9 @@ class Conneg
         }
 
         if(($mime == "application/rdf+n3"
-          && array_search("application/rdf+n3", $this->supported_serializations) !== FALSE)
+          && array_search("application/rdf+n3", $this->supported_serializations) !== FALSE) ||
+          ($mime == "text/rdf+n3"
+          && array_search("text/rdf+n3", $this->supported_serializations) !== FALSE)
           || ($mime == "application/*" && array_search("application/*", $this->supported_serializations) !== FALSE))
         {
           $this->status = 200;
@@ -494,6 +498,18 @@ class Conneg
 
           break;
         }
+        
+        if($mime == "application/rdf+json"
+          && array_search("application/rdf+json", $this->supported_serializations) !== FALSE)
+        {
+          $this->status = 200;
+          $this->statusMsg = "OK";
+          $this->mime = "application/rdf+json";
+
+          $notAcceptable406 = FALSE;
+
+          break;
+        }        
 
         if($mime == "text/tsv" && array_search("text/tsv", $this->supported_serializations) !== FALSE)
         {

@@ -69,7 +69,7 @@ class Sparql extends WebService
 
   /*! @brief Supported MIME serializations by this web service */
   public static $supportedSerializations =
-    array ("application/json", "text/xml", "application/sparql-results+xml", "application/sparql-results+json",
+    array ("application/rdf+json", "text/rdf+n3", "application/json", "text/xml", "application/sparql-results+xml", "application/sparql-results+json",
       "text/html", "application/rdf+xml", "application/rdf+n3", "application/*", "text/plain", "text/*", "*/*");
 
   /*! @brief Error messages of this web service */
@@ -1006,19 +1006,6 @@ class Sparql extends WebService
     // Make sure there was no conneg error prior to this process call
     if($this->conneg->getStatus() == 200)
     {
-      $queryFormat = "";
-
-      if($this->conneg->getMime() == "application/sparql-results+json"
-        || $this->conneg->getMime() == "application/sparql-results+xml" || $this->conneg->getMime() == "text/html")
-      {
-        $queryFormat = $this->conneg->getMime();
-      }
-      elseif($this->conneg->getMime() == "text/xml" || $this->conneg->getMime() == "application/json"
-        || $this->conneg->getMime() == "application/rdf+xml" || $this->conneg->getMime() == "application/rdf+n3")
-      {
-        $queryFormat = "application/sparql-results+xml";
-      }
-
       $ch = curl_init();
       
       // Normalize the query to remove the return carriers and line feeds
@@ -1028,15 +1015,69 @@ class Sparql extends WebService
       // remove the possible starting "sparql"
       $this->query = preg_replace("/^[\s\t]*sparql[\s\t]*/Uim", "", $this->query);
       
+      // Check if there is a prolog to this SPARQL query.
+      
+      // First check if there is a "base" declaration
+      
+      preg_match("/^[\s\t]*base[\s\t]*<.*>/Uim", $this->query, $matches, PREG_OFFSET_CAPTURE);
+      
+      $baseOffset = -1;
+      if(count($matches) > 0)
+      {
+        $baseOffset = $matches[0][1] + strlen($matches[0][0]);
+      }
+      
+      // Second check for all possible "prefix" clauses
+      preg_match_all("/[\s\t]*prefix[\s\t]*.*:.*<.*>/Uim", $this->query, $matches, PREG_OFFSET_CAPTURE);       
+
+      $lastPrefixOffset = -1;
+      
+      if(count($matches) > 0)
+      {
+        $lastPrefixOffset = $matches[0][count($matches[0]) - 1][1] + strlen($matches[0][count($matches[0]) - 1][0]);
+      }
+      
+      $prologEndOffset = -1;
+      
+      if($lastPrefixOffset > -1)
+      {
+        $prologEndOffset = $lastPrefixOffset;
+      }
+      elseif($baseOffset > -1)
+      {
+        $prologEndOffset = $baseOffset;
+      }
+
+      $noPrologQuery = $this->query;
+      if($prologEndOffset != -1)
+      {
+        $noPrologQuery = substr($this->query, $prologEndOffset);
+      }
+      
+      // Now extract prefixes references
+      $prefixes = array();
+      preg_match_all("/[\s\t]*prefix[\s\t]*(.*):(.*)<(.*)>/Uim", $this->query, $matches, PREG_OFFSET_CAPTURE);       
+      
+      if(count($matches[0]) > 0)
+      {
+        for($i = 0; $i < count($matches[1]); $i++)
+        {
+          $p = str_replace(array(" ", " "), "", $matches[1][$i][0]).":".str_replace(array(" ", " "), "", $matches[2][$i][0]);
+          $iri = $matches[3][$i][0];
+          
+          $prefixes[$p] = $iri;
+        }
+      }
+      
       // Drop any SPARUL queries
       // Reference: http://www.w3.org/Submission/SPARQL-Update/
-      if(preg_match_all("/^[\s\t]*modify[\s\t]*/Uim", $this->query, $matches) > 0 ||
-         preg_match_all("/^[\s\t]*delete[\s\t]*/Uim", $this->query, $matches) > 0 ||
-         preg_match_all("/^[\s\t]*insert[\s\t]*/Uim", $this->query, $matches) > 0 ||
-         preg_match_all("/^[\s\t]*load[\s\t]*/Uim", $this->query, $matches) > 0 ||
-         preg_match_all("/^[\s\t]*clear[\s\t]*/Uim", $this->query, $matches) > 0 ||
-         preg_match_all("/^[\s\t]*create[\s\t]*/Uim", $this->query, $matches) > 0 ||
-         preg_match_all("/^[\s\t]*drop[\s\t]*/Uim", $this->query, $matches) > 0)
+      if(preg_match_all("/^[\s\t]*modify[\s\t]*/Uim",$noPrologQuery , $matches) > 0 ||
+         preg_match_all("/^[\s\t]*delete[\s\t]*/Uim", $noPrologQuery, $matches) > 0 ||
+         preg_match_all("/^[\s\t]*insert[\s\t]*/Uim", $noPrologQuery, $matches) > 0 ||
+         preg_match_all("/^[\s\t]*load[\s\t]*/Uim", $noPrologQuery, $matches) > 0 ||
+         preg_match_all("/^[\s\t]*clear[\s\t]*/Uim", $noPrologQuery, $matches) > 0 ||
+         preg_match_all("/^[\s\t]*create[\s\t]*/Uim", $noPrologQuery, $matches) > 0 ||
+         preg_match_all("/^[\s\t]*drop[\s\t]*/Uim", $noPrologQuery, $matches) > 0)
       {
         $this->conneg->setStatus(400);
         $this->conneg->setStatusMsg("Bad Request");
@@ -1048,9 +1089,12 @@ class Sparql extends WebService
         return;               
       }
 
-      // Drop any SPARQL query with a CONSTRUCT clause
-      if(preg_match_all("/^[\s\t]*construct[\s\t]*</Uim", $this->query, $matches) > 0)
+      // Detect any CONSTRUCT clause
+      $isConstructQuery = FALSE;
+      if(preg_match_all("/^[\s\t]*construct[\s\t]*/Uim", $noPrologQuery, $matches) > 0)
       {
+        $isConstructQuery = TRUE;
+        /*
         $this->conneg->setStatus(400);
         $this->conneg->setStatusMsg("Bad Request");
         $this->conneg->setStatusMsgExt($this->errorMessenger->_204->name);
@@ -1059,12 +1103,15 @@ class Sparql extends WebService
           $this->errorMessenger->_204->level);
 
         return;               
+        */
       }
       
       // Drop any SPARQL query with a GRAPH clause
-      if(preg_match_all("/[\s\t]*graph[\s\t]*</Uim", $this->query, $matches) > 0 ||
-         preg_match_all("/[\s\t]*graph[\s\t]*\?/Uim", $this->query, $matches) > 0 ||
-         preg_match_all("/[\s\t]*graph[\s\t]*[a-zA-Z0-9\-_]*:/Uim", $this->query, $matches) > 0)
+
+      if(preg_match_all("/[\s\t]*graph[\s\t]*</Uim", $noPrologQuery, $matches) > 0 ||
+         preg_match_all("/[\s\t]*graph[\s\t]*\?/Uim", $noPrologQuery, $matches) > 0 ||
+         preg_match_all("/[\s\t]*graph[\s\t]*\$/Uim", $noPrologQuery, $matches) > 0 ||
+         preg_match_all("/[\s\t]*graph[\s\t]*[a-zA-Z0-9\-_]*:/Uim", $noPrologQuery, $matches) > 0)
       {
         $this->conneg->setStatus(400);
         $this->conneg->setStatusMsg("Bad Request");
@@ -1076,22 +1123,79 @@ class Sparql extends WebService
         return;               
       }
       
+      $graphs = array();   
+      
+      // Validate DESCRIBE query.
+      // The only thing we have to check here, is to get the graph IRI if the DESCRIBE is immediately using
+      // IRIRef clause. Possibilities are:
+      // "DESCRIBE <test>" -- IRI_REF
+      // "DESCRIBE a:" -- PrefixedName
+      
+      $isDescribeQuery = FALSE;
+      if(preg_match("/^[\s\t]*describe[\s\t]*/Uim", $noPrologQuery, $matches) > 0)
+      {
+        $isDescribeQuery = TRUE;
+      }    
+      
+      preg_match_all("/^[\s\t]*describe[\s\t]*<(.*)>/Uim", $noPrologQuery, $matches);  
+      
+      if(count($matches[0]) > 0)
+      {
+        array_push($graphs, $matches[1][0]);    
+      }
+      
+      preg_match_all("/^[\s\t]*describe[\s\t]*([^<\s\t]*):(.*)[\s\t]*/Uim", $noPrologQuery, $matches);
+      
+      if(count($matches[0]) > 0)
+      {
+        for($i = 0; $i < count($matches[0]); $i++)
+        {
+          $p = $matches[1][$i].":";
+          
+          if(isset($prefixes[$p]))
+          {
+            $d = $prefixes[$p].$matches[2][$i];
+            array_push($graphs, $d);
+          }
+        }
+      }       
+      
+      
       // Get all the "from" and "from named" clauses so that we validate if the user has access to them.
-      $graphs = array();
 
-      preg_match_all("/([\s\t]*from[\s\t]*<(.*)>[\s\t]*)/Uim", $this->query, $matches);
-
-      foreach($matches[2] as $match)
-      {
-        array_push($graphs, $match);
-      }
-
-      preg_match_all("/([\s\t]*from[\s\t]*named[\s\t]*<(.*)>[\s\t]*)/Uim", $this->query, $matches);
+      // Check for the clauses that uses direct IRI_REF
+      preg_match_all("/([\s\t]*from[\s\t]*<(.*)>[\s\t]*)/Uim", $noPrologQuery, $matches);
 
       foreach($matches[2] as $match)
       {
         array_push($graphs, $match);
       }
+
+      preg_match_all("/([\s\t]*from[\s\t]*named[\s\t]*<(.*)>[\s\t]*)/Uim", $noPrologQuery, $matches);
+
+      foreach($matches[2] as $match)
+      {
+        array_push($graphs, $match);
+      }
+      
+      // Check for the clauses that uses PrefixedName
+      
+      preg_match_all("/[\s\t]*(from|from[\s\t]*named)[\s\t]*([^\s\t<]*):(.*)[\s\t]*/Uim", $noPrologQuery, $matches);
+
+      if(count($matches[0]) > 0)
+      {
+        for($i = 0; $i < count($matches[0]); $i++)
+        {
+          $p = $matches[2][$i].":";
+          
+          if(isset($prefixes[$p]))
+          {
+            $d = $prefixes[$p].$matches[3][$i];
+            array_push($graphs, $d);
+          }
+        }
+      }   
+      
       
       if($this->dataset == "" &&  count($graphs) <= 0)
       {
@@ -1170,6 +1274,25 @@ class Sparql extends WebService
         }
       }
 
+      // Determine the query format
+      $queryFormat = "";
+
+      if($this->conneg->getMime() == "application/sparql-results+json" || 
+         $this->conneg->getMime() == "application/sparql-results+xml" || 
+         $this->conneg->getMime() == "text/html" ||
+         $isDescribeQuery === TRUE ||
+         $isConstructQuery === TRUE)
+      {
+        $queryFormat = $this->conneg->getMime();
+      }
+      elseif($this->conneg->getMime() == "text/xml" || $this->conneg->getMime() == "application/json"
+        || $this->conneg->getMime() == "application/rdf+xml" || $this->conneg->getMime() == "application/rdf+n3")
+      {
+        $queryFormat = "application/sparql-results+xml";
+      }      
+      
+      
+      
       // Add a limit to the query
 
       // Disable limits and offset for now until we figure out what to do (not limit on triples, but resources)
@@ -1179,7 +1302,7 @@ class Sparql extends WebService
         $this->db_host . ":" . $this->triplestore_port . "/sparql?default-graph-uri=" . urlencode($this->dataset) . "&query="
         . urlencode($this->query) . "&format=" . urlencode($queryFormat));
 
-      curl_setopt($ch, CURLOPT_HTTPHEADER, array( "Accept: " . $queryFormat ));
+      //curl_setopt($ch, CURLOPT_HTTPHEADER, array( "Accept: " . $queryFormat ));
       curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
       curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
       curl_setopt($ch, CURLOPT_HEADER, TRUE);
@@ -1215,6 +1338,22 @@ class Sparql extends WebService
         return;
       }
 
+      // If a DESCRIBE query as been requested by the user, then we simply returns what is returned by
+      // the triple store. We don't have any convertion to do here.
+      if($isDescribeQuery === TRUE)
+      {
+         echo $this->sparqlContent;
+         return;
+      }
+
+      // If a CONSTRUCT query as been requested by the user, then we simply returns what is returned by
+      // the triple store. We don't have any convertion to do here.
+      if($isConstructQuery === TRUE)
+      {
+         echo $this->sparqlContent;
+         return;
+      }
+      
       if($this->conneg->getMime() == "text/xml" || $this->conneg->getMime() == "application/rdf+n3"
         || $this->conneg->getMime() == "application/rdf+xml" || $this->conneg->getMime() == "application/json")
       {

@@ -263,10 +263,14 @@ class Search extends WebService
         {
           if($key > 0)
           {
-            $pred = $xml->createPredicate("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
-            $object = $xml->createObject("", $type);
-            $pred->appendChild($object);
-            $subject->appendChild($pred);
+            if(array_search($type, $this->resultsetObjectPropertiesUris[$uri]["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"]) === FALSE)
+            {
+              $pred = $xml->createPredicate("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
+              $object = $xml->createObject("", $type);
+              $pred->appendChild($object);
+              
+              $subject->appendChild($pred);
+            } // Else, we will add it to the resultset, with its reified value, below...
           }
           else
           {
@@ -339,7 +343,7 @@ class Search extends WebService
       {
         foreach($this->resultsetObjectProperties[$uri] as $property => $values)
         {
-          if($propeerty != "type" && $property != "dataset")
+          if($property != "type" && $property != "dataset")
           {
             foreach($values as $key => $value)
             {

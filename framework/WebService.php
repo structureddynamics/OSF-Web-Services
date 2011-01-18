@@ -93,7 +93,7 @@ abstract class WebService
   protected $triplestore_port = "8890";
 
   /*! @brief Port number where the Solr store server is reachable */
-  protected $solr_port = "8890";
+  protected $solr_port = "8983";
 
   
   /*! @brief Name of the logging table on the Virtuoso instance */
@@ -217,7 +217,7 @@ abstract class WebService
 
       die;      
     }
-
+    
     if(isset($data_ini["triplestore"]["username"]))
     {
       $this->db_username = $data_ini["triplestore"]["username"];

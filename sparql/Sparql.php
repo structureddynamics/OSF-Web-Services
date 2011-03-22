@@ -114,8 +114,8 @@ class Sparql extends WebService
                         "_205": {
                           "id": "WS-SPARQL-205",
                           "level": "Warning",
-                          "name": "GRAPH not permitted.",
-                          "description": "The SPARQL GRAPH clause is not permitted for this sparql endpoint. Please change your SPARQL query to specify the datasets you want to query with the FROM and FROM NAMED sparql clauses, or with the dataset parameter."
+                          "name": "GRAPH not permitted without FROM NAMED clauses.",
+                          "description": "The SPARQL GRAPH clause is not permitted for this sparql endpoint. GRAPH clauses are only permitted when you bound your SPARQL query using one, or a series of FROM NAMED clauses."
                         },                        
                         "_206": {
                           "id": "WS-SPARQL-206",
@@ -1114,12 +1114,14 @@ class Sparql extends WebService
         */
       }
       
-      // Drop any SPARQL query with a GRAPH clause
+      // Drop any SPARQL query with a GRAPH clause which are not bound by one, or a series, of FROM NAMED clauses
 
-      if(preg_match_all("/[\s\t]*graph[\s\t]*</Uim", $noPrologQuery, $matches) > 0 ||
-         preg_match_all("/[\s\t]*graph[\s\t]*\?/Uim", $noPrologQuery, $matches) > 0 ||
-         preg_match_all("/[\s\t]*graph[\s\t]*\$/Uim", $noPrologQuery, $matches) > 0 ||
-         preg_match_all("/[\s\t]*graph[\s\t]*[a-zA-Z0-9\-_]*:/Uim", $noPrologQuery, $matches) > 0)
+      if((preg_match_all("/[\s\t]*graph[\s\t]*</Uim", $noPrologQuery, $matches) > 0 ||
+          preg_match_all("/[\s\t]*graph[\s\t]*\?/Uim", $noPrologQuery, $matches) > 0 ||
+          preg_match_all("/[\s\t]*graph[\s\t]*\$/Uim", $noPrologQuery, $matches) > 0 ||
+          preg_match_all("/[\s\t]*graph[\s\t]*[a-zA-Z0-9\-_]*:/Uim", $noPrologQuery, $matches) > 0) &&
+         (preg_match_all("/([\s\t]*from[\s\t]*named[\s\t]*<(.*)>[\s\t]*)/Uim", $noPrologQuery, $matches) <= 0 &&
+          preg_match_all("/[\s\t]*(from[\s\t]*named)[\s\t]*([^\s\t<]*):(.*)[\s\t]*/Uim", $noPrologQuery, $matches) <= 0))
       {
         $this->conneg->setStatus(400);
         $this->conneg->setStatusMsg("Bad Request");
@@ -1205,7 +1207,7 @@ class Sparql extends WebService
       }   
       
       
-      if($this->dataset == "" &&  count($graphs) <= 0)
+      if($this->dataset == "" && count($graphs) <= 0)
       {
         $this->conneg->setStatus(400);
         $this->conneg->setStatusMsg("Bad Request");

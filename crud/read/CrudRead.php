@@ -157,6 +157,22 @@ class CrudRead extends WebService
   */
   function __construct($uri, $dataset, $include_linksback, $include_reification, $registered_ip, $requester_ip)
   {
+    if(!strstr($_SERVER("REMOTE_ADDR"), "."))
+    {
+      // PUT IN WEBSERVICE.PHP
+      
+      
+      // IPv6 issue.
+      
+      // ::ffff:192.0.2.128
+      
+      // ::1
+      
+      // 2001:0db8:85a3:0000:0000:8a2e:0370:7334
+      
+      
+    }
+    
     parent::__construct();
 
     $this->db = new DB_Virtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);

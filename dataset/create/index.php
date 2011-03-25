@@ -73,7 +73,7 @@ if(isset($_POST['creator']))
 }
 
 // Permissions to set for the "public user" to access this new ontology dataset.
-$globalPermissions = "";
+$globalPermissions = "False;False;False;False";
 
 if(isset($_POST['globalPermissions']))
 {
@@ -81,7 +81,7 @@ if(isset($_POST['globalPermissions']))
 }
 
 // Web services that can be used to access and manage that dataset. It is list of ";" separated Web services URI
-$webservices = "";
+$webservices = "all";
 
 if(isset($_POST['webservices']))
 {

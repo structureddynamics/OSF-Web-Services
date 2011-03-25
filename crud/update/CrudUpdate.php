@@ -541,11 +541,18 @@ class CrudUpdate extends WebService
 
         if(count($parser->getErrors()) > 0)
         {
+          $errorsOutput = "";
           $errors = $parser->getErrors();
+
+          foreach($errors as $key => $error)
+          {
+            $errorsOutput .= "[Error #$key] $error\n";
+          }
+          
           $this->conneg->setStatus(400);
           $this->conneg->setStatusMsg("Bad Request");
           $this->conneg->setError($this->errorMessenger->_307->id, $this->errorMessenger->ws,
-            $this->errorMessenger->_307->name, $this->errorMessenger->_307->description, "",
+            $this->errorMessenger->_307->name, $this->errorMessenger->_307->description, $errorsOutput,
             $this->errorMessenger->_307->level);
 
           return;

@@ -6,7 +6,7 @@
 /*! @file \ws\dataset\create\DatasetCreate.php
    @brief Create a new graph for this dataset & indexation of its description
   
-   \n\nf
+   \n\n
  
    @author Frederick Giasson, Structured Dynamics LLC.
 
@@ -98,6 +98,7 @@ class DatasetCreate extends WebService
       @param[in] $datasetTitle Title of the dataset to create
       @param[in] $description Description of the dataset to create
       @param[in] $creator Unique identifier used to refer to the creator of this dataset
+      @param[in] $registered_ip Target IP address registered in the WSF  
       @param[in] $requester_ip IP address of the requester
       @param[in] $webservices Web services that can be used to access and manage that dataset. It is list of ";" separated Web services URI
       @param[in] $globalPermissions Permissions to set for the "public user" to access this new ontology dataset.

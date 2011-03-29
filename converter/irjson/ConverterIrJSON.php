@@ -109,13 +109,15 @@ class ConverterIrJSON extends WebService
                       }';
 
 
-  /*!   @brief Constructor
-       @details   Initialize the irJSON Converter Web Service
+  /*! @brief Constructor
+      @details   Initialize the irJSON Converter Web Service
               
       \n
       
       @param[in] $document Text of a irJSON document
       @param[in] $docmime Mime type of the document
+      @param[in] $include_dataset_description Specifies if you want to include the description of the dataset in the
+                                              resultset output
       @param[in] $registered_ip Target IP address registered in the WSF
       @param[in] $requester_ip IP address of the requester
     

@@ -41,6 +41,9 @@ class Solr
       \n
       
       @param[in] $core An optional target Solr core in a multicore setting
+      @param[in] $host The host name where the Solr server is accessible
+      @param[in] $port The port number where the Solr server is accessible
+      @param[in] $fieldIndexFolder The folder where the Solr fields index should be saved on the server
       
       @return returns the XML resultset
     

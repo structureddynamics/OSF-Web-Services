@@ -114,6 +114,7 @@ class DatasetUpdate extends WebService
       @param[in] $description (optional).Description of the dataset to update
       @param[in] $contributors (optional).List of contributor URIs seperated by ";"
       @param[in] $modified (optional).Date of the modification of the dataset
+      @param[in] $registered_ip Target IP address registered in the WSF  
       @param[in] $requester_ip IP address of the requester
               
       \n

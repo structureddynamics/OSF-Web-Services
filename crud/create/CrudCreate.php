@@ -2,14 +2,14 @@
 
 /*! @defgroup WsCrud Crud Web Service */
 //@{
-
+                                                  
 /*! @file \ws\crud\create\CrudCreate.php
    @brief Define the Crud Create web service
 
    \n\n
  
    @author Frederick Giasson, Structured Dynamics LLC.
-
+                                                   
    \n\n\n
  */
 
@@ -510,7 +510,7 @@ class CrudCreate extends WebService
       \n\n\n
   */
   public function process()
-  {
+  { 
     // Make sure there was no conneg error prior to this process call
     if($this->conneg->getStatus() == 200)
     {
@@ -831,6 +831,11 @@ class CrudCreate extends WebService
 
             $solr = new Solr($this->wsf_solr_core, $this->solr_host, $this->solr_port);
 
+            // Used to detect if we will be creating a new field. If we are, then we will
+            // update the fields index once the new document will be indexed.
+            $indexedFields = $solr->getFieldsIndex();  
+            $newFields = FALSE;            
+            
             foreach($irsUri as $subject)
             {
               // Skip Bnodes indexation in Solr
@@ -898,17 +903,189 @@ class CrudCreate extends WebService
                 $add .= "<field name=\"attribute\">" . $this->xmlEncode(Namespaces::$iron . "prefURL") . "</field>";
               }
 
+              // If enabled, and supported by the structWSF setting, let's add any lat/long positionning to the index.
+              if($this->geoEnabled)
+              {
+                // Check if there exists a lat-long coordinate for that resource.
+                if(isset($resourceIndex[$subject][Namespaces::$geo."lat"]) &&
+                   isset($resourceIndex[$subject][Namespaces::$geo."long"]))
+                {  
+                  $lat = $resourceIndex[$subject][Namespaces::$geo."lat"][0]["value"];
+                  $long = $resourceIndex[$subject][Namespaces::$geo."long"][0]["value"];
+                  
+                  // Add Lat/Long
+                  $add .= "<field name=\"lat\">". 
+                             $this->xmlEncode($lat). 
+                          "</field>";
+                  $add .= "<field name=\"attribute\">" . $this->xmlEncode(Namespaces::$geo."lat") . "</field>";
+                          
+                  $add .= "<field name=\"long\">". 
+                             $this->xmlEncode($long). 
+                          "</field>";
+                  $add .= "<field name=\"attribute\">" . $this->xmlEncode(Namespaces::$geo."long") . "</field>";
+                          
+                  // Add Lat/Long in radius
+                  
+                  $add .= "<field name=\"lat_rad\">". 
+                             $this->xmlEncode($lat * (pi() / 180)). 
+                          "</field>";
+                          
+                  $add .= "<field name=\"long_rad\">". 
+                             $this->xmlEncode($long * (pi() / 180)). 
+                          "</field>";                  
+                  
+                  // Add hashcode
+                          
+                  include_once("../../framework/geohash.php");                                                  
+                  
+                  $geohash = new Geohash();
+                  
+                  $add .= "<field name=\"geohash\">". 
+                             $this->xmlEncode($geohash->encode($lat, $long)). 
+                          "</field>"; 
+                  $add .= "<field name=\"attribute\">" . $this->xmlEncode(Namespaces::$sco."geohash") . "</field>";
+                          
+                          
+                  // Add cartesian tiers                   
+                                  
+                  // Note: Cartesian tiers are not currently supported. The Lucene Java API
+                  //       for this should be ported to PHP to enable this feature.                                
+                }
+                
+                $coordinates;
+                
+                // Check if there is a polygonCoordinates property
+                if(isset($resourceIndex[$subject][Namespaces::$sco."polygonCoordinates"]))
+                {  
+                  $polygonCoordinates = $resourceIndex[$subject][Namespaces::$sco."polygonCoordinates"][0]["value"];
+                  $coordinates = explode(" ", $polygonCoordinates);
+                  
+                  $add .= "<field name=\"polygonCoordinates\">". 
+                             $this->xmlEncode($resourceIndex[$subject][Namespaces::$sco."polygonCoordinates"][0]["value"]). 
+                          "</field>";   
+                  $add .= "<field name=\"attribute\">" . $this->xmlEncode(Namespaces::$sco."polygonCoordinates") . "</field>";                                             
+                }
+                
+                // Check if there is a polylineCoordinates property
+                if(isset($resourceIndex[$subject][Namespaces::$sco."polylineCoordinates"]))
+                {  
+                  $polylineCoordinates = $resourceIndex[$subject][Namespaces::$sco."polylineCoordinates"][0]["value"];
+                  array_push($coordinates, explode(" ", $polygonCoordinates));
+                  
+                  $add .= "<field name=\"polylineCoordinates\">". 
+                             $this->xmlEncode($resourceIndex[$subject][Namespaces::$sco."polylineCoordinates"][0]["value"]). 
+                          "</field>";   
+                  $add .= "<field name=\"attribute\">" . $this->xmlEncode(Namespaces::$sco."polylineCoordinates") . "</field>";                   
+                }
+                
+                  
+                if(count($coordinates) > 0)
+                { 
+                  $add .= "<field name=\"attribute\">" . $this->xmlEncode(Namespaces::$geo."lat") . "</field>";
+                  $add .= "<field name=\"attribute\">" . $this->xmlEncode(Namespaces::$geo."long") . "</field>";
+                  
+                  foreach($coordinates as $key => $coordinate)
+                  {
+                    $points = explode(",", $coordinate);
+                    
+                    if($points[0] != "" && $points[1] != "")
+                    {
+                      // Add Lat/Long
+                      $add .= "<field name=\"lat\">". 
+                                 $this->xmlEncode($points[1]). 
+                              "</field>";
+                              
+                      $add .= "<field name=\"long\">". 
+                                 $this->xmlEncode($points[0]). 
+                              "</field>";
+                              
+                      // Add altitude
+                      if(isset($points[2]) && $points[2] != "")
+                      {
+                        $add .= "<field name=\"alt\">". 
+                                   $this->xmlEncode($points[2]). 
+                                "</field>";
+                        if($key == 0)
+                        {
+                          $add .= "<field name=\"attribute\">" . $this->xmlEncode(Namespaces::$geo."alt") . "</field>";
+                        }
+                      }
+                              
+                      // Add Lat/Long in radius
+                      
+                      $add .= "<field name=\"lat_rad\">". 
+                                 $this->xmlEncode($points[1] * (pi() / 180)). 
+                              "</field>";
+                              
+                      $add .= "<field name=\"long_rad\">". 
+                                 $this->xmlEncode($points[0] * (pi() / 180)). 
+                              "</field>";                  
+                      
+                      // Add hashcode
+                              
+                      include_once("../../framework/geohash.php");                                                  
+                      
+                      $geohash = new Geohash();
+                      
+                      $add .= "<field name=\"geohash\">". 
+                                 $this->xmlEncode($geohash->encode($points[1], $points[0])). 
+                              "</field>"; 
+                              
+                      if($key == 0)
+                      {
+                        $add .= "<field name=\"attribute\">" . $this->xmlEncode(Namespaces::$sco."geohash") . "</field>";
+                      }
+                              
+                              
+                      // Add cartesian tiers                   
+                                      
+                      // Note: Cartesian tiers are not currently supported. The Lucene Java API
+                      //       for this should be ported to PHP to enable this feature.           
+                    }                                         
+                  }
+                }                
+                
+                // Check if there is any geonames:locatedIn assertion for that resource.
+                if(isset($resourceIndex[$subject][Namespaces::$geonames."locatedIn"]))
+                {  
+                  $add .= "<field name=\"located_in\">". 
+                             $this->xmlEncode($resourceIndex[$subject][Namespaces::$geonames."locatedIn"][0]["value"]). 
+                          "</field>";                                
+                }
+                
+                // Check if there is any wgs84_pos:alt assertion for that resource.
+                if(isset($resourceIndex[$subject][Namespaces::$geo."alt"]))
+                {  
+                  $add .= "<field name=\"alt\">". 
+                             $this->xmlEncode($resourceIndex[$subject][Namespaces::$geo."alt"][0]["value"]). 
+                          "</field>";                                
+                  $add .= "<field name=\"attribute\">" . $this->xmlEncode(Namespaces::$geo."alt") . "</field>";
+                }                
+              }
+
               // Get properties with the type of the object
+              
               foreach($resourceIndex[$subject] as $predicate => $values)
               {
-                if(array_search($predicate, $labelProperties) === FALSE
-                  && array_search($predicate, $descriptionProperties) === FALSE && $predicate != Namespaces::$iron
-                  . "prefURL") // skip label & description & prefURL properties
+                if(array_search($predicate, $labelProperties) === FALSE && 
+                   array_search($predicate, $descriptionProperties) === FALSE && 
+                   $predicate != Namespaces::$iron."prefURL" &&
+                   $predicate != Namespaces::$geo."long" &&
+                   $predicate != Namespaces::$geo."lat" &&
+                   $predicate != Namespaces::$geo."alt" &&
+                   $predicate != Namespaces::$sco."polygonCoordinates" &&
+                   $predicate != Namespaces::$sco."polylineCoordinates") // skip label & description & prefURL properties
                 {
                   foreach($values as $value)
                   {
                     if($value["type"] == "literal")
                     {
+                      // Detect if the field currently exists in the fields index 
+                      if(!$newFields && array_search(urlencode($predicate) . "_attr", $indexedFields) !== FALSE)
+                      {
+                        $newFields = TRUE;
+                      }
+                      
                       $add .= "<field name=\"" . urlencode($predicate) . "_attr\">" . $this->xmlEncode($value["value"])
                         . "</field>";
                       $add .= "<field name=\"attribute\">" . $this->xmlEncode($predicate) . "</field>";
@@ -962,6 +1139,12 @@ class CrudCreate extends WebService
                     }
                     elseif($value["type"] == "uri")
                     {
+                      // Detect if the field currently exists in the fields index 
+                      if(!$newFields && array_search(urlencode($predicate) . "_attr", $indexedFields) !== FALSE)
+                      {
+                        $newFields = TRUE;
+                      }                      
+                      
                       // If it is an object property, we want to bind labels of the resource referenced by that
                       // object property to the current resource. That way, if we have "paul" -- know --> "bob", and the
                       // user send a seach query for "bob", then "paul" will be returned as well.
@@ -997,6 +1180,13 @@ class CrudCreate extends WebService
                           $labels .= $subjectTriples[$property][0] . " ";
                         }
                       }
+                      
+                      // Detect if the field currently exists in the fields index 
+                      if(!$newFields && array_search(urlencode($predicate) . "_attr_obj", $indexedFields) !== FALSE)
+                      {
+                        $newFields = TRUE;
+                      }
+                      
 
                       if($labels != "")
                       {
@@ -1102,6 +1292,12 @@ class CrudCreate extends WebService
                   $this->errorMessenger->_304->level);
                 return;
               }
+            }
+            
+            // Update the fields index if a new field as been detected.
+            if($newFields)
+            {
+              $solr->updateFieldsIndex();
             }
           }
         /*        

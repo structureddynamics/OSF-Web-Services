@@ -25,12 +25,25 @@ class Solr
 
   /*! @brief URL where to reach the Solr select (normal query) endpoint */
   private $selectUrl;
+  
+  /*! @brief URL where to reach the Solr Luke endpoint */
+  private $lukeUrl;
+  
+  /*! @brief This is the folder there the file of the index where all the fields defined in Solr
+   *         are indexed. You have to make sure that the web server has write access to this folder.
+   *         This folder path has to end with a slash "/". 
+   */
+  private $fieldIndexFolder;
+  
 
   /*!   @brief Constructor
               
       \n
       
       @param[in] $core An optional target Solr core in a multicore setting
+      @param[in] $host The host name where the Solr server is accessible
+      @param[in] $port The port number where the Solr server is accessible
+      @param[in] $fieldIndexFolder The folder where the Solr fields index should be saved on the server
       
       @return returns the XML resultset
     
@@ -38,18 +51,22 @@ class Solr
     
       \n\n\n
   */
-  function __construct($core = "", $host = "localhost")
+  function __construct($core = "", $host = "localhost", $port = "8983", $fieldIndexFolder = "/tmp/")
   {
     if($core != "")
     {
-      $this->updateUrl = "http://$host:8983/solr/$core/update";
-      $this->selectUrl = "http://$host:8983/solr/$core/select";
+      $this->updateUrl = "http://$host:$port/solr/$core/update";
+      $this->selectUrl = "http://$host:$port/solr/$core/select";
+      $this->lukeUrl = "http://$host:$port/solr/$core/admin/luke?numTerms=0";
     }
     else
     {
-      $this->updateUrl = "http://$host:8983/solr/update";
-      $this->selectUrl = "http://$host:8983/solr/select";
+      $this->updateUrl = "http://$host:$port/solr/update";
+      $this->selectUrl = "http://$host:$port/solr/select";
+      $this->lukeUrl = "http://$host:$port/solr/admin/luke?numTerms=0";
     }
+    
+    $this->fieldIndexFolder = $fieldIndexFolder;
   }
 
   function __destruct() { }
@@ -439,6 +456,74 @@ class Solr
       }
     }
   }
+  
+  /**
+  * @brief Get the array of the name of all the fields that have been indexed in Solr.
+  * 
+  * @return Return an array of all the names of the fields defined in the Solr index.
+  * 
+  * @author Frederick Giasson, Structured Dynamics LLC.
+  */  
+  public function getFieldsIndex()
+  {
+    if(!file_exists($this->fieldIndexFolder."solrFields.srz"))  
+    {
+      // Force the creation of the index if the file is not existing
+      $this->updateFieldsIndex();
+    }
+    
+    return(unserialize(file_get_contents($this->fieldIndexFolder."solrFields.srz")));
+  }
+  
+  /**
+  * @brief Force an update of the fields index using the Luke solr endpoint
+  * 
+  * @return Return FALSE if the index couldn't be update. TRUE otherwise.
+  * @author Frederick Giasson, Structured Dynamics LLC.
+  */
+  public function updateFieldsIndex()
+  {
+    $ch = curl_init();
+
+    $headers = array( "Content-Type: text/xml" );
+
+    curl_setopt($ch, CURLOPT_HEADER, 0);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    curl_setopt($ch, CURLOPT_URL, $this->lukeUrl);
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $content);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+
+    $data = curl_exec($ch);
+
+    if(curl_errno($ch))
+    {
+      return FALSE;
+    }
+    else
+    {
+      $fields = array();
+      
+      $domResultset = new DomDocument("1.0", "utf-8");
+      $domResultset->loadXML($data);
+
+      $xpath = new DOMXPath($domResultset);
+      
+      $founds = $xpath->query("//*/lst[@name='fields']//lst");
+
+      foreach($founds as $found)
+      {
+        array_push($fields, $found->getAttribute("name"));
+      } 
+      
+      $fields = array_unique($fields);
+      
+      file_put_contents($this->fieldIndexFolder."fieldsIndex.srz", serialize($fields));
+    }    
+    
+    return TRUE;
+  }
 }
 
 
@@ -566,7 +651,7 @@ class SolrDocument
 
     return ($serialization);
   }
-
+  
   /*!   @brief Encode content to be included in XML files
               
       \n

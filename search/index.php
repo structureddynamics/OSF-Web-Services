@@ -107,6 +107,21 @@ if(isset($_POST['include_aggregates']))
   $include_aggregates = $_POST['include_aggregates'];
 }
 
+// Distance Filter
+$distanceFilter = "";
+
+if(isset($_POST['distance_filter']))
+{
+  $distanceFilter = $_POST['distance_filter'];
+}
+
+// Range Filter
+$rangeFilter = "";
+
+if(isset($_POST['range_filter']))
+{
+  $rangeFilter = $_POST['range_filter'];
+}
 
 // Optional IP
 $registered_ip = "";
@@ -150,7 +165,7 @@ elseif(isset($_SERVER['PHP_SELF']))
 
 $ws_s =
   new Search($query, $types, $attributes, $datasets, $items, $page, $inference, $include_aggregates, $registered_ip,
-    $requester_ip);
+    $requester_ip, $distanceFilter, $rangeFilter);
 
 $ws_s->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
   $_SERVER['HTTP_ACCEPT_LANGUAGE']);
@@ -168,7 +183,7 @@ $totaltime = ($endtime - $starttime);
 $logger = new Logger("search", $requester_ip,
   "?query=" . $query . "&datasets=" . $datasets . "&types=" . $types . "&items=" . $items . "&page=" . $page
   . "&inference=" . $inference . "&include_aggregates=" . $include_aggregates . "&registered_ip=" . $registered_ip
-  . "&requester_ip=$requester_ip",
+  . "&requester_ip=$requester_ip&distance_filter=$distanceFilter&range_filter=$rangeFilter",
   $_SERVER['HTTP_ACCEPT'], $start_datetime, $totaltime, $ws_s->pipeline_getResponseHeaderStatus(),
   $_SERVER['HTTP_USER_AGENT']);
 

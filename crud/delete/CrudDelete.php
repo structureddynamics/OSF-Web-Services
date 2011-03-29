@@ -577,7 +577,7 @@ class CrudDelete extends WebService
         }
 
         // Delete the Solr document in the Solr index
-        $solr = new Solr($this->wsf_solr_core, $this->solr_host);
+        $solr = new Solr($this->wsf_solr_core, $this->solr_host, $this->solr_port);
 
         if(!$solr->deleteInstanceRecord($this->resourceUri, $this->dataset))
         {

@@ -252,10 +252,13 @@ class Browse extends WebService
         {
           if($key > 0)
           {
-            $pred = $xml->createPredicate("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
-            $object = $xml->createObject("", $type);
-            $pred->appendChild($object);
-            $subject->appendChild($pred);
+            if(array_search($type, $this->resultsetObjectPropertiesUris[$uri]["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"]) === FALSE)
+            {
+              $pred = $xml->createPredicate("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
+              $object = $xml->createObject("", $type);
+              $pred->appendChild($object);
+              $subject->appendChild($pred);
+            }
           }
           else
           {
@@ -328,7 +331,7 @@ class Browse extends WebService
       {
         foreach($this->resultsetObjectProperties[$uri] as $property => $values)
         {
-          if($propeerty != "type" && $property != "dataset")
+          if($property != "type" && $property != "dataset")
           {
             foreach($values as $key => $value)
             {
@@ -1166,7 +1169,7 @@ class Browse extends WebService
     // Make sure there was no conneg error prior to this process call
     if($this->conneg->getStatus() == 200)
     {
-      $solr = new Solr($this->wsf_solr_core, $this->solr_host);
+      $solr = new Solr($this->wsf_solr_core, $this->solr_host, $this->solr_port);
 
       $solrQuery = "";
 

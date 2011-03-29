@@ -1,0 +1,2 @@
+This web service has been DEPRECATED since version 1.0a8 of structWSF. This web service endpoint won't be 
+added in the structWSF installation package starting in version 1.0b1 (the first Beta version of structWSF).

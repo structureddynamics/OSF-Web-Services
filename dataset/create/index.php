@@ -72,6 +72,22 @@ if(isset($_POST['creator']))
   $creator = $_POST['creator'];
 }
 
+// Permissions to set for the "public user" to access this new ontology dataset.
+$globalPermissions = "False;False;False;False";
+
+if(isset($_POST['globalPermissions']))
+{
+  $globalPermissions = $_POST['globalPermissions'];
+}
+
+// Web services that can be used to access and manage that dataset. It is list of ";" separated Web services URI
+$webservices = "all";
+
+if(isset($_POST['webservices']))
+{
+  $webservices = $_POST['webservices'];
+}
+
 $mtime = microtime();
 $mtime = explode(' ', $mtime);
 $mtime = $mtime[1] + $mtime[0];
@@ -89,9 +105,9 @@ if(isset($_SERVER['REMOTE_ADDR']))
 // Optional IP
 $registered_ip = "";
 
-if(isset($_GET['registered_ip']))
+if(isset($_POST['registered_ip']))
 {
-  $registered_ip = $_GET['registered_ip'];
+  $registered_ip = $_POST['registered_ip'];
 }
 
 $parameters = "";
@@ -112,7 +128,7 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_dc = new DatasetCreate($uri, $title, $description, $creator, $registered_ip, $requester_ip);
+$ws_dc = new DatasetCreate($uri, $title, $description, $creator, $registered_ip, $requester_ip, $webservices, $globalPermissions);
 
 $ws_dc->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
   $_SERVER['HTTP_ACCEPT_LANGUAGE']);

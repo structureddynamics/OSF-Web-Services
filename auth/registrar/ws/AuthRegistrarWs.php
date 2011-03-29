@@ -109,6 +109,7 @@ class AuthRegistrarWs extends WebService
                                 character. an example of such a quadruple is: "crud_usage=True;True;False;False", 
                                 meaning: Create = True, Read = True, Update = False and Delete = False
       @param[in] $registered_uri URI of the web service endpoint to register
+      @param[in] $registered_ip Target IP address registered in the WSF         
       @param[in] $requester_ip IP address of the requester
       
       

@@ -6,7 +6,7 @@
 /*! @file \ws\dataset\create\DatasetCreate.php
    @brief Create a new graph for this dataset & indexation of its description
   
-   \n\nf
+   \n\n
  
    @author Frederick Giasson, Structured Dynamics LLC.
 
@@ -53,6 +53,12 @@ class DatasetCreate extends WebService
   public static $supportedSerializations =
     array ("application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*",
       "*/*");
+      
+  /*! @brief Permissions to set for the "public user" to access this new dataset. */
+  private $globalPermissions = "False;False;False;False";      
+
+  /*! @brief Web services that can be used to access and manage that dataset. It is list of ";" separated Web services URI */
+  private $webservices = "all";      
 
   /*! @brief Error messages of this web service */
   private $errorMessenger =
@@ -92,7 +98,10 @@ class DatasetCreate extends WebService
       @param[in] $datasetTitle Title of the dataset to create
       @param[in] $description Description of the dataset to create
       @param[in] $creator Unique identifier used to refer to the creator of this dataset
+      @param[in] $registered_ip Target IP address registered in the WSF  
       @param[in] $requester_ip IP address of the requester
+      @param[in] $webservices Web services that can be used to access and manage that dataset. It is list of ";" separated Web services URI
+      @param[in] $globalPermissions Permissions to set for the "public user" to access this new ontology dataset.
               
       \n
       
@@ -102,7 +111,8 @@ class DatasetCreate extends WebService
     
       \n\n\n
   */
-  function __construct($uri, $datasetTitle = "", $description = "", $creator = "", $registered_ip, $requester_ip)
+  function __construct($uri, $datasetTitle, $description, $creator, $registered_ip, $requester_ip, 
+                       $webservices = "all", $globalPermissions = "False;False;False;False")
   {
     parent::__construct();
 
@@ -113,6 +123,8 @@ class DatasetCreate extends WebService
     $this->description = $description;
     $this->creator = $creator;
     $this->requester_ip = $requester_ip;
+    $this->globalPermissions = $globalPermissions;
+    $this->webservices = $webservices;
 
     if($registered_ip == "")
     {
@@ -514,46 +526,53 @@ class DatasetCreate extends WebService
       */
 
       /* Get the list of web services registered to this structWSF instance. */
-      $ws_al = new AuthLister("ws", $this->datasetUri, $this->requester_ip, $this->wsf_local_ip);
+      if(strtolower($this->webservices) == "all")
+      {      
+        $ws_al = new AuthLister("ws", $this->datasetUri, $this->requester_ip, $this->wsf_local_ip);
 
-      $ws_al->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
-        $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
+        $ws_al->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
+          $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
 
-      $ws_al->process();
+        $ws_al->process();
 
-      if($ws_al->pipeline_getResponseHeaderStatus() != 200)
-      {
-        $this->conneg->setStatus($ws_al->pipeline_getResponseHeaderStatus());
-        $this->conneg->setStatusMsg($ws_al->pipeline_getResponseHeaderStatusMsg());
-        $this->conneg->setStatusMsgExt($ws_al->pipeline_getResponseHeaderStatusMsgExt());
-        $this->conneg->setError($ws_al->pipeline_getError()->id, $ws_al->pipeline_getError()->webservice,
-          $ws_al->pipeline_getError()->name, $ws_al->pipeline_getError()->description,
-          $ws_al->pipeline_getError()->debugInfo, $ws_al->pipeline_getError()->level);
+        if($ws_al->pipeline_getResponseHeaderStatus() != 200)
+        {
+          $this->conneg->setStatus($ws_al->pipeline_getResponseHeaderStatus());
+          $this->conneg->setStatusMsg($ws_al->pipeline_getResponseHeaderStatusMsg());
+          $this->conneg->setStatusMsgExt($ws_al->pipeline_getResponseHeaderStatusMsgExt());
+          $this->conneg->setError($ws_al->pipeline_getError()->id, $ws_al->pipeline_getError()->webservice,
+            $ws_al->pipeline_getError()->name, $ws_al->pipeline_getError()->description,
+            $ws_al->pipeline_getError()->debugInfo, $ws_al->pipeline_getError()->level);
 
-        return;
+          return;
+        }
+
+        /* Get all web services */
+
+        $webservices = "";
+
+        $xml = new ProcessorXML();
+        $xml->loadXML($ws_al->pipeline_getResultset());
+
+        $webServiceElements = $xml->getXPath('//predicate/object[attribute::type="wsf:WebService"]');
+
+        foreach($webServiceElements as $element)
+        {
+          $webservices .= $xml->getURI($element) . ";";
+        }
+
+        $webservices = substr($webservices, 0, strlen($webservices) - 1);
+        unset($xml);
+        unset($ws_al);         
+        
+        $this->webservices = $webservices;
       }
 
-      /* Get all web services */
-      $webservices = "";
 
-      $xml = new ProcessorXML();
-      $xml->loadXML($ws_al->pipeline_getResultset());
-
-      $webServiceElements = $xml->getXPath('//predicate/object[attribute::type="wsf:WebService"]');
-
-      foreach($webServiceElements as $element)
-      {
-        $webservices .= $xml->getURI($element) . ";";
-      }
-
-      $webservices = substr($webservices, 0, strlen($webservices) - 1);
-
-      unset($ws_al);
-      unset($xml);
 
       /* Register full CRUD for the creator of the dataset, for the dataset's ID */
 
-      $ws_ara = new AuthRegistrarAccess("True;True;True;True", $webservices, $this->datasetUri, "create", "",
+      $ws_ara = new AuthRegistrarAccess("True;True;True;True", $this->webservices, $this->datasetUri, "create", "",
         $this->requester_ip, $this->wsf_local_ip);
 
       $ws_ara->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
@@ -578,7 +597,7 @@ class DatasetCreate extends WebService
       /* Register no CRUD for the public user, for the dataset's ID */
 
       $ws_ara =
-        new AuthRegistrarAccess("False;False;False;False", $webservices, $this->datasetUri, "create", "", "0.0.0.0",
+        new AuthRegistrarAccess($this->globalPermissions, $this->webservices, $this->datasetUri, "create", "", "0.0.0.0",
           $this->wsf_local_ip);
 
       $ws_ara->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),

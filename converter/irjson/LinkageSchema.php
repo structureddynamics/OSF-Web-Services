@@ -97,17 +97,17 @@ class LinkageSchema
     }
   }
 
-  /*!      @brief Map an attribute to an attribute of an external format/vocabulary/ontology
+  /*! @brief Map an attribute to an attribute of an external format/vocabulary/ontology
                                                   
-                  \n
-                  
-                  @param[in] $property Attribute we want to map to..
-                  @param[in] $mapTo External attribute we want to map to
-                  @param[in|out] $error Possible mapping errors
-                  
-                  @author Frederick Giasson, Structured Dynamics LLC.
-          
-                  \n\n\n
+      \n
+      
+      @param[in] $property Attribute we want to map to
+      @param[in] $mapTo External attribute we want to map to
+      @param[out] $error Possible mapping errors
+      
+      @author Frederick Giasson, Structured Dynamics LLC.
+
+      \n\n\n
   */
   public function setPropertyX($property, $mapTo, &$error)
     { $this->addProperty($this->propertyX[$property], $mapTo, $error); }

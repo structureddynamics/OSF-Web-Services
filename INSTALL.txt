@@ -1,7 +1,11 @@
 You can access the install & setup manual at this URL:
 
-http://openstructs.org/structwsf/installation-guide
+  http://techwiki.openstructs.org/index.php/StructWSF_Installation_Guide
 
+You also have access to an annex to this installation guide that shows you how you can install multiple
+structWSF instance on the same server:
+
+  http://techwiki.openstructs.org/index.php/Multi-structWSF_Server_Instance
 
 
 == Global structWSF Statistics ==

@@ -14,7 +14,8 @@
  */
 
 
-/*!   @brief Search Web Service. It searches datasets indexed in the structWSF instance.
+/*!   @brief   Search Web Service. It searches datasets by using three filtering properties: 
+           (1) datasets, (2) types and (3) attributes, (4) attribute/value
             
     \n
     
@@ -30,9 +31,6 @@ class Search extends WebService
 
   /*! @brief URL where the DTD of the XML document can be located on the Web */
   private $dtdURL;
-
-  /*! @brief Full text query supporting Lucene query syntax */
-  private $query = "";
 
   /*! @brief List of attributes to filter */
   private $attributes = "";
@@ -57,14 +55,36 @@ class Search extends WebService
 
   /*! @brief Requested IP */
   private $registered_ip = "";
-
+  
+  /*! @brief Global query filtering parameter */
+  private $query = "";
 
   /*! @brief Namespaces/Prefixes binding */
   private $namespaces =
     array ("http://www.w3.org/2002/07/owl#" => "owl", "http://www.w3.org/1999/02/22-rdf-syntax-ns#" => "rdf",
-      "http://www.w3.org/2000/01/rdf-schema#" => "rdfs", "http://purl.org/ontology/wsf#" => "wsf",
-      "http://purl.org/ontology/aggregate#" => "aggr");
+      "http://www.w3.org/2000/01/rdf-schema#" => "rdfs", "http://purl.org/ontology/wsf#" => "wsf");
 
+  
+  /* @brief The distance filter is a series of parameter that are used to
+            filter records of the dataset according to the distance they
+            are located from a given lat;long point. The values are
+            seperated by a semi-column ";". The format is as follow:
+            "lat;long;distance;distanceType". The distanceType can
+            have two values "0" or "1": "0" means that the distance
+            specified is in kilometers and "1" means that the distance
+            specified is in miles. An example is:
+            "-98.45;10.4324;5;0", which means getting all the results that
+            are at maximum 5 kilometers from the lat/long position.
+  */
+  private $distanceFilter;
+  
+  /* @brief The range filter is a series of parameter that are used to
+            filter records of the dataset according to a rectangle bounds
+            they are located in given their lat;long position. The values are
+            seperated by a semi-column ";". The format is as follow:
+            "top-left-lat;top-left-long;bottom-right-lat;bottom-right-long;".
+  */
+  private $rangeFilter;
 
   /*! @brief Array of triples where the current resource is a subject. */
   public $subjectTriples = array(); //
@@ -97,29 +117,38 @@ class Search extends WebService
     '{
                         "ws": "/ws/search/",
                         "_200": {
-                          "id": "WS-AUTH-LISTER-200",
-                          "name": "No query specified for this request",
-                          "description": "No search query has been defined for ths query"
-                        },
-                        "_201": {
-                          "id": "WS-SEARCH-201",
-                          "name": "The number of items returned per request has to be greater than 0 and lesser than 128",
+                          "id": "WS-SEARCH-200",
+                          "level": "Warning",                          
+                          "name": "Invalid number of items requested",
                           "description": "The number of items returned per request has to be greater than 0 and lesser than 128"
                         },
                         "_300": {
                           "id": "WS-SEARCH-300",
-                          "name": "No dataset accessible by that user",
-                          "description": "No dataset accessible by that user"
+                          "level": "Warning",
+                          "name": "No datasets accessible by that user",
+                          "description": "No datasets are accessible to that user"
+                        },
+                        "_301": {
+                          "id": "WS-SEARCH-301",
+                          "level": "Warning",
+                          "name": "Not geo-enabled",
+                          "description": "The Search web service endpoint is not geo-enabled. Please modify your query such that it does not use any geo feature such as the distance_filter and the range_filter parameters."
                         }  
+                        
                       }';
 
 
   /*!   @brief Constructor
-       @details   Initialize the Search Web Service
-              
-      @param[in] $query Lucune syntaxed query to send to the search system 
+       @details   Initialize the Search webservice endpoint
+      
+      @param[in] $query Global query filtering parameter  
       @param[in] $types List of filtering types URIs separated by ";"
-      @param[in] $attributes List of filtering attributes URIs separated by ";"
+      @param[in] $attributes List of filtering attributes (property) of (encoded) URIs separated by ";". 
+                             Additionally, the URI can end with a (un-encoded) double-colon "::". What follows
+                             this colon is a possible value restriction to be applied, as a filter
+                             to this attribute. The lucene query syntax can be used for that filtering
+                             value. The value also has to be encoded. An example of this "attribute" parameter is: 
+                             "http%3A%2F%2Fsome-attribute-uri::some%2Bfiltering%2Bvalue"
       @param[in] $datasets List of filtering datasets URIs separated by ";"
       @param[in] $items Number of items returned by resultset
       @param[in] $page Starting item number of the returned resultset
@@ -127,6 +156,21 @@ class Search extends WebService
       @param[in] $include_aggregates Including aggregates with returned resultsets
       @param[in] $registered_ip Target IP address registered in the WSF
       @param[in] $requester_ip IP address of the requester
+      @param[in] $distanceFilter The distance filter is a series of parameter that are used to
+                                 filter records of the dataset according to the distance they
+                                 are located from a given lat;long point. The values are
+                                 seperated by a semi-column ";". The format is as follow:
+                                 "lat;long;distance;distanceType". The distanceType can
+                                 have two values "0" or "1": "0" means that the distance
+                                 specified is in kilometers and "1" means that the distance
+                                 specified is in miles. An example is:
+                                 "-98.45;10.4324;5;0", which means getting all the results that
+                                 are at maximum 5 kilometers from the lat/long position.
+      @param[in] $rangeFilter The range filter is a series of parameter that are used to
+                              filter records of the dataset according to a rectangle bounds
+                              they are located in given their lat;long position. The values are
+                              seperated by a semi-column ";". The format is as follow:
+                              "top-left-lat;top-left-long;bottom-right-lat;bottom-right-long". 
               
       \n
       
@@ -137,20 +181,26 @@ class Search extends WebService
       \n\n\n
   */
   function __construct($query, $types, $attributes, $datasets, $items, $page, $inference, $include_aggregates,
-    $registered_ip, $requester_ip)
+                       $registered_ip, $requester_ip, $distanceFilter = "", $rangeFilter = "")                           
   {
     parent::__construct();
-
+ 
     $this->query = $query;
+    
+    $this->attributes = $attributes;
     $this->items = $items;
     $this->page = $page;
     $this->inference = $inference;
     $this->includeAggregates = $include_aggregates;
 
     $this->types = $types;
-    $this->attributes = $attributes;
     $this->datasets = $datasets;
 
+    $this->distanceFilter = $distanceFilter;
+    $this->rangeFilter = $rangeFilter;
+    $this->distance = $distance;
+    $this->distanceType = $distanceType;
+    
     $this->requester_ip = $requester_ip;
 
     if($registered_ip == "")
@@ -202,7 +252,20 @@ class Search extends WebService
     
       \n\n\n
   */
-  protected function validateQuery() {
+  protected function validateQuery() 
+  {  
+    if(($this->distanceFilter != "" || $this->rangeFilter != "") && $this->geoEnabled === FALSE)
+    {
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_301->name);
+      $this->conneg->setError($this->errorMessenger->_301->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_301->name, $this->errorMessenger->_301->description, "",
+        $this->errorMessenger->_301->level);
+
+      return;      
+    }
+    
   // Here we can have a performance problem when "dataset = all" if we perform the authentication using AuthValidator.
   // Since AuthValidator doesn't support multiple datasets at the same time, we will use the AuthLister web service
   // in the process() function and check if the user has the permissions to "read" these datasets.
@@ -249,8 +312,6 @@ class Search extends WebService
     $resultset->appendChild($dcterms);
     $dcterms = $xml->createPrefix("wsf", "http://purl.org/ontology/wsf#");
     $resultset->appendChild($dcterms);
-    $dcterms = $xml->createPrefix("aggr", "http://purl.org/ontology/aggregate#");
-    $resultset->appendChild($dcterms);
 
     $subject;
 
@@ -268,9 +329,8 @@ class Search extends WebService
               $pred = $xml->createPredicate("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
               $object = $xml->createObject("", $type);
               $pred->appendChild($object);
-              
               $subject->appendChild($pred);
-            } // Else, we will add it to the resultset, with its reified value, below...
+            }
           }
           else
           {
@@ -338,7 +398,7 @@ class Search extends WebService
         }
       }
 
-      // Assigning object_property
+      // Assigning object properties
       if(isset($this->resultsetObjectProperties[$uri]))
       {
         foreach($this->resultsetObjectProperties[$uri] as $property => $values)
@@ -348,6 +408,7 @@ class Search extends WebService
             foreach($values as $key => $value)
             {
               $pred = $xml->createPredicate($property);
+
               $object = $xml->createObject("", $this->resultsetObjectPropertiesUris[$uri][$property][$key], "");
               $pred->appendChild($object);
 
@@ -362,6 +423,7 @@ class Search extends WebService
 
       $resultset->appendChild($subject);
     }
+
 
     // Include facet information
 
@@ -381,19 +443,20 @@ class Search extends WebService
           $fcount = $this->aggregates["inferred_type"][$ftype];
         }
 
-        $subject = $xml->createSubject("aggr:Aggregate", $aggregatesUri . "/" . md5($ftype) . "/");
+        $subject =
+          $xml->createSubject("http://purl.org/ontology/aggregate#Aggregate", $aggregatesUri . "/" . md5($ftype) . "/");
 
-        $pred = $xml->createPredicate("aggr:property");
+        $pred = $xml->createPredicate("http://purl.org/ontology/aggregate#property");
         $object = $xml->createObject("", "http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
         $pred->appendChild($object);
         $subject->appendChild($pred);
 
-        $pred = $xml->createPredicate("aggr:object");
+        $pred = $xml->createPredicate("http://purl.org/ontology/aggregate#object");
         $object = $xml->createObject("", $ftype);
         $pred->appendChild($object);
         $subject->appendChild($pred);
 
-        $pred = $xml->createPredicate("aggr:count");
+        $pred = $xml->createPredicate("http://purl.org/ontology/aggregate#count");
         $object = $xml->createObjectContent($fcount);
         $pred->appendChild($object);
         $subject->appendChild($pred);
@@ -409,19 +472,20 @@ class Search extends WebService
         // If we have an inferred type, we use that count instead of the normal count.
         if(!isset($this->aggregates["type"][$ftype]))
         {
-          $subject = $xml->createSubject("aggr:Aggregate", $aggregatesUri . "/" . md5($ftype) . "/");
+          $subject = $xml->createSubject("http://purl.org/ontology/aggregate#Aggregate",
+            $aggregatesUri . "/" . md5($ftype) . "/");
 
-          $pred = $xml->createPredicate("aggr:property");
+          $pred = $xml->createPredicate("http://purl.org/ontology/aggregate#property");
           $object = $xml->createObject("", "http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
           $pred->appendChild($object);
           $subject->appendChild($pred);
 
-          $pred = $xml->createPredicate("aggr:object");
+          $pred = $xml->createPredicate("http://purl.org/ontology/aggregate#object");
           $object = $xml->createObject("", $ftype);
           $pred->appendChild($object);
           $subject->appendChild($pred);
 
-          $pred = $xml->createPredicate("aggr:count");
+          $pred = $xml->createPredicate("http://purl.org/ontology/aggregate#count");
           $object = $xml->createObjectContent($fcount);
           $pred->appendChild($object);
           $subject->appendChild($pred);
@@ -430,22 +494,26 @@ class Search extends WebService
         }
       }
 
-      // For each attributes, we re-introduce them in the aggregates
-      foreach($this->aggregates["attribute"] as $fattribute => $fcount)
+      // Dataset
+
+      $aggregatesUri = $this->uri . "aggregate/" . md5(microtime());
+
+      foreach($this->aggregates["dataset"] as $ftype => $fcount)
       {
-        $subject = $xml->createSubject("aggr:Aggregate", $aggregatesUri . "/" . md5($fattribute) . "/");
+        $subject =
+          $xml->createSubject("http://purl.org/ontology/aggregate#Aggregate", $aggregatesUri . "/" . md5($ftype) . "/");
 
-        $pred = $xml->createPredicate("aggr:property");
-        $object = $xml->createObject("", "http://www.w3.org/1999/02/22-rdf-syntax-ns#Property");
+        $pred = $xml->createPredicate("http://purl.org/ontology/aggregate#property");
+        $object = $xml->createObject("", "http://rdfs.org/ns/void#Dataset");
         $pred->appendChild($object);
         $subject->appendChild($pred);
 
-        $pred = $xml->createPredicate("aggr:object");
-        $object = $xml->createObject("", $fattribute);
+        $pred = $xml->createPredicate("http://purl.org/ontology/aggregate#object");
+        $object = $xml->createObject("", $ftype);
         $pred->appendChild($object);
         $subject->appendChild($pred);
 
-        $pred = $xml->createPredicate("aggr:count");
+        $pred = $xml->createPredicate("http://purl.org/ontology/aggregate#count");
         $object = $xml->createObjectContent($fcount);
         $pred->appendChild($object);
         $subject->appendChild($pred);
@@ -453,25 +521,27 @@ class Search extends WebService
         $resultset->appendChild($subject);
       }
 
-      // Dataset
+
+      // Attributes
 
       $aggregatesUri = $this->uri . "aggregate/" . md5(microtime());
 
-      foreach($this->aggregates["dataset"] as $ftype => $fcount)
+      foreach($this->aggregates["attributes"] as $ftype => $fcount)
       {
-        $subject = $xml->createSubject("aggr:Aggregate", $aggregatesUri . "/" . md5($ftype) . "/");
+        $subject =
+          $xml->createSubject("http://purl.org/ontology/aggregate#Aggregate", $aggregatesUri . "/" . md5($ftype) . "/");
 
-        $pred = $xml->createPredicate("aggr:property");
-        $object = $xml->createObject("", "http://rdfs.org/ns/void#Dataset");
+        $pred = $xml->createPredicate("http://purl.org/ontology/aggregate#property");
+        $object = $xml->createObject("", "http://www.w3.org/1999/02/22-rdf-syntax-ns#Property");
         $pred->appendChild($object);
         $subject->appendChild($pred);
 
-        $pred = $xml->createPredicate("aggr:object");
+        $pred = $xml->createPredicate("http://purl.org/ontology/aggregate#object");
         $object = $xml->createObject("", $ftype);
         $pred->appendChild($object);
         $subject->appendChild($pred);
 
-        $pred = $xml->createPredicate("aggr:count");
+        $pred = $xml->createPredicate("http://purl.org/ontology/aggregate#count");
         $object = $xml->createObjectContent($fcount);
         $pred->appendChild($object);
         $subject->appendChild($pred);
@@ -534,8 +604,7 @@ class Search extends WebService
     // If the query is still valid
     if($this->conneg->getStatus() == 200)
     {
-      // Check for errors
-      if($this->query == "")
+      if($this->items < 0 || $this->items > 128)
       {
         $this->conneg->setStatus(400);
         $this->conneg->setStatusMsg("Bad Request");
@@ -543,19 +612,6 @@ class Search extends WebService
         $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
           $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, "",
           $this->errorMessenger->_200->level);
-
-        return;
-      }
-
-      if($this->items < 0 || $this->items > 128)
-      {
-        $this->conneg->setStatus(400);
-        $this->conneg->setStatusMsg("Bad Request");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
-        $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, "",
-          $this->errorMessenger->_201->level);
-
         return;
       }
     }
@@ -650,17 +706,17 @@ class Search extends WebService
           $subjectURI = $xml->getURI($subject);
           $subjectType = $xml->getType($subject);
 
-          $ns1 = $this->getNamespace($subjectType);
+          $ns = $this->getNamespace($subjectType);
 
-          if(!isset($this->namespaces[$ns1[0]]))
+          if(!isset($this->namespaces[$ns[0]]))
           {
-            $this->namespaces[$ns1[0]] = "ns" . $nsId;
+            $this->namespaces[$ns[0]] = "ns" . $nsId;
             $nsId++;
           }
 
           $json_part .= "      { \n";
           $json_part .= "        \"uri\": \"" . parent::jsonEncode($subjectURI) . "\", \n";
-          $json_part .= "        \"type\": \"" . parent::jsonEncode($this->namespaces[$ns1[0]] . ":" . $ns1[1])
+          $json_part .= "        \"type\": \"" . parent::jsonEncode($this->namespaces[$ns[0]] . ":" . $ns[1])
             . "\", \n";
 
           $predicates = $xml->getPredicates($subject);
@@ -718,7 +774,7 @@ class Search extends WebService
                 $json_part .= "                \"uri\": \"" . parent::jsonEncode($objectURI) . "\",\n";
 
                 // Check if there is a reification statement for this object.
-                $reifies = $xml->getReificationStatementsByType($object, "wsf:objectLabel");
+                $reifies = $xml->getReificationStatements($object, "wsf:objectLabel");
 
                 $nbReification = 0;
 
@@ -749,7 +805,7 @@ class Search extends WebService
                   $json_part = substr($json_part, 0, strlen($json_part) - 2) . "\n";
                 }
 
-                $json_part .= "              } \n";
+                $json_part .= "                } \n";
                 $json_part .= "          },\n";
               }
             }
@@ -775,10 +831,11 @@ class Search extends WebService
 
         $json_header .= "  \"prefixes\": [ \n";
         $json_header .= "    {\n";
+        $json_header .= "      \"rdf\": \"http://www.w3.org/1999/02/22-rdf-syntax-ns#\",\n";
+        $json_header .= "      \"wsf\": \"http://purl.org/ontology/wsf#\",\n";
 
         foreach($this->namespaces as $ns => $prefix)
         {
-          $ns = urldecode($ns);
           $json_header .= "      \"$prefix\": \"$ns\",\n";
         }
 
@@ -869,7 +926,7 @@ class Search extends WebService
           }
 
           $rdf_part .= "\n    <" . $this->namespaces[$ns1[0]] . ":" . $ns1[1] . " rdf:about=\"".
-                                                                                  $this->xmlEncode($subjectURI)."\">\n";
+                                                                          $this->xmlEncode($subjectURI)."\">\n";
 
           $predicates = $xml->getPredicates($subject);
 
@@ -922,7 +979,6 @@ class Search extends WebService
 
         foreach($this->namespaces as $ns => $prefix)
         {
-          $ns = urldecode($ns);
           $rdf_header .= " xmlns:$prefix=\"$ns\"";
         }
 
@@ -1068,7 +1124,7 @@ class Search extends WebService
               foreach($reifies as $reify)
               {
                 $rdf_reification .= "<rdf:Statement rdf:about=\""
-                  . $this->xmlEncode(md5($xml->getURI($subject) . $predicateType . $xml->getURI($object))) . "\">\n";
+                  . md5($xml->getURI($subject) . $predicateType . $this->xmlEncode($xml->getURI($object))) . "\">\n";
                 $rdf_reification .= "    <rdf:subject rdf:resource=\"" . $this->xmlEncode($xml->getURI($subject)) . 
                                                                                                               "\" />\n";
                 $rdf_reification .= "    <rdf:predicate rdf:resource=\"" . $this->xmlEncode($predicateType) . "\" />\n";
@@ -1171,7 +1227,8 @@ class Search extends WebService
   }
 
 
-  /*!   @brief Send a search query to the search system
+  /*!   @brief   Send the search query to the system supporting this web service (usually Solr) 
+             and aggregate searched information
               
       \n
       
@@ -1189,7 +1246,6 @@ class Search extends WebService
       $solrQuery = "";
 
       // Get all datasets accessible to that user
-
       $accessibleDatasets = array();
 
       $ws_al = new AuthLister("access_user", "", $this->registered_ip, $this->wsf_local_ip);
@@ -1219,7 +1275,7 @@ class Search extends WebService
           array_push($accessibleDatasets, $datasetUri);
         }
       }
-
+      
       unset($ws_al);
       
       /*
@@ -1268,8 +1324,8 @@ class Search extends WebService
           datasets to include for the query.
         */ 
         $accessibleDatasets = array_intersect($accessibleDatasets, $accessibleDatasetsSystem);
-      }      
-      
+      }
+
       if(count($accessibleDatasets) <= 0)
       {
         $this->conneg->setStatus(400);
@@ -1278,124 +1334,47 @@ class Search extends WebService
         $this->conneg->setError($this->errorMessenger->_300->id, $this->errorMessenger->ws,
           $this->errorMessenger->_300->name, $this->errorMessenger->_300->description, "",
           $this->errorMessenger->_300->level);
-
         return;
       }
-
-      /* 
-        Check if characters of the Solr query language is used for this query. If some does, we *only* take
-        them to create the query.
-      */
-      $useLuceneSyntax = FALSE;
-      $specialChars = array('"', 'AND', 'OR', '?', '*', '~', '+', '-', 'NOT', '&&', '||', '!', '^');
       
-      foreach($specialChars as $char)
-      {
-        if(strpos($this->query, $char) !== FALSE)
+      $queryParam = "*:*";
+      
+      if($this->query != "")
+      {      
+        /* 
+          Check if characters of the Solr query language is used for this query. If some does, we *only* take
+          them to create the query.
+        */
+        $useLuceneSyntax = FALSE;
+        $specialChars = array('"', 'AND', 'OR', '?', '*', '~', '+', '-', 'NOT', '&&', '||', '!', '^');
+        
+        foreach($specialChars as $char)
         {
-          $useLuceneSyntax = TRUE;
-          break;          
+          if(strpos($this->query, $char) !== FALSE)
+          {
+            $useLuceneSyntax = TRUE;
+            break;          
+          }
         }
-      }
-      
-      
-      if($this->attributes == "all")
-      {
+        
         if(!$useLuceneSyntax)
         {
-          $solrQuery = "q=%22" . urlencode(implode(" +", explode(" ", $this->query))) . "%22~5&start=" . $this->page
-            . "&rows=" . $this->items
-            . (strtolower($this->includeAggregates) == "true" ? "&facet=true&facet.limit=-1&facet.field=type"
-            . (strtolower($this->inference) == "on" ? "&facet.field=inferred_type" : "")
-              . "&facet.field=dataset&facet.field=attribute&facet.mincount=1" : "");
+          $queryParam = "%22" . urlencode(implode(" +", explode(" ", $this->query))) . "%22~5";
         }
         else
         {
-          $solrQuery = "q=" . urlencode($this->query) . "&start=" . $this->page
-            . "&rows=" . $this->items
-            . (strtolower($this->includeAggregates) == "true" ? "&facet=true&facet.limit=-1&facet.field=type"
-            . (strtolower($this->inference) == "on" ? "&facet.field=inferred_type" : "")
-              . "&facet.field=dataset&facet.field=attribute&facet.mincount=1" : "");
-        }
+          $queryParam = urlencode($this->query);
+        }        
       }
-      else
-      {
-        // Lets include the information to facet per type.
-
-        $solrQuery = "q=";
-
-        $attributes = explode(";", $this->attributes);
-
-        foreach($attributes as $key => $attribute)
-        {
-          // Decoding potentially encoded ";" characters
-          $type = str_replace(array ("%3B", "%3b"), ";", $type);
-
-          if($key > 0)
-          {
-            $solrQuery .= " OR ";
-          }
-
-          // Transform URIs into internal Solr schema attribute
-          switch(urldecode($attribute))
-          {
-            case Namespaces::$iron . "prefLabel":
-              if(!$useLuceneSyntax)
-              {
-                $solrQuery .= "prefLabel:(" . urlencode(implode(" +", explode(" ", $this->query))) . ")";
-              }
-              else
-              {
-                $solrQuery .= "prefLabel:(" . urlencode($this->query) . ")";
-              }
-            break;
-
-            case Namespaces::$iron . "altLabel":
-              if(!$useLuceneSyntax)
-              {
-                $solrQuery .= "altLabel:(" . urlencode(implode(" +", explode(" ", $this->query))) . ")";
-              }
-              else
-              {
-                $solrQuery .= "altLabel:(" . urlencode($this->query) . ")";                
-              }
-            break;
-
-            case Namespaces::$iron . "description":
-              if(!$useLuceneSyntax)
-              {
-                $solrQuery .= "description:(" . urlencode(implode(" +", explode(" ", $this->query))) . ")";
-              }
-              else
-              {
-                $solrQuery .= "description:(" . urlencode($this->query) . ")";
-              }
-            break;
-
-            default:
-              if(!$useLuceneSyntax)
-              {
-                $solrQuery .= "" . urlencode($attribute) . "_attr:("
-                              . urlencode(implode(" +", explode(" ", $this->query))) . ")";
-              }
-              else
-              {
-                $solrQuery .= "" . urlencode($attribute) . "_attr:(" . urlencode($this->query) . ")";
-              }
-            break;
-          }
-        }
-
-        $solrQuery .= "&start=" . $this->page . "&rows=" . $this->items
-          . (strtolower($this->includeAggregates) == "true" ? "&facet=true&facet.limit=-1&facet.field=type"
-          . (strtolower($this->inference) == "on" ? "&facet.field=inferred_type" : "")
-            . "&facet.field=dataset&facet.field=attribute&facet.mincount=1" : "");
-      }
-
-      //echo "--- $solrQuery   ---";
+      
       if(strtolower($this->datasets) == "all")
       {
         $datasetList = "";
+
+        $solrQuery = "q=$queryParam&start=" . $this->page . "&rows=" . $this->items
+          . (strtolower($this->includeAggregates) == "true" ? "&facet=true&facet.limit=-1&facet.field=type" .
+          "&facet.field=attribute" . (strtolower($this->inference) == "on" ? "&facet.field=inferred_type" : "") . "&" .
+          "facet.field=dataset&facet.mincount=1" : "");
 
         foreach($accessibleDatasets as $key => $dataset)
         {
@@ -1412,6 +1391,11 @@ class Search extends WebService
       else
       {
         $datasets = explode(";", $this->datasets);
+
+        $solrQuery = "q=$queryParam&start=" . $this->page . "&rows=" . $this->items
+          . (strtolower($this->includeAggregates) == "true" ? "&facet=true&facet.limit=-1&facet.field=type" .
+          "&facet.field=attribute" . (strtolower($this->inference) == "on" ? "&facet.field=inferred_type" : "") . "&" .
+          "facet.field=dataset&facet.mincount=1" : "");
 
         $solrQuery .= "&fq=dataset:%22%22";
 
@@ -1459,6 +1443,232 @@ class Search extends WebService
         }
       }
 
+      if($this->attributes != "all")
+      {
+        // Lets include the information to facet per type.
+
+        $attributes = explode(";", $this->attributes);
+
+        $nbProcessed = 0;
+        
+        if(file_exists($this->fields_index_folder."fieldsIndex.srz"))
+        {
+          $indexedFields = unserialize(file_get_contents($this->fields_index_folder."fieldsIndex.srz"));
+        }
+        else
+        {
+          $indexedFields = array();
+        }
+
+        foreach($attributes as $attribute)
+        {
+          $attributeValue = explode("::", $attribute);
+          $attribute = urldecode($attributeValue[0]);
+
+          if(isset($attributeValue[1]) && $attributeValue[1] != "")
+          {
+            // Fix the reference to some of the core attributes
+            $coreAttr = FALSE;
+            switch($attribute)
+            {
+              case Namespaces::$iron."prefLabel":
+                $attribute = "prefLabel";
+                $coreAttr = TRUE;
+              break;
+              
+              case Namespaces::$iron."description":
+                $attribute = "description";
+                $coreAttr = TRUE;
+              break;
+              
+              case Namespaces::$geonames."lat":
+                $attribute = "lat";
+                $coreAttr = TRUE;
+              break;
+              
+              case Namespaces::$geonames."long":
+                $attribute = "long";
+                $coreAttr = TRUE;
+              break;
+              
+              case Namespaces::$rdf."type":
+                $attribute = "type";
+                $coreAttr = TRUE;
+              break;
+              
+              case Namespaces::$geonames."locatedIn":
+                $attribute = "located_in";
+                $coreAttr = TRUE;
+              break;
+            }            
+            
+            // A filtering value as been defined for this attribute.
+            $val = urldecode($attributeValue[1]);
+            
+            if($nbProcessed == 0)
+            {
+              if($coreAttr)
+              {
+                $solrQuery .= "&fq=(".urlencode(urlencode($attribute)).":".urlencode($val).")";
+              }
+              else
+              {
+                $solrQuery .= "&fq=(";
+                
+                $addOR = FALSE;
+                
+                // We have to detect if the fields are existing in Solr, otherwise Solr will throw
+                // "undefined fields" errors, and there is no way to ignore them and process
+                // the query anyway.
+                if(array_search(urlencode($attribute), $indexedFields) !== FALSE)
+                {
+                  $solrQuery .= "(".urlencode(urlencode($attribute)).":".urlencode($val).")";  
+                  $addOR = TRUE;
+                }
+
+                if(array_search(urlencode($attribute."_attr"), $indexedFields) !== FALSE)
+                {
+                  if($addOR)
+                  {
+                    $solrQuery .= " OR ";
+                  }
+                  
+                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr:".urlencode($val).")";
+                  $addOR = TRUE;
+                }
+
+                if(array_search(urlencode($attribute."_attr_obj"), $indexedFields) !== FALSE)
+                {
+                  if($addOR)
+                  {
+                    $solrQuery .= " OR ";
+                  }
+                  
+                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj:".urlencode($val).")";
+                  $addOR = TRUE;
+                }
+                
+                $solrQuery .= ")";
+              }
+            }
+            else
+            {
+              if($coreAttr)
+              {
+                $solrQuery .= " AND (".urlencode(urlencode($attribute)).":".urlencode($val).")";
+              }
+              else
+              {
+                $solrQuery .= " AND (";
+                
+                $addOR = FALSE;
+                
+                // We have to detect if the fields are existing in Solr, otherwise Solr will throw
+                // "undefined fields" errors, and there is no way to ignore them and process
+                // the query anyway.
+                if(array_search(urlencode($attribute), $indexedFields) !== FALSE)
+                {
+                  $solrQuery .= "(".urlencode(urlencode($attribute)).":".urlencode($val).")";
+                  $addOR = TRUE;
+                }
+
+                if(array_search(urlencode($attribute."_attr"), $indexedFields) !== FALSE)
+                {
+                  if($addOR)
+                  {
+                    $solrQuery .= " OR ";
+                  }
+                  
+                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr:".urlencode($val).")";
+                  $addOR = TRUE;
+                }
+
+                if(array_search(urlencode($attribute."_attr_obj"), $indexedFields) !== FALSE)
+                {
+                  if($addOR)
+                  {
+                    $solrQuery .= " OR ";
+                  }
+                  
+                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj:".urlencode($val).")";
+                  $addOR = TRUE;
+                }
+                
+                $solrQuery .= ")";                
+              }
+            }            
+          }
+          else
+          {
+            if($nbProcessed == 0)
+            {
+              $solrQuery .= "&fq=(attribute:%22" . urlencode($attribute) . "%22)";
+            }
+            else
+            {
+              $solrQuery .= " AND (attribute:%22" . urlencode($attribute) . "%22)";
+            }
+          }
+
+          $nbProcessed++;
+        }
+      }
+      
+      // Check if this query is geo-enabled and if a distance-filter is requested
+      if($this->geoEnabled && $this->distanceFilter != "")
+      {
+        /*
+          $params[0] == latitude
+          $params[1] == longitude
+          $params[2] == distance
+          $params[3] == (0) distance in kilometers, (1) distance in miles
+        */
+        $params = explode(";", $this->distanceFilter);
+        
+        $earthRadius = 6371;
+        
+        if($params[3] == 1)
+        {
+          $earthRadius = 3963.205;
+        }
+        
+        $solrQuery .= "&fq={!frange l=0 u=".$params[2]."}hsin(".$params[0].",".$params[1].
+                      " , lat_rad, long_rad, ".$earthRadius.")";
+      }
+      
+      // Check if this query is geo-enabled and if a range-filter is requested
+      if($this->geoEnabled && $this->rangeFilter != "")
+      {
+        /*
+          $params[0] == latitude top-left
+          $params[1] == longitude top-left
+          $params[2] == latitude bottom-right
+          $params[3] == longitude bottom-right
+        */
+        $params = explode(";", $this->rangeFilter);
+        
+        // Make sure the ranges are respected according to the way the cartesian coordinate
+        // system works.
+        $p1 = $params[0];
+        $p2 = $params[2];
+        $p3 = $params[1];
+        $p4 = $params[3];
+        
+        if($params[0] > $params[2])
+        {
+          $p1 = $params[2];
+          $p2 = $params[0];
+        }
+        
+        if($params[1] > $params[3])
+        {
+          $p3 = $params[3];
+          $p4 = $params[1];
+        }
+        
+        $solrQuery .= "&fq=lat:[".$p1." TO ".$p2."]&fq=long:[".$p3." TO ".$p4."]";
+      }
+
       $resultset = $solr->select($solrQuery);
 
       $domResultset = new DomDocument("1.0", "utf-8");
@@ -1479,22 +1689,12 @@ class Search extends WebService
       $founds = $xpath->query("//*/lst[@name='facet_fields']//lst[@name='type']/int");
 
       // Get types counts
+
       $this->aggregates["type"] = array();
 
       foreach($founds as $found)
       {
         $this->aggregates["type"][$found->attributes->getNamedItem("name")->nodeValue] = $found->nodeValue;
-      }
-
-      // Get all the "attribute" facets with their counts
-      $founds = $xpath->query("//*/lst[@name='facet_fields']//lst[@name='attribute']/int");
-
-      // Get attributes counts
-      $this->aggregates["attribute"] = array();
-
-      foreach($founds as $found)
-      {
-        $this->aggregates["attribute"][$found->attributes->getNamedItem("name")->nodeValue] = $found->nodeValue;
       }
 
       // Get inferred types counts
@@ -1523,6 +1723,18 @@ class Search extends WebService
         $this->aggregates["dataset"][$found->attributes->getNamedItem("name")->nodeValue] = $found->nodeValue;
       }
 
+
+      // Get all the "property" and "object_property" facets with their counts
+      $founds = $xpath->query("//*/lst[@name='facet_fields']//lst[@name='attribute']/int");
+
+      $this->aggregates["attributes"] = array();
+
+      foreach($founds as $found)
+      {
+        $this->aggregates["attributes"][$found->attributes->getNamedItem("name")->nodeValue] = $found->nodeValue;
+      }
+
+
       // Get all the results
 
       $resultsDom = $xpath->query("//doc");
@@ -1534,11 +1746,10 @@ class Search extends WebService
 
         $uri = "";
 
-        foreach($resultURI as $u)
+        if($resultURI->length > 0)
         {
-          $uri = $u->nodeValue;
+          $uri = $resultURI->item(0)->nodeValue;
           $this->resultset[$uri] = array();
-          break;
         }
 
         // get Dataset URI
@@ -1546,25 +1757,35 @@ class Search extends WebService
 
         $datasetUri = "";
 
-        foreach($resultDatasetURI as $u)
+        if($resultDatasetURI->length > 0)
         {
-          $this->resultset[$uri]["dataset"] = $u->nodeValue;
-          break;
+          $this->resultset[$uri]["dataset"] = $resultDatasetURI->item(0)->nodeValue;
+          $datasetUri = $resultDatasetURI->item(0)->nodeValue;
         }
 
-
         // get records preferred label
-        $resultPrefLabelURI = $xpath->query("arr[@name='prefLabel']", $result);
+        $resultPrefLabelURI = $xpath->query("arr[@name='prefLabel']/str", $result);
 
-        foreach($resultPrefLabelURI as $u)
+        if($resultPrefLabelURI->length > 0)
         {
-          $this->resultset[$uri]["prefLabel"] = $u->nodeValue;
-          break;
+          $this->resultset[$uri]["prefLabel"] = $resultPrefLabelURI->item(0)->nodeValue;
         }
 
         // get records aternative labels
-        $resultAltLabelURI = $xpath->query("arr[@name='altLabel']", $result);
+        $resultAltLabelURI = $xpath->query("arr[@name='altLabel']/str", $result);
 
+        for($i = 0; $i < $resultAltLabelURI->length; ++$i) 
+        {
+          if(!isset($this->resultset[$uri]["altLabel"]))
+          {
+            $this->resultset[$uri]["altLabel"] = array($resultAltLabelURI->item($i)->nodeValue );
+          }
+          else
+          {
+            array_push($this->resultset[$uri]["altLabel"], $resultAltLabelURI->item($i)->nodeValue);
+          }          
+        }        
+        
         foreach($resultAltLabelURI as $u)
         {
           if(!isset($this->resultset[$uri]["altLabel"]))
@@ -1576,15 +1797,56 @@ class Search extends WebService
             array_push($this->resultset[$uri]["altLabel"], $u->nodeValue);
           }
         }
-
-        // get records description
-        $resultDescriptionURI = $xpath->query("arr[@name='description']", $result);
-
-        foreach($resultDescriptionURI as $u)
+        
+        // Get possible Lat/Long
+        if($this->geoEnabled && ($this->rangeFilter != "" || $this->distanceFilter != ""))
         {
-          $this->resultset[$uri]["description"] = $u->nodeValue;
+          // First check if there is a polygonCoordinates pr a polylineCoordinates attribute for that record
+          // If there is one, then we simply ignore the lat/long coordinates since they come from these
+          // attributes and that we don't want to duplicate that information.
+          $skipLatLong == FALSE;
+          
+          $resultPolygonCoordinates = $xpath->query("arr[@name='polygonCoordinates']/str", $result);
+          
+          if($resultPolygonCoordinates->length > 0)
+          {
+            $this->resultset[$uri][Namespaces::$sco."polygonCoordinates"] = array($resultPolygonCoordinates->item(0)->nodeValue);
+            $skipLatLong = TRUE;
+          }
+          
+          $resultPolylineCoordinates = $xpath->query("arr[@name='polylineCoordinates']/str", $result);
+          
+          if($resultPolylineCoordinates->length > 0)
+          {
+            $this->resultset[$uri][Namespaces::$sco."polylineCoordinates"] = array($resultPolylineCoordinates->item(0)->nodeValue);
+            $skipLatLong = TRUE;
+          }          
+          
+          if(!$skipLatLong)
+          {
+            $resultDescriptionLat = $xpath->query("arr[@name='lat']/double", $result);
+
+            if($resultDescriptionLat->length > 0)
+            {
+              $this->resultset[$uri][Namespaces::$geo."lat"] = array($resultDescriptionLat->item(0)->nodeValue);
+            }
+
+            $resultDescriptionLong = $xpath->query("arr[@name='long']/double", $result);
+
+            if($resultDescriptionLong->length > 0)
+            {
+              $this->resultset[$uri][Namespaces::$geo."long"] = array($resultDescriptionLong->item(0)->nodeValue);
+            }
+          }
         }
 
+        // get records description
+        $resultDescriptionURI = $xpath->query("arr[@name='description']/str", $result);
+
+        if($resultDescriptionURI->length > 0)
+        {
+          $this->resultset[$uri]["description"] = $resultDescriptionURI->item(0)->nodeValue;
+        }
 
         // Get all dynamic fields attributes.
         $resultProperties = $xpath->query("arr", $result);
@@ -1667,98 +1929,20 @@ class Search extends WebService
           }
         }
 
-        /*                  
-                // get result property          
-                $resultProperties = $xpath->query("arr[@name='property']/str", $result);
-                
-                $tempProperties = array();
-                
-                foreach($resultProperties as $property)
-                {
-                  array_push($tempProperties, $property->nodeValue);
-                }
-        
-                // get result property text        
-                $resultTextes = $xpath->query("arr[@name='text']/str", $result);
-                
-                foreach($resultTextes as $key => $text)
-                {
-                  if($text->nodeValue != "-")
-                  {
-                    if(!isset($this->resultset[$uri][$tempProperties[$key]]))
-                    {
-                      $this->resultset[$uri][$tempProperties[$key]] = array($text->nodeValue);
-                    }
-                    else
-                    {
-                      array_push($this->resultset[$uri][$tempProperties[$key]], $text->nodeValue);
-                    }
-                  }
-                }
-                
-                // get result object_property          
-                $resultProperties = $xpath->query("arr[@name='object_property']/str", $result);
-                
-                $tempProperties = array();
-                
-                foreach($resultProperties as $property)
-                {
-                  if($property->nodeValue != "-")
-                  {
-                    array_push($tempProperties, $property->nodeValue);
-                  }
-                }
-        
-                // get result object_property label        
-                $resultTextes = $xpath->query("arr[@name='object_label']/str", $result);
-                
-                foreach($resultTextes as $key => $text)
-                {
-                  if($text->nodeValue != "-")
-                  {
-                    if(!isset($this->resultsetObjectProperties[$uri][$tempProperties[$key]]))
-                    {
-                      $this->resultsetObjectProperties[$uri][$tempProperties[$key]] = array($text->nodeValue);
-                    }
-                    else
-                    {
-                      array_push($this->resultsetObjectProperties[$uri][$tempProperties[$key]], $text->nodeValue);
-                    }
-                  }
-                }            
-                
-                // get result object_property label        
-                $resultTextes = $xpath->query("arr[@name='object_uri']/str", $result);
-                
-                foreach($resultTextes as $key => $text)
-                {
-                  if($text->nodeValue != "-")
-                  {
-                    if(!isset($this->resultsetObjectPropertiesUris[$uri][$tempProperties[$key]]))
-                    {
-                      $this->resultsetObjectPropertiesUris[$uri][$tempProperties[$key]] = array($text->nodeValue);
-                    }
-                    else
-                    {
-                      array_push($this->resultsetObjectPropertiesUris[$uri][$tempProperties[$key]], $text->nodeValue);
-                    }
-                  }
-                }      
-        */
         // Get the first type of the resource.
         $resultTypes = $xpath->query("arr[@name='type']/str", $result);
 
-        foreach($resultTypes as $t)
+        for($i = 0; $i < $resultTypes->length; ++$i) 
         {
-          if($t->nodeValue != "-")
+          if($resultTypes->item($i)->nodeValue != "-")
           {
             if(!isset($this->resultset[$uri]["type"]))
             {
-              $this->resultset[$uri]["type"] = array( $t->nodeValue );
+              $this->resultset[$uri]["type"] = array( $resultTypes->item($i)->nodeValue );
             }
             else
             {
-              array_push($this->resultset[$uri]["type"], $t->nodeValue);
+              array_push($this->resultset[$uri]["type"], $resultTypes->item($i)->nodeValue);
             }
           }
         }

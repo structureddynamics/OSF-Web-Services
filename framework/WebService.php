@@ -105,6 +105,12 @@ abstract class WebService
  *         operation such as delete could take much time.      
  */
   protected $solr_auto_commit = FALSE;
+  
+  /*! @brief This is the folder there the file of the index where all the fields defined in Solr
+   *          are indexed. You have to make sure that the web server has write access to this folder.
+   *          This folder path has to end with a slash "/".
+   */
+  protected $fields_index_folder = "/tmp/";
 
   /*! @brief The URI of the Authentication Registrar web service */
   protected $uri;
@@ -117,6 +123,7 @@ abstract class WebService
 
   /*! @brief The endpoint of the Authentication Registrar web service */
   protected $endpoint;
+  protected $geoEnabled = FALSE;
 
   function __construct()
   {
@@ -265,21 +272,21 @@ abstract class WebService
     
     if(isset($network_ini["tracking"]["track_create"]))
     {
-      if(strtolower($network_ini["tracking"]["track_create"]) == "true" || $data_ini["tracking"]["track_create"] == "1")
+      if(strtolower($network_ini["tracking"]["track_create"]) == "true" || $network_ini["tracking"]["track_create"] == "1")
       {
         $this->track_create = TRUE;
       }
     }
     if(isset($network_ini["tracking"]["track_update"]))
     {
-      if(strtolower($network_ini["tracking"]["track_update"]) == "true" || $data_ini["tracking"]["track_update"] == "1")
+      if(strtolower($network_ini["tracking"]["track_update"]) == "true" || $network_ini["tracking"]["track_update"] == "1")
       {
         $this->track_update = TRUE;
       }
     }
     if(isset($network_ini["tracking"]["track_delete"]))
     {
-      if(strtolower($network_ini["tracking"]["track_delete"]) == "true" || $data_ini["tracking"]["track_delete"] == "1")
+      if(strtolower($network_ini["tracking"]["track_delete"]) == "true" || $network_ini["tracking"]["track_delete"] == "1")
       {
         $this->track_delete = TRUE;
       }
@@ -288,6 +295,14 @@ abstract class WebService
     {
       $this->tracking_endpoint = $network_ini["tracking"]["tracking_endpoint"];
     } 
+    
+    if(isset($network_ini["geo"]["geoenabled"]))
+    {
+      if(strtolower($network_ini["geo"]["geoenabled"]) == "true" || $network_ini["geo"]["geoenabled"] == "1")
+      {
+        $this->geoEnabled = TRUE;
+      }      
+    }   
     
     if(isset($data_ini["solr"]["wsf_solr_core"]))
     {
@@ -315,7 +330,10 @@ abstract class WebService
     {
       $this->solr_port = $data_ini["solr"]["port"];
     }
-
+    if(isset($data_ini["solr"]["fields_index_folder"]))
+    {
+      $this->fields_index_folder = $data_ini["solr"]["fields_index_folder"];
+    }
     if(strtolower($data_ini["solr"]["solr_auto_commit"]) == "true" || $data_ini["solr"]["solr_auto_commit"] == "1")
     {
       $this->solr_auto_commit = TRUE;

@@ -315,113 +315,120 @@ class Search extends WebService
 
     $subject;
 
-    foreach($this->resultset as $uri => $result)
+    foreach($this->resultset as $datasetUri => $results)
     {
-      // Assigning types
-      if(isset($result["type"]))
+      foreach($results as $uri => $result)
       {
-        foreach($result["type"] as $key => $type)
+        // Assigning types
+        if(isset($result["type"]))
         {
-          if($key > 0)
+          foreach($result["type"] as $key => $type)
           {
-            if(array_search($type, $this->resultsetObjectPropertiesUris[$uri]["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"]) === FALSE)
+            if($key > 0)
             {
-              $pred = $xml->createPredicate("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
-              $object = $xml->createObject("", $type);
-              $pred->appendChild($object);
-              $subject->appendChild($pred);
+              if(array_search($type, $this->resultsetObjectPropertiesUris[$uri]["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"]) === FALSE)
+              {
+                $pred = $xml->createPredicate("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
+                $object = $xml->createObject("", $type);
+                $pred->appendChild($object);
+                $subject->appendChild($pred);
+              }
+            }
+            else
+            {
+              $subject = $xml->createSubject($type, $uri);
             }
           }
-          else
-          {
-            $subject = $xml->createSubject($type, $uri);
-          }
         }
-      }
-      else
-      {
-        $subject = $xml->createSubject("http://www.w3.org/2002/07/owl#Thing", $this->resourceUri);
-      }
-
-      // Assigning the Dataset relationship
-      if(isset($result["dataset"]))
-      {
-        $pred = $xml->createPredicate("http://purl.org/dc/terms/isPartOf");
-        $object = $xml->createObject("http://rdfs.org/ns/void#Dataset", $result["dataset"]);
-        $pred->appendChild($object);
-        $subject->appendChild($pred);
-      }
-
-      // Assigning the preferred label relationship
-      if(isset($result["prefLabel"]))
-      {
-        $pred = $xml->createPredicate(Namespaces::$iron . "prefLabel");
-        $object = $xml->createObjectContent($result["prefLabel"]);
-        $pred->appendChild($object);
-        $subject->appendChild($pred);
-      }
-
-      // Assigning the alternative label relationship
-      if(isset($result["altLabel"]))
-      {
-        foreach($result["altLabel"] as $altLabel)
+        else
         {
-          $pred = $xml->createPredicate(Namespaces::$iron . "altLabel");
-          $object = $xml->createObjectContent($altLabel);
+          $subject = $xml->createSubject("http://www.w3.org/2002/07/owl#Thing", $this->resourceUri);
+        }
+
+        // Assigning the Dataset relationship
+        if(isset($result["dataset"]))
+        {
+          $pred = $xml->createPredicate("http://purl.org/dc/terms/isPartOf");
+          $object = $xml->createObject("http://rdfs.org/ns/void#Dataset", $result["dataset"]);
           $pred->appendChild($object);
           $subject->appendChild($pred);
         }
-      }
 
-      // Assigning the description relationship
-      if(isset($result["description"]))
-      {
-        $pred = $xml->createPredicate(Namespaces::$iron . "description");
-        $object = $xml->createObjectContent($result["description"]);
-        $pred->appendChild($object);
-        $subject->appendChild($pred);
-      }
-
-
-      // Assigning the Properties -> Literal relationships
-      foreach($result as $property => $values)
-      {
-        if($property != "type" && $property != "dataset")
+        // Assigning the preferred label relationship
+        if(isset($result["prefLabel"]))
         {
-          foreach($values as $value)
+          $pred = $xml->createPredicate(Namespaces::$iron . "prefLabel");
+          $object = $xml->createObjectContent($result["prefLabel"][0]);
+          $pred->appendChild($object);
+          $subject->appendChild($pred);
+        }
+
+        // Assigning the alternative label relationship
+        if(isset($result["altLabel"]))
+        {
+          foreach($result["altLabel"] as $altLabel)
           {
-            $pred = $xml->createPredicate($property);
-            $object = $xml->createObjectContent($value);
+            $pred = $xml->createPredicate(Namespaces::$iron . "altLabel");
+            $object = $xml->createObjectContent($altLabel);
             $pred->appendChild($object);
             $subject->appendChild($pred);
           }
         }
-      }
 
-      // Assigning object properties
-      if(isset($this->resultsetObjectProperties[$uri]))
-      {
-        foreach($this->resultsetObjectProperties[$uri] as $property => $values)
+        // Assigning the description relationship
+        if(isset($result["description"]))
         {
-          if($property != "type" && $property != "dataset")
+          $pred = $xml->createPredicate(Namespaces::$iron . "description");
+          $object = $xml->createObjectContent($result["description"]);
+          $pred->appendChild($object);
+          $subject->appendChild($pred);
+        }
+
+
+        // Assigning the Properties -> Literal relationships
+        foreach($result as $property => $values)
+        {
+          if($property != "type" && $property != "dataset" &&
+             $property != "prefLabel" && $property != "altLabel" &&
+             $property != "description")
           {
-            foreach($values as $key => $value)
+            foreach($values as $value)
             {
               $pred = $xml->createPredicate($property);
-
-              $object = $xml->createObject("", $this->resultsetObjectPropertiesUris[$uri][$property][$key], "");
+              $object = $xml->createObjectContent($value);
               $pred->appendChild($object);
-
-              $reify = $xml->createReificationStatement("wsf:objectLabel", $value);
-              $object->appendChild($reify);
-
               $subject->appendChild($pred);
             }
           }
         }
-      }
 
-      $resultset->appendChild($subject);
+        // Assigning object properties
+        if(isset($this->resultsetObjectProperties[$uri]))
+        {
+          foreach($this->resultsetObjectProperties[$uri] as $property => $values)
+          {
+            if($property != "type" && $property != "dataset" &&
+               $property != "prefLabel" && $property != "altLabel" &&
+               $property != "description")
+            {
+              foreach($values as $key => $value)
+              {
+                $pred = $xml->createPredicate($property);
+
+                $object = $xml->createObject("", $this->resultsetObjectPropertiesUris[$uri][$property][$key], "");
+                $pred->appendChild($object);
+
+                $reify = $xml->createReificationStatement("wsf:objectLabel", $value);
+                $object->appendChild($reify);
+
+                $subject->appendChild($pred);
+              }
+            }
+          }
+        }
+
+        $resultset->appendChild($subject);
+      }
     }
 
 
@@ -693,6 +700,7 @@ class Search extends WebService
     switch($this->conneg->getMime())
     {
       case "application/json":
+      
         $json_part = "";
         $xml = new ProcessorXML();
         $xml->loadXML($this->pipeline_getResultset());
@@ -708,7 +716,7 @@ class Search extends WebService
 
           $ns = $this->getNamespace($subjectType);
 
-          if(!isset($this->namespaces[$ns[0]]))
+          if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
           {
             $this->namespaces[$ns[0]] = "ns" . $nsId;
             $nsId++;
@@ -717,7 +725,7 @@ class Search extends WebService
           $json_part .= "      { \n";
           $json_part .= "        \"uri\": \"" . parent::jsonEncode($subjectURI) . "\", \n";
           $json_part .= "        \"type\": \"" . parent::jsonEncode($this->namespaces[$ns[0]] . ":" . $ns[1])
-            . "\", \n";
+            . "\",\n";
 
           $predicates = $xml->getPredicates($subject);
 
@@ -745,7 +753,7 @@ class Search extends WebService
 
                 $ns = $this->getNamespace($predicateType);
 
-                if(!isset($this->namespaces[$ns[0]]))
+                if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
                 {
                   $this->namespaces[$ns[0]] = "ns" . $nsId;
                   $nsId++;
@@ -762,7 +770,7 @@ class Search extends WebService
 
                 $ns = $this->getNamespace($predicateType);
 
-                if(!isset($this->namespaces[$ns[0]]))
+                if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
                 {
                   $this->namespaces[$ns[0]] = "ns" . $nsId;
                   $nsId++;
@@ -829,7 +837,7 @@ class Search extends WebService
           $json_part = substr($json_part, 0, strlen($json_part) - 2) . "\n";
         }
 
-        $json_header .= "  \"prefixes\": [ \n";
+        $json_header .= "  \"prefixes\": \n";
         $json_header .= "    {\n";
         $json_header .= "      \"rdf\": \"http://www.w3.org/1999/02/22-rdf-syntax-ns#\",\n";
         $json_header .= "      \"wsf\": \"http://purl.org/ontology/wsf#\",\n";
@@ -844,8 +852,7 @@ class Search extends WebService
           $json_header = substr($json_header, 0, strlen($json_header) - 2) . "\n";
         }
 
-        $json_header .= "    } \n";
-        $json_header .= "  ],\n";
+        $json_header .= "    }, \n";
         $json_header .= "  \"resultset\": {\n";
         $json_header .= "    \"subject\": [\n";
         $json_header .= $json_part;
@@ -919,7 +926,7 @@ class Search extends WebService
 
           $ns1 = $this->getNamespace($subjectType);
 
-          if(!isset($this->namespaces[$ns1[0]]))
+          if($ns !== FALSE && !isset($this->namespaces[$ns1[0]]))
           {
             $this->namespaces[$ns1[0]] = "ns" . $nsId;
             $nsId++;
@@ -945,7 +952,7 @@ class Search extends WebService
 
                 $ns = $this->getNamespace($predicateType);
 
-                if(!isset($this->namespaces[$ns[0]]))
+                if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
                 {
                   $this->namespaces[$ns[0]] = "ns" . $nsId;
                   $nsId++;
@@ -960,7 +967,7 @@ class Search extends WebService
 
                 $ns = $this->getNamespace($predicateType);
 
-                if(!isset($this->namespaces[$ns[0]]))
+                if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
                 {
                   $this->namespaces[$ns[0]] = "ns" . $nsId;
                   $nsId++;
@@ -1476,6 +1483,11 @@ class Search extends WebService
                 $coreAttr = TRUE;
               break;
               
+              case Namespaces::$iron."altLabel":
+                $attribute = "altLabel";
+                $coreAttr = TRUE;
+              break;
+              
               case Namespaces::$iron."description":
                 $attribute = "description";
                 $coreAttr = TRUE;
@@ -1668,7 +1680,7 @@ class Search extends WebService
         
         $solrQuery .= "&fq=lat:[".$p1." TO ".$p2."]&fq=long:[".$p3." TO ".$p4."]";
       }
-
+     
       $resultset = $solr->select($solrQuery);
 
       $domResultset = new DomDocument("1.0", "utf-8");
@@ -1741,6 +1753,16 @@ class Search extends WebService
 
       foreach($resultsDom as $result)
       {
+        // get Dataset URI
+        $resultDatasetURI = $xpath->query("arr[@name='dataset']/str", $result);
+
+        $datasetUri = "";
+
+        if($resultDatasetURI->length > 0)
+        {
+          $datasetUri = $resultDatasetURI->item(0)->nodeValue;
+        }        
+        
         // get URI
         $resultURI = $xpath->query("arr[@name='uri']/str", $result);
 
@@ -1749,18 +1771,8 @@ class Search extends WebService
         if($resultURI->length > 0)
         {
           $uri = $resultURI->item(0)->nodeValue;
-          $this->resultset[$uri] = array();
-        }
-
-        // get Dataset URI
-        $resultDatasetURI = $xpath->query("arr[@name='dataset']/str", $result);
-
-        $datasetUri = "";
-
-        if($resultDatasetURI->length > 0)
-        {
-          $this->resultset[$uri]["dataset"] = $resultDatasetURI->item(0)->nodeValue;
-          $datasetUri = $resultDatasetURI->item(0)->nodeValue;
+          $this->resultset[$datasetUri][$uri] = array();
+          $this->resultset[$datasetUri][$uri]["dataset"] = $datasetUri;
         }
 
         // get records preferred label
@@ -1768,35 +1780,24 @@ class Search extends WebService
 
         if($resultPrefLabelURI->length > 0)
         {
-          $this->resultset[$uri]["prefLabel"] = $resultPrefLabelURI->item(0)->nodeValue;
+          $this->resultset[$datasetUri][$uri]["prefLabel"] = array($resultPrefLabelURI->item(0)->nodeValue);
         }
 
         // get records aternative labels
+        
         $resultAltLabelURI = $xpath->query("arr[@name='altLabel']/str", $result);
 
         for($i = 0; $i < $resultAltLabelURI->length; ++$i) 
         {
-          if(!isset($this->resultset[$uri]["altLabel"]))
+          if(!isset($this->resultset[$datasetUri][$uri]["altLabel"]))
           {
-            $this->resultset[$uri]["altLabel"] = array($resultAltLabelURI->item($i)->nodeValue );
+            $this->resultset[$datasetUri][$uri]["altLabel"] = array($resultAltLabelURI->item($i)->nodeValue );
           }
           else
           {
-            array_push($this->resultset[$uri]["altLabel"], $resultAltLabelURI->item($i)->nodeValue);
+            array_push($this->resultset[$datasetUri][$uri]["altLabel"], $resultAltLabelURI->item($i)->nodeValue);
           }          
         }        
-        
-        foreach($resultAltLabelURI as $u)
-        {
-          if(!isset($this->resultset[$uri]["altLabel"]))
-          {
-            $this->resultset[$uri]["altLabel"] = array( $u->nodeValue );
-          }
-          else
-          {
-            array_push($this->resultset[$uri]["altLabel"], $u->nodeValue);
-          }
-        }
         
         // Get possible Lat/Long
         if($this->geoEnabled && ($this->rangeFilter != "" || $this->distanceFilter != ""))
@@ -1810,7 +1811,7 @@ class Search extends WebService
           
           if($resultPolygonCoordinates->length > 0)
           {
-            $this->resultset[$uri][Namespaces::$sco."polygonCoordinates"] = array($resultPolygonCoordinates->item(0)->nodeValue);
+            $this->resultset[$datasetUri][$uri][Namespaces::$sco."polygonCoordinates"] = array($resultPolygonCoordinates->item(0)->nodeValue);
             $skipLatLong = TRUE;
           }
           
@@ -1818,7 +1819,7 @@ class Search extends WebService
           
           if($resultPolylineCoordinates->length > 0)
           {
-            $this->resultset[$uri][Namespaces::$sco."polylineCoordinates"] = array($resultPolylineCoordinates->item(0)->nodeValue);
+            $this->resultset[$datasetUri][$uri][Namespaces::$sco."polylineCoordinates"] = array($resultPolylineCoordinates->item(0)->nodeValue);
             $skipLatLong = TRUE;
           }          
           
@@ -1828,14 +1829,14 @@ class Search extends WebService
 
             if($resultDescriptionLat->length > 0)
             {
-              $this->resultset[$uri][Namespaces::$geo."lat"] = array($resultDescriptionLat->item(0)->nodeValue);
+              $this->resultset[$datasetUri][$uri][Namespaces::$geo."lat"] = array($resultDescriptionLat->item(0)->nodeValue);
             }
 
             $resultDescriptionLong = $xpath->query("arr[@name='long']/double", $result);
 
             if($resultDescriptionLong->length > 0)
             {
-              $this->resultset[$uri][Namespaces::$geo."long"] = array($resultDescriptionLong->item(0)->nodeValue);
+              $this->resultset[$datasetUri][$uri][Namespaces::$geo."long"] = array($resultDescriptionLong->item(0)->nodeValue);
             }
           }
         }
@@ -1845,7 +1846,7 @@ class Search extends WebService
 
         if($resultDescriptionURI->length > 0)
         {
-          $this->resultset[$uri]["description"] = $resultDescriptionURI->item(0)->nodeValue;
+          $this->resultset[$datasetUri][$uri]["description"] = $resultDescriptionURI->item(0)->nodeValue;
         }
 
         // Get all dynamic fields attributes.
@@ -1879,13 +1880,13 @@ class Search extends WebService
 
               foreach($values as $value)
               {
-                if(!isset($this->resultset[$uri][$attributeURI]))
+                if(!isset($this->resultset[$datasetUri][$uri][$attributeURI]))
                 {
-                  $this->resultset[$uri][$attributeURI] = array( $value->nodeValue );
+                  $this->resultset[$datasetUri][$uri][$attributeURI] = array( $value->nodeValue );
                 }
                 else
                 {
-                  array_push($this->resultset[$uri][$attributeURI], $value->nodeValue);
+                  array_push($this->resultset[$datasetUri][$uri][$attributeURI], $value->nodeValue);
                 }
               }
             break;
@@ -1936,13 +1937,13 @@ class Search extends WebService
         {
           if($resultTypes->item($i)->nodeValue != "-")
           {
-            if(!isset($this->resultset[$uri]["type"]))
+            if(!isset($this->resultset[$datasetUri][$uri]["type"]))
             {
-              $this->resultset[$uri]["type"] = array( $resultTypes->item($i)->nodeValue );
+              $this->resultset[$datasetUri][$uri]["type"] = array( $resultTypes->item($i)->nodeValue );
             }
             else
             {
-              array_push($this->resultset[$uri]["type"], $resultTypes->item($i)->nodeValue);
+              array_push($this->resultset[$datasetUri][$uri]["type"], $resultTypes->item($i)->nodeValue);
             }
           }
         }

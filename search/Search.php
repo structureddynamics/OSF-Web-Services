@@ -312,6 +312,8 @@ class Search extends WebService
     $resultset->appendChild($dcterms);
     $dcterms = $xml->createPrefix("wsf", "http://purl.org/ontology/wsf#");
     $resultset->appendChild($dcterms);
+    $dcterms = $xml->createPrefix("aggr", "http://purl.org/ontology/aggregate#");
+    $resultset->appendChild($dcterms);
 
     $subject;
 

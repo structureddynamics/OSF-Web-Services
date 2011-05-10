@@ -52,7 +52,10 @@ class DatasetRead extends WebService
   /*! @brief Namespaces/Prefixes binding */
   private $namespaces =
     array ("http://www.w3.org/2002/07/owl#" => "owl", "http://www.w3.org/1999/02/22-rdf-syntax-ns#" => "rdf",
-      "http://www.w3.org/2000/01/rdf-schema#" => "rdfs", "http://purl.org/ontology/wsf#" => "wsf");
+      "http://www.w3.org/2000/01/rdf-schema#" => "rdfs", "http://purl.org/ontology/wsf#" => "wsf", 
+      "http://purl.org/ontology/aggregate#" => "aggr", "http://rdfs.org/ns/void#" => "void",
+      "http://rdfs.org/sioc/ns#" => "sioc", "http://purl.org/dc/terms/" => "dcterms", 
+      );
 
 
   /*! @brief Supported serialization mime types by this Web service */
@@ -322,18 +325,11 @@ class DatasetRead extends WebService
     $resultset = $xml->createResultset();
 
     // Creation of the prefixes elements.
-    $wsf = $xml->createPrefix("wsf", "http://purl.org/ontology/wsf#");
-    $resultset->appendChild($wsf);
-    $void = $xml->createPrefix("void", "http://rdfs.org/ns/void#");
-    $resultset->appendChild($void);
-    $rdf = $xml->createPrefix("rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#");
-    $resultset->appendChild($rdf);
-    $sioc = $xml->createPrefix("sioc", "http://rdfs.org/sioc/ns#");
-    $resultset->appendChild($sioc);
-    $dcterms = $xml->createPrefix("dcterms", "http://purl.org/dc/terms/");
-    $resultset->appendChild($dcterms);
-    $dcterms = $xml->createPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
-    $resultset->appendChild($dcterms);
+    foreach($this->namespaces as $uri => $prefix)
+    {
+      $ns = $xml->createPrefix($prefix, $uri);
+      $resultset->appendChild($ns);
+    }
 
     // Creation of the SUBJECT of the RESULTSET
     foreach($this->datasetsDescription as $dd)
@@ -682,7 +678,7 @@ class DatasetRead extends WebService
 
           $json_part .= "      { \n";
           $json_part .= "        \"uri\": \"" . parent::jsonEncode($subjectURI) . "\", \n";
-          $json_part .= "        \"type\": \"" . parent::jsonEncode($subjectType) . "\", \n";
+          $json_part .= "        \"type\": \"" . parent::jsonEncode($subjectType) . "\",\n";
 
           $predicates = $xml->getPredicates($subject);
 

@@ -64,8 +64,9 @@ class Sparql extends WebService
   /*! @brief Namespaces/Prefixes binding */
   private $namespaces =
     array ("http://www.w3.org/2002/07/owl#" => "owl", "http://www.w3.org/1999/02/22-rdf-syntax-ns#" => "rdf",
-      "http://www.w3.org/2000/01/rdf-schema#" => "rdfs", "http://purl.org/ontology/wsf#" => "wsf");
-
+      "http://www.w3.org/2000/01/rdf-schema#" => "rdfs", "http://purl.org/ontology/wsf#" => "wsf", 
+      "http://purl.org/ontology/aggregate#" => "aggr");
+      
   /*! @brief Determine if this is a CONSTRUCT SPARQL query */
   private $isConstructQuery = FALSE;
   
@@ -288,14 +289,11 @@ class Sparql extends WebService
     $resultset = $xml->createResultset();
 
     // Creation of the prefixes elements.
-    $void = $xml->createPrefix("owl", "http://www.w3.org/2002/07/owl#");
-    $resultset->appendChild($void);
-    $rdf = $xml->createPrefix("rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#");
-    $resultset->appendChild($rdf);
-    $dcterms = $xml->createPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
-    $resultset->appendChild($dcterms);
-    $dcterms = $xml->createPrefix("wsf", "http://purl.org/ontology/wsf#");
-    $resultset->appendChild($dcterms);
+    foreach($this->namespaces as $uri => $prefix)
+    {
+      $ns = $xml->createPrefix($prefix, $uri);
+      $resultset->appendChild($ns);
+    }
 
     $subject;
 
@@ -611,7 +609,7 @@ class Sparql extends WebService
 
           $ns = $this->getNamespace($subjectType);
 
-          if(!isset($this->namespaces[$ns[0]]))
+          if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
           {
             $this->namespaces[$ns[0]] = "ns" . $nsId;
             $nsId++;
@@ -620,7 +618,7 @@ class Sparql extends WebService
           $json_part .= "      { \n";
           $json_part .= "        \"uri\": \"" . parent::jsonEncode($subjectURI) . "\", \n";
           $json_part .= "        \"type\": \"" . parent::jsonEncode($this->namespaces[$ns[0]] . ":" . $ns[1])
-            . "\", \n";
+            . "\",\n";
 
           $predicates = $xml->getPredicates($subject);
 
@@ -648,7 +646,7 @@ class Sparql extends WebService
 
                 $ns = $this->getNamespace($predicateType);
 
-                if(!isset($this->namespaces[$ns[0]]))
+                if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
                 {
                   $this->namespaces[$ns[0]] = "ns" . $nsId;
                   $nsId++;
@@ -665,7 +663,7 @@ class Sparql extends WebService
 
                 $ns = $this->getNamespace($predicateType);
 
-                if(!isset($this->namespaces[$ns[0]]))
+                if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
                 {
                   $this->namespaces[$ns[0]] = "ns" . $nsId;
                   $nsId++;
@@ -732,7 +730,7 @@ class Sparql extends WebService
           $json_part = substr($json_part, 0, strlen($json_part) - 2) . "\n";
         }
 
-        $json_header .= "  \"prefixes\": [ \n";
+        $json_header .= "  \"prefixes\": \n";
         $json_header .= "    {\n";
 
         foreach($this->namespaces as $ns => $prefix)
@@ -745,8 +743,7 @@ class Sparql extends WebService
           $json_header = substr($json_header, 0, strlen($json_header) - 2) . "\n";
         }
 
-        $json_header .= "    } \n";
-        $json_header .= "  ],\n";
+        $json_header .= "    }, \n";
         $json_header .= "  \"resultset\": {\n";
         $json_header .= "    \"subject\": [\n";
         $json_header .= $json_part;
@@ -820,7 +817,7 @@ class Sparql extends WebService
 
           $ns1 = $this->getNamespace($subjectType);
 
-          if(!isset($this->namespaces[$ns1[0]]))
+          if($ns !== FALSE && !isset($this->namespaces[$ns1[0]]))
           {
             $this->namespaces[$ns1[0]] = "ns" . $nsId;
             $nsId++;
@@ -846,7 +843,7 @@ class Sparql extends WebService
 
                 $ns = $this->getNamespace($predicateType);
 
-                if(!isset($this->namespaces[$ns[0]]))
+                if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
                 {
                   $this->namespaces[$ns[0]] = "ns" . $nsId;
                   $nsId++;
@@ -861,7 +858,7 @@ class Sparql extends WebService
 
                 $ns = $this->getNamespace($predicateType);
 
-                if(!isset($this->namespaces[$ns[0]]))
+                if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
                 {
                   $this->namespaces[$ns[0]] = "ns" . $nsId;
                   $nsId++;

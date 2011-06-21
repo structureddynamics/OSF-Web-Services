@@ -83,7 +83,7 @@
        exceed a certain size (in characters).
     -->
     <fieldType name="string" class="solr.StrField" sortMissingLast="true" omitNorms="true"/>
-
+    
     <!-- boolean type: "true" or "false" -->
     <fieldType name="boolean" class="solr.BoolField" sortMissingLast="true" omitNorms="true"/>
     <!--Binary data type. The data should be sent/retrieved in as Base64 encoded Strings -->
@@ -221,7 +221,7 @@
         <tokenizer class="solr.WhitespaceTokenizerFactory"/>
       </analyzer>
     </fieldType>
-
+    
     <!-- A text field that uses WordDelimiterFilter to enable splitting and matching of
         words on case-change, alpha numeric boundaries, and non-alphanumeric chars,
         so that a query of "wifi" or "wi fi" could match a document containing "Wi-Fi".
@@ -233,7 +233,7 @@
         <!-- in this example, we will only use synonyms at query time
         <filter class="solr.SynonymFilterFactory" synonyms="index_synonyms.txt" ignoreCase="true" expand="false"/>
         -->
-        <filter class="solr.StopFilterFactory" ignoreCase="true" words="stopwords.txt"/>
+        <!--filter class="solr.StopFilterFactory" ignoreCase="true" words="stopwords.txt"/-->
 
         <filter class="solr.WordDelimiterFilterFactory" generateWordParts="1" generateNumberParts="1" catenateWords="1" catenateNumbers="1" catenateAll="0"/>
         <filter class="solr.LowerCaseFilterFactory"/>
@@ -243,7 +243,7 @@
       <analyzer type="query">
         <tokenizer class="solr.WhitespaceTokenizerFactory"/>
         <filter class="solr.SynonymFilterFactory" synonyms="synonyms.txt" ignoreCase="true" expand="true"/>
-        <filter class="solr.StopFilterFactory" ignoreCase="true" words="stopwords.txt"/>
+        <!--filter class="solr.StopFilterFactory" ignoreCase="true" words="stopwords.txt"/-->
 
         <filter class="solr.WordDelimiterFilterFactory" generateWordParts="1" generateNumberParts="1" catenateWords="0" catenateNumbers="0" catenateAll="0"/>
         <filter class="solr.LowerCaseFilterFactory"/>
@@ -422,7 +422,6 @@
 
     </fieldType>
 
-
     <!-- since fields of this type are by default not stored or indexed,
          any data added to them will be ignored outright.  --> 
     <fieldtype name="ignored" stored="false" indexed="false" multiValued="true" class="solr.StrField" /> 
@@ -468,18 +467,22 @@
    <field name="inferred_type" type="string" indexed="true" stored="true" multiValued="true"/>
    
    <field name="prefLabel" type="text" indexed="true" stored="true"/>
+   <field name="prefLabelAutocompletion" type="lowercase" indexed="true" stored="false"/>
    <field name="altLabel" type="text" indexed="true" stored="true" multiValued="true"/>
    <field name="description" type="text" indexed="true" stored="true"/>
-   <field name="prefURL" type="text" indexed="true" stored="true"/>
 
    <!-- Used to create attribute/key pairs that were not previously created in this schema -->
    <dynamicField name="*_attr"  type="text"  indexed="true"  stored="true" multiValued="true"/>   
    <dynamicField name="*_attr_obj"  type="text"  indexed="true"  stored="true" multiValued="true"/>   
-   <dynamicField name="*_attr_obj_uri"  type="string"  indexed="true"  stored="true" multiValued="true"/>   
+   <dynamicField name="*_attr_obj_uri"  type="text"  indexed="true"  stored="true" multiValued="true"/>   
 
    <dynamicField name="*_reify_obj"  type="text"  indexed="true"  stored="true" multiValued="true"/>   
    <dynamicField name="*_reify_value"  type="text"  indexed="true"  stored="true" multiValued="true"/>   
-
+  
+  
+   <dynamicField name="*_attr_facets"  type="string"  indexed="true"  stored="false" multiValued="true"/>   
+  
+  
    <!-- Index cartesian tier information
    NOTE: I am storing these for now for demo purposes, real applications usually would not need to store it. 
     -->
@@ -511,8 +514,8 @@
    <!-- Elevation data -->
    <field name="alt" type="tfloat" indexed="true" stored="true" multiValued="true" />  
    
-   <field name="polygonCoordinates" type="string" indexed="true" stored="true" /> 
-   <field name="polylineCoordinates" type="string" indexed="true" stored="true" /> 
+   <field name="polygonCoordinates" type="string" indexed="true" stored="true" multiValued="true" /> 
+   <field name="polylineCoordinates" type="string" indexed="true" stored="true" multiValued="true" /> 
 
    <!-- Hierarchical faceting support? -->
    <field name="located_in" type="string" indexed="true" stored="true" multiValued="true" />  

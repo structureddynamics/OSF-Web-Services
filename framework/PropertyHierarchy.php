@@ -370,6 +370,9 @@ class propertyNode
 
   /*! @brief Exostive list of all inferred classes part of the class extension of the range of this property. */
   public $range = array();
+  
+  /*! @brief Specifies where this property is defined in the ontology structure (mainly: the dataset URI of the ontology)  */
+  public $isDefinedBy = "";  
 
   /*!   @brief Constructor
               

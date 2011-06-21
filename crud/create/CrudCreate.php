@@ -130,7 +130,7 @@ class CrudCreate extends WebService
   function __construct($document, $mime, $mode, $dataset, $registered_ip, $requester_ip)
   {
     parent::__construct();
-
+    
     $this->db = new DB_Virtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 
     $this->requester_ip = $requester_ip;
@@ -859,6 +859,9 @@ class CrudCreate extends WebService
                 array_push($types, $value["value"]);
 
                 $add .= "<field name=\"type\">" . $this->xmlEncode($value["value"]) . "</field>";
+                $add .= "<field name=\"" . urlencode("http://www.w3.org/1999/02/22-rdf-syntax-ns#type") . "_attr_facets\">" . $this->xmlEncode($value["value"])
+                  . "</field>";
+                
               }
 
               // get the preferred and alternative labels for this resource
@@ -871,7 +874,12 @@ class CrudCreate extends WebService
                   $prefLabelFound = TRUE;
                   $add .= "<field name=\"prefLabel\">" . $this->xmlEncode($resourceIndex[$subject][$property][0]["value"])
                     . "</field>";
+                  $add .= "<field name=\"prefLabelAutocompletion\">" . $this->xmlEncode($resourceIndex[$subject][$property][0]["value"])
+                    . "</field>";
                   $add .= "<field name=\"attribute\">" . $this->xmlEncode(Namespaces::$iron . "prefLabel") . "</field>";
+                  
+                  $add .= "<field name=\"" . urlencode($this->xmlEncode(Namespaces::$iron . "prefLabel")) . "_attr_facets\">" . $this->xmlEncode($resourceIndex[$subject][$property][0]["value"])
+                    . "</field>";
                 }
                 elseif(isset($resourceIndex[$subject][$property]))
                 {
@@ -879,7 +887,30 @@ class CrudCreate extends WebService
                   {
                     $add .= "<field name=\"altLabel\">" . $this->xmlEncode($value["value"]) . "</field>";
                     $add .= "<field name=\"attribute\">" . $this->xmlEncode(Namespaces::$iron . "altLabel") . "</field>";
+                    $add .= "<field name=\"" . urlencode($this->xmlEncode(Namespaces::$iron . "altLabel")) . "_attr_facets\">" . $this->xmlEncode($value["value"])
+                      . "</field>";
                   }
+                }
+              }
+              
+              // If no labels are found for this resource, we use the ending of the URI as the label
+              if(!$prefLabelFound)
+              {
+                if(strrpos($subject, "#"))
+                {
+                  $add .= "<field name=\"prefLabel\">" . substr($subject, strrpos($subject, "#") + 1) . "</field>";                   
+                  $add .= "<field name=\"prefLabelAutocompletion\">" . substr($subject, strrpos($subject, "#") + 1) . "</field>";                   
+                  $add .= "<field name=\"attribute\">" . $this->xmlEncode(Namespaces::$iron . "prefLabel") . "</field>";
+                  $add .= "<field name=\"" . urlencode($this->xmlEncode(Namespaces::$iron . "prefLabel")) . "_attr_facets\">" . $this->xmlEncode(substr($subject, strrpos($subject, "#") + 1))
+                    . "</field>";
+                }
+                elseif(strrpos($subject, "/"))
+                {
+                  $add .= "<field name=\"prefLabel\">" . substr($subject, strrpos($subject, "/") + 1) . "</field>";                   
+                  $add .= "<field name=\"prefLabelAutocompletion\">" . substr($subject, strrpos($subject, "/") + 1) . "</field>";                   
+                  $add .= "<field name=\"attribute\">" . $this->xmlEncode(Namespaces::$iron . "prefLabel") . "</field>";
+                  $add .= "<field name=\"" . urlencode($this->xmlEncode(Namespaces::$iron . "prefLabel")) . "_attr_facets\">" . $this->xmlEncode(substr($subject, strrpos($subject, "/") + 1))
+                    . "</field>";
                 }
               }
 
@@ -891,16 +922,20 @@ class CrudCreate extends WebService
                   $add .= "<field name=\"description\">"
                     . $this->xmlEncode($resourceIndex[$subject][$property][0]["value"]) . "</field>";
                   $add .= "<field name=\"attribute\">" . $this->xmlEncode(Namespaces::$iron . "description") . "</field>";
+                  $add .= "<field name=\"" . urlencode($this->xmlEncode(Namespaces::$iron . "description")) . "_attr_facets\">" . $this->xmlEncode($resourceIndex[$subject][$property][0]["value"])
+                    . "</field>";
                   break;
                 }
               }
 
               // Add the prefURL if available
-              if(isset($resourceIndex[$subject][$iron . "prefURL"]))
+              if(isset($resourceIndex[$subject][Namespaces::$iron . "prefURL"]))
               {
                 $add .= "<field name=\"prefURL\">"
-                  . $this->xmlEncode($resourceIndex[$subject][$iron . "prefURL"][0]["value"]) . "</field>";
+                        . $this->xmlEncode($resourceIndex[$subject][Namespaces::$iron . "prefURL"][0]["value"]) . "</field>";
                 $add .= "<field name=\"attribute\">" . $this->xmlEncode(Namespaces::$iron . "prefURL") . "</field>";
+                $add .= "<field name=\"" . urlencode($this->xmlEncode(Namespaces::$iron . "prefURL")) . "_attr_facets\">" . $this->xmlEncode($resourceIndex[$subject][Namespaces::$iron . "prefURL"][0]["value"])
+                  . "</field>";
               }
 
               // If enabled, and supported by the structWSF setting, let's add any lat/long positionning to the index.
@@ -943,8 +978,7 @@ class CrudCreate extends WebService
                   $add .= "<field name=\"geohash\">". 
                              $this->xmlEncode($geohash->encode($lat, $long)). 
                           "</field>"; 
-                  $add .= "<field name=\"attribute\">" . $this->xmlEncode(Namespaces::$sco."geohash") . "</field>";
-                          
+                  $add .= "<field name=\"attribute\">" . $this->xmlEncode(Namespaces::$sco."geohash") . "</field>";                          
                           
                   // Add cartesian tiers                   
                                   
@@ -952,30 +986,34 @@ class CrudCreate extends WebService
                   //       for this should be ported to PHP to enable this feature.                                
                 }
                 
-                $coordinates;
+                $coordinates = array();
                 
                 // Check if there is a polygonCoordinates property
                 if(isset($resourceIndex[$subject][Namespaces::$sco."polygonCoordinates"]))
                 {  
-                  $polygonCoordinates = $resourceIndex[$subject][Namespaces::$sco."polygonCoordinates"][0]["value"];
-                  $coordinates = explode(" ", $polygonCoordinates);
-                  
-                  $add .= "<field name=\"polygonCoordinates\">". 
-                             $this->xmlEncode($resourceIndex[$subject][Namespaces::$sco."polygonCoordinates"][0]["value"]). 
-                          "</field>";   
-                  $add .= "<field name=\"attribute\">" . $this->xmlEncode(Namespaces::$sco."polygonCoordinates") . "</field>";                                             
+                  foreach($resourceIndex[$subject][Namespaces::$sco."polygonCoordinates"] as $polygonCoordinates)
+                  {
+                    $coordinates = explode(" ", $polygonCoordinates["value"]);
+                    
+                    $add .= "<field name=\"polygonCoordinates\">". 
+                               $this->xmlEncode($polygonCoordinates["value"]). 
+                            "</field>";   
+                    $add .= "<field name=\"attribute\">" . $this->xmlEncode(Namespaces::$sco."polygonCoordinates") . "</field>";                                             
+                  }
                 }
                 
                 // Check if there is a polylineCoordinates property
                 if(isset($resourceIndex[$subject][Namespaces::$sco."polylineCoordinates"]))
                 {  
-                  $polylineCoordinates = $resourceIndex[$subject][Namespaces::$sco."polylineCoordinates"][0]["value"];
-                  array_push($coordinates, explode(" ", $polygonCoordinates));
-                  
-                  $add .= "<field name=\"polylineCoordinates\">". 
-                             $this->xmlEncode($resourceIndex[$subject][Namespaces::$sco."polylineCoordinates"][0]["value"]). 
-                          "</field>";   
-                  $add .= "<field name=\"attribute\">" . $this->xmlEncode(Namespaces::$sco."polylineCoordinates") . "</field>";                   
+                  foreach($resourceIndex[$subject][Namespaces::$sco."polylineCoordinates"] as $polylineCoordinates)
+                  {
+                    $coordinates = array_merge($coordinates, explode(" ", $polylineCoordinates["value"]));
+                    
+                    $add .= "<field name=\"polylineCoordinates\">". 
+                               $this->xmlEncode($polylineCoordinates["value"]). 
+                            "</field>";   
+                    $add .= "<field name=\"attribute\">" . $this->xmlEncode(Namespaces::$sco."polylineCoordinates") . "</field>";                   
+                  }
                 }
                 
                   
@@ -1050,7 +1088,10 @@ class CrudCreate extends WebService
                 {  
                   $add .= "<field name=\"located_in\">". 
                              $this->xmlEncode($resourceIndex[$subject][Namespaces::$geonames."locatedIn"][0]["value"]). 
-                          "</field>";                                
+                          "</field>";         
+
+                  $add .= "<field name=\"" . urlencode($this->xmlEncode(Namespaces::$geonames . "locatedIn")) . "_attr_facets\">" . $this->xmlEncode($resourceIndex[$subject][Namespaces::$geonames."locatedIn"][0]["value"])
+                    . "</field>";                                                 
                 }
                 
                 // Check if there is any wgs84_pos:alt assertion for that resource.
@@ -1089,6 +1130,8 @@ class CrudCreate extends WebService
                       $add .= "<field name=\"" . urlencode($predicate) . "_attr\">" . $this->xmlEncode($value["value"])
                         . "</field>";
                       $add .= "<field name=\"attribute\">" . $this->xmlEncode($predicate) . "</field>";
+                      $add .= "<field name=\"" . urlencode($predicate) . "_attr_facets\">" . $this->xmlEncode($value["value"])
+                        . "</field>";
 
                       /* 
                          Check if there is a reification statement for that triple. If there is one, we index it in 
@@ -1187,6 +1230,14 @@ class CrudCreate extends WebService
                         $newFields = TRUE;
                       }
                       
+                      // Let's check if this URI refers to a know class record in the ontological structure.
+                      if($labels == "")                                                                                       
+                      {
+                        if(isset($classHierarchy->classes[$value["value"]]))
+                        {
+                          $labels .= $classHierarchy->classes[$value["value"]]->label." ";
+                        }
+                      }
 
                       if($labels != "")
                       {
@@ -1195,6 +1246,36 @@ class CrudCreate extends WebService
                         $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_uri\">"
                           . $this->xmlEncode($value["value"]) . "</field>";
                         $add .= "<field name=\"attribute\">" . $this->xmlEncode($predicate) . "</field>";
+                        $add .= "<field name=\"" . urlencode($predicate) . "_attr_facets\">" . $this->xmlEncode($labels)
+                          . "</field>";                        
+                      }
+                      else
+                      {
+                        // If no label is found, we may want to manipulate the ending of the URI to create
+                        // a "temporary" pref label for that object, and then to index it as a search string.
+                        $pos = strripos($value["value"], "#");
+                        
+                        if($pos !== FALSE)
+                        {
+                          $temporaryLabel = substr($value["value"], $pos + 1);
+                        }
+                        else
+                        {
+                          $pos = strripos($value["value"], "/");
+
+                          if($pos !== FALSE)
+                          {
+                            $temporaryLabel = substr($value["value"], $pos + 1);
+                          }
+                        }
+                        
+                        $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj\">" . $this->xmlEncode($temporaryLabel)
+                          . "</field>";
+                        $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_uri\">"
+                          . $this->xmlEncode($value["value"]) . "</field>";
+                        $add .= "<field name=\"attribute\">" . $this->xmlEncode($predicate) . "</field>";
+                        $add .= "<field name=\"" . urlencode($predicate) . "_attr_facets\">" . $this->xmlEncode($temporaryLabel)
+                          . "</field>";
                       }
 
                       /* 

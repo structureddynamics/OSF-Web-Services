@@ -374,13 +374,6 @@ class CrudRead extends WebService
     // Creation of the RESULTSET
     $resultset = $xml->createResultset();
 
-    // Creation of the prefixes elements.
-    foreach($this->namespaces as $uri => $prefix)
-    {
-      $ns = $xml->createPrefix($prefix, $uri);
-      $resultset->appendChild($ns);
-    }
-
     $subject;
 
     foreach($this->subjectTriples as $u => $sts)
@@ -419,7 +412,22 @@ class CrudRead extends WebService
                 @TODO The internal XML structure of structWSF should be enhanced with datatypes such as xsd:double, int, 
                       literal, etc.
               */
-              $pred = $xml->createPredicate($property);
+              
+              $ns = $this->getNamespace($property);
+
+              if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
+              {
+                // Make sure the ID is not already existing. Increase the counter if it is the case.
+                while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+                {
+                  $nsId++;
+                }
+                                
+                $this->namespaces[$ns[0]] = "ns" . $nsId;
+                $nsId++;
+              }               
+              
+              $pred = $xml->createPredicate($this->namespaces[$ns[0]] . ":" . $ns[1]);
               $object = $xml->createObjectContent($value[0]);
               $pred->appendChild($object);
 
@@ -472,7 +480,21 @@ class CrudRead extends WebService
           {
             $subject = $xml->createSubject("http://www.w3.org/2002/07/owl#Thing", $resource);
 
-            $pred = $xml->createPredicate($property);
+            $ns = $this->getNamespace($property);
+
+            if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
+            {
+              // Make sure the ID is not already existing. Increase the counter if it is the case.
+              while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+              {
+                $nsId++;
+              }
+                                
+              $this->namespaces[$ns[0]] = "ns" . $nsId;
+              $nsId++;
+            }           
+            
+            $pred = $xml->createPredicate($this->namespaces[$ns[0]] . ":" . $ns[1]);
             $object = $xml->createObject("", $u);
             $pred->appendChild($object);
             $subject->appendChild($pred);
@@ -483,6 +505,13 @@ class CrudRead extends WebService
       }
     }
 
+    // Creation of the prefixes elements.
+    foreach($this->namespaces as $uri => $prefix)
+    {
+      $ns = $xml->createPrefix($prefix, $uri);
+      $resultset->appendChild($ns);
+    }    
+    
     return ($this->injectDoctype($xml->saveXML($resultset)));
   }
 
@@ -552,6 +581,7 @@ class CrudRead extends WebService
     }
 
     // Check if we have the same number of URIs than Dataset URIs (only if at least one dataset URI is defined).
+    
     if($this->globalDataset === FALSE)
     {
       $uris = explode(";", $this->resourceUri);
@@ -718,6 +748,12 @@ class CrudRead extends WebService
 
           if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
           {
+            // Make sure the ID is not already existing. Increase the counter if it is the case.
+            while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+            {
+              $nsId++;
+            }
+                              
             $this->namespaces[$ns[0]] = "ns" . $nsId;
             $nsId++;
           }
@@ -755,6 +791,12 @@ class CrudRead extends WebService
 
                 if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
                 {
+                  // Make sure the ID is not already existing. Increase the counter if it is the case.
+                  while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+                  {
+                    $nsId++;
+                  }
+                                    
                   $this->namespaces[$ns[0]] = "ns" . $nsId;
                   $nsId++;
                 }
@@ -772,6 +814,12 @@ class CrudRead extends WebService
 
                 if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
                 {
+                  // Make sure the ID is not already existing. Increase the counter if it is the case.
+                  while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+                  {
+                    $nsId++;
+                  }
+                                    
                   $this->namespaces[$ns[0]] = "ns" . $nsId;
                   $nsId++;
                 }
@@ -1037,6 +1085,12 @@ class CrudRead extends WebService
 
           if($ns !== FALSE && !isset($this->namespaces[$ns1[0]]))
           {
+            // Make sure the ID is not already existing. Increase the counter if it is the case.
+            while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+            {
+              $nsId++;
+            }
+                              
             $this->namespaces[$ns1[0]] = "ns" . $nsId;
             $nsId++;
           }
@@ -1063,6 +1117,12 @@ class CrudRead extends WebService
 
                 if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
                 {
+                  // Make sure the ID is not already existing. Increase the counter if it is the case.
+                  while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+                  {
+                    $nsId++;
+                  }
+                                    
                   $this->namespaces[$ns[0]] = "ns" . $nsId;
                   $nsId++;
                 }
@@ -1078,6 +1138,12 @@ class CrudRead extends WebService
 
                 if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
                 {
+                  // Make sure the ID is not already existing. Increase the counter if it is the case.
+                  while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+                  {
+                    $nsId++;
+                  }
+                                    
                   $this->namespaces[$ns[0]] = "ns" . $nsId;
                   $nsId++;
                 }
@@ -1205,6 +1271,12 @@ class CrudRead extends WebService
 
                 if(!isset($this->namespaces[$ns[0]]))
                 {
+                  // Make sure the ID is not already existing. Increase the counter if it is the case.
+                  while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+                  {
+                    $nsId++;
+                  }
+                  
                   $this->namespaces[$ns[0]] = "ns" . $nsId;
                   $nsId++;
                 }
@@ -1255,6 +1327,12 @@ class CrudRead extends WebService
 
                 if(!isset($this->namespaces[$ns[0]]))
                 {
+                  // Make sure the ID is not already existing. Increase the counter if it is the case.
+                  while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+                  {
+                    $nsId++;
+                  }
+                                    
                   $this->namespaces[$ns[0]] = "ns" . $nsId;
                   $nsId++;
                 }

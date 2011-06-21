@@ -20,7 +20,6 @@ ini_set("display_errors",
 
 ini_set("memory_limit", "256M");
 
-
 // Database connectivity procedures
 include_once("../framework/db.php");
 

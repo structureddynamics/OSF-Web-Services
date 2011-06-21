@@ -107,6 +107,14 @@ if(isset($_POST['include_aggregates']))
   $include_aggregates = $_POST['include_aggregates'];
 }
 
+// Include aggregates
+$aggregate_attributes = "";
+
+if(isset($_POST['aggregate_attributes']))
+{
+  $aggregate_attributes = $_POST['aggregate_attributes'];
+}
+
 // Distance Filter
 $distanceFilter = "";
 
@@ -165,7 +173,7 @@ elseif(isset($_SERVER['PHP_SELF']))
 
 $ws_s =
   new Search($query, $types, $attributes, $datasets, $items, $page, $inference, $include_aggregates, $registered_ip,
-    $requester_ip, $distanceFilter, $rangeFilter);
+    $requester_ip, $distanceFilter, $rangeFilter, $aggregate_attributes);
 
 $ws_s->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
   $_SERVER['HTTP_ACCEPT_LANGUAGE']);

@@ -7,6 +7,7 @@
    @brief Define the Search web service
   
    \n\n
+   \n\n
  
    @author Frederick Giasson, Structured Dynamics LLC.
 
@@ -106,7 +107,10 @@ class Search extends WebService
   public $aggregates = array();
 
   /*! @brief Include aggregates to the resultset */
-  public $include_aggregates = array();
+  public $includeAggregates = array();
+  
+  /*! @brief Attributes URI for which we want the aggregations of their values */
+  public $aggregateAttributes = array();
 
   /*! @brief Supported serialization mime types by this Web service */
   public static $supportedSerializations =
@@ -170,8 +174,13 @@ class Search extends WebService
       @param[in] $rangeFilter The range filter is a series of parameter that are used to
                               filter records of the dataset according to a rectangle bounds
                               they are located in given their lat;long position. The values are
-                              seperated by a semi-column ";". The format is as follow:
+                              seperated by a semi-colon ";". The format is as follow:
                               "top-left-lat;top-left-long;bottom-right-lat;bottom-right-long". 
+      @param[in] $aggregate_attributes Specify a set of attributes URI for which we want their aggregated
+                                       values. The URIs should be url-encoded. Each attribute for which we
+                                       want the aggregated values should be seperated by a semi-colon ";".
+      
+      
               
       \n
       
@@ -182,7 +191,7 @@ class Search extends WebService
       \n\n\n
   */
   function __construct($query, $types, $attributes, $datasets, $items, $page, $inference, $include_aggregates,
-                       $registered_ip, $requester_ip, $distanceFilter = "", $rangeFilter = "")                           
+                       $registered_ip, $requester_ip, $distanceFilter = "", $rangeFilter = "", $aggregate_attributes = "")                           
   {
     parent::__construct();
  
@@ -193,6 +202,18 @@ class Search extends WebService
     $this->page = $page;
     $this->inference = $inference;
     $this->includeAggregates = $include_aggregates;
+    
+    if($aggregate_attributes != "")
+    {
+      $aas = explode(";", $aggregate_attributes);
+      
+      for($i = 0; $i < count($aas); $i++)
+      {
+        $aas[$i] = $aas[$i]."_attr_facets";
+      }
+      
+      $this->aggregateAttributes = $aas;
+    }
 
     $this->types = $types;
     $this->datasets = $datasets;
@@ -304,13 +325,6 @@ class Search extends WebService
     // Creation of the RESULTSET
     $resultset = $xml->createResultset();
 
-    // Creation of the prefixes elements.
-    foreach($this->namespaces as $uri => $prefix)
-    {
-      $ns = $xml->createPrefix($prefix, $uri);
-      $resultset->appendChild($ns);
-    }
-
     $subject;
 
     foreach($this->resultset as $datasetUri => $results)
@@ -392,7 +406,22 @@ class Search extends WebService
           {
             foreach($values as $value)
             {
-              $pred = $xml->createPredicate($property);
+              $ns = $this->getNamespace($property);
+
+              if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
+              {                                         
+                // Make sure the ID is not already existing. Increase the counter if it is the case.
+                while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+                {
+                  $nsId++;
+                } 
+                               
+                $this->namespaces[$ns[0]] = "ns" . $nsId;
+                $nsId++;
+              } 
+              
+              $pred = $xml->createPredicate($this->namespaces[$ns[0]] . ":" . $ns[1]);              
+              
               $object = $xml->createObjectContent($value);
               $pred->appendChild($object);
               $subject->appendChild($pred);
@@ -411,7 +440,21 @@ class Search extends WebService
             {
               foreach($values as $key => $value)
               {
-                $pred = $xml->createPredicate($property);
+                $ns = $this->getNamespace($property);
+
+                if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
+                {
+                  // Make sure the ID is not already existing. Increase the counter if it is the case.
+                  while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+                  {
+                    $nsId++;
+                  }
+                                    
+                  $this->namespaces[$ns[0]] = "ns" . $nsId;
+                  $nsId++;
+                } 
+                
+                $pred = $xml->createPredicate($this->namespaces[$ns[0]] . ":" . $ns[1]);
 
                 $object = $xml->createObject("", $this->resultsetObjectPropertiesUris[$uri][$property][$key], "");
                 $pred->appendChild($object);
@@ -553,7 +596,43 @@ class Search extends WebService
 
         $resultset->appendChild($subject);
       }
+      
+      // Attribute/Values aggregates
+      foreach($this->aggregateAttributes as $attribute)
+      {
+        $aggregatesUri = $this->uri . "aggregate/" . md5(microtime());
+
+        foreach($this->aggregates[$attribute] as $ftype => $fcount)
+        {
+          $subject =
+            $xml->createSubject("http://purl.org/ontology/aggregate#Aggregate", $aggregatesUri . "/" . md5($ftype) . "/");
+
+          $pred = $xml->createPredicate("http://purl.org/ontology/aggregate#property");
+          $object = $xml->createObject("", str_replace("_attr_facets", "", urldecode($attribute)));
+          $pred->appendChild($object);
+          $subject->appendChild($pred);
+
+          $pred = $xml->createPredicate("http://purl.org/ontology/aggregate#object");
+          $object = $xml->createObjectContent($ftype);
+          $pred->appendChild($object);
+          $subject->appendChild($pred);
+
+          $pred = $xml->createPredicate("http://purl.org/ontology/aggregate#count");
+          $object = $xml->createObjectContent($fcount);
+          $pred->appendChild($object);
+          $subject->appendChild($pred);
+
+          $resultset->appendChild($subject);
+        }                 
+      }      
     }
+    
+    // Creation of the prefixes elements.
+    foreach($this->namespaces as $uri => $prefix)
+    {
+      $ns = $xml->createPrefix($prefix, $uri);
+      $resultset->appendChild($ns);
+    }    
 
     return ($this->injectDoctype($xml->saveXML($resultset)));
   }
@@ -705,7 +784,7 @@ class Search extends WebService
         $subjects = $xml->getSubjects();
 
         $nsId = 0;
-
+        
         foreach($subjects as $subject)
         {
           $subjectURI = $xml->getURI($subject);
@@ -715,6 +794,12 @@ class Search extends WebService
 
           if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
           {
+            // Make sure the ID is not already existing. Increase the counter if it is the case.
+            while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+            {
+              $nsId++;
+            }
+            
             $this->namespaces[$ns[0]] = "ns" . $nsId;
             $nsId++;
           }
@@ -752,6 +837,12 @@ class Search extends WebService
 
                 if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
                 {
+                  // Make sure the ID is not already existing. Increase the counter if it is the case.
+                  while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+                  {
+                    $nsId++;
+                  }
+                  
                   $this->namespaces[$ns[0]] = "ns" . $nsId;
                   $nsId++;
                 }
@@ -769,6 +860,12 @@ class Search extends WebService
 
                 if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
                 {
+                  // Make sure the ID is not already existing. Increase the counter if it is the case.
+                  while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+                  {
+                    $nsId++;
+                  }
+                  
                   $this->namespaces[$ns[0]] = "ns" . $nsId;
                   $nsId++;
                 }
@@ -923,6 +1020,12 @@ class Search extends WebService
 
           if($ns !== FALSE && !isset($this->namespaces[$ns1[0]]))
           {
+            // Make sure the ID is not already existing. Increase the counter if it is the case.
+            while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+            {
+              $nsId++;
+            }
+                  
             $this->namespaces[$ns1[0]] = "ns" . $nsId;
             $nsId++;
           }
@@ -949,6 +1052,12 @@ class Search extends WebService
 
                 if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
                 {
+                  // Make sure the ID is not already existing. Increase the counter if it is the case.
+                  while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+                  {
+                    $nsId++;
+                  }
+                                    
                   $this->namespaces[$ns[0]] = "ns" . $nsId;
                   $nsId++;
                 }
@@ -964,6 +1073,12 @@ class Search extends WebService
 
                 if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
                 {
+                  // Make sure the ID is not already existing. Increase the counter if it is the case.
+                  while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+                  {
+                    $nsId++;
+                  }
+                                    
                   $this->namespaces[$ns[0]] = "ns" . $nsId;
                   $nsId++;
                 }
@@ -1341,6 +1456,8 @@ class Search extends WebService
       
       $queryParam = "*:*";
       
+      $specialChars = array('"', 'AND', 'OR', '?', '*', '~', '+', '-', 'NOT', '&&', '||', '!', '^');
+      
       if($this->query != "")
       {      
         /* 
@@ -1348,7 +1465,6 @@ class Search extends WebService
           them to create the query.
         */
         $useLuceneSyntax = FALSE;
-        $specialChars = array('"', 'AND', 'OR', '?', '*', '~', '+', '-', 'NOT', '&&', '||', '!', '^');
         
         foreach($specialChars as $char)
         {
@@ -1361,7 +1477,7 @@ class Search extends WebService
         
         if(!$useLuceneSyntax)
         {
-          $queryParam = "%22" . urlencode(implode(" +", explode(" ", $this->query))) . "%22~5";
+          $queryParam = "%22" . urlencode(implode(" +", explode(" ", $this->escapeSolrValue($this->query)))) . "%22~5";
         }
         else
         {
@@ -1374,7 +1490,7 @@ class Search extends WebService
         $datasetList = "";
 
         $solrQuery = "q=$queryParam&start=" . $this->page . "&rows=" . $this->items
-          . (strtolower($this->includeAggregates) == "true" ? "&facet=true&facet.limit=-1&facet.field=type" .
+          . (strtolower($this->includeAggregates) == "true" ? "&facet=true&facet.sort=count&facet.limit=-1&facet.field=type" .
           "&facet.field=attribute" . (strtolower($this->inference) == "on" ? "&facet.field=inferred_type" : "") . "&" .
           "facet.field=dataset&facet.mincount=1" : "");
 
@@ -1395,7 +1511,7 @@ class Search extends WebService
         $datasets = explode(";", $this->datasets);
 
         $solrQuery = "q=$queryParam&start=" . $this->page . "&rows=" . $this->items
-          . (strtolower($this->includeAggregates) == "true" ? "&facet=true&facet.limit=-1&facet.field=type" .
+          . (strtolower($this->includeAggregates) == "true" ? "&facet=true&facet.sort=count&facet.limit=-1&facet.field=type" .
           "&facet.field=attribute" . (strtolower($this->inference) == "on" ? "&facet.field=inferred_type" : "") . "&" .
           "facet.field=dataset&facet.mincount=1" : "");
 
@@ -1444,7 +1560,7 @@ class Search extends WebService
           }
         }
       }
-
+      
       if($this->attributes != "all")
       {
         // Lets include the information to facet per type.
@@ -1461,7 +1577,7 @@ class Search extends WebService
         {
           $indexedFields = array();
         }
-
+        
         foreach($attributes as $attribute)
         {
           $attributeValue = explode("::", $attribute);
@@ -1476,6 +1592,14 @@ class Search extends WebService
               case Namespaces::$iron."prefLabel":
                 $attribute = "prefLabel";
                 $coreAttr = TRUE;
+                
+                // Check if we are performing an autocompletion task on the pref label
+                $label = urldecode($attributeValue[1]);
+                if(substr($label, strlen($label) -2) == "**")
+                {
+                  $attribute = "prefLabelAutocompletion";
+                  $attributeValue[1] = urlencode(str_replace(" ", "\\ ", substr($label, 0, strlen($label) -1)));
+                }
               break;
               
               case Namespaces::$iron."altLabel":
@@ -1508,7 +1632,7 @@ class Search extends WebService
                 $coreAttr = TRUE;
               break;
             }            
-            
+
             // A filtering value as been defined for this attribute.
             $val = urldecode($attributeValue[1]);
             
@@ -1516,7 +1640,7 @@ class Search extends WebService
             {
               if($coreAttr)
               {
-                $solrQuery .= "&fq=(".urlencode(urlencode($attribute)).":".urlencode($val).")";
+                $solrQuery .= "&fq=(".urlencode(urlencode($attribute)).":".urlencode(preg_replace("/[^A-Za-z0-9\s\*\\\]/", " ", $val)).")";
               }
               else
               {
@@ -1529,7 +1653,7 @@ class Search extends WebService
                 // the query anyway.
                 if(array_search(urlencode($attribute), $indexedFields) !== FALSE)
                 {
-                  $solrQuery .= "(".urlencode(urlencode($attribute)).":".urlencode($val).")";  
+                  $solrQuery .= "(".urlencode(urlencode($attribute)).":".urlencode(preg_replace("/[^A-Za-z0-9\s\*\\\]/", " ", $val)).")";  
                   $addOR = TRUE;
                 }
 
@@ -1540,7 +1664,7 @@ class Search extends WebService
                     $solrQuery .= " OR ";
                   }
                   
-                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr:".urlencode($val).")";
+                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr:".urlencode(preg_replace("/[^A-Za-z0-9\s\*\\\]/", " ", $val)).")";
                   $addOR = TRUE;
                 }
 
@@ -1551,9 +1675,20 @@ class Search extends WebService
                     $solrQuery .= " OR ";
                   }
                   
-                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj:".urlencode($val).")";
+                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj:".urlencode(preg_replace("/[^A-Za-z0-9\s\*\\\]/", " ", $val)).")";
                   $addOR = TRUE;
                 }
+                
+                if(array_search(urlencode($attribute."_attr_obj_uri"), $indexedFields) !== FALSE)
+                {
+                  if($addOR)
+                  {
+                    $solrQuery .= " OR ";
+                  }
+                  
+                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj_uri:".urlencode($this->escapeSolrValue($val)).")";
+                  $addOR = TRUE;
+                }                
                 
                 $solrQuery .= ")";
               }
@@ -1562,7 +1697,7 @@ class Search extends WebService
             {
               if($coreAttr)
               {
-                $solrQuery .= " AND (".urlencode(urlencode($attribute)).":".urlencode($val).")";
+                $solrQuery .= " AND (".urlencode(urlencode($attribute)).":".urlencode(preg_replace("/[^A-Za-z0-9\s\*\\\]/", " ", $val)).")";
               }
               else
               {
@@ -1575,7 +1710,7 @@ class Search extends WebService
                 // the query anyway.
                 if(array_search(urlencode($attribute), $indexedFields) !== FALSE)
                 {
-                  $solrQuery .= "(".urlencode(urlencode($attribute)).":".urlencode($val).")";
+                  $solrQuery .= "(".urlencode(urlencode($attribute)).":".urlencode(preg_replace("/[^A-Za-z0-9\s\*\\\]/", " ", $val)).")";
                   $addOR = TRUE;
                 }
 
@@ -1586,7 +1721,7 @@ class Search extends WebService
                     $solrQuery .= " OR ";
                   }
                   
-                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr:".urlencode($val).")";
+                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr:".urlencode(preg_replace("/[^A-Za-z0-9\s\*\\\]/", " ", $val)).")";
                   $addOR = TRUE;
                 }
 
@@ -1597,7 +1732,18 @@ class Search extends WebService
                     $solrQuery .= " OR ";
                   }
                   
-                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj:".urlencode($val).")";
+                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj:".urlencode(preg_replace("/[^A-Za-z0-9\s\*\\\]/", " ", $val)).")";
+                  $addOR = TRUE;
+                }
+
+                if(array_search(urlencode($attribute."_attr_obj_uri"), $indexedFields) !== FALSE)
+                {
+                  if($addOR)
+                  {
+                    $solrQuery .= " OR ";
+                  }
+                  
+                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj_uri:".urlencode($this->escapeSolrValue($val)).")";
                   $addOR = TRUE;
                 }
                 
@@ -1675,7 +1821,18 @@ class Search extends WebService
         
         $solrQuery .= "&fq=lat:[".$p1." TO ".$p2."]&fq=long:[".$p3." TO ".$p4."]";
       }
-     
+      
+      // Add the attribute/value aggregates if needed
+      if(count($this->aggregateAttributes) > 0 && $this->includeAggregates) 
+      {
+        foreach($this->aggregateAttributes as $attribute)
+        {
+          $solrQuery .= "&facet.field=".urlencode($attribute);
+          $solrQuery .= "&f.".urlencode($attribute).".facet.limit=10";
+        }
+
+      }
+
       $resultset = $solr->select($solrQuery);
 
       $domResultset = new DomDocument("1.0", "utf-8");
@@ -1706,14 +1863,13 @@ class Search extends WebService
 
       // Get inferred types counts
 
+      $this->aggregates["inferred_type"] = array();
       if(strtolower($this->inference) == "on")
       {
         // Get all the "inferred_type" facets with their counts
         $founds = $xpath->query("//*/lst[@name='facet_fields']//lst[@name='inferred_type']/int");
 
         // Get types counts
-        $this->aggregates["inferred_type"] = array();
-
         foreach($founds as $found)
         {
           $this->aggregates["inferred_type"][$found->attributes->getNamedItem("name")->nodeValue] = $found->nodeValue;
@@ -1739,6 +1895,19 @@ class Search extends WebService
       foreach($founds as $found)
       {
         $this->aggregates["attributes"][$found->attributes->getNamedItem("name")->nodeValue] = $found->nodeValue;
+      }
+      
+      // Get all the facet attributes/values with their counts
+      foreach($this->aggregateAttributes as $attribute)
+      {
+        $founds = $xpath->query("//*/lst[@name='facet_fields']//lst[@name='$attribute']/int");
+
+        $this->aggregates[$attribute] = array();
+
+        foreach($founds as $found)
+        {
+          $this->aggregates[$attribute][$found->attributes->getNamedItem("name")->nodeValue] = $found->nodeValue;
+        }          
       }
 
 
@@ -1806,7 +1975,18 @@ class Search extends WebService
           
           if($resultPolygonCoordinates->length > 0)
           {
-            $this->resultset[$datasetUri][$uri][Namespaces::$sco."polygonCoordinates"] = array($resultPolygonCoordinates->item(0)->nodeValue);
+            foreach($resultPolygonCoordinates as $value)
+            {
+              if(!isset($this->resultset[$datasetUri][$uri][Namespaces::$sco."polygonCoordinates"]))
+              {
+                $this->resultset[$datasetUri][$uri][Namespaces::$sco."polygonCoordinates"] = array($value->nodeValue);
+              }
+              else
+              {
+                array_push($this->resultset[$datasetUri][$uri][Namespaces::$sco."polygonCoordinates"], $value->nodeValue);
+              }
+            }            
+            
             $skipLatLong = TRUE;
           }
           
@@ -1814,7 +1994,18 @@ class Search extends WebService
           
           if($resultPolylineCoordinates->length > 0)
           {
-            $this->resultset[$datasetUri][$uri][Namespaces::$sco."polylineCoordinates"] = array($resultPolylineCoordinates->item(0)->nodeValue);
+            foreach($resultPolylineCoordinates as $value)
+            {
+              if(!isset($this->resultset[$datasetUri][$uri][Namespaces::$sco."polylineCoordinates"]))
+              {
+                $this->resultset[$datasetUri][$uri][Namespaces::$sco."polylineCoordinates"] = array($value->nodeValue);
+              }
+              else
+              {
+                array_push($this->resultset[$datasetUri][$uri][Namespaces::$sco."polylineCoordinates"], $value->nodeValue);
+              }
+            }            
+            
             $skipLatLong = TRUE;
           }          
           
@@ -1945,6 +2136,16 @@ class Search extends WebService
       }
     }
   }
+  
+  private function escapeSolrValue($string)
+  {
+    $match = array('\\', '+', '-', '&', '|', '!', '(', ')', '{', '}', '[', ']', '^', '~', '*', '?', ':', '"', ';', ' ');
+    $replace = array('\\\\', '\\+', '\\-', '\\&', '\\|', '\\!', '\\(', '\\)', '\\{', '\\}', '\\[', '\\]', '\\^', '\\~', '\\*', '\\?', '\\:', '\\"', '\\;', '\\ ');
+    $string = str_replace($match, $replace, $string);
+
+    return $string;
+  }
+  
 }
 
 

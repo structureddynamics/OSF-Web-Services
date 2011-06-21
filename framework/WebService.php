@@ -123,6 +123,13 @@ abstract class WebService
 
   /*! @brief The endpoint of the Authentication Registrar web service */
   protected $endpoint;
+  
+  /*! @brief Number of sessions (threads) to use in parallel */
+  protected $owlapiNbSessions;
+  
+  /*! @brief URL where the Java Bridge can be accessed from this server */
+  protected $owlapiBridgeURI;
+  
   protected $geoEnabled = FALSE;
 
   function __construct()
@@ -296,6 +303,16 @@ abstract class WebService
       $this->tracking_endpoint = $network_ini["tracking"]["tracking_endpoint"];
     } 
     
+    
+    if(isset($network_ini["owlapi"]["nb_sessions"]))
+    {
+      $this->owlapiNbSessions = $network_ini["owlapi"]["nb_sessions"];
+    } 
+    if(isset($network_ini["owlapi"]["bridge_uri"]))
+    {
+      $this->owlapiBridgeURI = $network_ini["owlapi"]["bridge_uri"];
+    } 
+
     if(isset($network_ini["geo"]["geoenabled"]))
     {
       if(strtolower($network_ini["geo"]["geoenabled"]) == "true" || $network_ini["geo"]["geoenabled"] == "1")
@@ -303,6 +320,7 @@ abstract class WebService
         $this->geoEnabled = TRUE;
       }      
     }   
+    
     
     if(isset($data_ini["solr"]["wsf_solr_core"]))
     {

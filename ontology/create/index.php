@@ -16,9 +16,9 @@
  */
 
 ini_set("display_errors",
-  "On"); // Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
+  "Off"); // Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
 
-ini_set("memory_limit", "64M");
+ini_set("memory_limit", "256M");
 
 
 // Database connectivity procedures
@@ -32,17 +32,13 @@ include_once("../../framework/WebService.php");
 
 include_once("../../framework/ProcessorXML.php");
 
-include_once("../../framework/ClassHierarchy.php");
-include_once("../../framework/PropertyHierarchy.php");
-include_once("../../framework/RdfClass.php");
-include_once("../../framework/RdfProperty.php");
-
 include_once("OntologyCreate.php");
 include_once("../../auth/validator/AuthValidator.php");
 include_once("../../dataset/read/DatasetRead.php");
 
 include_once("../../framework/Logger.php");
 
+include_once("../../framework/OWLOntology.php");
 
 // IP being registered
 $registered_ip = "";
@@ -53,27 +49,36 @@ if(isset($_POST['registered_ip']))
 }
 
 // Ontology RDF document where resource(s) to be added are described
-$ontology = "";
+$ontologyUri = "";
 
-if(isset($_POST['ontology']))
+if(isset($_POST['uri']))
 {
-  $ontology = $_POST['ontology'];
+  $ontologyUri = $_POST['uri'];
 }
 
-// Mime of the Ontology RDF document serialization
-$mime = "";
+// Permissions to set for the "public user" to access this new ontology dataset.
+$globalPermissions = "False;True;False;False";
 
-if(isset($_POST['mime']))
+if(isset($_POST['globalPermissions']))
 {
-  $mime = $_POST['mime'];
+  $globalPermissions = $_POST['globalPermissions'];
 }
 
-// Additional action that can be performed when adding a new ontology: (1) recreate_inference
-$action = "";
+// If this parameter is set, the Ontology Create web service endpoint will index
+// the ontology in the normal structWSF data stores. That way, the ontology
+// will also become queryable via the standard services such as Search and Browse.
+$advancedIndexation = FALSE;
 
-if(isset($_POST['action']))
+if(isset($_POST['advancedIndexation']))
 {
-  $action = $_POST['action'];
+  if(strtolower($_POST['advancedIndexation']) == "false")
+  {
+    $advancedIndexation = FALSE;
+  }
+  else
+  {
+    $advancedIndexation = TRUE;
+  }  
 }
 
 $mtime = microtime();
@@ -108,12 +113,55 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_ontologycreate = new OntologyCreate($ontology, $mime, $action, $registered_ip, $requester_ip);
+$ws_ontologycreate =  new OntologyCreate($ontologyUri, $registered_ip, $requester_ip);
 
 $ws_ontologycreate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'],
   $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
 
-$ws_ontologycreate->process();
+// Set the advanced indexation
+$ws_ontologycreate->setAdvancedIndexation($advancedIndexation);
+  
+// Set global permissions
+$permissions = explode(";", $globalPermissions);
+
+if(strtolower($permissions[0]) == "false")
+{
+  $ws_ontologycreate->setGlobalPermissionCreate(FALSE);
+}  
+else
+{
+  $ws_ontologycreate->setGlobalPermissionCreate(TRUE);
+}
+
+if(strtolower($permissions[1]) == "false")
+{
+  $ws_ontologycreate->setGlobalPermissionRead(FALSE);
+}  
+else
+{
+  $ws_ontologycreate->setGlobalPermissionRead(TRUE);
+}
+
+if(strtolower($permissions[2]) == "false")
+{
+  $ws_ontologycreate->setGlobalPermissionUpdate(FALSE);
+}  
+else
+{
+  $ws_ontologycreate->setGlobalPermissionUpdate(TRUE);
+}
+
+if(strtolower($permissions[3]) == "false")
+{
+  $ws_ontologycreate->setGlobalPermissionDelete(FALSE);
+}  
+else
+{
+  $ws_ontologycreate->setGlobalPermissionDelete(TRUE);
+}
+  
+  
+$ws_ontologycreate->createOntology();
 
 $ws_ontologycreate->ws_respond($ws_ontologycreate->ws_serialize());
 
@@ -124,7 +172,7 @@ $endtime = $mtime;
 $totaltime = ($endtime - $starttime);
 
 $logger = new Logger("ontology_create", $requester_ip,
-  "?ontology=" . substr($ontology, 0, 64) . "&mime=" . $mime . "&action=" . $action . "&registered_ip=" . $registered_ip
+  "?ontology=" . substr($ontology, 0, 64) . "&mime=" . $mime . "&registered_ip=" . $registered_ip
   . "&requester_ip=$requester_ip",
   $_SERVER['HTTP_ACCEPT'], $start_datetime, $totaltime, $ws_ontologycreate->pipeline_getResponseHeaderStatus(),
   $_SERVER['HTTP_USER_AGENT']);

@@ -4,7 +4,7 @@
 //@{
 
 /*! @file \ws\ontology\create\OntologyCreate.php
-   @brief Define the Ontology Create web service
+   @brief Add/Import a new ontology into the ontological structure of a structWSF network instance.
 
   
    \n\n
@@ -15,7 +15,7 @@
  */
 
 
-/*!   @brief Ontology Create Web Service. It indexes new ontologies description in the structWSF instance. Re-generate the internal ontological structure of the system.
+/*!   @brief Add/Import a new ontology into the ontological structure of a structWSF network instance.
             
     \n
     
@@ -26,9 +26,6 @@
 
 class OntologyCreate extends WebService
 {
-  /*! @brief Database connection */
-  private $db;
-
   /*! @brief Conneg object that manage the content negotiation capabilities of the web service */
   private $conneg;
 
@@ -43,20 +40,32 @@ class OntologyCreate extends WebService
   /*! @brief IP being registered */
   private $registered_ip = "";
 
-  /*! @brief Ontology RDF document. Maximum size (by default) is 8M (default php.ini setting). */
-  private $ontology = array();
-
-  /*! @brief Mime of the Ontology RDF document serialization */
-  private $mime = "";
-
-  /*! @brief Additional action that can be performed when adding a new ontology: (1) recreate_inference */
-  private $action = "";
+  /*! @brief URI where the web service can fetch the ontology document */
+  private $ontologyUri = "";
 
   /*! @brief Requester's IP used for request validation */
   private $requester_ip = "";
 
   /*! @brief URI of the inference rules set to use to create the ontological structure. */
   private $rulesSetURI = "";
+
+  /*! @brief Create permissions for the global user */
+  private $globalPermissionCreate = FALSE;
+
+  /*! @brief Read permissions for the global user */
+  private $globalPermissionRead = FALSE;
+
+  /*! @brief Update permissions for the global user */
+  private $globalPermissionUpdate = FALSE;
+
+  /*! @brief Delete permissions for the global user */
+  private $globalPermissionDelete = FALSE;
+
+  /*! @brief If this parameter is set, the Ontology Create web service endpoint will index
+             the ontology in the normal structWSF data stores. That way, the ontology
+             will also become queryable via the standard services such as Search and Browse.
+  */
+  private $advancedIndexation = FALSE;
 
   /*! @brief Error messages of this web service */
   private $errorMessenger =
@@ -65,134 +74,22 @@ class OntologyCreate extends WebService
                         "_200": {
                           "id": "WS-ONTOLOGY-CREATE-200",
                           "level": "Warning",
-                          "name": "No Ontology RDF document to index",
-                          "description": "No Ontology RDF document to index"
-                        },
-                        "_201": {
-                          "id": "WS-ONTOLOGY-CREATE-201",
-                          "level": "Warning",
-                          "name": "Unknown MIME type for this RDF document",
-                          "description": "Unknown MIME type for this RDF document"
+                          "name": "No Ontology URI defined for this request",
+                          "description": "No Ontology URI defined for this request"
                         },
                         "_300": {
                           "id": "WS-ONTOLOGY-CREATE-300",
-                          "level": "Warning",
-                          "name": "Syntax error in the RDF document",
-                          "description": "Syntax error in the RDF document"
-                        },
-                        "_301": {
-                          "id": "WS-ONTOLOGY-CREATE-301",
-                          "level": "Fatal",
-                          "name": "Can\'t clear the inference table",
-                          "description": "Can\'t clear the inference table"
-                        },
-                        "_302": {
-                          "id": "WS-ONTOLOGY-CREATE-302",
-                          "level": "Fatal",
-                          "name": "",
-                          "description": ""
-                        },
-                        "_303": {
-                          "id": "WS-ONTOLOGY-CREATE-303",
-                          "level": "Fatal",
-                          "name": "Can\'t commit changes",
-                          "description": "Can\'t commit changes"
-                        },
-                        "_304": {
-                          "id": "WS-ONTOLOGY-CREATE-304",
-                          "level": "Fatal",
-                          "name": "Can\'t clear the inference graph",
-                          "description": "Can\'t clear the inference graph"
-                        },
-                        "_305": {
-                          "id": "WS-ONTOLOGY-CREATE-305",
-                          "level": "Fatal",
-                          "name": "Can\'t get the list of sub-classes-of all classes",
-                          "description": "Can\'t get the list of sub-classes-of all classes"
-                        },
-                        "_306": {
-                          "id": "WS-ONTOLOGY-CREATE-306",
-                          "level": "Fatal",
-                          "name": "Can\'t get the list of RDFS classes",
-                          "description": "Can\'t get the list of RDFS classes"
-                        },
-                        "_307": {
-                          "id": "WS-ONTOLOGY-CREATE-307",
-                          "level": "Fatal",
-                          "name": "Can\'t get the list of OWL classes",
-                          "description": "Can\'t get the list of OWL classes"
-                        },
-                        "_308": {
-                          "id": "WS-ONTOLOGY-CREATE-308",
-                          "level": "Fatal",
-                          "name": "Can\'t get the list of sub-properties-of all properties",
-                          "description": "Can\'t get the list of sub-properties-of all properties"
-                        },
-                        "_309": {
-                          "id": "WS-ONTOLOGY-CREATE-309",
-                          "level": "Fatal",
-                          "name": "Can\'t get the list of RDFS properties",
-                          "description": "Can\'t get the list of RDFS properties"
-                        },
-                        "_310": {
-                          "id": "WS-ONTOLOGY-CREATE-310",
-                          "level": "Fatal",
-                          "name": "Can\'t get the list of OWL-Object/Datatype properties",
-                          "description": "Can\'t get the list of OWL-Object/Datatype properties"
-                        },
-                        "_311": {
-                          "id": "WS-ONTOLOGY-CREATE-311",
-                          "level": "Fatal",
-                          "name": "Can\'t insert inferred triples",
-                          "description": "Can\'t insert inferred triples"
-                        },
-                        "_312": {
-                          "id": "WS-ONTOLOGY-CREATE-312",
-                          "level": "Fatal",
-                          "name": "Can\'t create graph",
-                          "description": "Can\'t create graph"
-                        },
-                        "_313": {
-                          "id": "WS-ONTOLOGY-CREATE-313",
-                          "level": "Fatal",
-                          "name": "Can\'t create graph",
-                          "description": "Can\'t create graph"
-                        },
-                        "_314": {
-                          "id": "WS-ONTOLOGY-CREATE-314",
-                          "level": "Fatal",
-                          "name": "Can\'t write file",
-                          "description": "Can\'t write file"
-                        },
-                        "_315": {
-                          "id": "WS-ONTOLOGY-CREATE-315",
-                          "level": "Fatal",
-                          "name": "Can\'t open file",
-                          "description": "Can\'t open file"
-                        },
-                        "_316": {
-                          "id": "WS-ONTOLOGY-CREATE-316",
-                          "level": "Fatal",
-                          "name": "Can\'t write file",
-                          "description": "Can\'t write file"
-                        },
-                        "_317": {
-                          "id": "WS-ONTOLOGY-CREATE-317",
-                          "level": "Fatal",
-                          "name": "Can\'t open file",
-                          "description": "Can\'t open file"
-                        }  
+                          "level": "Error",
+                          "name": "Can\'t load the ontology",
+                          "description": "The ontology can\'t be loaded by the endpoint"
+                        }
                       }';
 
 
   /*!   @brief Constructor
        @details   Initialize the Ontology Create
           
-      @param[in] $ontology RDF document describing the ontology. The size of this document is limited to 8MB
-      @param[in] $mime One of: (1) application/rdf+xml? RDF document serialized in XML
-                    (2) application/rdf+n3? RDF document serialized in N3 
-
-      @param[in] $action (optional).If action = "recreate_inference" then the inference table will be re-created as well
+      @param[in] $ontologyUri URI where the webservice can fetch the ontology file
       @param[in] $registered_ip Target IP address registered in the WSF
       @param[in] $requester_ip IP address of the requester
               
@@ -204,19 +101,13 @@ class OntologyCreate extends WebService
     
       \n\n\n
   */
-  function __construct($ontology, $mime, $action, $registered_ip, $requester_ip)
+  function __construct($ontologyUri, $registered_ip, $requester_ip)
   {
     parent::__construct();
 
-    $this->db = new DB_Virtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
-
     $this->registered_ip = $registered_ip;
     $this->requester_ip = $requester_ip;
-    $this->ontology = str_replace("'", "\'", $ontology);
-    $this->mime = $mime;
-    $this->action = $action;
-
-    $this->rulesSetURI = "wsf_inference_rule" . ereg_replace("[^A-Za-z0-9]", "", $this->wsf_base_url);
+    $this->ontologyUri = $ontologyUri;
 
     if($this->registered_ip == "")
     {
@@ -386,7 +277,7 @@ class OntologyCreate extends WebService
 
     // Check for errors
 
-    if($this->ontology == "")
+    if($this->ontologyUri == "")
     {
       $this->conneg->setStatus(400);
       $this->conneg->setStatusMsg("Bad Request");
@@ -395,17 +286,6 @@ class OntologyCreate extends WebService
         $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, "",
         $this->errorMessenger->_200->level);
 
-      return;
-    }
-
-    if($this->mime != "application/rdf+xml" && $this->mime != "application/rdf+n3")
-    {
-      $this->conneg->setStatus(400);
-      $this->conneg->setStatusMsg("Bad Request");
-      $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
-      $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
-        $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, "",
-        $this->errorMessenger->_201->level);
       return;
     }
   }
@@ -531,8 +411,18 @@ class OntologyCreate extends WebService
     $this->__destruct();
   }
 
+  private function returnError($statusCode, $statusMsg, $wsErrorCode, $debugInfo = "")
+  {
+    $this->conneg->setStatus($statusCode);
+    $this->conneg->setStatusMsg($statusMsg);
+    $this->conneg->setStatusMsgExt($this->errorMessenger->{$wsErrorCode}->name);
+    $this->conneg->setError($this->errorMessenger->{$wsErrorCode}->id, $this->errorMessenger->ws,
+      $this->errorMessenger->{$wsErrorCode}->name, $this->errorMessenger->{$wsErrorCode}->description, $debugInfo,
+      $this->errorMessenger->{$wsErrorCode}->level);
+  }
 
-  /*!   @brief Update all ontological structures used by the WSF
+
+  /*! @brief Update all ontological structures used by the WSF
               
       \n
       
@@ -540,7 +430,7 @@ class OntologyCreate extends WebService
     
       \n\n\n
   */
-  public function process()
+  public function createOntology()
   {
     // Make sure there was no conneg error prior to this process call
     if($this->conneg->getStatus() == 200)
@@ -550,1061 +440,606 @@ class OntologyCreate extends WebService
       // If the query is still valid
       if($this->conneg->getStatus() == 200)
       {
-        // Step #1: load the new ontology
-        if($this->mime == "application/rdf+xml")
-        {
-          $this->db->query("DB.DBA.RDF_LOAD_RDFXML_MT('" . $this->ontology . "', '" . $this->wsf_graph
-            . "ontologies/', '" . $this->wsf_graph . "ontologies/')");
-        }
+        // Starts the OWLAPI process/bridge
+        require_once($this->owlapiBridgeURI);
 
-        if($this->mime == "application/rdf+n3")
-        {
-          $this->db->query("DB.DBA.TTLP_MT('" . $this->ontology . "', '" . $this->wsf_graph . "ontologies/', '"
-            . $this->wsf_graph . "ontologies/')");
-        }
+        // Create the OWLAPI session object that could have been persisted on the OWLAPI instance.
+        // Second param "false" => we re-use the pre-created session without destroying the previous one
+        // third param "0" => it nevers timeout.
+        $OwlApiSession = java_session("OWLAPI", false, 0);
 
-        if(odbc_error())
+        try
         {
-          $this->conneg->setStatus(400);
-          $this->conneg->setStatusMsg("Bad Request");
-          $this->conneg->setStatusMsgExt($this->errorMessenger->_300->name);
-          $this->conneg->setError($this->errorMessenger->_300->id, $this->errorMessenger->ws,
-            $this->errorMessenger->_300->name, $this->errorMessenger->_300->description, odbc_errormsg(),
-            $this->errorMessenger->_300->level);
+          $ontology = new OWLOntology($this->ontologyUri, $OwlApiSession, FALSE);
+        }
+        catch(Exception $e)
+        {
+          $this->returnError(400, "Bad Request", "_300", (string)java_values($e));
 
           return;
         }
 
-        // Step #2: re-creating the inference graph
-        if($this->action == "recreate_inference")
+        // Check if we want to enable the advanced indexation: so, if we want to import all the ontologies 
+        // description into the other structWSF data stores to enable search and filtering using the other
+        // endpoints such as search, sparql, read, etc.
+        if($this->advancedIndexation)
         {
-          // Clean the inference table
-          $this->db->query("rdfs_rule_set('" . $this->rulesSetURI . "', '" . $this->wsf_graph
-            . "ontologies/inferred/', 1)");
+          // Once we start the ontology creation process, we have to make sure that even if the server
+          // loose the connection with the user the process will still finish.
+          ignore_user_abort(true);
 
-          if(odbc_error())
+          // However, maybe there is an issue with the server handling that file tht lead to some kind of infinite 
+          // or near infinite loop; so we have to limit the execution time of this procedure to 45 mins.
+          set_time_limit(2700);
+
+          // Get the description of the ontology
+          $ontologyDescription = $ontology->getOntologyDescription();
+
+          $ontologyName = $this->getLabel($this->ontologyUri, $ontologyDescription);
+          $ontologyDescription = $this->getDescription($ontologyDescription);
+
+          // Get the list of datasets that will be accessible for this ontology dataset.
+          include_once("../../auth/lister/AuthLister.php");
+
+          $authLister = new AuthLister("ws", $this->ontologyUri, $this->requester_ip, $this->wsf_local_ip);
+
+          $authLister->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
+            $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
+
+          $authLister->process();
+
+          if($authLister->pipeline_getResponseHeaderStatus() != 200)
           {
-            $this->conneg->setStatus(400);
-            $this->conneg->setStatusMsg("Bad Request");
-            $this->conneg->setStatusMsgExt($this->errorMessenger->_301->name);
-            $this->conneg->setError($this->errorMessenger->_301->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_301->name, $this->errorMessenger->_301->description, odbc_errormsg(),
-              $this->errorMessenger->_301->level);
+            $this->conneg->setStatus($authLister->pipeline_getResponseHeaderStatus());
+            $this->conneg->setStatusMsg($authLister->pipeline_getResponseHeaderStatusMsg());
+            $this->conneg->setStatusMsgExt($authLister->pipeline_getResponseHeaderStatusMsgExt());
+            $this->conneg->setError($authLister->pipeline_getError()->id, $authLister->pipeline_getError()->webservice,
+              $authLister->pipeline_getError()->name, $authLister->pipeline_getError()->description,
+              $authLister->pipeline_getError()->debugInfo, $authLister->pipeline_getError()->level);
 
             return;
           }
 
-          // Recreate the inference table
-          $this->db->query("rdfs_rule_set('" . $this->rulesSetURI . "', '" . $this->wsf_graph
-            . "ontologies/inferred/')");
+          /* Get all web services */
+          $webservices = "";
 
-          if(odbc_error())
+          $xml = new ProcessorXML();
+          $xml->loadXML($authLister->pipeline_getResultset());
+
+          $webServiceElements = $xml->getXPath('//predicate/object[attribute::type="wsf:WebService"]');
+
+          foreach($webServiceElements as $element)
           {
-            $this->conneg->setStatus(400);
-            $this->conneg->setStatusMsg("Bad Request");
-            $this->conneg->setStatusMsgExt($this->errorMessenger->_302->name);
-            $this->conneg->setError($this->errorMessenger->_302->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_302->name, $this->errorMessenger->_302->description, odbc_errormsg(),
-              $this->errorMessenger->_302->level);
-
-            return;
-          }
-
-          // Commit changes
-          $this->db->query("exec('checkpoint')");
-
-          if(odbc_error())
-          {
-            $this->conneg->setStatus(400);
-            $this->conneg->setStatusMsg("Bad Request");
-            $this->conneg->setStatusMsgExt($this->errorMessenger->_303->name);
-            $this->conneg->setError($this->errorMessenger->_303->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_303->name, $this->errorMessenger->_303->description, odbc_errormsg(),
-              $this->errorMessenger->_303->level);
-
-            return;
-          }
-
-          // Clear the inference graph
-          $this->db->query("exst('sparql clear graph <" . $this->wsf_graph . "ontologies/inferred/>')");
-
-          if(odbc_error())
-          {
-            $this->conneg->setStatus(400);
-            $this->conneg->setStatusMsg("Bad Request");
-            $this->conneg->setStatusMsgExt($this->errorMessenger->_304->name);
-            $this->conneg->setError($this->errorMessenger->_304->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_304->name, $this->errorMessenger->_304->description, odbc_errormsg(),
-              $this->errorMessenger->_304->level);
-
-            return;
-          }
-
-          // Step #3: Creating class hierarchy
-          $classHierarchy = new ClassHierarchy("http://www.w3.org/2002/07/owl#Thing");
-
-          $query = $this->db->build_sparql_query("select ?s ?o from <" . $this->wsf_graph
-            . "ontologies/> where {?s <http://www.w3.org/2000/01/rdf-schema#subClassOf> ?o.}",
-            array ('s', 'o'), FALSE);
-
-          $resultset = $this->db->query($query);
-
-          if(odbc_error())
-          {
-            $this->conneg->setStatus(400);
-            $this->conneg->setStatusMsg("Bad Request");
-            $this->conneg->setStatusMsgExt($this->errorMessenger->_305->name);
-            $this->conneg->setError($this->errorMessenger->_305->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_305->name, $this->errorMessenger->_305->description, odbc_errormsg(),
-              $this->errorMessenger->_305->level);
-
-            return;
-          }
-
-          $ontologiesClasses = array();
-
-          while(odbc_fetch_row($resultset))
-          {
-            $s = odbc_result($resultset, 1);
-            $o = odbc_result($resultset, 2);
-
-            // Drop blank nodes
-            if(strpos($s, "nodeID://") === FALSE && strpos($o, "nodeID://") === FALSE)
+            if(stristr($xml->getURI($element), "/wsf/ws/search/") !== FALSE
+              || stristr($xml->getURI($element), "/wsf/ws/browse/") !== FALSE
+              || stristr($xml->getURI($element), "/wsf/ws/sparql/") !== FALSE
+              || stristr($xml->getURI($element), "/wsf/ws/crud/create/") !== FALSE
+              || stristr($xml->getURI($element), "/wsf/ws/crud/update/") !== FALSE
+              || stristr($xml->getURI($element), "/wsf/ws/crud/delete/") !== FALSE
+              || stristr($xml->getURI($element), "/wsf/ws/ontology/create/") !== FALSE
+              || stristr($xml->getURI($element), "/wsf/ws/ontology/read/") !== FALSE
+              || stristr($xml->getURI($element), "/wsf/ws/ontology/update/") !== FALSE
+              || stristr($xml->getURI($element), "/wsf/ws/ontology/delete/") !== FALSE)
             {
-              $classHierarchy->addClassRelationship($s, $o);
-
-              $ontologiesClasses[$s] = 1;
+              $webservices .= $xml->getURI($element) . ";";
             }
           }
 
-          $query = $this->db->build_sparql_query("select ?s from <" . $this->wsf_graph
-            . "ontologies/> where {?s a <http://www.w3.org/2000/01/rdf-schema#Class>.}", array( 's' ), FALSE);
+          $webservices = rtrim($webservices, ";");
 
-          $resultset = $this->db->query($query);
+          unset($xml);
+          unset($authLister);
 
-          if(odbc_error())
+          // Create a new dataset for this ontology
+          include_once("../../dataset/create/DatasetCreate.php");
+          include_once("../../auth/registrar/access/AuthRegistrarAccess.php");
+
+          $globalPermissions = "";
+          
+          if($this->globalPermissionCreate === FALSE)
           {
-            $this->conneg->setStatus(400);
-            $this->conneg->setStatusMsg("Bad Request");
-            $this->conneg->setStatusMsgExt($this->errorMessenger->_306->name);
-            $this->conneg->setError($this->errorMessenger->_306->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_306->name, $this->errorMessenger->_306->description, odbc_errormsg(),
-              $this->errorMessenger->_306->level);
+            $globalPermissions .= "False;";
+          }
+          else
+          {
+            $globalPermissions .= "True;";
+          }
+          
+          if($this->globalPermissionRead === FALSE)
+          {
+            $globalPermissions .= "False;";
+          }
+          else
+          {
+            $globalPermissions .= "True;";
+          }
+          
+          if($this->globalPermissionUpdate === FALSE)
+          {
+            $globalPermissions .= "False;";
+          }
+          else
+          {
+            $globalPermissions .= "True;";
+          }
+          
+          if($this->globalPermissionDelete === FALSE)
+          {
+            $globalPermissions .= "False";
+          }
+          else
+          {
+            $globalPermissions .= "True";
+          }
+          
+          $datasetCreate =
+            new DatasetCreate($this->ontologyUri, $ontologyName, $ontologyDescription, "", $this->registered_ip,
+              $this->requester_ip, $webservices, $globalPermissions);
+
+          $datasetCreate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'],
+            $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+
+          $datasetCreate->process();
+
+          if($datasetCreate->pipeline_getResponseHeaderStatus() != 200)
+          {
+            if($datasetCreate->pipeline_getError()->id != "WS-DATASET-CREATE-202")
+            {
+              $this->conneg->setStatus($datasetCreate->pipeline_getResponseHeaderStatus());
+              $this->conneg->setStatusMsg($datasetCreate->pipeline_getResponseHeaderStatusMsg());
+              $this->conneg->setStatusMsgExt($datasetCreate->pipeline_getResponseHeaderStatusMsgExt());
+              $this->conneg->setError($datasetCreate->pipeline_getError()->id,
+                $datasetCreate->pipeline_getError()->webservice, $datasetCreate->pipeline_getError()->name,
+                $datasetCreate->pipeline_getError()->description, $datasetCreate->pipeline_getError()->debugInfo,
+                $datasetCreate->pipeline_getError()->level);
+            }
+
+            // If the dataset already exists, then we simply stop the processing of the advancedIndexation
+            // mode. This means that the tomcat instance has been rebooted, and that the datasets
+            // have been leaved there, and that a procedure, normally using the advancedIndexation mode
+            // is currently being re-processed.
 
             return;
           }
 
-          while(odbc_fetch_row($resultset))
-          {
-            $s = odbc_result($resultset, 1);
+          unset($datasetCreate);
 
-            if(strpos($s, "nodeID://") === FALSE && isset($classHierarchy->classes[$s]) === FALSE)
+          // Get the description of the classes, properties and named individuals of this ontology.
+
+          include_once("../../ontology/read/OntologyRead.php");
+          include_once("../../crud/create/CrudCreate.php");
+          include_once("../../framework/arc2/ARC2.php");
+          include_once("../../framework/Namespaces.php");
+          include_once("../../framework/Solr.php");
+          include_once("../../framework/ClassHierarchy.php");
+
+          $nbClasses = $ontology->getNbClasses();
+          $sliceSize = 200;
+
+          for($i = 0; $i < $nbClasses; $i += $sliceSize)
+          {
+            $ontologyRead =
+              new OntologyRead($this->ontologyUri, "getClasses", "mode=descriptions;limit=$sliceSize;offset=$i",
+                $this->registered_ip, $this->requester_ip);
+
+            // Since we are in pipeline mode, we have to set the owlapisession using the current one.
+            // otherwise the java bridge will return an error
+            $ontologyRead->setOwlApiSession($OwlApiSession);
+
+            $ontologyRead->ws_conneg("application/rdf+xml", $_SERVER['HTTP_ACCEPT_CHARSET'],
+              $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+
+            $ontologyRead->process();
+
+            $classesRDF = $ontologyRead->ws_serialize();
+
+            unset($ontologyRead);
+
+
+            // Now, let's index the resources of this ontology within structWSF (for the usage of browse, search 
+            // and sparql)
+            $crudCreate =
+              new CrudCreate($classesRDF, "application/rdf+xml", "full", $this->ontologyUri, $this->registered_ip,
+                $this->requester_ip);
+
+            $crudCreate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'],
+              $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+
+            $crudCreate->process();
+
+            if($crudCreate->pipeline_getResponseHeaderStatus() != 200)
             {
-              $classHierarchy->addClassRelationship($s, "http://www.w3.org/2002/07/owl#Thing");
+              $this->conneg->setStatus($crudCreate->pipeline_getResponseHeaderStatus());
+              $this->conneg->setStatusMsg($crudCreate->pipeline_getResponseHeaderStatusMsg());
+              $this->conneg->setStatusMsgExt($crudCreate->pipeline_getResponseHeaderStatusMsgExt());
+              $this->conneg->setError($crudCreate->pipeline_getError()->id,
+                $crudCreate->pipeline_getError()->webservice, $crudCreate->pipeline_getError()->name,
+                $crudCreate->pipeline_getError()->description, $crudCreate->pipeline_getError()->debugInfo,
+                $crudCreate->pipeline_getError()->level);
 
-              $ontologiesClasses[$s] = 1;
-            }
-          }
+              // In case of error, we delete the dataset we previously created.
+              include_once("../../ontology/delete/OntologyDelete.php");
 
-          $query = $this->db->build_sparql_query("select ?s from <" . $this->wsf_graph
-            . "ontologies/> where {?s a <http://www.w3.org/2002/07/owl#Class>.}", array( 's' ), FALSE);
+              $ontologyDelete = new OntologyDelete($this->ontologyUri, $this->registered_ip, $this->requester_ip);
 
-          $resultset = $this->db->query($query);
+              $ontologyDelete->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'],
+                $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
 
-          if(odbc_error())
-          {
-            $this->conneg->setStatus(400);
-            $this->conneg->setStatusMsg("Bad Request");
-            $this->conneg->setStatusMsgExt($this->errorMessenger->_307->name);
-            $this->conneg->setError($this->errorMessenger->_307->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_307->name, $this->errorMessenger->_307->description, odbc_errormsg(),
-              $this->errorMessenger->_307->level);
+              $ontologyDelete->deleteOntology();
 
-            return;
-          }
+              if($ontologyDelete->pipeline_getResponseHeaderStatus() != 200)
+              {
+                $this->conneg->setStatus($ontologyDelete->pipeline_getResponseHeaderStatus());
+                $this->conneg->setStatusMsg($ontologyDelete->pipeline_getResponseHeaderStatusMsg());
+                $this->conneg->setStatusMsgExt($ontologyDelete->pipeline_getResponseHeaderStatusMsgExt());
+                $this->conneg->setError($ontologyDelete->pipeline_getError()->id,
+                  $ontologyDelete->pipeline_getError()->webservice, $ontologyDelete->pipeline_getError()->name,
+                  $ontologyDelete->pipeline_getError()->description, $ontologyDelete->pipeline_getError()->debugInfo,
+                  $ontologyDelete->pipeline_getError()->level);
 
-          while(odbc_fetch_row($resultset))
-          {
-            $s = odbc_result($resultset, 1);
-
-            if(strpos($s, "nodeID://") === FALSE && isset($classHierarchy->classes[$s]) === FALSE)
-            {
-              $classHierarchy->addClassRelationship($s, "http://www.w3.org/2002/07/owl#Thing");
-
-              $ontologiesClasses[$s] = 1;
-            }
-          }
-
-
-          // Step #4: Properties class hierarchy
-
-          $propertyHierarchy = new PropertyHierarchy("http://www.w3.org/2002/07/owl#Thing");
-
-          $query = $this->db->build_sparql_query("select ?s ?o from <" . $this->wsf_graph
-            . "ontologies/> where {?s <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> ?o.}",
-            array ('s', 'o'), FALSE);
-
-          $resultset = $this->db->query($query);
-
-          if(odbc_error())
-          {
-            $this->conneg->setStatus(400);
-            $this->conneg->setStatusMsg("Bad Request");
-            $this->conneg->setStatusMsgExt($this->errorMessenger->_308->name);
-            $this->conneg->setError($this->errorMessenger->_308->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_308->name, $this->errorMessenger->_308->description, odbc_errormsg(),
-              $this->errorMessenger->_308->level);
-
-            return;
-          }
-
-          $ontologiesProperties = array();
-
-          while(odbc_fetch_row($resultset))
-          {
-            $s = odbc_result($resultset, 1);
-            $o = odbc_result($resultset, 2);
-
-            if(strpos($s, "nodeID://") === FALSE && strpos($o, "nodeID://") === FALSE)
-            {
-              $propertyHierarchy->addPropertyRelationship($s, $o);
-
-              $ontologiesProperties[$s] = 1;
-            }
-          }
-
-          $query = $this->db->build_sparql_query("select ?s from <" . $this->wsf_graph
-            . "ontologies/> where {?s a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>.}",
-            array( 's' ), FALSE);
-
-          $resultset = $this->db->query($query);
-
-          if(odbc_error())
-          {
-            $this->conneg->setStatus(400);
-            $this->conneg->setStatusMsg("Bad Request");
-            $this->conneg->setStatusMsgExt($this->errorMessenger->_309->name);
-            $this->conneg->setError($this->errorMessenger->_309->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_309->name, $this->errorMessenger->_309->description, odbc_errormsg(),
-              $this->errorMessenger->_309->level);
-
-            return;
-          }
-
-          while(odbc_fetch_row($resultset))
-          {
-            $s = odbc_result($resultset, 1);
-
-            if(strpos($s, "nodeID://") === FALSE && isset($propertyHierarchy->properties[$s]) === FALSE)
-            {
-              $propertyHierarchy->addPropertyRelationship($s, "http://www.w3.org/2002/07/owl#Thing");
-
-              $ontologiesProperties[$s] = 1;
-            }
-          }
-
-          $query =
-            $this->db->build_sparql_query("select ?s from <" . $this->wsf_graph
-              . "ontologies/> where {{?s a <http://www.w3.org/2002/07/owl#ObjectProperty>.}union{?s a <http://www.w3.org/2002/07/owl#DatatypeProperty>.}}",
-              array( 's' ), FALSE);
-
-          $resultset = $this->db->query($query);
-
-          if(odbc_error())
-          {
-            $this->conneg->setStatus(400);
-            $this->conneg->setStatusMsg("Bad Request");
-            $this->conneg->setStatusMsgExt($this->errorMessenger->_310->name);
-            $this->conneg->setError($this->errorMessenger->_310->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_310->name, $this->errorMessenger->_310->description, odbc_errormsg(),
-              $this->errorMessenger->_310->level);
-
-            return;
-          }
-
-          while(odbc_fetch_row($resultset))
-          {
-            $s = odbc_result($resultset, 1);
-
-            if(strpos($s, "nodeID://") === FALSE && isset($propertyHierarchy->properties[$s]) === FALSE)
-            {
-              $propertyHierarchy->addPropertyRelationship($s, "http://www.w3.org/2002/07/owl#Thing");
-
-              $ontologiesProperties[$s] = 1;
-            }
-          }
-
-
-          // Step #5: Populating the labels and descriptions for each ClassNode.
-
-          foreach($classHierarchy->classes as $c)
-          {
-            $class = new RdfClass($c->name, $this->wsf_graph . "ontologies/", $this->wsf_graph . "ontologies/inferred/",
-              $this->db);
-
-// Escaping the description and label to make sure that PHP serialize works as expected.
-//            $c->description = str_replace(array("\n", "\r", "'", '"'), array("&#010;", "&#013;", "&#039;", "&quot;"), preg_replace('/[^(\x20-\x7F)]*/','', $class->getDescription()));
-//            $c->label = str_replace(array("\n", "\r", "'", '"'), array("&#010;", "&#013;", "&#039;", "&quot;"), preg_replace('/[^(\x20-\x7F)]*/','', $class->getLabel()));
-            $c->description = str_replace(array ("\n", "\r", "'", '"'), array ("&#010;", "&#013;", "&#039;", "&quot;"),
-              $class->getDescription());
-
-            $c->label = str_replace(array ("\n", "\r", "'", '"'), array ("&#010;", "&#013;", "&#039;", "&quot;"),
-              $class->getLabel());
-
-            unset($class);
-          }
-
-          foreach($propertyHierarchy->properties as $p)
-          {
-            $property =
-              new RdfProperty($p->name, $this->wsf_graph . "ontologies/", $this->wsf_graph . "ontologies/inferred/",
-                $this->db);
-// Escaping the description and label to make sure that PHP serialize works as expected.
-//            $p->description = str_replace(array("\n", "\r", "'", '"'), array("&#010;", "&#013;", "&#039;", "&quot;"), preg_replace('/[^(\x20-\x7F)]*/','', $property->getDescription()));
-//            $p->label = str_replace(array("\n", "\r", "'", '"'), array("&#010;", "&#013;", "&#039;", "&quot;"), preg_replace('/[^(\x20-\x7F)]*/','', $property->getLabel()));
-            $p->description = str_replace(array ("\n", "\r", "'", '"'), array ("&#010;", "&#013;", "&#039;", "&quot;"),
-              $property->getDescription());
-
-            $p->label = str_replace(array ("\n", "\r", "'", '"'), array ("&#010;", "&#013;", "&#039;", "&quot;"),
-              $property->getLabel());
-
-            unset($property);
-          }
-        }
-
-// Step #6: for each class, we add a "subClassOf" triple for each of their subClasses (recursively until we reach owl:Thing)
-
-        foreach($ontologiesClasses as $class => $value)
-        {
-          $superClasses = $classHierarchy->getSuperClasses($class);
-
-          foreach($superClasses as $sp)
-          {
-            $this->db->query("exst('sparql insert into graph <" . $this->wsf_graph . "ontologies/inferred/> {<"
-              . $classHierarchy->classes[$class]->name . "> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <"
-              . $sp->name . ">.}')");
-
-            if(odbc_error())
-            {
-              $this->conneg->setStatus(400);
-              $this->conneg->setStatusMsg("Bad Request");
-              $this->conneg->setStatusMsgExt($this->errorMessenger->_311->name);
-              $this->conneg->setError($this->errorMessenger->_311->id, $this->errorMessenger->ws,
-                $this->errorMessenger->_311->name, $this->errorMessenger->_311->description, odbc_errormsg(),
-                $this->errorMessenger->_311->level);
+                return;
+              }
 
               return;
             }
+
+            unset($crudCreate);
           }
-        }
 
+          $nbProperties = 0;
+          $nbProperties += $ontology->getNbObjectProperties();
+          $nbProperties += $ontology->getNbDataProperties();
+          $nbProperties += $ontology->getNbAnnotationProperties();
+          $sliceSize = 200;
 
-        // Step #7: checking for equivalent classes.
-
-        $query = $this->db->build_sparql_query("select ?s ?o from <" . $this->wsf_graph
-          . "ontologies/> where {?s <http://www.w3.org/2002/07/owl#equivalentClass> ?o.}", array ('s', 'o'), FALSE);
-
-        $resultset = $this->db->query($query);
-
-        while(odbc_fetch_row($resultset))
-        {
-          $s = odbc_result($resultset, 1);
-          $o = odbc_result($resultset, 2);
-
-          if(strpos($s, "nodeID://") === FALSE && strpos($o, "nodeID://") === FALSE)
+          for($i = 0; $i < $nbProperties; $i += $sliceSize)
           {
-            // Check if the equivalentClass belongs to our current class structure.
-            if(isset($classHierarchy->classes[$o]))
-            {
-              // We perform the same superClasses assignation
-              $subClasses = $classHierarchy->getSubClasses($o);
+            $ontologyRead = new OntologyRead($this->ontologyUri, "getProperties",
+              "mode=descriptions;limit=$sliceSize;offset=$i;type=all", $this->registered_ip, $this->requester_ip);
 
-              foreach($subClasses as $sp)
+            // Since we are in pipeline mode, we have to set the owlapisession using the current one.
+            // otherwise the java bridge will return an error
+            $ontologyRead->setOwlApiSession($OwlApiSession);
+
+            $ontologyRead->ws_conneg("application/rdf+xml", $_SERVER['HTTP_ACCEPT_CHARSET'],
+              $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+
+            $ontologyRead->process();
+
+            $propertiesRDF = $ontologyRead->ws_serialize();
+
+            unset($ontologyRead);
+
+
+            // Now, let's index the resources of this ontology within structWSF (for the usage of browse, search 
+            // and sparql)
+            $crudCreate =
+              new CrudCreate($propertiesRDF, "application/rdf+xml", "full", $this->ontologyUri, $this->registered_ip,
+                $this->requester_ip);
+
+            $crudCreate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'],
+              $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+
+            $crudCreate->process();
+
+            if($crudCreate->pipeline_getResponseHeaderStatus() != 200)
+            {
+              $this->conneg->setStatus($crudCreate->pipeline_getResponseHeaderStatus());
+              $this->conneg->setStatusMsg($crudCreate->pipeline_getResponseHeaderStatusMsg());
+              $this->conneg->setStatusMsgExt($crudCreate->pipeline_getResponseHeaderStatusMsgExt());
+              $this->conneg->setError($crudCreate->pipeline_getError()->id,
+                $crudCreate->pipeline_getError()->webservice, $crudCreate->pipeline_getError()->name,
+                $crudCreate->pipeline_getError()->description, $crudCreate->pipeline_getError()->debugInfo,
+                $crudCreate->pipeline_getError()->level);
+
+              // In case of error, we delete the dataset we previously created.
+              include_once("../../ontology/delete/OntologyDelete.php");
+
+              $ontologyDelete =
+                new OntologyDelete($this->ontologyUri, $this->registered_ip, $this->requester_ip);
+
+              $ontologyDelete->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'],
+                $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+
+              $ontologyDelete->deleteOntology();
+
+              if($ontologyDelete->pipeline_getResponseHeaderStatus() != 200)
               {
-                $this->db->query("exst('sparql insert into graph <" . $this->wsf_graph . "ontologies/inferred/> {<"
-                  . $sp->name . "> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <$s>.}')");
+                $this->conneg->setStatus($ontologyDelete->pipeline_getResponseHeaderStatus());
+                $this->conneg->setStatusMsg($ontologyDelete->pipeline_getResponseHeaderStatusMsg());
+                $this->conneg->setStatusMsgExt($ontologyDelete->pipeline_getResponseHeaderStatusMsgExt());
+                $this->conneg->setError($ontologyDelete->pipeline_getError()->id,
+                  $ontologyDelete->pipeline_getError()->webservice, $ontologyDelete->pipeline_getError()->name,
+                  $ontologyDelete->pipeline_getError()->description, $ontologyDelete->pipeline_getError()->debugInfo,
+                  $ontologyDelete->pipeline_getError()->level);
+
+                return;
               }
+
+              return;
             }
 
-            // Check if the equivalentClass belongs to our current class structure.
-            if(isset($classHierarchy->classes[$s]))
-            {
-              // We perform the same superClasses assignation
-              $subClasses = $classHierarchy->getSubClasses($s);
+            unset($crudCreate);
+          }
 
-              foreach($subClasses as $sp)
+          $nbNamedIndividuals = $ontology->getNbNamedIndividuals();
+          $sliceSize = 200;
+
+          for($i = 0; $i < $nbNamedIndividuals; $i += $sliceSize)
+          {
+            $ontologyRead = new OntologyRead($this->ontologyUri, "getNamedIndividuals",
+              "classuri=all;mode=descriptions;limit=$sliceSize;offset=$i", $this->registered_ip, $this->requester_ip);
+
+            // Since we are in pipeline mode, we have to set the owlapisession using the current one.
+            // otherwise the java bridge will return an error
+            $ontologyRead->setOwlApiSession($OwlApiSession);
+
+            $ontologyRead->ws_conneg("application/rdf+xml", $_SERVER['HTTP_ACCEPT_CHARSET'],
+              $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+
+            $ontologyRead->process();
+
+            $namedIndividualsRDF = $ontologyRead->ws_serialize();
+
+            unset($ontologyRead);
+
+            // Now, let's index the resources of this ontology within structWSF (for the usage of browse, search 
+            // and sparql)
+            $crudCreate = new CrudCreate($namedIndividualsRDF, "application/rdf+xml", "full", $this->ontologyUri,
+              $this->registered_ip, $this->requester_ip);
+
+            $crudCreate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'],
+              $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+
+            $crudCreate->process();
+
+            if($crudCreate->pipeline_getResponseHeaderStatus() != 200)
+            {
+              $this->conneg->setStatus($crudCreate->pipeline_getResponseHeaderStatus());
+              $this->conneg->setStatusMsg($crudCreate->pipeline_getResponseHeaderStatusMsg());
+              $this->conneg->setStatusMsgExt($crudCreate->pipeline_getResponseHeaderStatusMsgExt());
+              $this->conneg->setError($crudCreate->pipeline_getError()->id,
+                $crudCreate->pipeline_getError()->webservice, $crudCreate->pipeline_getError()->name,
+                $crudCreate->pipeline_getError()->description, $crudCreate->pipeline_getError()->debugInfo,
+                $crudCreate->pipeline_getError()->level);
+
+              // In case of error, we delete the dataset we previously created.
+              include_once("../../ontology/delete/OntologyDelete.php");
+
+              $ontologyDelete =
+                new OntologyDelete($this->ontologyUri, $this->registered_ip, $this->requester_ip);
+
+              $ontologyDelete->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'],
+                $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+
+              $ontologyDelete->deleteOntology();
+
+              if($ontologyDelete->pipeline_getResponseHeaderStatus() != 200)
               {
-                $this->db->query("exst('sparql insert into graph <" . $this->wsf_graph . "ontologies/inferred/> {<"
-                  . $sp->name . "> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <$o>.}')");
+                $this->conneg->setStatus($ontologyDelete->pipeline_getResponseHeaderStatus());
+                $this->conneg->setStatusMsg($ontologyDelete->pipeline_getResponseHeaderStatusMsg());
+                $this->conneg->setStatusMsgExt($ontologyDelete->pipeline_getResponseHeaderStatusMsgExt());
+                $this->conneg->setError($ontologyDelete->pipeline_getError()->id,
+                  $ontologyDelete->pipeline_getError()->webservice, $ontologyDelete->pipeline_getError()->name,
+                  $ontologyDelete->pipeline_getError()->description, $ontologyDelete->pipeline_getError()->debugInfo,
+                  $ontologyDelete->pipeline_getError()->level);
+
+                return;
               }
+
+              return;
             }
 
-            // Check if the equivalentClass belongs to our current class structure.
-            if(isset($classHierarchy->classes[$o]))
-            {
-              // We perform the same superClasses assignation
-              $superClasses = $classHierarchy->getSuperClasses($o);
-
-              foreach($superClasses as $sp)
-              {
-                $this->db->query("exst('sparql insert into graph <" . $this->wsf_graph
-                  . "ontologies/inferred/> {<$s> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <" . $sp->name
-                  . ">.}')");
-              }
-            }
-
-            // Check if the equivalentClass belongs to our current class structure.
-            if(isset($classHierarchy->classes[$s]))
-            {
-              // We perform the same superClasses assignation
-              $superClasses = $classHierarchy->getSuperClasses($s);
-
-              foreach($superClasses as $sp)
-              {
-                $this->db->query("exst('sparql insert into graph <" . $this->wsf_graph
-                  . "ontologies/inferred/> {<$o> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <" . $sp->name
-                  . ">.}')");
-              }
-            }
-
-            // We re-iterate the equivalency relationship in the inferred table.
-            $this->db->query("exst('sparql insert into graph <" . $this->wsf_graph
-              . "ontologies/inferred/> {<$s> <http://www.w3.org/2002/07/owl#equivalentClasses> <$o>.}')");
-            $this->db->query("exst('sparql insert into graph <" . $this->wsf_graph
-              . "ontologies/inferred/> {<$o> <http://www.w3.org/2002/07/owl#equivalentClasses> <$s>.}')");
-
-            $classHierarchy->addClassRelationship($s, $o);
-
-            $ontologiesClasses[$s] = 1;
+            unset($crudCreate);
           }
         }
+      }
+    }
+  }
 
-        if(odbc_error())
-        {
-          $this->conneg->setStatus(400);
-          $this->conneg->setStatusMsg("Bad Request");
-          $this->conneg->setStatusMsgExt($this->errorMessenger->_300->name);
-          $this->conneg->setError($this->errorMessenger->_312->id, $this->errorMessenger->ws,
-            $this->errorMessenger->_312->name, $this->errorMessenger->_312->description, odbc_errormsg(),
-            $this->errorMessenger->_312->level);
-          return;
-        }
-
-        // Step #8 inferring the domains and range of all properties (except unionOf)
-
-        $properties = array();
-
-        $query =
-          $this->db->build_sparql_query("
-            select distinct ?s ?domain ?range from <" . $this->wsf_graph
-            . "ontologies/> 
-            where 
-            {
-              ?s a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>. 
+  /*! @brief Get the preferred label for a resource (class, proeperty, instance).
+  
+      @param[in] $uri the URI of the resource for which we are looking for a preferred label. This URI is
+                      used to try to create a label if nothing can be used in its own description (this is the fallback)
+      @param[in] $description the internal representation of the resource. The structure of this array is:
+      
+      $classDescription = array(
+                                 "predicate-uri" => array(
+                                                          array(
+                                                                  "value" => "the value of the predicate",
+                                                                  "datatype" => "the type of the value",
+                                                                  "lang" => "language reference of the value (if literal)"
+                                                               ),
+                                                          array(...)
+                                                        ),
+                                 "..." => array(...)
+                               )      
               
-              optional
-              {
-                {
-                  ?s <http://www.w3.org/2000/01/rdf-schema#domain> ?domain.
-                } 
-                union 
-                { 
-                  ?s <http://www.w3.org/2000/01/rdf-schema#range> ?range.
-                }
-              }
-            }",
-            array ('s', 'domain', 'range'), FALSE);
-
-        $resultset = $this->db->query($query);
-
-        $ontologiesClasses = array();
-
-        while(odbc_fetch_row($resultset))
-        {
-          $property = odbc_result($resultset, 1);
-          $domain = odbc_result($resultset, 2);
-          $range = odbc_result($resultset, 3);
-
-          if(strpos($domain, "nodeID://") !== FALSE)
-          {
-            $domain = "";
-          }
-
-          if(strpos($range, "nodeID://") !== FALSE)
-          {
-            $range = "";
-          }
-
-          if(!isset($properties[$property]))
-          {
-            $properties[$property] = array ("http://www.w3.org/2002/07/owl#Thing",
-              "http://www.w3.org/2002/07/owl#Thing");
-          }
-
-          if($domain == "next")
-          {
-            $properties[$property][0] = "";
-          }
-          elseif($domain != "")
-          {
-            $properties[$property][0] = $domain;
-          }
-
-          if($range == "next")
-          {
-            $properties[$property][1] = "";
-          }
-          elseif($domain != "")
-          {
-            $properties[$property][1] = $range;
-          }
-        }
-
-        if(odbc_error())
-        {
-        //          echo "-- TEST-1 --";
-        }
-
-        $query =
-          $this->db->build_sparql_query("
-            select distinct ?s ?domain ?range from <" . $this->wsf_graph
-            . "ontologies/> 
-            where 
-            {
-              ?s a <http://www.w3.org/2002/07/owl#DatatypeProperty>. 
-              optional
-              {
-                {
-                  ?s <http://www.w3.org/2000/01/rdf-schema#domain> ?domain.
-                } 
-                union 
-                {
-                  ?s <http://www.w3.org/2000/01/rdf-schema#range> ?range.
-                }
-              }
-            }",
-            array ('s', 'domain', 'range'), FALSE);
-
-        $resultset = $this->db->query($query);
-
-        $ontologiesClasses = array();
-
-        while(odbc_fetch_row($resultset))
-        {
-          $property = odbc_result($resultset, 1);
-          $domain = odbc_result($resultset, 2);
-          $range = odbc_result($resultset, 3);
-
-          if(strpos($domain, "nodeID://") !== FALSE)
-          {
-            $domain = "next";
-          }
-
-          if(strpos($range, "nodeID://") !== FALSE)
-          {
-            $range = "next";
-          }
-
-          if(!isset($properties[$property]))
-          {
-            $properties[$property] = array ("http://www.w3.org/2002/07/owl#Thing",
-              "http://www.w3.org/2002/07/owl#Thing");
-          }
-
-          if($domain == "next")
-          {
-            $properties[$property][0] = "";
-          }
-          elseif($domain != "")
-          {
-            $properties[$property][0] = $domain;
-          }
-
-          if($range == "next")
-          {
-            $properties[$property][1] = "";
-          }
-          elseif($range != "")
-          {
-            $properties[$property][1] = $range;
-          }
-        }
-
-        if(odbc_error())
-        {
-        //          echo "-- TEST-2 --";
-        }
-
-        $query =
-          $this->db->build_sparql_query("
-            select distinct ?s ?domain ?range from <" . $this->wsf_graph
-            . "ontologies/> 
-            where 
-            {
-              ?s a <http://www.w3.org/2002/07/owl#ObjectProperty>. 
-              optional
-              {
-                {
-                  ?s <http://www.w3.org/2000/01/rdf-schema#domain> ?domain.
-                } 
-                union 
-                {
-                  ?s <http://www.w3.org/2000/01/rdf-schema#range> ?range.
-                }
-              }
-            }",
-            array ('s', 'domain', 'range'), FALSE);
-
-        $resultset = $this->db->query($query);
-
-        $ontologiesClasses = array();
-
-        while(odbc_fetch_row($resultset))
-        {
-          $property = odbc_result($resultset, 1);
-          $domain = odbc_result($resultset, 2);
-          $range = odbc_result($resultset, 3);
-
-          if(strpos($domain, "nodeID://") !== FALSE)
-          {
-            $domain = "";
-          }
-
-          if(strpos($range, "nodeID://") !== FALSE)
-          {
-            $range = "";
-          }
-
-          if(!isset($properties[$property]))
-          {
-            $properties[$property] = array ("http://www.w3.org/2002/07/owl#Thing",
-              "http://www.w3.org/2002/07/owl#Thing");
-          }
-
-          if($domain == "next")
-          {
-            $properties[$property][0] = "";
-          }
-          elseif($domain != "")
-          {
-            $properties[$property][0] = $domain;
-          }
-
-          if($range == "next")
-          {
-            $properties[$property][1] = "";
-          }
-          elseif($domain != "")
-          {
-            $properties[$property][1] = $range;
-          }
-        }
-
-        if(odbc_error())
-        {
-        //          echo "-- TEST-3 --";
-        }
-
-        foreach($properties as $property => $domainsRanges)
-        {
-          // Domains
-          if($domainsRanges[0] != "")
-          {
-            if($domainsRanges[0] == "http://www.w3.org/2002/07/owl#Thing")
-            {
-              $this->db->query("exst('sparql insert into graph <" . $this->wsf_graph
-                . "ontologies/inferred/> {<$property> <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.w3.org/2002/07/owl#Thing>.}')");
-            }
-            else
-            {
-              if(isset($classHierarchy->classes[$domainsRanges[0]]))
-              {
-                $subClasses = $classHierarchy->getSubClasses($domainsRanges[0]);
-
-                foreach($subClasses as $sp)
-                {
-                  $this->db->query("exst('sparql insert into graph <" . $this->wsf_graph
-                    . "ontologies/inferred/> {<$property> <http://www.w3.org/2000/01/rdf-schema#domain> <" . $sp->name
-                    . ">.}')");
-
-                  $this->addEquivalentClass($inferredOntologiesGraph, $property,
-                    "http://www.w3.org/2000/01/rdf-schema#domain", $sp->name);
-                }
-              }
-              else
-              {
-                $this->db->query("exst('sparql insert into graph <" . $this->wsf_graph
-                  . "ontologies/inferred/> {<$property> <http://www.w3.org/2000/01/rdf-schema#domain> <$domainsRanges[0]>.}')");
-
-                $this->addEquivalentClass($inferredOntologiesGraph, $property,
-                  "http://www.w3.org/2000/01/rdf-schema#domain", $domainsRanges[0]);
-              }
-            }
-          }
-
-          // Ranges
-          if($domainsRanges[1] != "")
-          {
-            if($domainsRanges[1] == "http://www.w3.org/2002/07/owl#Thing")
-            {
-              $this->db->query("exst('sparql insert into graph <" . $this->wsf_graph
-                . "ontologies/inferred/> {<$property> <http://www.w3.org/2000/01/rdf-schema#range> <http://www.w3.org/2002/07/owl#Thing>.}')");
-            }
-            else
-            {
-              if(isset($classHierarchy->classes[$domainsRanges[1]]))
-              {
-                $subClasses = $classHierarchy->getSubClasses($domainsRanges[1]);
-
-                foreach($subClasses as $sp)
-                {
-                  $this->db->query("exst('sparql insert into graph <" . $this->wsf_graph
-                    . "ontologies/inferred/> {<$property> <http://www.w3.org/2000/01/rdf-schema#range> <" . $sp->name
-                    . ">.}')");
-
-                  $this->addEquivalentClass($inferredOntologiesGraph, $property,
-                    "http://www.w3.org/2000/01/rdf-schema#range", $sp->name);
-                }
-              }
-              else
-              {
-                $this->db->query("exst('sparql insert into graph <" . $this->wsf_graph
-                  . "ontologies/inferred/> {<$property> <http://www.w3.org/2000/01/rdf-schema#range> <$domainsRanges[1]>.}')");
-
-                $this->addEquivalentClass($inferredOntologiesGraph, $property,
-                  "http://www.w3.org/2000/01/rdf-schema#range", $domainsRanges[1]);
-              }
-            }
-          }
-        }
-
-        if(odbc_error())
-        { 
-          /*
-          $this->conneg->setStatus(400);
-          $this->conneg->setStatusMsg("Bad Request");
-          $this->conneg->setStatusMsgExt($this->errorMessenger->_313->name);
-          $this->conneg->setError($this->errorMessenger->_313->id, $this->errorMessenger->ws,
-            $this->errorMessenger->_313->name, $this->errorMessenger->_313->description, odbc_errormsg(),
-            $this->errorMessenger->_313->level);
-
-          return;
-          */
-        }
-
-
-        // Step #9: processing the unionOf domains and ranges if needed.
-
-        // Domains
-
-        $query =
-          $this->db->build_sparql_query("SELECT ?s ?unionOf FROM <" . $this->wsf_graph
-            . "ontologies/> WHERE { ?s <http://www.w3.org/2000/01/rdf-schema#domain> ?o. ?o <http://www.w3.org/2002/07/owl#unionOf> ?unionOf.}",
-            array ('s', 'unionOf'), FALSE);
-
-        $resultset = $this->db->query($query);
-
-        $unionClasses = array();
-
-        while(odbc_fetch_row($resultset))
-        {
-          $property = odbc_result($resultset, 1);
-          $union = odbc_result($resultset, 2);
-
-          $this->getUnionOf($union, $unionClasses);
-        }
-
-        if(odbc_error())
-        {
-        //          echo "-- TEST-4 --";
-        }
-
-        foreach($unionClasses as $uc)
-        {
-          if(isset($classHierarchy->classes[$uc]))
-          {
-            $subClasses = $classHierarchy->getSubClasses($uc);
-
-            foreach($subClasses as $sp)
-            {
-              $this->db->query("exst('sparql insert into graph <" . $this->wsf_graph
-                . "ontologies/inferred/> {<$property> <http://www.w3.org/2000/01/rdf-schema#domain> <" . $sp->name
-                . ">.}')");
-
-              $this->addEquivalentClass($inferredOntologiesGraph, $property,
-                "http://www.w3.org/2000/01/rdf-schema#domain", $sp->name);
-
-              if(odbc_error())
-              {
-//                echo "-- TEST-4.1 --";
-//          echo "\n\nexst('sparql insert into graph <".$this->wsf_graph."ontologies/inferred/> {<$property> <http://www.w3.org/2000/01/rdf-schema#domain> <".$sp->name.">.}')\n\n";
-              }
-            }
-          }
-
-          $this->db->query("exst('sparql insert into graph <" . $this->wsf_graph
-            . "ontologies/inferred/> {<$property> <http://www.w3.org/2000/01/rdf-schema#domain> <$uc>.}')");
-
-          if(odbc_error())
-          {
-//            echo "-- TEST-4.2 --";
-//            echo "\n\nexst('sparql insert into graph <".$this->wsf_graph."ontologies/inferred/> {<$property> <http://www.w3.org/2000/01/rdf-schema#domain> <$uc>.}')\n\n";
-          }
-
-          $this->addEquivalentClass($inferredOntologiesGraph, $property, "http://www.w3.org/2000/01/rdf-schema#domain",
-            $uc);
-        }
-
-
-        // Ranges
-        $query =
-          $this->db->build_sparql_query("SELECT ?s ?unionOf FROM <" . $this->wsf_graph
-            . "ontologies/> WHERE { ?s <http://www.w3.org/2000/01/rdf-schema#range> ?o. ?o <http://www.w3.org/2002/07/owl#unionOf> ?unionOf.}",
-            array ('s', 'unionOf'), FALSE);
-
-        $resultset = $this->db->query($query);
-
-        while(odbc_fetch_row($resultset))
-        {
-          $property = odbc_result($resultset, 1);
-          $union = odbc_result($resultset, 2);
-
-          $unionClasses = array();
-
-          $this->getUnionOf($union, $unionClasses);
-
-          foreach($unionClasses as $uc)
-          {
-            if(isset($classHierarchy->classes[$uc]))
-            {
-              $subClasses = $classHierarchy->getSubClasses($uc);
-
-              foreach($subClasses as $sp)
-              {
-                $this->db->query("exst('sparql insert into graph <" . $this->wsf_graph
-                  . "ontologies/inferred/> {<$property> <http://www.w3.org/2000/01/rdf-schema#range> <" . $sp->name
-                  . ">.}')");
-
-                $this->addEquivalentClass($inferredOntologiesGraph, $property,
-                  "http://www.w3.org/2000/01/rdf-schema#range", $sp->name);
-              }
-            }
-
-            $this->db->query("exst('sparql insert into graph <" . $this->wsf_graph
-              . "ontologies/inferred/> {<$property> <http://www.w3.org/2000/01/rdf-schema#range> <$uc>.}')");
-
-            $this->addEquivalentClass($inferredOntologiesGraph, $property, "http://www.w3.org/2000/01/rdf-schema#range",
-              $uc);
-          }
-        }
-
-        if(odbc_error())
-        {
-          echo "-- TEST-5 --";
-        }
-
-        # Step 9.5: for each property of the structure, we define their range & domains
-        foreach($propertyHierarchy->properties as $property)
-        {
-          // Get domains
-          $query = $this->db->build_sparql_query("
-              select distinct ?domain from <" . $this->wsf_graph . "ontologies/inferred/> 
-              where 
-              {
-                <" . $property->name . "> <http://www.w3.org/2000/01/rdf-schema#domain> ?domain.
-              }", array( 'domain' ), FALSE);
-
-          $resultset = $this->db->query($query);
-
-          while(odbc_fetch_row($resultset))
-          {
-            $domain = odbc_result($resultset, 1);
-
-            array_push($property->domain, $domain);
-          }
-
-          // Get ranges
-          $query = $this->db->build_sparql_query("
-              select distinct ?range from <" . $this->wsf_graph . "ontologies/inferred/> 
-              where 
-              {
-                <" . $property->name . "> <http://www.w3.org/2000/01/rdf-schema#range> ?range.
-              }", array( 'range' ), FALSE);
-
-          $resultset = $this->db->query($query);
-
-          while(odbc_fetch_row($resultset))
-          {
-            $range = odbc_result($resultset, 1);
-
-            array_push($property->range, $range);
-          }
-        }
-
-        // Each domain and ranges that doesn't have anything defined so far will be tagged as "owl:Thing".
-        // If the range or a domain of a predicate is not defined, owl:Thing is assumed...
-
-        foreach($propertyHierarchy->properties as $property)
-        {
-          if(count($property->domain) <= 0)
-          {
-            array_push($property->domain, "http://www.w3.org/2002/07/owl#Thing");
-          }
-
-          if(count($property->range) <= 0)
-          {
-            array_push($property->range, "http://www.w3.org/2002/07/owl#Thing");
-          }
-        }
-
-        $classHierarchy = serialize($classHierarchy);
-        $classHierarchy = str_replace(array ("\n", "\r"), array ("", ""), $classHierarchy);
-
-        $propertyHierarchy = serialize($propertyHierarchy);
-        $propertyHierarchy = str_replace(array ("\n", "\r"), array ("", ""), $propertyHierarchy);
-
-
-        /*!
-                @todo Fixing this to use the DB.
-                
-                // This method is currently not working. The problem is that we ahve an issue in CrudCreate and Virtuoso's
-                // LONG VARCHAR column. It appears that there is a bug somewhere in the "php -> odbc -> virtuoso" path.
-                // If we are not requesting to return the LONG VARCHAR column, everything works fine.
-        */
-        /*    
-                // Step #10: Delete the previously created table
-                $this->db->query('drop table "SD"."WSF"."ws_ontologies"');
-        
-                // Step #11: Adding the class & properties structures to the table.
-                
-                $this->db->query('create table "SD"."WSF"."ws_ontologies" ("struct_type" VARCHAR, "struct" LONG VARCHAR, PRIMARY KEY ("struct_type"))');
-                
-        //        $this->db->query("insert into SD.WSF.ws_ontologies(struct_type, struct) values('class', '".$classHierarchy."')");
-        //        $this->db->query("insert into SD.WSF.ws_ontologies(struct_type, struct) values('property', '".$propertyHierarchy."')");
-        
-                $this->db->query("insert into SD.WSF.ws_ontologies(struct_type, struct) values('class', 'test1')");
-                $this->db->query("insert into SD.WSF.ws_ontologies(struct_type, struct) values('property', 'test2')");
-        
-                $this->db->query("exec('checkpoint')");
-        */
-
-        // Step #10: Create the PHP serialized files that will be used by other web services of this WSF
-
-        $classHierarchyFile = rtrim($this->ontological_structure_folder, "/") . "/classHierarchySerialized.srz";
-
-        // Delete file first
-        @unlink($classHierarchyFile);
-
-        $fHandle = fopen($classHierarchyFile, 'w');
-
-        if($fHandle !== FALSE)
-        {
-          if(!fwrite($fHandle, $classHierarchy))
-          {
-            $this->conneg->setStatus(400);
-            $this->conneg->setStatusMsg("Bad Request");
-            $this->conneg->setStatusMsgExt($this->errorMessenger->_314->name);
-            $this->conneg->setError($this->errorMessenger->_314->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_314->name, $this->errorMessenger->_314->description, $classHierarchyFile,
-              $this->errorMessenger->_314->level);
-
-            return;
-          }
-
-          fclose($fHandle);
-        }
-        else
-        {
-          $this->conneg->setStatus(400);
-          $this->conneg->setStatusMsg("Bad Request");
-          $this->conneg->setStatusMsgExt("Error #ontology-create-16. : ");
-          $this->conneg->setError($this->errorMessenger->_315->id, $this->errorMessenger->ws,
-            $this->errorMessenger->_315->name, $this->errorMessenger->_315->description, $classHierarchyFile,
-            $this->errorMessenger->_315->level);
-          return;
-        }
-
-        $propertyHierarchyFile = rtrim($this->ontological_structure_folder, "/") . "/propertyHierarchySerialized.srz";
-
-        // Delete file first
-        @unlink($propertyHierarchyFile);
-
-        $fHandle = fopen($propertyHierarchyFile, 'w');
-
-        if($fHandle !== FALSE)
-        {
-          if(!fwrite($fHandle, $propertyHierarchy))
-          {
-            $this->conneg->setStatus(400);
-            $this->conneg->setStatusMsg("Bad Request");
-            $this->conneg->setStatusMsgExt($this->errorMessenger->_316->name);
-            $this->conneg->setError($this->errorMessenger->_316->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_316->name, $this->errorMessenger->_316->description, $propertyHierarchyFile,
-              $this->errorMessenger->_316->level);
-          }
-          fclose($fHandle);
-        }
-        else
-        {
-          $this->conneg->setStatus(400);
-          $this->conneg->setStatusMsg("Bad Request");
-          $this->conneg->setStatusMsgExt($this->errorMessenger->_317->name);
-          $this->conneg->setError($this->errorMessenger->_317->id, $this->errorMessenger->ws,
-            $this->errorMessenger->_317->name, $this->errorMessenger->_317->description, $propertyHierarchyFile,
-            $this->errorMessenger->_317->level);
-          return;
-        }
-
-        return;
-      }
+      \n
+      
+      @author Frederick Giasson, Structured Dynamics LLC.
+    
+      \n\n\n
+  */  
+  public function getLabel($uri, $description)
+  {
+    if(isset($description[Namespaces::$iron . "prefLabel"]))
+    {
+      return $description[Namespaces::$iron . "prefLabel"][0]["value"];
     }
+
+    if(isset($description[Namespaces::$skos_2008 . "prefLabel"]))
+    {
+      return $description[Namespaces::$skos_2008 . "prefLabel"][0]["value"];
+    }
+
+    if(isset($description[Namespaces::$skos_2004 . "prefLabel"]))
+    {
+      return $description[Namespaces::$skos_2004 . "prefLabel"][0]["value"];
+    }
+
+    if(isset($description[Namespaces::$rdfs . "label"]))
+    {
+      return $description[Namespaces::$rdfs . "label"][0]["value"];
+    }
+
+    if(isset($description[Namespaces::$dcterms . "title"]))
+    {
+      return $description[Namespaces::$dcterms . "title"][0]["value"];
+    }
+
+    if(isset($description[Namespaces::$dc . "title"]))
+    {
+      return $description[Namespaces::$dc . "title"][0]["value"];
+    }
+
+    // Find the base URI of the ontology
+    $pos = strripos($uri, "#");
+
+    if($pos === FALSE)
+    {
+      $pos = strripos($uri, "/");
+    }
+
+    if($pos !== FALSE)
+    {
+      $pos++;
+    }
+
+    $resource = substr($uri, $pos, strlen($uri) - $pos);
+
+    // Remove non alpha-num and replace them by spaces
+    $resource = preg_replace("/[^A-Za-z0-9]/", " ", $resource);
+
+    // Split upper-case words into seperate words
+    $resourceArr = preg_split('/(?=[A-Z])/', $resource);
+    $resource = implode(" ", $resourceArr);
+
+    return $resource;
   }
 
-  private function addEquivalentClass($graph, $subject, $property, $target)
+  /*! @brief Get the description for a resource (class, property, instance).
+  
+      @param[in] $description the internal representation of the resource. The structure of this array is:
+      
+      $classDescription = array(
+                                 "predicate-uri" => array(
+                                                          array(
+                                                                  "value" => "the value of the predicate",
+                                                                  "datatype" => "the type of the value",
+                                                                  "lang" => "language reference of the value (if literal)"
+                                                               ),
+                                                          array(...)
+                                                        ),
+                                 "..." => array(...)
+                               )      
+                               
+      @return returns a description for that resource. "No description available" if none are described in the 
+              resource's description                               
+              
+      \n
+      
+      @author Frederick Giasson, Structured Dynamics LLC.
+    
+      \n\n\n
+  */    
+  public function getDescription($description)
   {
-    $query = $this->db->build_sparql_query("select ?o from <" . $this->wsf_graph
-      . "ontologies/> where {<$target> <http://www.w3.org/2002/07/owl#equivalentClass> ?o.}", array( 'o' ), FALSE);
-
-    $resultset = $this->db->query($query);
-
-    while(odbc_fetch_row($resultset))
+    if(isset($description[Namespaces::$iron . "description"]))
     {
-      $o = odbc_result($resultset, 1);
-
-      $this->db->query("exst('sparql insert into graph <$graph> {<$subject> <$property> <$o>.}')");
+      return $description[Namespaces::$iron . "description"][0]["value"];
     }
+
+    if(isset($description[Namespaces::$skos_2008 . "definition"]))
+    {
+      return $description[Namespaces::$skos_2008 . "definition"][0]["value"];
+    }
+
+    if(isset($description[Namespaces::$skos_2004 . "definition"]))
+    {
+      return $description[Namespaces::$skos_2004 . "definition"][0]["value"];
+    }
+
+    if(isset($description[Namespaces::$rdfs . "comment"]))
+    {
+      return $description[Namespaces::$rdfs . "comment"][0]["value"];
+    }
+
+    if(isset($description[Namespaces::$dcterms . "description"]))
+    {
+      return $description[Namespaces::$dcterms . "description"][0]["value"];
+    }
+
+    if(isset($description[Namespaces::$dc . "description"]))
+    {
+      return $description[Namespaces::$dc . "description"][0]["value"];
+    }
+
+    return "No description available";
   }
-
-  private function getUnionOf($unionURI, &$unionClasses)
+  
+  /*!
+  * Set the advanced indexation mode of the ontology create class. This should be set before running process().
+  * 
+  * @param mixed $advancedIndexation Set to TRUE to enable the advanced indexation.
+  * 
+  * @author Frederick Giasson, Structured Dynamics LLC.
+  */
+  public function setAdvancedIndexation($advancedIndexation)
   {
-    $query =
-      $this->db->build_sparql_query("SELECT * FROM <" . $this->wsf_graph . "ontologies/> WHERE { <$unionURI> ?p ?o. }",
-        array ('p', 'o'), FALSE);
-
-    $resultset = $this->db->query($query);
-
-    while(odbc_fetch_row($resultset))
-    {
-      $p = odbc_result($resultset, 1);
-      $o = odbc_result($resultset, 2);
-
-      if($p == "http://www.w3.org/1999/02/22-rdf-syntax-ns#first")
-      {
-        array_push($unionClasses, $o);
-      }
-
-      if($p == "http://www.w3.org/1999/02/22-rdf-syntax-ns#rest")
-      {
-        if($o == "http://www.w3.org/1999/02/22-rdf-syntax-ns#nil")
-        {
-          break;
-        }
-        else
-        {
-          $this->getUnionOf($o, $unionClasses);
-        }
-      }
-    }
+    $this->advancedIndexation = $advancedIndexation;
+  }
+  
+  /*!
+  * @brief Set the global Create permission to the ontology being created. The global permission is what is
+  *        defined for *all* users. This should be set before running process().
+  * 
+  * @param mixed $create Create permission: TRUE or FALSE.
+  * 
+  * @author Frederick Giasson, Structured Dynamics LLC.
+  */
+  public function setGlobalPermissionCreate($create)
+  {
+    $this->globalPermissionCreate = $create;
+  }
+  
+  /*!
+  * @brief Set the global Read permission to the ontology being created. The global permission is what is
+  *        defined for *all* users. This should be set before running process().
+  * 
+  * @param mixed $read Create permission: TRUE or FALSE.
+  * 
+  * @author Frederick Giasson, Structured Dynamics LLC.
+  */
+  public function setGlobalPermissionRead($read)
+  {
+    $this->globalPermissionRead = $read;
+  }
+  
+  /*!
+  * @brief Set the global Update permission to the ontology being created. The global permission is what is
+  *        defined for *all* users. This should be set before running process().
+  * 
+  * @param mixed $update Create permission: TRUE or FALSE.
+  * 
+  * @author Frederick Giasson, Structured Dynamics LLC.
+  */
+  public function setGlobalPermissionUpdate($update)
+  {
+    $this->globalPermissionUpdate = $update;
+  }
+  
+  /*!
+  * @brief Set the global Delete permission to the ontology being created. The global permission is what is
+  *        defined for *all* users. This should be set before running process().
+  * 
+  * @param mixed $delete Create permission: TRUE or FALSE.
+  * 
+  * @author Frederick Giasson, Structured Dynamics LLC.
+  */
+  public function setGlobalPermissionDelete($delete)
+  {
+    $this->globalPermissionDelete = $delete;
   }
 }
 

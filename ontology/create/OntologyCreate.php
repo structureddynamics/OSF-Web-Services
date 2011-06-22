@@ -459,6 +459,138 @@ class OntologyCreate extends WebService
           return;
         }
 
+        // Get the description of the ontology
+        $ontologyDescription = $ontology->getOntologyDescription();
+
+        $ontologyName = $this->getLabel($this->ontologyUri, $ontologyDescription);
+        $ontologyDescription = $this->getDescription($ontologyDescription);
+
+        // Get the list of webservices that will be accessible for this ontology dataset.
+        include_once("../../auth/lister/AuthLister.php");
+
+        $authLister = new AuthLister("ws", $this->ontologyUri, $this->requester_ip, $this->wsf_local_ip);
+
+        $authLister->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
+          $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
+
+        $authLister->process();
+
+        if($authLister->pipeline_getResponseHeaderStatus() != 200)
+        {
+          $this->conneg->setStatus($authLister->pipeline_getResponseHeaderStatus());
+          $this->conneg->setStatusMsg($authLister->pipeline_getResponseHeaderStatusMsg());
+          $this->conneg->setStatusMsgExt($authLister->pipeline_getResponseHeaderStatusMsgExt());
+          $this->conneg->setError($authLister->pipeline_getError()->id, $authLister->pipeline_getError()->webservice,
+            $authLister->pipeline_getError()->name, $authLister->pipeline_getError()->description,
+            $authLister->pipeline_getError()->debugInfo, $authLister->pipeline_getError()->level);
+
+          return;
+        }
+
+        /* Get all web services */
+        $webservices = "";
+
+        $xml = new ProcessorXML();
+        $xml->loadXML($authLister->pipeline_getResultset());
+
+        $webServiceElements = $xml->getXPath('//predicate/object[attribute::type="wsf:WebService"]');
+
+        foreach($webServiceElements as $element)
+        {
+          if(stristr($xml->getURI($element), "/wsf/ws/search/") !== FALSE
+            || stristr($xml->getURI($element), "/wsf/ws/browse/") !== FALSE
+            || stristr($xml->getURI($element), "/wsf/ws/sparql/") !== FALSE
+            || stristr($xml->getURI($element), "/wsf/ws/crud/create/") !== FALSE
+            || stristr($xml->getURI($element), "/wsf/ws/crud/update/") !== FALSE
+            || stristr($xml->getURI($element), "/wsf/ws/crud/delete/") !== FALSE
+            || stristr($xml->getURI($element), "/wsf/ws/ontology/create/") !== FALSE
+            || stristr($xml->getURI($element), "/wsf/ws/ontology/read/") !== FALSE
+            || stristr($xml->getURI($element), "/wsf/ws/ontology/update/") !== FALSE
+            || stristr($xml->getURI($element), "/wsf/ws/ontology/delete/") !== FALSE)
+          {
+            $webservices .= $xml->getURI($element) . ";";
+          }
+        }
+
+        $webservices = rtrim($webservices, ";");
+
+        unset($xml);
+        unset($authLister);
+
+        // Create a new dataset for this ontology
+        include_once("../../dataset/create/DatasetCreate.php");
+        include_once("../../auth/registrar/access/AuthRegistrarAccess.php");
+
+        $globalPermissions = "";
+        
+        if($this->globalPermissionCreate === FALSE)
+        {
+          $globalPermissions .= "False;";
+        }
+        else
+        {
+          $globalPermissions .= "True;";
+        }
+        
+        if($this->globalPermissionRead === FALSE)
+        {
+          $globalPermissions .= "False;";
+        }
+        else
+        {
+          $globalPermissions .= "True;";
+        }
+        
+        if($this->globalPermissionUpdate === FALSE)
+        {
+          $globalPermissions .= "False;";
+        }
+        else
+        {
+          $globalPermissions .= "True;";
+        }
+        
+        if($this->globalPermissionDelete === FALSE)
+        {
+          $globalPermissions .= "False";
+        }
+        else
+        {
+          $globalPermissions .= "True";
+        }
+        
+        $datasetCreate =
+          new DatasetCreate($this->ontologyUri, $ontologyName, $ontologyDescription, "", $this->registered_ip,
+            $this->requester_ip, $webservices, $globalPermissions);
+
+        $datasetCreate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'],
+          $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+
+        $datasetCreate->process();
+
+        if($datasetCreate->pipeline_getResponseHeaderStatus() != 200)
+        {
+          if($datasetCreate->pipeline_getError()->id != "WS-DATASET-CREATE-202")
+          {
+            $this->conneg->setStatus($datasetCreate->pipeline_getResponseHeaderStatus());
+            $this->conneg->setStatusMsg($datasetCreate->pipeline_getResponseHeaderStatusMsg());
+            $this->conneg->setStatusMsgExt($datasetCreate->pipeline_getResponseHeaderStatusMsgExt());
+            $this->conneg->setError($datasetCreate->pipeline_getError()->id,
+              $datasetCreate->pipeline_getError()->webservice, $datasetCreate->pipeline_getError()->name,
+              $datasetCreate->pipeline_getError()->description, $datasetCreate->pipeline_getError()->debugInfo,
+              $datasetCreate->pipeline_getError()->level);
+          }
+
+          // If the dataset already exists, then we simply stop the processing of the advancedIndexation
+          // mode. This means that the tomcat instance has been rebooted, and that the datasets
+          // have been leaved there, and that a procedure, normally using the advancedIndexation mode
+          // is currently being re-processed.
+
+          return;
+        }
+
+        unset($datasetCreate);
+
         // Check if we want to enable the advanced indexation: so, if we want to import all the ontologies 
         // description into the other structWSF data stores to enable search and filtering using the other
         // endpoints such as search, sparql, read, etc.
@@ -470,139 +602,7 @@ class OntologyCreate extends WebService
 
           // However, maybe there is an issue with the server handling that file tht lead to some kind of infinite 
           // or near infinite loop; so we have to limit the execution time of this procedure to 45 mins.
-          set_time_limit(2700);
-
-          // Get the description of the ontology
-          $ontologyDescription = $ontology->getOntologyDescription();
-
-          $ontologyName = $this->getLabel($this->ontologyUri, $ontologyDescription);
-          $ontologyDescription = $this->getDescription($ontologyDescription);
-
-          // Get the list of datasets that will be accessible for this ontology dataset.
-          include_once("../../auth/lister/AuthLister.php");
-
-          $authLister = new AuthLister("ws", $this->ontologyUri, $this->requester_ip, $this->wsf_local_ip);
-
-          $authLister->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
-            $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
-
-          $authLister->process();
-
-          if($authLister->pipeline_getResponseHeaderStatus() != 200)
-          {
-            $this->conneg->setStatus($authLister->pipeline_getResponseHeaderStatus());
-            $this->conneg->setStatusMsg($authLister->pipeline_getResponseHeaderStatusMsg());
-            $this->conneg->setStatusMsgExt($authLister->pipeline_getResponseHeaderStatusMsgExt());
-            $this->conneg->setError($authLister->pipeline_getError()->id, $authLister->pipeline_getError()->webservice,
-              $authLister->pipeline_getError()->name, $authLister->pipeline_getError()->description,
-              $authLister->pipeline_getError()->debugInfo, $authLister->pipeline_getError()->level);
-
-            return;
-          }
-
-          /* Get all web services */
-          $webservices = "";
-
-          $xml = new ProcessorXML();
-          $xml->loadXML($authLister->pipeline_getResultset());
-
-          $webServiceElements = $xml->getXPath('//predicate/object[attribute::type="wsf:WebService"]');
-
-          foreach($webServiceElements as $element)
-          {
-            if(stristr($xml->getURI($element), "/wsf/ws/search/") !== FALSE
-              || stristr($xml->getURI($element), "/wsf/ws/browse/") !== FALSE
-              || stristr($xml->getURI($element), "/wsf/ws/sparql/") !== FALSE
-              || stristr($xml->getURI($element), "/wsf/ws/crud/create/") !== FALSE
-              || stristr($xml->getURI($element), "/wsf/ws/crud/update/") !== FALSE
-              || stristr($xml->getURI($element), "/wsf/ws/crud/delete/") !== FALSE
-              || stristr($xml->getURI($element), "/wsf/ws/ontology/create/") !== FALSE
-              || stristr($xml->getURI($element), "/wsf/ws/ontology/read/") !== FALSE
-              || stristr($xml->getURI($element), "/wsf/ws/ontology/update/") !== FALSE
-              || stristr($xml->getURI($element), "/wsf/ws/ontology/delete/") !== FALSE)
-            {
-              $webservices .= $xml->getURI($element) . ";";
-            }
-          }
-
-          $webservices = rtrim($webservices, ";");
-
-          unset($xml);
-          unset($authLister);
-
-          // Create a new dataset for this ontology
-          include_once("../../dataset/create/DatasetCreate.php");
-          include_once("../../auth/registrar/access/AuthRegistrarAccess.php");
-
-          $globalPermissions = "";
-          
-          if($this->globalPermissionCreate === FALSE)
-          {
-            $globalPermissions .= "False;";
-          }
-          else
-          {
-            $globalPermissions .= "True;";
-          }
-          
-          if($this->globalPermissionRead === FALSE)
-          {
-            $globalPermissions .= "False;";
-          }
-          else
-          {
-            $globalPermissions .= "True;";
-          }
-          
-          if($this->globalPermissionUpdate === FALSE)
-          {
-            $globalPermissions .= "False;";
-          }
-          else
-          {
-            $globalPermissions .= "True;";
-          }
-          
-          if($this->globalPermissionDelete === FALSE)
-          {
-            $globalPermissions .= "False";
-          }
-          else
-          {
-            $globalPermissions .= "True";
-          }
-          
-          $datasetCreate =
-            new DatasetCreate($this->ontologyUri, $ontologyName, $ontologyDescription, "", $this->registered_ip,
-              $this->requester_ip, $webservices, $globalPermissions);
-
-          $datasetCreate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'],
-            $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
-
-          $datasetCreate->process();
-
-          if($datasetCreate->pipeline_getResponseHeaderStatus() != 200)
-          {
-            if($datasetCreate->pipeline_getError()->id != "WS-DATASET-CREATE-202")
-            {
-              $this->conneg->setStatus($datasetCreate->pipeline_getResponseHeaderStatus());
-              $this->conneg->setStatusMsg($datasetCreate->pipeline_getResponseHeaderStatusMsg());
-              $this->conneg->setStatusMsgExt($datasetCreate->pipeline_getResponseHeaderStatusMsgExt());
-              $this->conneg->setError($datasetCreate->pipeline_getError()->id,
-                $datasetCreate->pipeline_getError()->webservice, $datasetCreate->pipeline_getError()->name,
-                $datasetCreate->pipeline_getError()->description, $datasetCreate->pipeline_getError()->debugInfo,
-                $datasetCreate->pipeline_getError()->level);
-            }
-
-            // If the dataset already exists, then we simply stop the processing of the advancedIndexation
-            // mode. This means that the tomcat instance has been rebooted, and that the datasets
-            // have been leaved there, and that a procedure, normally using the advancedIndexation mode
-            // is currently being re-processed.
-
-            return;
-          }
-
-          unset($datasetCreate);
+          set_time_limit(2700);        
 
           // Get the description of the classes, properties and named individuals of this ontology.
 

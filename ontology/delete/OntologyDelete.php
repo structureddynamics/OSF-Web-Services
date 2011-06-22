@@ -104,11 +104,7 @@ class OntologyDelete extends WebService
     parent::__construct();
 
     $this->ontologyUri = $ontologyUri;
-    
-    $this->initiateOwlBridgeSession();
-
-    $this->getOntologyReference();
-    
+      
     $this->registered_ip = $registered_ip;
     $this->requester_ip = $requester_ip;
 
@@ -174,14 +170,22 @@ class OntologyDelete extends WebService
 
     if($ws_av->pipeline_getResponseHeaderStatus() != 200)
     {
-      $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
-      $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
-      $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-      $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
-        $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
-        $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
+      // If he doesn't, then check if he has access to the dataset itself
+      $ws_av2 = new AuthValidator($this->requester_ip, $this->ontologyUri, $this->uri);
 
-      return;
+      $ws_av2->process();
+
+      if($ws_av2->pipeline_getResponseHeaderStatus() != 200)
+      {
+        $this->conneg->setStatus($ws_av2->pipeline_getResponseHeaderStatus());
+        $this->conneg->setStatusMsg($ws_av2->pipeline_getResponseHeaderStatusMsg());
+        $this->conneg->setStatusMsgExt($ws_av2->pipeline_getResponseHeaderStatusMsgExt());
+        $this->conneg->setError($ws_av2->pipeline_getError()->id, $ws_av2->pipeline_getError()->webservice,
+          $ws_av2->pipeline_getError()->name, $ws_av2->pipeline_getError()->description,
+          $ws_av2->pipeline_getError()->debugInfo, $ws_av2->pipeline_getError()->level);
+
+        return;
+      }      
     }
 
     // If the system send a query on the behalf of another user, we validate that other user as well
@@ -197,13 +201,22 @@ class OntologyDelete extends WebService
 
       if($ws_av->pipeline_getResponseHeaderStatus() != 200)
       {
-        $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
-        $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
-        $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-        $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
-          $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
-          $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
-        return;
+        // If he doesn't, then check if he has access to the dataset itself
+        $ws_av2 = new AuthValidator($this->registered_ip, $this->ontologyUri, $this->uri);
+
+        $ws_av2->process();
+
+        if($ws_av2->pipeline_getResponseHeaderStatus() != 200)
+        {
+          $this->conneg->setStatus($ws_av2->pipeline_getResponseHeaderStatus());
+          $this->conneg->setStatusMsg($ws_av2->pipeline_getResponseHeaderStatusMsg());
+          $this->conneg->setStatusMsgExt($ws_av2->pipeline_getResponseHeaderStatusMsgExt());
+          $this->conneg->setError($ws_av2->pipeline_getError()->id, $ws_av2->pipeline_getError()->webservice,
+            $ws_av2->pipeline_getError()->name, $ws_av2->pipeline_getError()->description,
+            $ws_av2->pipeline_getError()->debugInfo, $ws_av2->pipeline_getError()->level);
+
+          return;
+        }      
       }
     }
   }
@@ -443,6 +456,10 @@ class OntologyDelete extends WebService
   */
   public function deleteProperty($uri)
   {
+    $this->initiateOwlBridgeSession();
+
+    $this->getOntologyReference();
+        
     if($this->isValid())
     {
       if($uri == "")
@@ -494,6 +511,10 @@ class OntologyDelete extends WebService
   */
   public function deleteClass($uri)
   {
+    $this->initiateOwlBridgeSession();
+
+    $this->getOntologyReference();
+        
     if($this->isValid())
     {
       if($uri == "")
@@ -542,6 +563,10 @@ class OntologyDelete extends WebService
   */
   public function deleteOntology()
   {
+    $this->initiateOwlBridgeSession();
+
+    $this->getOntologyReference();
+        
     if($this->isValid())
     {
       // Delete the OWLAPI instance

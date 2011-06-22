@@ -44,9 +44,6 @@ class OntologyDelete extends WebService
   /*! @brief Ontology object. */
   private $ontology;
 
-/*! @brief The function to use for this query. Different API function calls are embeded in this web service endpoint */
-  private $func = "";
-
   /*! @brief IP being registered */
   private $registered_ip = "";
 

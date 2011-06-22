@@ -409,16 +409,6 @@ abstract class WebService
 */
   abstract public function ws_respond($content);
 
-  /*!   @brief Process the functionality of the web service
-              
-      \n
-      
-      @author Frederick Giasson, Structured Dynamics LLC.
-    
-      \n\n\n
-  */
-  abstract public function process();
-
 
   /*!   @brief Propagate the conneg to the nodes that belong to the current pipeline of web services.
               

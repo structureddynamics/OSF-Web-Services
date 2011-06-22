@@ -22,7 +22,6 @@ ini_set("memory_limit", "256M");
 
 set_time_limit(2700);
 
-
 // Database connectivity procedures
 include_once("../../framework/db.php");
 

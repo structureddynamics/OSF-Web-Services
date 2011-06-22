@@ -203,30 +203,13 @@ class OntologyRead extends WebService
   */
   protected function validateQuery()
   {
-    $ws_av = new AuthValidator($this->requester_ip, $this->ontologyUri, $this->uri);
-
-    $ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
-      $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
-
-    $ws_av->process();
-
-    if($ws_av->pipeline_getResponseHeaderStatus() != 200)
+    // @TODO Validate the OntologyRead queries such that: (1) if the user is requesting something related to a 
+    //       specific ontology, we check if it has the rights. If it is requesting a list of available ontologies
+    //       we list the ones he has access to. That second validation has to happen in these special functions.
+    
+    if($this->ontologyUri != "")
     {
-      $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
-      $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
-      $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-      $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
-        $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
-        $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
-
-      return;
-    }
-
-    // If the system send a query on the behalf of another user, we validate that other user as well
-    if($this->registered_ip != $this->requester_ip)
-    {
-      // Validation of the "registered_ip" to make sure the user of this system has the rights
-      $ws_av = new AuthValidator($this->registered_ip, $this->ontologyUri, $this->uri);
+      $ws_av = new AuthValidator($this->requester_ip, $this->ontologyUri, $this->uri);
 
       $ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
         $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
@@ -241,9 +224,33 @@ class OntologyRead extends WebService
         $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
           $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
           $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
+
         return;
       }
-    }
+
+      // If the system send a query on the behalf of another user, we validate that other user as well
+      if($this->registered_ip != $this->requester_ip)
+      {
+        // Validation of the "registered_ip" to make sure the user of this system has the rights
+        $ws_av = new AuthValidator($this->registered_ip, $this->ontologyUri, $this->uri);
+
+        $ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
+          $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
+
+        $ws_av->process();
+
+        if($ws_av->pipeline_getResponseHeaderStatus() != 200)
+        {
+          $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
+          $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
+          $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
+          $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
+            $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
+            $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
+          return;
+        }
+      }  
+    }  
   }
 
   /*!   @brief Returns the error structure

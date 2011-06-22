@@ -121,10 +121,6 @@ class OntologyUpdate extends WebService
     
     $this->ontologyUri = $ontologyUri;
     
-    $this->initiateOwlBridgeSession();
-
-    $this->getOntologyReference();
-        
     if($this->registered_ip == "")
     {
       $this->registered_ip = $requester_ip;
@@ -187,14 +183,22 @@ class OntologyUpdate extends WebService
 
     if($ws_av->pipeline_getResponseHeaderStatus() != 200)
     {
-      $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
-      $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
-      $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-      $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
-        $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
-        $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
+      // If he doesn't, then check if he has access to the dataset itself
+      $ws_av2 = new AuthValidator($this->requester_ip, $this->ontologyUri, $this->uri);
 
-      return;
+      $ws_av2->process();
+
+      if($ws_av2->pipeline_getResponseHeaderStatus() != 200)
+      {
+        $this->conneg->setStatus($ws_av2->pipeline_getResponseHeaderStatus());
+        $this->conneg->setStatusMsg($ws_av2->pipeline_getResponseHeaderStatusMsg());
+        $this->conneg->setStatusMsgExt($ws_av2->pipeline_getResponseHeaderStatusMsgExt());
+        $this->conneg->setError($ws_av2->pipeline_getError()->id, $ws_av2->pipeline_getError()->webservice,
+          $ws_av2->pipeline_getError()->name, $ws_av2->pipeline_getError()->description,
+          $ws_av2->pipeline_getError()->debugInfo, $ws_av2->pipeline_getError()->level);
+
+        return;
+      }      
     }
 
     // If the system send a query on the behalf of another user, we validate that other user as well
@@ -210,13 +214,22 @@ class OntologyUpdate extends WebService
 
       if($ws_av->pipeline_getResponseHeaderStatus() != 200)
       {
-        $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
-        $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
-        $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-        $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
-          $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
-          $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
-        return;
+        // If he doesn't, then check if he has access to the dataset itself
+        $ws_av2 = new AuthValidator($this->registered_ip, $this->ontologyUri, $this->uri);
+
+        $ws_av2->process();
+
+        if($ws_av2->pipeline_getResponseHeaderStatus() != 200)
+        {
+          $this->conneg->setStatus($ws_av2->pipeline_getResponseHeaderStatus());
+          $this->conneg->setStatusMsg($ws_av2->pipeline_getResponseHeaderStatusMsg());
+          $this->conneg->setStatusMsgExt($ws_av2->pipeline_getResponseHeaderStatusMsgExt());
+          $this->conneg->setError($ws_av2->pipeline_getError()->id, $ws_av2->pipeline_getError()->webservice,
+            $ws_av2->pipeline_getError()->name, $ws_av2->pipeline_getError()->description,
+            $ws_av2->pipeline_getError()->debugInfo, $ws_av2->pipeline_getError()->level);
+
+          return;
+        }      
       }
     }
   }
@@ -448,6 +461,10 @@ class OntologyUpdate extends WebService
   */
   public function updateEntityUri($oldUri, $newUri, $advancedIndexation)
   { 
+    $this->initiateOwlBridgeSession();
+
+    $this->getOntologyReference();
+    
     if($this->isValid())      
     {
       if($oldUri == "")
@@ -597,6 +614,10 @@ class OntologyUpdate extends WebService
   */
   public function createOrUpdateEntity($document, $advancedIndexation)
   {
+    $this->initiateOwlBridgeSession();
+
+    $this->getOntologyReference();
+    
     if($this->isValid())      
     {
       // Now read the RDF file that we got as input to update the ontology with it.
@@ -775,6 +796,10 @@ class OntologyUpdate extends WebService
   */
   public function saveOntology()
   {
+    $this->initiateOwlBridgeSession();
+
+    $this->getOntologyReference();
+    
     if($this->isValid())      
     {
       // Remove the "ontologyModified" annotation property value

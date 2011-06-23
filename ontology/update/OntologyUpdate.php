@@ -144,7 +144,7 @@ class OntologyUpdate extends WebService
 
     $this->uri = $this->wsf_base_url . "/wsf/ws/ontology/update/";
     $this->title = "Ontology Update Web Service";
-    $this->crud_usage = new CrudUsage(TRUE, FALSE, FALSE, FALSE);
+    $this->crud_usage = new CrudUsage(TRUE, FALSE, TRUE, FALSE);
     $this->endpoint = $this->wsf_base_url . "/ws/ontology/update/";
 
     $this->dtdURL = "auth/OntologyUpdate.dtd";

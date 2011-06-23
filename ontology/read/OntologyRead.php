@@ -107,13 +107,6 @@ class OntologyRead extends WebService
   /*! @brief Constructor
       @details   Initialize the Auth Web Service
               
-      @param[in] $uri URI of the instance record
-      @param[in] $dataset URI of the dataset where the instance record is indexed
-      @param[in] $include_linksback One of (1) True ? Means that the reference to the other instance records referring 
-                             to the target instance record will be added in the resultset (2) False (default) ? No 
-                             links-back will be added 
-
-      @param[in] $include_reification Include possible reification statements for a record
       @param[in] $registered_ip Target IP address registered in the WSF
       @param[in] $requester_ip IP address of the requester
               

@@ -596,13 +596,6 @@ class OntologyDelete extends WebService
 
         return;
       }
-
-      if(isset($this->parameters["deleteFile"]) && (boolean)$this->parameters["deleteFile"] === TRUE)
-      {
-        unlink(str_replace("file://localhost", "", $this->ontologyUri));
-      }    
-      
-      unset($datasetDelete);
     }
   }
   

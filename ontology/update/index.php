@@ -125,7 +125,7 @@ switch(strtolower($function))
     $ws_ontologyupdate->saveOntology();  
   break;
   
-  case "updateentity":
+  case "createorupdateentity ":
     $advancedIndexation = FALSE;
             
     if($parameters["advancedIndexation"] == "1" || 

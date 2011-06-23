@@ -131,7 +131,7 @@ class OntologyDelete extends WebService
 
     $this->uri = $this->wsf_base_url . "/wsf/ws/ontology/delete/";
     $this->title = "Ontology Delete Web Service";
-    $this->crud_usage = new CrudUsage(TRUE, FALSE, FALSE, FALSE);
+    $this->crud_usage = new CrudUsage(FALSE, FALSE, FALSE, TRUE);
     $this->endpoint = $this->wsf_base_url . "/ws/ontology/delete/";
 
     $this->dtdURL = "auth/OntologyDelete.dtd";

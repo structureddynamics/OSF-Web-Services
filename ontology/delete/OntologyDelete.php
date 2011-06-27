@@ -173,6 +173,9 @@ class OntologyDelete extends WebService
       // If he doesn't, then check if he has access to the dataset itself
       $ws_av2 = new AuthValidator($this->requester_ip, $this->ontologyUri, $this->uri);
 
+      $ws_av2->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
+        $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
+      
       $ws_av2->process();
 
       if($ws_av2->pipeline_getResponseHeaderStatus() != 200)
@@ -204,6 +207,9 @@ class OntologyDelete extends WebService
         // If he doesn't, then check if he has access to the dataset itself
         $ws_av2 = new AuthValidator($this->registered_ip, $this->ontologyUri, $this->uri);
 
+        $ws_av2->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
+          $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
+        
         $ws_av2->process();
 
         if($ws_av2->pipeline_getResponseHeaderStatus() != 200)

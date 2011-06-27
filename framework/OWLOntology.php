@@ -2230,8 +2230,8 @@ class OWLOntology
   }
   
   /**
-  * Get a list of all the loaded ontologies in the instance. This list includes the import closure of the
-  * current ontology. If you want to get the list of all individually loaded ontologies file of this instance,
+  * Get the list of all the ontologies of the  import closure of the current ontology. 
+  * If you want to get the list of all individually loaded ontologies file of this instance,
   * please use the getLoadedOntologiesUri() API call instead. 
   * 
   * @return An array of ontology URI loaded in the instance.

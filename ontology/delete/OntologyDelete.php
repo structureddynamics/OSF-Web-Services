@@ -27,6 +27,9 @@
 
 class OntologyDelete extends WebService
 {
+  /*! @brief Database connection */
+  private $db;
+  
   /*! @brief Conneg object that manage the content negotiation capabilities of the web service */
   private $conneg;
 
@@ -103,6 +106,8 @@ class OntologyDelete extends WebService
   {
     parent::__construct();
 
+    $this->db = new DB_Virtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
+    
     $this->ontologyUri = $ontologyUri;
       
     $this->registered_ip = $registered_ip;
@@ -577,6 +582,15 @@ class OntologyDelete extends WebService
     {
       // Delete the OWLAPI instance
       $this->ontology->delete();
+      
+      // Remove the holdOntology tag before deleting the ontology
+      $query = "delete data from <" . $this->wsf_graph . "datasets/>
+              {
+                <" . $this->ontologyUri . "> <http://purl.org/ontology/wsf#holdOntology> \"true\" .
+              }";
+
+      @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
+        FALSE));    
 
       // Check to delete potential datasets that have been created within structWSF
       include_once("../../dataset/delete/DatasetDelete.php");

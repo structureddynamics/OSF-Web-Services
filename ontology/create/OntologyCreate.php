@@ -26,6 +26,9 @@
 
 class OntologyCreate extends WebService
 {
+  /*! @brief Database connection */
+  private $db;
+  
   /*! @brief Conneg object that manage the content negotiation capabilities of the web service */
   private $conneg;
 
@@ -82,7 +85,14 @@ class OntologyCreate extends WebService
                           "level": "Error",
                           "name": "Can\'t load the ontology",
                           "description": "The ontology can\'t be loaded by the endpoint"
+                        },
+                        "_301": {
+                          "id": "WS-ONTOLOGY-CREATE-301",
+                          "level": "Error",
+                          "name": "Can\'t tag dataset",
+                          "description": "Can\'t tag the dataset as being a dataset holding an ontology description"
                         }
+                        
                       }';
 
 
@@ -105,6 +115,8 @@ class OntologyCreate extends WebService
   {
     parent::__construct();
 
+    $this->db = new DB_Virtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
+    
     $this->registered_ip = $registered_ip;
     $this->requester_ip = $requester_ip;
     $this->ontologyUri = $ontologyUri;
@@ -590,6 +602,27 @@ class OntologyCreate extends WebService
         }
 
         unset($datasetCreate);
+        
+        // Tag the new dataset as being a dataset that host an ontology description
+        $query = "insert into <" . $this->wsf_graph . "datasets/>
+                {
+                  <" . $this->ontologyUri . "> <http://purl.org/ontology/wsf#holdOntology> \"true\" .
+                }";
+
+        @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
+          FALSE));
+
+        if(odbc_error())
+        {
+          $this->conneg->setStatus(500);
+          $this->conneg->setStatusMsg("Internal Error");
+          $this->conneg->setStatusMsgExt($this->errorMessenger->_301->name);
+          $this->conneg->setError($this->errorMessenger->_301->id, $this->errorMessenger->ws,
+            $this->errorMessenger->_301->name, $this->errorMessenger->_301->description, odbc_errormsg(),
+            $this->errorMessenger->_301->level);
+
+          return;
+        }        
 
         // Check if we want to enable the advanced indexation: so, if we want to import all the ontologies 
         // description into the other structWSF data stores to enable search and filtering using the other

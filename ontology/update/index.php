@@ -124,8 +124,8 @@ switch(strtolower($function))
   case "saveontology":
     $ws_ontologyupdate->saveOntology();  
   break;
-  
-  case "createorupdateentity ":
+
+  case "createorupdateentity":
     $advancedIndexation = FALSE;
             
     if($parameters["advancedIndexation"] == "1" || 
@@ -149,16 +149,10 @@ switch(strtolower($function))
     $ws_ontologyupdate->updateEntityUri($parameters["olduri"], $parameters["newuri"]);
   break;
   
-  default:
-    $this->conneg->setStatus(400);
-    $this->conneg->setStatusMsg("Bad Request");
-    $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
-    $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
-      $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, "",
-      $this->errorMessenger->_201->level);
 
-    return;          
-  break;          
+  default:
+    $ws_ontologyupdate->returnError(400, "Bad Request", "_201");
+  break;         
 }     
   
 $ws_ontologyupdate->ws_respond($ws_ontologyupdate->ws_serialize());

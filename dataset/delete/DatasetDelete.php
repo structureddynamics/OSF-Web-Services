@@ -90,7 +90,13 @@ class DatasetDelete extends WebService
                           "level": "Fatal",
                           "name": "Can\'t commit changes to the Solr index",
                           "description": "An error occured when we tried to commit changes to the Solr index"
-                        }  
+                        },
+                        "_306": {
+                          "id": "WS-DATASET-DELETE-306",
+                          "level": "Error",
+                          "name": "Ontology dataset can\'t be deleted",
+                          "description": "This ontology dataset can\'t be deleted using the Dataset Delete web service endpoint. Please use the Ontology Dataset web service to delete this dataset."
+                        }                          
                       }';
 
 
@@ -470,6 +476,51 @@ class DatasetDelete extends WebService
     // Make sure there was no conneg error prior to this process call
     if($this->conneg->getStatus() == 200)
     {
+      // Make sure this is not an ontology dataset
+      $query = "select ?holdOntology
+                      from <" . $this->wsf_graph . "datasets/>
+                      where
+                      {
+                        <$this->datasetUri> <http://purl.org/ontology/wsf#holdOntology> ?holdOntology .
+                      }";
+
+      $resultset =
+        @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
+          array ('holdOntology'), FALSE));
+
+      if(odbc_error())
+      {
+        $this->conneg->setStatus(500);
+        $this->conneg->setStatusMsg("Internal Error");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_306->name);
+        $this->conneg->setError($this->errorMessenger->_306->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_306->name, $this->errorMessenger->_306->description, odbc_errormsg(),
+          $this->errorMessenger->_306->level);
+
+        return;
+      }
+      else
+      {
+        while(odbc_fetch_row($resultset))
+        {
+          $holdOntology = odbc_result($resultset, 1);
+
+          if(strtolower($holdOntology) == "true")
+          {
+            $this->conneg->setStatus(400);
+            $this->conneg->setStatusMsg("Bad Request");
+            $this->conneg->setStatusMsgExt($this->errorMessenger->_306->name);
+            $this->conneg->setError($this->errorMessenger->_306->id, $this->errorMessenger->ws,
+              $this->errorMessenger->_306->name, $this->errorMessenger->_306->description, odbc_errormsg(),
+              $this->errorMessenger->_306->level);
+
+            return;            
+          }
+        }
+      }
+
+      unset($resultset);      
+      
       // Remove  all the possible other meta descriptions
       // of the dataset introduced by the wsf:meta property.
 

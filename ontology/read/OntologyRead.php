@@ -1682,7 +1682,7 @@ class OntologyRead extends WebService
                   
                   case Namespaces::$sco."displayControl":
                     
-                    $displayControl = substr($value["value"], strripos($value["value"], "#"));
+                    $displayControl = substr($value["value"], strripos($value["value"], "#") + 1);
                     
                     $schema .= "<displayControl>".$this->xmlEncode($displayControl)."</displayControl>";
                   break;
@@ -1736,7 +1736,7 @@ class OntologyRead extends WebService
                   break;
                   
                   case Namespaces::$sco."displayControl":
-                    $displayControl = substr($value["value"], strripos($value["value"], "#"));
+                    $displayControl = substr($value["value"], strripos($value["value"], "#") + 1);
                     
                     $schema .= "<displayControl>".$this->xmlEncode($displayControl)."</displayControl>";
                   break;
@@ -1791,7 +1791,7 @@ class OntologyRead extends WebService
                   break;
                   
                   case Namespaces::$sco."displayControl":
-                    $displayControl = substr($value["value"], strripos($value["value"], "#"));
+                    $displayControl = substr($value["value"], strripos($value["value"], "#") + 1);
                     
                     $schema .= "<displayControl>".$this->xmlEncode($displayControl)."</displayControl>";
                   break;

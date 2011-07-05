@@ -277,10 +277,10 @@ class OntologyRead extends WebService
     $resultset = $xml->createResultset();
 
     $subject;
-
+    
     foreach($this->subjectTriples as $u => $sts)
     {
-      if(isset($sts[Namespaces::$rdf."type"]))
+      if(isset($sts[Namespaces::$rdf."type"]) && count($sts[Namespaces::$rdf."type"]) > 0)
       {
         foreach($sts[Namespaces::$rdf."type"] as $key => $type)
         {     

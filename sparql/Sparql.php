@@ -1363,8 +1363,6 @@ class Sparql extends WebService
         $queryFormat = "application/sparql-results+xml";
       }      
       
-      
-      
       // Add a limit to the query
 
       // Disable limits and offset for now until we figure out what to do (not limit on triples, but resources)
@@ -1438,6 +1436,7 @@ class Sparql extends WebService
             $s = "";
             $p = "";
             $o = "";
+            $g = "";
 
             foreach($result["_c"]["binding"] as $binding)
             {
@@ -1461,9 +1460,21 @@ class Sparql extends WebService
                 case "o":
                   $o = $boundValue;
                 break;
+
+                case "g":
+                  $g = $boundValue;
+                break;
               }
             }
 
+            if($g != "")
+            {
+              if(!isset($this->instanceRecordsObjectResource[$s][Namespaces::$dcterms."isPartOf"]))
+              {
+                $this->instanceRecordsObjectResource[$s][Namespaces::$dcterms."isPartOf"] = array( $g );
+              }
+            }
+            
             // process URI
             if($boundType == "uri")
             {

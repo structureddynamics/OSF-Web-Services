@@ -669,7 +669,7 @@ class Sparql extends WebService
 
               if($nbPredicates == 1)
               {
-                $json_part .= "        \"predicates\": [ \n";
+                $json_part .= "        \"predicate\": [ \n";
               }
 
               $objectType = $xml->getType($object);
@@ -1437,6 +1437,8 @@ class Sparql extends WebService
             $p = "";
             $o = "";
             $g = "";
+            
+            $valueBoundType = "";
 
             foreach($result["_c"]["binding"] as $binding)
             {
@@ -1446,7 +1448,7 @@ class Sparql extends WebService
 
               $boundType = $keys[0];
               $boundValue = $binding["_c"][$boundType]["_v"];
-
+              
               switch($boundVariable)
               {
                 case "s":
@@ -1459,6 +1461,7 @@ class Sparql extends WebService
 
                 case "o":
                   $o = $boundValue;
+                  $valueBoundType = $boundType;
                 break;
 
                 case "g":
@@ -1476,7 +1479,7 @@ class Sparql extends WebService
             }
             
             // process URI
-            if($boundType == "uri")
+            if($valueBoundType == "uri")
             {
               if(!isset($this->instanceRecordsObjectResource[$s][$p]))
               {
@@ -1489,7 +1492,7 @@ class Sparql extends WebService
             }
 
             // Process Literal
-            if($boundType == "literal")
+            if($valueBoundType == "literal")
             {
               if(!isset($this->instanceRecordsObjectLiteral[$s][$p]))
               {
@@ -1502,7 +1505,7 @@ class Sparql extends WebService
             }
             
             // Process BNode
-            if($boundType == "bnode")
+            if($valueBoundType == "bnode")
             {
               if(!isset($this->instanceRecordsObjectResource[$s][$p]))
               {

@@ -40,6 +40,9 @@ class CrudRead extends WebService
   /*! @brief Include potential reification statements */
   private $include_reification = "";
 
+  /*! @brief Include attribute/values of the attributes defined in this list */
+  private $include_attributes_list = "";
+
   /*! @brief URI of the resource to get its description */
   private $resourceUri = "";
 
@@ -146,6 +149,14 @@ class CrudRead extends WebService
       @param[in] $include_reification Include possible reification statements for a record
       @param[in] $registered_ip Target IP address registered in the WSF
       @param[in] $requester_ip IP address of the requester
+      @param[in] $include_attributes_list A list of attribute URIs to include into the resultset. Sometime, you may 
+                                          be dealing with datasets where the description of the entities are composed 
+                                          of thousands of attributes/values. Since the Crud: Read web service endpoint 
+                                          returns the complete entities descriptions in its resultsets, this parameter 
+                                          enables you to restrict the attribute/values you want included in the 
+                                          resultset which considerably reduce the size of the resultset to transmit 
+                                          and manipulate. Multiple attribute URIs can be added to this parameter by 
+                                          splitting them with ";".
               
               
       \n
@@ -156,13 +167,15 @@ class CrudRead extends WebService
     
       \n\n\n
   */
-  function __construct($uri, $dataset, $include_linksback, $include_reification, $registered_ip, $requester_ip)
+  function __construct($uri, $dataset, $include_linksback, $include_reification, $registered_ip, $requester_ip, $include_attributes_list)
   {
     parent::__construct();
 
     $this->db = new DB_Virtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 
     $this->dataset = $dataset;
+    
+    $this->include_attributes_list = explode(";", $include_attributes_list);
 
     // If no dataset URI is defined for this query, we simply query all datasets accessible by the requester.
     if($this->dataset == "")
@@ -1485,21 +1498,35 @@ class CrudRead extends WebService
 
       foreach($uris as $key => $u)
       {
-
         // Decode potentially encoded ";" character.
         $u = str_ireplace("%3B", ";", $u);
         $d = str_ireplace("%3B", ";", $datasets[$key]);
 
         $query = "";
 
+        $attributesFilter = "";
+        
+        foreach($this->include_attributes_list as $attr)
+        {
+          $attributesFilter .= $attr."|";
+        }
+  
+        $attributesFilter = trim($attributesFilter, "|");
+        
         if($this->globalDataset === FALSE)
         {
           $d = str_ireplace("%3B", ";", $datasets[$key]);
 
           // Archiving suject triples
-          $query = $this->db->build_sparql_query("select ?p ?o (DATATYPE(?o)) as ?otype (LANG(?o)) as ?olang "
-            . "from <" . $d . "> where {<" . $u
-            . "> ?p ?o.}", array ('p', 'o', 'otype', 'olang'), FALSE);
+          $query = $this->db->build_sparql_query("
+            select ?p ?o (DATATYPE(?o)) as ?otype (LANG(?o)) as ?olang 
+            from <" . $d . "> 
+            where 
+            {
+              <$u> ?p ?o.
+              ".($attributesFilter == "" ? "" : "FILTER regex(str(?p), \"($attributesFilter)\")")."
+            }", 
+            array ('p', 'o', 'otype', 'olang'), FALSE);
         }
         else
         {
@@ -1514,9 +1541,25 @@ class CrudRead extends WebService
           }
 
           // Archiving suject triples
+          /*          
           $query = $this->db->build_sparql_query("select ?p ?o (DATATYPE(?o)) as ?otype (LANG(?o)) as ?olang "
             . " $d where {graph ?g{<" . $u
             . "> ?p ?o.}}", array ('p', 'o', 'otype', 'olang'), FALSE);
+          */
+          
+          $query = $this->db->build_sparql_query("
+            select ?p ?o (DATATYPE(?o)) as ?otype (LANG(?o)) as ?olang 
+            $d 
+            where 
+            {
+              graph ?g
+              {
+                <$u> ?p ?o.
+              }
+              ".($attributesFilter == "" ? "" : "FILTER regex(str(?p), \"($attributesFilter)\")")."
+            }", 
+            array ('p', 'o', 'otype', 'olang'), FALSE);
+          
         }
 
         $resultset = $this->db->query($query);

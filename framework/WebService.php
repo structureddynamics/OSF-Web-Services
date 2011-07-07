@@ -578,7 +578,7 @@ abstract class WebService
     
       \n\n\n
   */
-  public function jsonEncode($string) { return str_replace(array ('\\', '"', "\n", "\r"), array ('\\\\', '\\"', "\\n", "\\r"), $string); }
+  public function jsonEncode($string) { return str_replace(array ('\\', '"', "\n", "\r", "\t"), array ('\\\\', '\\"', "\\n", "\\r", "\\t"), $string); }
 }
 
 /*!   @brief CRUD usage data structure of a web service

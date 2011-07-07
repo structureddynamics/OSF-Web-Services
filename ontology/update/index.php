@@ -127,9 +127,9 @@ switch(strtolower($function))
 
   case "createorupdateentity":
     $advancedIndexation = FALSE;
-            
-    if($parameters["advancedIndexation"] == "1" || 
-       strtolower($parameters["advancedIndexation"]) == "true")
+     
+    if($parameters["advancedindexation"] == "1" || 
+       strtolower($parameters["advancedindexation"]) == "true")
     {
       $advancedIndexation = TRUE;
     }
@@ -140,8 +140,8 @@ switch(strtolower($function))
   case "updateentityuri":
     $advancedIndexation = FALSE;
             
-    if($parameters["advancedIndexation"] == "1" || 
-       strtolower($parameters["advancedIndexation"]) == "true")
+    if($parameters["advancedindexation"] == "1" || 
+       strtolower($parameters["advancedindexation"]) == "true")
     {
       $advancedIndexation = TRUE;
     }

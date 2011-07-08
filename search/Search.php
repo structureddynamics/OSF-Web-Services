@@ -1577,7 +1577,7 @@ class Search extends WebService
         {
           $indexedFields = array();
         }
-        
+
         foreach($attributes as $attribute)
         {
           $attributeValue = explode("::", $attribute);
@@ -1640,7 +1640,17 @@ class Search extends WebService
             {
               if($coreAttr)
               {
-                $solrQuery .= "&fq=(".urlencode(urlencode($attribute)).":".urlencode(preg_replace("/[^A-Za-z0-9\s\*\\\]/", " ", $val)).")";
+                switch($attribute)
+                {                
+                  case "type":
+                  case "located_in":
+                    $solrQuery .= "&fq=(".urlencode(urlencode($attribute)).":".urlencode($this->escapeSolrValue($val)).")";
+                  break;
+                  
+                  default:
+                    $solrQuery .= "&fq=(".urlencode(urlencode($attribute)).":".urlencode(preg_replace("/[^A-Za-z0-9\s\*\\\]/", " ", $val)).")";
+                  break;
+                }
               }
               else
               {
@@ -1697,7 +1707,18 @@ class Search extends WebService
             {
               if($coreAttr)
               {
-                $solrQuery .= " AND (".urlencode(urlencode($attribute)).":".urlencode(preg_replace("/[^A-Za-z0-9\s\*\\\]/", " ", $val)).")";
+                switch($attribute)
+                {                
+                  case "type":
+                  case "located_in":
+                    $solrQuery .= " AND (".urlencode(urlencode($attribute)).":".urlencode($this->escapeSolrValue($val)).")";
+                  break;
+                  
+                  default:
+                    $solrQuery .= " AND (".urlencode(urlencode($attribute)).":".urlencode(preg_replace("/[^A-Za-z0-9\s\*\\\]/", " ", $val)).")";
+                  break;
+                }                
+                
               }
               else
               {
@@ -1832,7 +1853,7 @@ class Search extends WebService
         }
 
       }
-
+ 
       $resultset = $solr->select($solrQuery);
 
       $domResultset = new DomDocument("1.0", "utf-8");

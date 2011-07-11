@@ -59,6 +59,8 @@ class Search extends WebService
   
   /*! @brief Global query filtering parameter */
   private $query = "";
+  
+  private $attributesBooleanOperator = "and";
 
   /*! @brief Namespaces/Prefixes binding */
   private $namespaces =
@@ -191,7 +193,8 @@ class Search extends WebService
       \n\n\n
   */
   function __construct($query, $types, $attributes, $datasets, $items, $page, $inference, $include_aggregates,
-                       $registered_ip, $requester_ip, $distanceFilter = "", $rangeFilter = "", $aggregate_attributes = "")                           
+                       $registered_ip, $requester_ip, $distanceFilter = "", $rangeFilter = "", 
+                       $aggregate_attributes = "", $attributesBooleanOperator = "and")
   {
     parent::__construct();
  
@@ -202,6 +205,7 @@ class Search extends WebService
     $this->page = $page;
     $this->inference = $inference;
     $this->includeAggregates = $include_aggregates;
+    $this->attributesBooleanOperator = strtoupper($attributesBooleanOperator);
     
     if($aggregate_attributes != "")
     {
@@ -1643,12 +1647,22 @@ class Search extends WebService
                 switch($attribute)
                 {                
                   case "type":
+                    if(strtolower($this->inference) == "on")
+                    {
+                      $solrQuery .= "&fq=((type:".urlencode($this->escapeSolrValue($val)).") OR (inferred_type:".urlencode($this->escapeSolrValue($val))."))";
+                    }
+                    else
+                    {
+                      $solrQuery .= "&fq=(type:".urlencode($this->escapeSolrValue($val)).")";
+                    }
+                  break;
+                  
                   case "located_in":
-                    $solrQuery .= "&fq=(".urlencode(urlencode($attribute)).":".urlencode($this->escapeSolrValue($val)).")";
+                    $solrQuery .= "&fq=(located_in:".urlencode($this->escapeSolrValue($val)).")";
                   break;
                   
                   default:
-                    $solrQuery .= "&fq=(".urlencode(urlencode($attribute)).":".urlencode(preg_replace("/[^A-Za-z0-9\s\*\\\]/", " ", $val)).")";
+                    $solrQuery .= "&fq=(located_in:".urlencode(preg_replace("/[^A-Za-z0-9\s\*\\\]/", " ", $val)).")";
                   break;
                 }
               }
@@ -1657,6 +1671,7 @@ class Search extends WebService
                 $solrQuery .= "&fq=(";
                 
                 $addOR = FALSE;
+                $empty = TRUE;                
                 
                 // We have to detect if the fields are existing in Solr, otherwise Solr will throw
                 // "undefined fields" errors, and there is no way to ignore them and process
@@ -1665,6 +1680,7 @@ class Search extends WebService
                 {
                   $solrQuery .= "(".urlencode(urlencode($attribute)).":".urlencode(preg_replace("/[^A-Za-z0-9\s\*\\\]/", " ", $val)).")";  
                   $addOR = TRUE;
+                  $empty = FALSE;
                 }
 
                 if(array_search(urlencode($attribute."_attr"), $indexedFields) !== FALSE)
@@ -1676,6 +1692,7 @@ class Search extends WebService
                   
                   $solrQuery .= "(".urlencode(urlencode($attribute))."_attr:".urlencode(preg_replace("/[^A-Za-z0-9\s\*\\\]/", " ", $val)).")";
                   $addOR = TRUE;
+                  $empty = FALSE;
                 }
 
                 if(array_search(urlencode($attribute."_attr_obj"), $indexedFields) !== FALSE)
@@ -1687,6 +1704,7 @@ class Search extends WebService
                   
                   $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj:".urlencode(preg_replace("/[^A-Za-z0-9\s\*\\\]/", " ", $val)).")";
                   $addOR = TRUE;
+                  $empty = FALSE;
                 }
                 
                 if(array_search(urlencode($attribute."_attr_obj_uri"), $indexedFields) !== FALSE)
@@ -1698,9 +1716,17 @@ class Search extends WebService
                   
                   $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj_uri:".urlencode($this->escapeSolrValue($val)).")";
                   $addOR = TRUE;
+                  $empty = FALSE;
                 }                
                 
-                $solrQuery .= ")";
+                if($empty)
+                {
+                  $solrQuery = substr($solrQuery, 0, strlen($solrQuery) - 1);
+                }
+                else
+                {
+                  $solrQuery .= ")";                
+                }                
               }
             }
             else
@@ -1710,21 +1736,38 @@ class Search extends WebService
                 switch($attribute)
                 {                
                   case "type":
+                    if(strtolower($this->inference) == "on")
+                    {
+                      $solrQuery .= " ".$this->attributesBooleanOperator." ((type:".urlencode($this->escapeSolrValue($val)).") OR (inferred_type:".urlencode($this->escapeSolrValue($val))."))";
+                    }
+                    else
+                    {
+                      $solrQuery .= " ".$this->attributesBooleanOperator." (type:".urlencode($this->escapeSolrValue($val)).")";
+                    }
+                  break;                  
                   case "located_in":
-                    $solrQuery .= " AND (".urlencode(urlencode($attribute)).":".urlencode($this->escapeSolrValue($val)).")";
+                    $solrQuery .= " ".$this->attributesBooleanOperator." (located_in:".urlencode($this->escapeSolrValue($val)).")";
                   break;
                   
                   default:
-                    $solrQuery .= " AND (".urlencode(urlencode($attribute)).":".urlencode(preg_replace("/[^A-Za-z0-9\s\*\\\]/", " ", $val)).")";
+                    $solrQuery .= " ".$this->attributesBooleanOperator." (located_in:".urlencode(preg_replace("/[^A-Za-z0-9\s\*\\\]/", " ", $val)).")";
                   break;
                 }                
                 
               }
               else
               {
-                $solrQuery .= " AND (";
+                if(substr($solrQuery, strlen($solrQuery) - 3) != "fq=")
+                {
+                  $solrQuery .= " ".$this->attributesBooleanOperator." (";
+                }
+                else
+                {
+                  $solrQuery .= "(";
+                }
                 
                 $addOR = FALSE;
+                $empty = TRUE;
                 
                 // We have to detect if the fields are existing in Solr, otherwise Solr will throw
                 // "undefined fields" errors, and there is no way to ignore them and process
@@ -1733,6 +1776,7 @@ class Search extends WebService
                 {
                   $solrQuery .= "(".urlencode(urlencode($attribute)).":".urlencode(preg_replace("/[^A-Za-z0-9\s\*\\\]/", " ", $val)).")";
                   $addOR = TRUE;
+                  $empty = FALSE;
                 }
 
                 if(array_search(urlencode($attribute."_attr"), $indexedFields) !== FALSE)
@@ -1744,6 +1788,7 @@ class Search extends WebService
                   
                   $solrQuery .= "(".urlencode(urlencode($attribute))."_attr:".urlencode(preg_replace("/[^A-Za-z0-9\s\*\\\]/", " ", $val)).")";
                   $addOR = TRUE;
+                  $empty = FALSE;
                 }
 
                 if(array_search(urlencode($attribute."_attr_obj"), $indexedFields) !== FALSE)
@@ -1755,6 +1800,7 @@ class Search extends WebService
                   
                   $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj:".urlencode(preg_replace("/[^A-Za-z0-9\s\*\\\]/", " ", $val)).")";
                   $addOR = TRUE;
+                  $empty = FALSE;
                 }
 
                 if(array_search(urlencode($attribute."_attr_obj_uri"), $indexedFields) !== FALSE)
@@ -1766,9 +1812,24 @@ class Search extends WebService
                   
                   $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj_uri:".urlencode($this->escapeSolrValue($val)).")";
                   $addOR = TRUE;
+                  $empty = FALSE;
                 }
-                
-                $solrQuery .= ")";                
+
+                if(substr($solrQuery, strlen($solrQuery) - 4) != "fq=(")
+                {
+                  if($empty)
+                  {
+                    $solrQuery = substr($solrQuery, 0, strlen($solrQuery) - 5);
+                  }
+                  else
+                  {
+                    $solrQuery .= ")";                
+                  }
+                }
+                else
+                {
+                  $solrQuery = substr($solrQuery, 0, strlen($solrQuery) - 1);
+                }
               }
             }            
           }
@@ -1780,7 +1841,7 @@ class Search extends WebService
             }
             else
             {
-              $solrQuery .= " AND (attribute:%22" . urlencode($attribute) . "%22)";
+              $solrQuery .= " ".$this->attributesBooleanOperator." (attribute:%22" . urlencode($attribute) . "%22)";
             }
           }
 
@@ -1853,10 +1914,11 @@ class Search extends WebService
         }
 
       }
- 
+
       $resultset = $solr->select($solrQuery);
 
       $domResultset = new DomDocument("1.0", "utf-8");
+
       $domResultset->loadXML($resultset);
 
       $xpath = new DOMXPath($domResultset);
@@ -1982,69 +2044,66 @@ class Search extends WebService
           {
             array_push($this->resultset[$datasetUri][$uri]["altLabel"], $resultAltLabelURI->item($i)->nodeValue);
           }          
-        }        
-        
+        }
+                
         // Get possible Lat/Long
-        if($this->geoEnabled && ($this->rangeFilter != "" || $this->distanceFilter != ""))
+        // First check if there is a polygonCoordinates pr a polylineCoordinates attribute for that record
+        // If there is one, then we simply ignore the lat/long coordinates since they come from these
+        // attributes and that we don't want to duplicate that information.
+        $skipLatLong == FALSE;
+        
+        $resultPolygonCoordinates = $xpath->query("arr[@name='polygonCoordinates']/str", $result);
+        
+        if($resultPolygonCoordinates->length > 0)
         {
-          // First check if there is a polygonCoordinates pr a polylineCoordinates attribute for that record
-          // If there is one, then we simply ignore the lat/long coordinates since they come from these
-          // attributes and that we don't want to duplicate that information.
-          $skipLatLong == FALSE;
-          
-          $resultPolygonCoordinates = $xpath->query("arr[@name='polygonCoordinates']/str", $result);
-          
-          if($resultPolygonCoordinates->length > 0)
+          foreach($resultPolygonCoordinates as $value)
           {
-            foreach($resultPolygonCoordinates as $value)
+            if(!isset($this->resultset[$datasetUri][$uri][Namespaces::$sco."polygonCoordinates"]))
             {
-              if(!isset($this->resultset[$datasetUri][$uri][Namespaces::$sco."polygonCoordinates"]))
-              {
-                $this->resultset[$datasetUri][$uri][Namespaces::$sco."polygonCoordinates"] = array($value->nodeValue);
-              }
-              else
-              {
-                array_push($this->resultset[$datasetUri][$uri][Namespaces::$sco."polygonCoordinates"], $value->nodeValue);
-              }
-            }            
-            
-            $skipLatLong = TRUE;
+              $this->resultset[$datasetUri][$uri][Namespaces::$sco."polygonCoordinates"] = array($value->nodeValue);
+            }
+            else
+            {
+              array_push($this->resultset[$datasetUri][$uri][Namespaces::$sco."polygonCoordinates"], $value->nodeValue);
+            }
+          }            
+          
+          $skipLatLong = TRUE;
+        }
+        
+        $resultPolylineCoordinates = $xpath->query("arr[@name='polylineCoordinates']/str", $result);
+        
+        if($resultPolylineCoordinates->length > 0)
+        {
+          foreach($resultPolylineCoordinates as $value)
+          {
+            if(!isset($this->resultset[$datasetUri][$uri][Namespaces::$sco."polylineCoordinates"]))
+            {
+              $this->resultset[$datasetUri][$uri][Namespaces::$sco."polylineCoordinates"] = array($value->nodeValue);
+            }
+            else
+            {
+              array_push($this->resultset[$datasetUri][$uri][Namespaces::$sco."polylineCoordinates"], $value->nodeValue);
+            }
+          }            
+          
+          $skipLatLong = TRUE;
+        }          
+        
+        if(!$skipLatLong)
+        {
+          $resultDescriptionLat = $xpath->query("arr[@name='lat']/double", $result);
+
+          if($resultDescriptionLat->length > 0)
+          {
+            $this->resultset[$datasetUri][$uri][Namespaces::$geo."lat"] = array($resultDescriptionLat->item(0)->nodeValue);
           }
-          
-          $resultPolylineCoordinates = $xpath->query("arr[@name='polylineCoordinates']/str", $result);
-          
-          if($resultPolylineCoordinates->length > 0)
+
+          $resultDescriptionLong = $xpath->query("arr[@name='long']/double", $result);
+
+          if($resultDescriptionLong->length > 0)
           {
-            foreach($resultPolylineCoordinates as $value)
-            {
-              if(!isset($this->resultset[$datasetUri][$uri][Namespaces::$sco."polylineCoordinates"]))
-              {
-                $this->resultset[$datasetUri][$uri][Namespaces::$sco."polylineCoordinates"] = array($value->nodeValue);
-              }
-              else
-              {
-                array_push($this->resultset[$datasetUri][$uri][Namespaces::$sco."polylineCoordinates"], $value->nodeValue);
-              }
-            }            
-            
-            $skipLatLong = TRUE;
-          }          
-          
-          if(!$skipLatLong)
-          {
-            $resultDescriptionLat = $xpath->query("arr[@name='lat']/double", $result);
-
-            if($resultDescriptionLat->length > 0)
-            {
-              $this->resultset[$datasetUri][$uri][Namespaces::$geo."lat"] = array($resultDescriptionLat->item(0)->nodeValue);
-            }
-
-            $resultDescriptionLong = $xpath->query("arr[@name='long']/double", $result);
-
-            if($resultDescriptionLong->length > 0)
-            {
-              $this->resultset[$datasetUri][$uri][Namespaces::$geo."long"] = array($resultDescriptionLong->item(0)->nodeValue);
-            }
+            $this->resultset[$datasetUri][$uri][Namespaces::$geo."long"] = array($resultDescriptionLong->item(0)->nodeValue);
           }
         }
 

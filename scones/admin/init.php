@@ -1,5 +1,8 @@
 <?php
 
+  error_reporting(E_ALL);
+  ini_set('display_errors', '1');
+
   /*
       This script initialize all the running (and persisted) Gate application sessions.
       These sessions are used simultaneously to process different corpus of documents

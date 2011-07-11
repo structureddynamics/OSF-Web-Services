@@ -59,6 +59,14 @@ if(isset($_POST['types']))
   $types = $_POST['types'];
 }
 
+// Global boolean operator
+$attributesBooleanOperator = "and";
+
+if(isset($_POST['attributes_boolean_operator']))
+{
+  $attributesBooleanOperator = $_POST['attributes_boolean_operator'];
+}
+
 // Attributes to filter
 $attributes = "all";
 
@@ -173,7 +181,7 @@ elseif(isset($_SERVER['PHP_SELF']))
 
 $ws_s =
   new Search($query, $types, $attributes, $datasets, $items, $page, $inference, $include_aggregates, $registered_ip,
-    $requester_ip, $distanceFilter, $rangeFilter, $aggregate_attributes);
+    $requester_ip, $distanceFilter, $rangeFilter, $aggregate_attributes, $attributesBooleanOperator);
 
 $ws_s->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
   $_SERVER['HTTP_ACCEPT_LANGUAGE']);

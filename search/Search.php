@@ -1599,7 +1599,7 @@ class Search extends WebService
                 
                 // Check if we are performing an autocompletion task on the pref label
                 $label = urldecode($attributeValue[1]);
-                if(substr($label, strlen($label) -2) == "**")
+                if(substr($label, strlen($label) - 2) == "**")
                 {
                   $attribute = "prefLabelAutocompletion";
                   $attributeValue[1] = urlencode(str_replace(" ", "\\ ", substr($label, 0, strlen($label) -1)));
@@ -1662,7 +1662,7 @@ class Search extends WebService
                   break;
                   
                   default:
-                    $solrQuery .= "&fq=(located_in:".urlencode(preg_replace("/[^A-Za-z0-9\s\*\\\]/", " ", $val)).")";
+                    $solrQuery .= "&fq=(".$attribute.":".urlencode(preg_replace("/[^A-Za-z0-9\s\*\\\]/", " ", $val)).")";
                   break;
                 }
               }
@@ -1750,7 +1750,7 @@ class Search extends WebService
                   break;
                   
                   default:
-                    $solrQuery .= " ".$this->attributesBooleanOperator." (located_in:".urlencode(preg_replace("/[^A-Za-z0-9\s\*\\\]/", " ", $val)).")";
+                    $solrQuery .= " ".$this->attributesBooleanOperator." (".$attribute.":".urlencode(preg_replace("/[^A-Za-z0-9\s\*\\\]/", " ", $val)).")";
                   break;
                 }                
                 

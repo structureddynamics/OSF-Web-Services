@@ -34,3 +34,19 @@ access to it to a certain IP address, in Apache2. You can also move it in anothe
 
 Otherwise, make sure to delete it from the file server if you can't restrict (or don't want to) its access.
 
+
+
+===========
+load_ontologies.php
+===========
+
+This script is used to load a batch of ontologies into an structWSF instance. 
+
+------------------------
+Security Considerations:
+------------------------
+
+Make sure that this script is only accessible to the administrators of your server. This can be done by restricting
+access to it to a certain IP address, in Apache2. You can also move it in another location.
+
+Otherwise, make sure to delete it from the file server if you can't restrict (or don't want to) its access.

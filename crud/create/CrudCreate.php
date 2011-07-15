@@ -945,8 +945,8 @@ class CrudCreate extends WebService
                 if(isset($resourceIndex[$subject][Namespaces::$geo."lat"]) &&
                    isset($resourceIndex[$subject][Namespaces::$geo."long"]))
                 {  
-                  $lat = $resourceIndex[$subject][Namespaces::$geo."lat"][0]["value"];
-                  $long = $resourceIndex[$subject][Namespaces::$geo."long"][0]["value"];
+                  $lat = str_replace(",", ".", $resourceIndex[$subject][Namespaces::$geo."lat"][0]["value"]);
+                  $long = str_replace(",", ".", $resourceIndex[$subject][Namespaces::$geo."long"][0]["value"]);
                   
                   // Add Lat/Long
                   $add .= "<field name=\"lat\">". 

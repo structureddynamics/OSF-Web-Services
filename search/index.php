@@ -139,6 +139,14 @@ if(isset($_POST['range_filter']))
   $rangeFilter = $_POST['range_filter'];
 }
 
+// Attributes URIs list to include in the returned resultset.
+$includeAttributesList = "";
+
+if(isset($_POST['include_attributes_list']))
+{
+  $includeAttributesList = $_POST['include_attributes_list'];
+}
+
 // Optional IP
 $registered_ip = "";
 
@@ -179,9 +187,9 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_s =
-  new Search($query, $types, $attributes, $datasets, $items, $page, $inference, $include_aggregates, $registered_ip,
-    $requester_ip, $distanceFilter, $rangeFilter, $aggregate_attributes, $attributesBooleanOperator);
+$ws_s = new Search($query, $types, $attributes, $datasets, $items, $page, $inference, $include_aggregates, 
+                   $registered_ip, $requester_ip, $distanceFilter, $rangeFilter, $aggregate_attributes, 
+                   $attributesBooleanOperator, $includeAttributesList);
 
 $ws_s->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
   $_SERVER['HTTP_ACCEPT_LANGUAGE']);

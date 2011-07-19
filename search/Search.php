@@ -61,6 +61,8 @@ class Search extends WebService
   private $query = "";
   
   private $attributesBooleanOperator = "and";
+  
+  private $includeAttributesList = "";
 
   /*! @brief Namespaces/Prefixes binding */
   private $namespaces =
@@ -181,7 +183,14 @@ class Search extends WebService
       @param[in] $aggregate_attributes Specify a set of attributes URI for which we want their aggregated
                                        values. The URIs should be url-encoded. Each attribute for which we
                                        want the aggregated values should be seperated by a semi-colon ";".
-      
+      @param[in] $includeAttributesList A list of attribute URIs to include into the resultset. Sometime, you may 
+                                        be dealing with datasets where the description of the entities are composed 
+                                        of thousands of attributes/values. Since the Crud: Read web service endpoint 
+                                        returns the complete entities descriptions in its resultsets, this parameter 
+                                        enables you to restrict the attribute/values you want included in the 
+                                        resultset which considerably reduce the size of the resultset to transmit 
+                                        and manipulate. Multiple attribute URIs can be added to this parameter by 
+                                        splitting them with ";".
       
               
       \n
@@ -194,7 +203,8 @@ class Search extends WebService
   */
   function __construct($query, $types, $attributes, $datasets, $items, $page, $inference, $include_aggregates,
                        $registered_ip, $requester_ip, $distanceFilter = "", $rangeFilter = "", 
-                       $aggregate_attributes = "", $attributesBooleanOperator = "and")
+                       $aggregate_attributes = "", $attributesBooleanOperator = "and",
+                       $includeAttributesList = "")
   {
     parent::__construct();
  
@@ -206,6 +216,8 @@ class Search extends WebService
     $this->inference = $inference;
     $this->includeAggregates = $include_aggregates;
     $this->attributesBooleanOperator = strtoupper($attributesBooleanOperator);
+    
+    $this->includeAttributesList = explode(";", $includeAttributesList);
     
     if($aggregate_attributes != "")
     {
@@ -1914,7 +1926,36 @@ class Search extends WebService
         }
 
       }
-
+      
+      // Only return these fields in the resultset
+      if($this->includeAttributesList != "")
+      {
+        $solrQuery .= "&fl=";
+        
+        foreach($this->includeAttributesList as $atl)
+        {
+          $solrQuery .= urlencode(urlencode($atl))."_attr ";
+          $solrQuery .= urlencode(urlencode($atl))."_attr_obj ";
+          $solrQuery .= urlencode(urlencode($atl))."_attr_obj_uri ";
+        }
+        
+        // Also add the core attributes to the mixte
+        $solrQuery .= "prefLabel ";
+        $solrQuery .= "altLabel ";
+        $solrQuery .= "description ";
+        $solrQuery .= "lat ";
+        $solrQuery .= "long ";
+        $solrQuery .= "type ";
+        $solrQuery .= "uri ";
+        $solrQuery .= "locatedIn ";
+        $solrQuery .= "dataset ";
+        $solrQuery .= "prefURL ";
+        $solrQuery .= "geohash ";
+        $solrQuery .= "inferred_type ";
+        $solrQuery .= "prefLabelAutocompletion";
+        
+      }
+ 
       $resultset = $solr->select($solrQuery);
 
       $domResultset = new DomDocument("1.0", "utf-8");

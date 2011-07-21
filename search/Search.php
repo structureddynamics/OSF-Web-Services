@@ -129,7 +129,7 @@ class Search extends WebService
                           "id": "WS-SEARCH-200",
                           "level": "Warning",                          
                           "name": "Invalid number of items requested",
-                          "description": "The number of items returned per request has to be greater than 0 and lesser than 128"
+                          "description": "The number of items returned per request has to be greater than 0 and lesser than 300"
                         },
                         "_300": {
                           "id": "WS-SEARCH-300",
@@ -704,7 +704,7 @@ class Search extends WebService
     // If the query is still valid
     if($this->conneg->getStatus() == 200)
     {
-      if($this->items < 0 || $this->items > 128)
+      if($this->items < 0 || $this->items > 300)
       {
         $this->conneg->setStatus(400);
         $this->conneg->setStatusMsg("Bad Request");

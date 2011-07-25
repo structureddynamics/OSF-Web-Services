@@ -1641,7 +1641,13 @@ class OntologyRead extends WebService
                   
                   case Namespaces::$sco."orderingValue":
                     $schema .= "<orderingValue>".$this->xmlEncode($value["value"])."</orderingValue>";
-                  break;                  
+                  break;  
+                  
+                  case Namespaces::$rdfs."subPropertyOf":
+                    $this->manageIronXMLPrefix($value["value"], $prefixes);
+                    
+                    $schema .= "<subPropertyOf>".$this->xmlEncode($this->ironXMLPrefixize($value["value"], $prefixes))."</subPropertyOf>";
+                  break;
                 }
               }
             }

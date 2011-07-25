@@ -62,7 +62,7 @@ class Search extends WebService
   
   private $attributesBooleanOperator = "and";
   
-  private $includeAttributesList = "";
+  private $includeAttributesList = array();
 
   /*! @brief Namespaces/Prefixes binding */
   private $namespaces =
@@ -217,7 +217,10 @@ class Search extends WebService
     $this->includeAggregates = $include_aggregates;
     $this->attributesBooleanOperator = strtoupper($attributesBooleanOperator);
     
-    $this->includeAttributesList = explode(";", $includeAttributesList);
+    if($includeAttributesList != "")
+    {
+      $this->includeAttributesList = explode(";", $includeAttributesList);
+    }
     
     if($aggregate_attributes != "")
     {
@@ -1928,7 +1931,7 @@ class Search extends WebService
       }
       
       // Only return these fields in the resultset
-      if($this->includeAttributesList != "")
+      if(count($this->includeAttributesList) > 0)
       {
         $solrQuery .= "&fl=";
         
@@ -1955,7 +1958,7 @@ class Search extends WebService
         $solrQuery .= "prefLabelAutocompletion";
         
       }
- 
+
       $resultset = $solr->select($solrQuery);
 
       $domResultset = new DomDocument("1.0", "utf-8");

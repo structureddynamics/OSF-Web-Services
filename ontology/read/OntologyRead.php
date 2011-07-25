@@ -1624,7 +1624,7 @@ class OntologyRead extends WebService
                   break;
                   
                   case Namespaces::$sco."displayControl":
-                    $displayControl = substr($value["value"], strripos($value["value"], "#"));
+                    $displayControl = substr($value["value"], strripos($value["value"], "#") + 1);
                     
                     $schema .= "<displayControl>".$this->xmlEncode($displayControl)."</displayControl>";
                   break;
@@ -1705,6 +1705,12 @@ class OntologyRead extends WebService
                   case Namespaces::$sco."shortLabel":
                     $schema .= "<shortLabel>".$this->xmlEncode($value["value"])."</shortLabel>";
                   break;
+                  
+                  case Namespaces::$sco."unitType":
+                    $this->manageIronXMLPrefix($value["value"], $prefixes);
+                    
+                    $schema .= "<unitType>".$this->xmlEncode($this->ironXMLPrefixize($value["value"], $prefixes))."</unitType>";
+                  break;                  
                   
                   case Namespaces::$sco."orderingValue":
                     $schema .= "<orderingValue>".$this->xmlEncode($value["value"])."</orderingValue>";

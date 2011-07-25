@@ -1478,7 +1478,7 @@ class OWLOntology
     
     foreach($annotations as $annotation)
     {
-      $info = $this->getAnnotationInfo($annotation, FALSE);
+      $info = $this->getAnnotationInfo($annotation);
       
       if(is_array($propertyDescription[$info["property"]]) === FALSE)
       {
@@ -3128,7 +3128,7 @@ class OWLOntology
     $datatype = "";
     $lang = "";
     $rei = array();
-        
+   
     // Check if the value is an OWLLiteral
     if(java_instanceof($annotation->getValue(), java("org.semanticweb.owlapi.model.OWLLiteral")))
     {

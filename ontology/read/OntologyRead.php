@@ -1634,6 +1634,12 @@ class OntologyRead extends WebService
                     
                     $schema .= "<comparableWith>".$this->xmlEncode($this->ironXMLPrefixize($value["value"], $prefixes))."</comparableWith>";
                   break;
+
+                  case Namespaces::$sco."unitType":
+                    $this->manageIronXMLPrefix($value["value"], $prefixes);
+                    
+                    $schema .= "<unitType>".$this->xmlEncode($this->ironXMLPrefixize($value["value"], $prefixes))."</unitType>";
+                  break;
                   
                   case Namespaces::$sco."shortLabel":
                     $schema .= "<shortLabel>".$this->xmlEncode($value["value"])."</shortLabel>";

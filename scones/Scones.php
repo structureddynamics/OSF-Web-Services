@@ -597,7 +597,7 @@ class Sparql extends WebService
           {
             if((string) $feature->Name == "majorType")
             {
-              $feature->Value = $this->prefixToUri((string) $feature->Value);
+              $feature->Value = urldecode((string) $feature->Value);
             }
           }  
         }         
@@ -605,35 +605,6 @@ class Sparql extends WebService
     }
     
     $this->annotatedDocument = $annotatedNeXML->asXML();
-  }
-  
-  /*! @brief Replace the Prefixed form of the URI by its full URI.
-              
-      \n
-      
-      @author Frederick Giasson, Structured Dynamics LLC.
-    
-      \n\n\n
-  */
-  function prefixToUri($uri)
-  {
-    $pos = strpos($uri, "_");
-    
-    if($pos !== FALSE)
-    {
-      $prefix = substr($uri, 0, $pos);
-      
-      if(isset($this->namespaces[$prefix]))
-      {
-        return(str_replace($prefix."_", $this->namespaces[$prefix], $uri));
-      }
-      else
-      {
-        return($uri);
-      }
-    }
-    
-    return($uri);
   }
 }
 

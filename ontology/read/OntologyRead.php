@@ -1171,7 +1171,8 @@ class OntologyRead extends WebService
       {
         if(strtolower($this->function) != "getserializedclasshierarchy" &&
            strtolower($this->function) != "getserializedpropertyhierarchy" &&
-           strtolower($this->function) != "getstructxmlschema" &&
+           strtolower($this->function) != "getironxmlschema" &&
+           strtolower($this->function) != "getironjsonschema" &&
            strtolower($this->function) != "getloadedontologies")
         {        
           $this->returnError(400, "Bad Request", "_300");
@@ -1549,9 +1550,9 @@ class OntologyRead extends WebService
           
           foreach($this->subjectTriples as $uri => $subject)
           {
-            $this->manageIronXMLPrefix($uri, $prefixes);
+            $this->manageIronPrefixes($uri, $prefixes);
             
-            $schema .= "<".$this->ironXMLPrefixize($uri, $prefixes).">";
+            $schema .= "<".$this->ironPrefixize($uri, $prefixes).">";
 
             $schema .= "<description>".$this->xmlEncode($this->getDescription($subject))."</description>";
             $schema .= "<prefLabel>".$this->xmlEncode($this->getLabel($uri, $subject))."</prefLabel>";
@@ -1563,9 +1564,9 @@ class OntologyRead extends WebService
                 switch($predicate)
                 {
                   case Namespaces::$rdfs."subClassOf":
-                    $this->manageIronXMLPrefix($value["value"], $prefixes);
+                    $this->manageIronPrefixes($value["value"], $prefixes);
                     
-                    $schema .= "<subTypeOf>".$this->xmlEncode($this->ironXMLPrefixize($value["value"], $prefixes))."</subTypeOf>";
+                    $schema .= "<subTypeOf>".$this->xmlEncode($this->ironPrefixize($value["value"], $prefixes))."</subTypeOf>";
                   break;
                   
                   case Namespaces::$sco."displayControl":
@@ -1584,15 +1585,15 @@ class OntologyRead extends WebService
                   break;
                   
                   case Namespaces::$sco."relationBrowserNodeType":
-                    $this->manageIronXMLPrefix($value["value"], $prefixes);
+                    $this->manageIronPrefixes($value["value"], $prefixes);
                     
-                    $schema .= "<relationBrowserNodeType>".$this->xmlEncode($this->ironXMLPrefixize($value["value"], $prefixes))."</relationBrowserNodeType>";
+                    $schema .= "<relationBrowserNodeType>".$this->xmlEncode($this->ironPrefixize($value["value"], $prefixes))."</relationBrowserNodeType>";
                   break;
                 }              
               }
             }
             
-            $schema .= "</".$this->ironXMLPrefixize($uri, $prefixes).">";            
+            $schema .= "</".$this->ironPrefixize($uri, $prefixes).">";            
           }
           
           $schema .= "</typeList>";
@@ -1602,9 +1603,9 @@ class OntologyRead extends WebService
 
           foreach($this->subjectTriples as $uri => $subject)
           {
-            $this->manageIronXMLPrefix($uri, $prefixes);
+            $this->manageIronPrefixes($uri, $prefixes);
             
-            $schema .= "<".$this->ironXMLPrefixize($uri, $prefixes).">";
+            $schema .= "<".$this->ironPrefixize($uri, $prefixes).">";
 
             $schema .= "<description>".$this->xmlEncode($this->getDescription($subject))."</description>";
             $schema .= "<prefLabel>".$this->xmlEncode($this->getLabel($uri, $subject))."</prefLabel>";
@@ -1618,9 +1619,9 @@ class OntologyRead extends WebService
                 switch($predicate)
                 {
                   case Namespaces::$rdfs."domain":
-                    $this->manageIronXMLPrefix($value["value"], $prefixes);
+                    $this->manageIronPrefixes($value["value"], $prefixes);
                     
-                    $schema .= "<allowedType>".$this->xmlEncode($this->ironXMLPrefixize($value["value"], $prefixes))."</allowedType>";
+                    $schema .= "<allowedType>".$this->xmlEncode($this->ironPrefixize($value["value"], $prefixes))."</allowedType>";
                   break;
                   
                   case Namespaces::$sco."displayControl":
@@ -1630,15 +1631,15 @@ class OntologyRead extends WebService
                   break;
 
                   case Namespaces::$sco."comparableWith":
-                    $this->manageIronXMLPrefix($value["value"], $prefixes);
+                    $this->manageIronPrefixes($value["value"], $prefixes);
                     
-                    $schema .= "<comparableWith>".$this->xmlEncode($this->ironXMLPrefixize($value["value"], $prefixes))."</comparableWith>";
+                    $schema .= "<comparableWith>".$this->xmlEncode($this->ironPrefixize($value["value"], $prefixes))."</comparableWith>";
                   break;
 
                   case Namespaces::$sco."unitType":
-                    $this->manageIronXMLPrefix($value["value"], $prefixes);
+                    $this->manageIronPrefixes($value["value"], $prefixes);
                     
-                    $schema .= "<unitType>".$this->xmlEncode($this->ironXMLPrefixize($value["value"], $prefixes))."</unitType>";
+                    $schema .= "<unitType>".$this->xmlEncode($this->ironPrefixize($value["value"], $prefixes))."</unitType>";
                   break;
                   
                   case Namespaces::$sco."shortLabel":
@@ -1650,24 +1651,24 @@ class OntologyRead extends WebService
                   break;  
                   
                   case Namespaces::$rdfs."subPropertyOf":
-                    $this->manageIronXMLPrefix($value["value"], $prefixes);
+                    $this->manageIronPrefixes($value["value"], $prefixes);
                     
-                    $schema .= "<subPropertyOf>".$this->xmlEncode($this->ironXMLPrefixize($value["value"], $prefixes))."</subPropertyOf>";
+                    $schema .= "<subPropertyOf>".$this->xmlEncode($this->ironPrefixize($value["value"], $prefixes))."</subPropertyOf>";
                   break;
                 }
               }
             }
             
-            $schema .= "</".$this->ironXMLPrefixize($uri, $prefixes).">";
+            $schema .= "</".$this->ironPrefixize($uri, $prefixes).">";
           }
           
           $this->subjectTriples = $ontology->getPropertiesDescription(FALSE, TRUE);
 
           foreach($this->subjectTriples as $uri => $subject)
           {
-            $this->manageIronXMLPrefix($uri, $prefixes);
+            $this->manageIronPrefixes($uri, $prefixes);
             
-            $schema .= "<".$this->ironXMLPrefixize($uri, $prefixes).">";
+            $schema .= "<".$this->ironPrefixize($uri, $prefixes).">";
 
             $schema .= "<description>".$this->xmlEncode($this->getDescription($subject))."</description>";
             $schema .= "<prefLabel>".$this->xmlEncode($this->getLabel($uri, $subject))."</prefLabel>";
@@ -1679,15 +1680,15 @@ class OntologyRead extends WebService
                 switch($predicate)
                 {
                   case Namespaces::$rdfs."domain":
-                    $this->manageIronXMLPrefix($value["value"], $prefixes);
+                    $this->manageIronPrefixes($value["value"], $prefixes);
                     
-                    $schema .= "<allowedType>".$this->xmlEncode($this->ironXMLPrefixize($value["value"], $prefixes))."</allowedType>";
+                    $schema .= "<allowedType>".$this->xmlEncode($this->ironPrefixize($value["value"], $prefixes))."</allowedType>";
                   break;
                   
                   case Namespaces::$rdfs."range":
-                    $this->manageIronXMLPrefix($value["value"], $prefixes);
+                    $this->manageIronPrefixes($value["value"], $prefixes);
                     
-                    $schema .= "<allowedValue><type>".$this->xmlEncode($this->ironXMLPrefixize($value["value"], $prefixes))."</type></allowedValue>";
+                    $schema .= "<allowedValue><type>".$this->xmlEncode($this->ironPrefixize($value["value"], $prefixes))."</type></allowedValue>";
                   break;
                   
                   case Namespaces::$sco."displayControl":
@@ -1697,9 +1698,9 @@ class OntologyRead extends WebService
                   break;
 
                   case Namespaces::$sco."comparableWith":
-                    $this->manageIronXMLPrefix($value["value"], $prefixes);
+                    $this->manageIronPrefixes($value["value"], $prefixes);
                     
-                    $schema .= "<comparableWith>".$this->xmlEncode($this->ironXMLPrefixize($value["value"], $prefixes))."</comparableWith>";
+                    $schema .= "<comparableWith>".$this->xmlEncode($this->ironPrefixize($value["value"], $prefixes))."</comparableWith>";
                   break;
                   
                   case Namespaces::$sco."shortLabel":
@@ -1707,9 +1708,9 @@ class OntologyRead extends WebService
                   break;
                   
                   case Namespaces::$sco."unitType":
-                    $this->manageIronXMLPrefix($value["value"], $prefixes);
+                    $this->manageIronPrefixes($value["value"], $prefixes);
                     
-                    $schema .= "<unitType>".$this->xmlEncode($this->ironXMLPrefixize($value["value"], $prefixes))."</unitType>";
+                    $schema .= "<unitType>".$this->xmlEncode($this->ironPrefixize($value["value"], $prefixes))."</unitType>";
                   break;                  
                   
                   case Namespaces::$sco."orderingValue":
@@ -1719,7 +1720,7 @@ class OntologyRead extends WebService
               }
             }
             
-            $schema .= "</".$this->ironXMLPrefixize($uri, $prefixes).">";            
+            $schema .= "</".$this->ironPrefixize($uri, $prefixes).">";            
           }
           
           $schema .= "</attributeList>";
@@ -1777,6 +1778,428 @@ class OntologyRead extends WebService
         break;
         
         
+        case "getironjsonschema":
+          $this->subjectTriples = $ontology->getClassesDescription($limit, $offset);
+          
+          $schema = '{ "schema": { "version": "0.1", "typeList": {';
+          
+          $prefixes = array();
+          
+          foreach($this->subjectTriples as $uri => $subject)
+          {
+            $this->manageIronPrefixes($uri, $prefixes);
+            
+            $schema .= '"'.$this->ironPrefixize($uri, $prefixes).'": {';
+
+            $schema .= '"description": "'.$this->jsonEncode($this->getDescription($subject)).'",';
+            $schema .= '"prefLabel": "'.$this->jsonEncode($this->getLabel($uri, $subject)).'",';
+            
+            foreach($subject as $predicate => $values)
+            {  
+              switch($predicate)
+              {
+                case Namespaces::$rdfs."subClassOf":
+                  $schema .= '"subTypeOf": [';
+                break;
+                
+                case Namespaces::$sco."displayControl":
+                  $schema .= '"displayControl": [';
+                break;
+                
+                case Namespaces::$sco."shortLabel":
+                  $schema .= '"shortLabel": [';
+                break;
+                
+                case Namespaces::$sco."mapMarkerImageUrl":
+                  $schema .= '"mapMarkerImageUrl": [';
+                break;
+                
+                case Namespaces::$sco."relationBrowserNodeType":
+                  $schema .= '"relationBrowserNodeType": [';
+                break;
+              }              
+                            
+              foreach($values as $value)
+              {
+                switch($predicate)
+                {
+                  case Namespaces::$rdfs."subClassOf":
+                    $this->manageIronPrefixes($value["value"], $prefixes);
+                    
+                    $schema .= '"'.$this->jsonEncode($this->ironPrefixize($value["value"], $prefixes)).'",';
+                  break;
+                  
+                  case Namespaces::$sco."displayControl":
+                    
+                    $displayControl = substr($value["value"], strripos($value["value"], "#") + 1);
+                    
+                    $schema .= '"'.$this->jsonEncode($displayControl).'",';
+                  break;
+                  
+                  case Namespaces::$sco."shortLabel":
+                    $schema .= '"'.$this->jsonEncode($value["value"]).'",';
+                  break;
+                  
+                  case Namespaces::$sco."mapMarkerImageUrl":
+                    $schema .= '"'.$this->jsonEncode($value["value"]).'",';
+                  break;
+                  
+                  case Namespaces::$sco."relationBrowserNodeType":
+                    $this->manageIronPrefixes($value["value"], $prefixes);
+                    
+                    $schema .= '"'.$this->jsonEncode($this->ironPrefixize($value["value"], $prefixes)).'",';
+                  break;
+                }              
+              }
+              
+              switch($predicate)
+              {
+                case Namespaces::$rdfs."subClassOf":
+                case Namespaces::$sco."displayControl":
+                case Namespaces::$sco."shortLabel":
+                case Namespaces::$sco."mapMarkerImageUrl":
+                case Namespaces::$sco."relationBrowserNodeType":
+                  $schema = rtrim($schema, ",");     
+                  $schema .= '],';
+                break;
+              }                
+            }
+            
+            $schema = rtrim($schema, ",");
+            
+            $schema .= "},";            
+          }
+          
+          $schema = rtrim($schema, ",");
+          
+          $schema .= "},";            
+          
+          $schema .= '"attributeList": {';
+
+          $this->subjectTriples = $ontology->getPropertiesDescription(TRUE);
+
+          foreach($this->subjectTriples as $uri => $subject)
+          {
+            $this->manageIronPrefixes($uri, $prefixes);
+            
+            $schema .= '"'.$this->ironPrefixize($uri, $prefixes).'": {';
+            
+            $schema .= '"description": "'.$this->jsonEncode($this->getDescription($subject)).'",';
+            $schema .= '"prefLabel": "'.$this->jsonEncode($this->getLabel($uri, $subject)).'",';
+            
+            $schema .= '"allowedValue": {"primitive": "String"},';
+            
+            foreach($subject as $predicate => $values)
+            {
+              switch($predicate)
+              {
+                case Namespaces::$rdfs."domain":
+                  $schema .= '"allowedType": [';
+                break;
+                
+                case Namespaces::$sco."displayControl":
+                  $schema .= '"displayControl": [';
+                break;
+
+                case Namespaces::$sco."comparableWith":
+                  $schema .= '"comparableWith": [';
+                break;
+
+                case Namespaces::$sco."unitType":
+                  $schema .= '"unitType": [';
+                break;
+                
+                case Namespaces::$sco."shortLabel":
+                  $schema .= '"shortLabel": [';
+                break;
+                
+                case Namespaces::$sco."orderingValue":
+                  $schema .= '"orderingValue": [';
+                break;  
+                
+                case Namespaces::$rdfs."subPropertyOf":
+                  $schema .= '"subPropertyOf": [';
+                break;
+              }              
+              
+              foreach($values as $value)
+              {
+                switch($predicate)
+                {
+                  case Namespaces::$rdfs."domain":
+                    $this->manageIronPrefixes($value["value"], $prefixes);
+                    
+                    $schema .= '"'.$this->jsonEncode($this->ironPrefixize($value["value"], $prefixes)).'",';
+                  break;
+                  
+                  case Namespaces::$sco."displayControl":
+                    $displayControl = substr($value["value"], strripos($value["value"], "#") + 1);
+                    
+                    $schema .= '"'.$this->jsonEncode($displayControl).'",';
+                  break;
+
+                  case Namespaces::$sco."comparableWith":
+                    $this->manageIronPrefixes($value["value"], $prefixes);
+                    
+                    $schema .= '"'.$this->jsonEncode($this->ironPrefixize($value["value"], $prefixes)).'",';
+                  break;
+
+                  case Namespaces::$sco."unitType":
+                    $this->manageIronPrefixes($value["value"], $prefixes);
+                    
+                    $schema .= '"'.$this->jsonEncode($this->ironPrefixize($value["value"], $prefixes)).'",';
+                  break;
+                  
+                  case Namespaces::$sco."shortLabel":
+                    $schema .= '"'.$this->jsonEncode($value["value"]).'",';
+                  break;
+                  
+                  case Namespaces::$sco."orderingValue":
+                    $schema .= '"'.$this->jsonEncode($value["value"]).'",';
+                  break;  
+                  
+                  case Namespaces::$rdfs."subPropertyOf":
+                    $this->manageIronPrefixes($value["value"], $prefixes);
+                    
+                    $schema .= '"'.$this->jsonEncode($this->ironPrefixize($value["value"], $prefixes)).'",';
+                  break;
+                }
+              }
+              
+              switch($predicate)
+              {
+                case Namespaces::$rdfs."domain":
+                case Namespaces::$sco."displayControl":
+                case Namespaces::$sco."comparableWith":
+                case Namespaces::$sco."unitType":
+                case Namespaces::$sco."shortLabel":
+                case Namespaces::$sco."orderingValue":
+                case Namespaces::$rdfs."subPropertyOf":
+                  $schema = rtrim($schema, ",");
+                  $schema .= '],';  
+                break;
+              }               
+            }
+            
+            $schema = rtrim($schema, ",");
+            
+            $schema .= "},";                 
+          }
+          
+          $this->subjectTriples = $ontology->getPropertiesDescription(FALSE, TRUE);
+
+          foreach($this->subjectTriples as $uri => $subject)
+          {
+            $this->manageIronPrefixes($uri, $prefixes);
+            
+            $schema .= '"'.$this->ironPrefixize($uri, $prefixes).'": {';
+            
+            $schema .= '"description": "'.$this->jsonEncode($this->getDescription($subject)).'",';
+            $schema .= '"prefLabel": "'.$this->jsonEncode($this->getLabel($uri, $subject)).'",';
+            
+            foreach($subject as $predicate => $values)
+            {
+              switch($predicate)
+              {
+                case Namespaces::$rdfs."domain":
+                  $schema .= '"allowedType": [';
+                break;
+                
+                case Namespaces::$rdfs."range":
+                  $schema .= '"allowedValue": [';
+                break;
+                
+                case Namespaces::$sco."displayControl":
+                  $schema .= '"displayControl": [';
+                break;
+
+                case Namespaces::$sco."comparableWith":
+                  $schema .= '"comparableWith": [';
+                break;
+
+                case Namespaces::$sco."unitType":
+                  $schema .= '"unitType": [';
+                break;
+                
+                case Namespaces::$sco."shortLabel":
+                  $schema .= '"shortLabel": [';
+                break;
+                
+                case Namespaces::$sco."orderingValue":
+                  $schema .= '"orderingValue": [';
+                break;  
+                
+                case Namespaces::$rdfs."subPropertyOf":
+                  $schema .= '"subPropertyOf": [';
+                break;
+              }                 
+              
+              foreach($values as $value)
+              {
+                switch($predicate)
+                {
+                  case Namespaces::$rdfs."domain":
+                    $this->manageIronPrefixes($value["value"], $prefixes);
+                    
+                    $schema .= '"'.$this->jsonEncode($this->ironPrefixize($value["value"], $prefixes)).'",';
+                  break;
+                  
+                  case Namespaces::$rdfs."range":
+                    $this->manageIronPrefixes($value["value"], $prefixes);
+                    
+                    $schema .= '{ "type": "'.$this->jsonEncode($this->ironPrefixize($value["value"], $prefixes)).'"},';
+                  break;
+                  
+                  case Namespaces::$sco."displayControl":
+                    $displayControl = substr($value["value"], strripos($value["value"], "#") + 1);
+                    
+                    $schema .= '"'.$this->jsonEncode($displayControl).'",';
+                  break;
+
+                  case Namespaces::$sco."comparableWith":
+                    $this->manageIronPrefixes($value["value"], $prefixes);
+                    
+                    $schema .= '"'.$this->jsonEncode($this->ironPrefixize($value["value"], $prefixes)).'",';
+                  break;
+                  
+                  case Namespaces::$sco."shortLabel":
+                    $schema .= '"'.$this->jsonEncode($value["value"]).'",';
+                  break;
+                  
+                  case Namespaces::$sco."unitType":
+                    $this->manageIronPrefixes($value["value"], $prefixes);
+                    
+                    $schema .= '"'.$this->jsonEncode($this->ironPrefixize($value["value"], $prefixes)).'",';
+                  break;                  
+                  
+                  case Namespaces::$sco."orderingValue":
+                    $schema .= '"'.$this->jsonEncode($value["value"]).'",';
+                  break;     
+                                                                   
+                  case Namespaces::$rdfs."subPropertyOf":
+                    $this->manageIronPrefixes($value["value"], $prefixes);
+                    
+                    $schema .= '"'.$this->jsonEncode($this->ironPrefixize($value["value"], $prefixes)).'",';
+                  break;
+                }
+              }
+              
+              switch($predicate)
+              {
+                case Namespaces::$rdfs."domain":
+                case Namespaces::$rdfs."range":
+                case Namespaces::$sco."displayControl":
+                case Namespaces::$sco."comparableWith":
+                case Namespaces::$sco."unitType":
+                case Namespaces::$sco."shortLabel":
+                case Namespaces::$sco."orderingValue":
+                case Namespaces::$rdfs."subPropertyOf":
+                  $schema = rtrim($schema, ",");
+                  $schema .= '],';  
+                break;
+              }                
+            }
+            
+            $schema = rtrim($schema, ",");
+            
+            $schema .= "},";              
+          }
+          
+          $schema = rtrim($schema, ",");
+          
+          $schema .= "},";
+          $schema .= '"prefixList": {';                    
+
+          foreach($prefixes as $prefix => $ns)
+          {
+            $schema .= "    \"$prefix\": \"$ns\",";
+          }
+          
+          $schema = rtrim($schema, ",");
+          
+          $schema .= "}";          
+          $schema .= "}";    
+          $schema .= "}";    
+          
+          $this->subjectTriples = null;
+          
+          $this->subjectTriples[$this->ontologyUri] = array(Namespaces::$rdf."type" => array(array("value" => "owl:Ontology",
+                                                                                          "datatype" => "rdf:Resource",
+                                                                                          "lang" => "")),
+                                                   "http://purl.org/ontology/wsf#serializedIronJSONSchema" => array(array("value" => $schema,
+                                                                                          "datatype" => "rdf:Literal",
+                                                                                          "lang" => "")));                
+          
+/*
+    {
+      "schema": {
+        "version": "0.1",
+        "prefLabel": "PEG Schema",
+        
+          <schema>
+            <version>0.1</version>
+            <prefLabel>PEG schema</prefLabel>
+            <prefixList>
+              <sco>http://purl.org/ontology/sco#</sco>
+            </prefixList>
+            <typeList>
+              <peg_Neighborhood>
+                <subTypeOf>pegf_Organization</subTypeOf>
+                <description>Neighborhood community organization</description>
+                <prefLabel>neighborhood</prefLabel>
+                <displayControl>sRelationBrowser</displayControl>
+              </peg_Neighborhood>
+            </typeList>
+            <attributeList>
+              <peg_neighborhoodNumber>
+                <prefLabel>neighborhood number</prefLabel>
+                <description>Neighborhood identification number</description>
+                <allowedType>Neighborhood</allowedType>
+                <allowedType>City</allowedType>
+                <allowedType>Province</allowedType>
+                <allowedType>Country</allowedType>
+                <allowedValue>
+                  <primitive>String</primitive>
+                </allowedValue>
+                <maxValues>1</maxValues>
+              </peg_neighborhoodNumber>
+            </attributeList>
+          </schema>
+
+    {
+       "schema": {
+           "version": "0.1",
+           "typeList": {
+                   "Article": {
+                           "subTypeOf": "Book"
+                   },
+                   "Book": {
+                           "subTypeOf": "Document"
+                   },
+                   "Document": {
+                    "subTypeOf": "Thing"
+                   }
+           },
+     
+             "attributeList": {
+                   "name": {
+                     "subPropertyOf": "label",
+                     "allowedValue": "String"
+                     "allowedType": "Thing"
+                   },
+     
+                   "title": {
+                     "subPropertyOf": "label",
+                     "AlowedValue": "String"
+                     "allowedType": "Document"
+                   }
+           }
+    }
+
+
+*/          
+
+        break;        
         
         case "getproperty":
           if(!isset($this->parameters["uri"]) || $this->parameters["uri"] == "")
@@ -2405,8 +2828,19 @@ class OntologyRead extends WebService
     $this->OwlApiSession = $OwlApiSession;
   }
   
-  public function ironXMLPrefixize($uri, &$prefixes)
+  public function ironPrefixize($uri, &$prefixes)
   {
+    foreach($prefixes as $prefix => $u)
+    {
+      if(stripos($uri, $u) !== FALSE)
+      {
+        return(str_replace($u, $prefix."_", $uri));
+      }
+    }
+    
+    return($uri);
+    /*
+    DebugBreak();
     if(strripos($uri, "#") !== FALSE)
     {
       $p = substr($uri, strripos($uri, "/") + 1, strripos($uri, "#") - (strripos($uri, "/") + 1));
@@ -2418,14 +2852,17 @@ class OntologyRead extends WebService
       $p = substr($uri, strripos($uri, "/") + 1, strripos($uri, "/") - (strripos($uri, "/") + 1));
       
       return($p."_".substr($uri, strripos($uri, "/") + 1));
-    }    
+    }
+    */    
   } 
   
-  public function manageIronXMLPrefix($uri, &$prefixes)
+  public function manageIronPrefixes($uri, &$prefixes)
   {
     if(strripos($uri, "#") !== FALSE)
     {
       $p = substr($uri, strripos($uri, "/") + 1, strripos($uri, "#") - (strripos($uri, "/") + 1));
+      
+      $p = preg_replace("/[^A-Za-z0-9]/", "_", $p);
       
       if(!isset($prefixes[$p]))
       {
@@ -2437,6 +2874,8 @@ class OntologyRead extends WebService
       $uriMod = substr($uri, 0, strripos($uri, "/", strripos($uri, "/")));
       
       $p = substr($uriMod, strripos($uriMod, "/") + 1);
+
+      $p = preg_replace("/[^A-Za-z0-9]/", "_", $p);
       
       if(!isset($prefixes[$p]))
       {

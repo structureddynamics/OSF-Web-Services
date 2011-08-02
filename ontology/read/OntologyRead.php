@@ -1540,7 +1540,7 @@ class OntologyRead extends WebService
                       
         break;
         
-        case "getstructxmlschema":
+        case "getironxmlschema":
           $this->subjectTriples = $ontology->getClassesDescription($limit, $offset);
           
           $schema = '<schema><version>0.1</version><typeList>';
@@ -1775,6 +1775,8 @@ class OntologyRead extends WebService
 */          
 
         break;
+        
+        
         
         case "getproperty":
           if(!isset($this->parameters["uri"]) || $this->parameters["uri"] == "")

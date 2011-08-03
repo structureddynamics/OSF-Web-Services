@@ -858,7 +858,7 @@ class ProcessorXML
     {    
       if(isset($node->attributes))
       {    
-        return($node->nodeValue);
+        return($this->xmlDecode($node->nodeValue));
       }
     }
     
@@ -932,6 +932,11 @@ class ProcessorXML
     
     return str_replace(array ("\\", "&", "<", ">"), array ("%5C", "&amp;", "&lt;", "&gt;"), $string); 
   } 
+  
+  function xmlDecode($string)
+  { 
+    return str_replace(array ("%5C", "&amp;", "&lt;", "&gt;"), array ("\\", "&", "<", ">"), $string); 
+  }    
   
   function saveRdfN3()
   {

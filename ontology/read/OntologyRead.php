@@ -2862,7 +2862,7 @@ class OntologyRead extends WebService
     {
       $p = substr($uri, strripos($uri, "/") + 1, strripos($uri, "#") - (strripos($uri, "/") + 1));
       
-      $p = preg_replace("/[^A-Za-z0-9]/", "_", $p);
+      $p = preg_replace("/[^A-Za-z0-9]/", "-", $p);
       
       if(!isset($prefixes[$p]))
       {
@@ -2875,7 +2875,7 @@ class OntologyRead extends WebService
       
       $p = substr($uriMod, strripos($uriMod, "/") + 1);
 
-      $p = preg_replace("/[^A-Za-z0-9]/", "_", $p);
+      $p = preg_replace("/[^A-Za-z0-9]/", "-", $p);
       
       if(!isset($prefixes[$p]))
       {

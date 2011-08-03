@@ -2131,71 +2131,74 @@ class OntologyRead extends WebService
                                                                                           "lang" => "")));                
           
 /*
-    {
-      "schema": {
+    
+{
+    "schema": {
         "version": "0.1",
-        "prefLabel": "PEG Schema",
-        
-          <schema>
-            <version>0.1</version>
-            <prefLabel>PEG schema</prefLabel>
-            <prefixList>
-              <sco>http://purl.org/ontology/sco#</sco>
-            </prefixList>
-            <typeList>
-              <peg_Neighborhood>
-                <subTypeOf>pegf_Organization</subTypeOf>
-                <description>Neighborhood community organization</description>
-                <prefLabel>neighborhood</prefLabel>
-                <displayControl>sRelationBrowser</displayControl>
-              </peg_Neighborhood>
-            </typeList>
-            <attributeList>
-              <peg_neighborhoodNumber>
-                <prefLabel>neighborhood number</prefLabel>
-                <description>Neighborhood identification number</description>
-                <allowedType>Neighborhood</allowedType>
-                <allowedType>City</allowedType>
-                <allowedType>Province</allowedType>
-                <allowedType>Country</allowedType>
-                <allowedValue>
-                  <primitive>String</primitive>
-                </allowedValue>
-                <maxValues>1</maxValues>
-              </peg_neighborhoodNumber>
-            </attributeList>
-          </schema>
-
-    {
-       "schema": {
-           "version": "0.1",
-           "typeList": {
-                   "Article": {
-                           "subTypeOf": "Book"
-                   },
-                   "Book": {
-                           "subTypeOf": "Document"
-                   },
-                   "Document": {
-                    "subTypeOf": "Thing"
-                   }
-           },
-     
-             "attributeList": {
-                   "name": {
-                     "subPropertyOf": "label",
-                     "allowedValue": "String"
-                     "allowedType": "Thing"
-                   },
-     
-                   "title": {
-                     "subPropertyOf": "label",
-                     "AlowedValue": "String"
-                     "allowedType": "Document"
-                   }
-           }
+        "typeList": {
+            "bibo_ThesisDegree": {
+                "description": "The academic degree of a Thesis",
+                "prefLabel": "Thesis degree",
+                "subTypeOf": [
+                    "owl_Thing"
+                ]
+            },
+            "0_1_Agent": {
+                "description": "No description available",
+                "prefLabel": "Agent",
+                "subTypeOf": [
+                    "owl_Thing"
+                ]
+            },
+            "bibo_Event": {
+                "description": "No description available",
+                "prefLabel": "Event",
+                "subTypeOf": [
+                    "owl_Thing"
+                ]
+            }
+        },
+    
+        "attributeList": {
+            "bibo_sici": {
+                "description": "No description available",
+                "prefLabel": "sici",
+                "allowedValue": {
+                    "primitive": "String"
+                },
+                "subPropertyOf": [
+                    "bibo_identifier"
+                ]
+            },
+    
+            "terms_rights": {
+                "description": "No description available",
+                "prefLabel": "rights",
+                "subPropertyOf": [
+                    "owl_topObjectProperty"
+                ]
+            },
+            "0_1_based_near": {
+                "description": "No description available",
+                "prefLabel": "based_near",
+                "subPropertyOf": [
+                    "owl_topObjectProperty"
+                ]
+            }
+        },
+        "prefixList": {
+            "bibo": "http://purl.org/ontology/bibo/",
+            "owl": "http://www.w3.org/2002/07/owl#",
+            "0_1": "http://xmlns.com/foaf/0.1/",
+            "event_owl": "http://purl.org/NET/c4dm/event.owl#",
+            "rdf_schema": "http://www.w3.org/2000/01/rdf-schema#",
+            "22_rdf_syntax_ns": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+            "terms": "http://purl.org/dc/terms/",
+            "basic": "http://prismstandard.org/namespaces/1.2/basic/",
+            "schema": "http://schemas.talis.com/2005/address/schema#"
+        }
     }
-
+}    
 
 */          
 
@@ -2743,32 +2746,6 @@ class OntologyRead extends WebService
         return($description[$attribute][0]["value"]);
       }
     }
-/*    
-    if(array_search($propertyUri, $prefLabelAttributes) !== FALSE)
-    {
-      
-    }    
-    
-    if(isset($description[Namespaces::$iron . "prefLabel"]))
-    {
-      return $description[Namespaces::$iron . "prefLabel"][0]["value"];
-    }
-
-    if(isset($description[Namespaces::$skos_2008 . "prefLabel"]))
-    {
-      return $description[Namespaces::$skos_2008 . "prefLabel"][0]["value"];
-    }
-
-    if(isset($description[Namespaces::$skos_2004 . "prefLabel"]))
-    {
-      return $description[Namespaces::$skos_2004 . "prefLabel"][0]["value"];
-    }
-
-    if(isset($description[Namespaces::$rdfs . "label"]))
-    {
-      return $description[Namespaces::$rdfs . "label"][0]["value"];
-    }
-*/    
 
     // Find the base URI of the ontology
     $pos = strripos($uri, "#");
@@ -2839,21 +2816,6 @@ class OntologyRead extends WebService
     }
     
     return($uri);
-    /*
-    DebugBreak();
-    if(strripos($uri, "#") !== FALSE)
-    {
-      $p = substr($uri, strripos($uri, "/") + 1, strripos($uri, "#") - (strripos($uri, "/") + 1));
-      
-      return($p."_".substr($uri, strripos($uri, "#") + 1));
-    }
-    elseif(strripos($uri, "/") !== FALSE)
-    {
-      $p = substr($uri, strripos($uri, "/") + 1, strripos($uri, "/") - (strripos($uri, "/") + 1));
-      
-      return($p."_".substr($uri, strripos($uri, "/") + 1));
-    }
-    */    
   } 
   
   public function manageIronPrefixes($uri, &$prefixes)

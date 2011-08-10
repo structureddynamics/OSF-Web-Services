@@ -858,7 +858,7 @@ class ProcessorXML
     {    
       if(isset($node->attributes))
       {    
-        return($this->xmlDecode($node->nodeValue));
+        return($node->nodeValue);
       }
     }
     

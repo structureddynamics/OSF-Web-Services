@@ -2612,7 +2612,8 @@ class OntologyRead extends WebService
           $this->conneg->setStatusMsg("Bad Request");
           $this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
           $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
-            $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, "",
+            $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, "This function is not defined
+            for this endpoint:".$this->function,
             $this->errorMessenger->_200->level);
 
           return;          

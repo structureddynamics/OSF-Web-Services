@@ -3130,7 +3130,8 @@ class OWLOntology
     $rei = array();
    
     // Check if the value is an OWLLiteral
-    if(java_instanceof($annotation->getValue(), java("org.semanticweb.owlapi.model.OWLLiteral")))
+    if(method_exists($annotation, "getValue") &&
+       java_instanceof($annotation->getValue(), java("org.semanticweb.owlapi.model.OWLLiteral")))
     {
       $property = (string)java_values($annotation->getProperty()->toStringID());
       
@@ -3140,7 +3141,8 @@ class OWLOntology
     }
     
     // Check if the value is a IRI
-    if(java_instanceof($annotation->getValue(), java("org.semanticweb.owlapi.model.IRI")))      
+    if(method_exists($annotation, "getValue") &&
+       java_instanceof($annotation->getValue(), java("org.semanticweb.owlapi.model.IRI")))      
     {
       $property = (string)java_values($annotation->getProperty()->toStringID());
       $value = (string)java_values($annotation->getValue()->toURI());
@@ -3165,7 +3167,8 @@ class OWLOntology
     }
     
     // Check if the value is a OWLAnonymousIndividual
-    if(java_instanceof($annotation->getValue(), java("org.semanticweb.owlapi.model.OWLAnonymousIndividual")))      
+    if(method_exists($annotation, "getValue") && 
+       java_instanceof($annotation->getValue(), java("org.semanticweb.owlapi.model.OWLAnonymousIndividual")))      
     {
       $property = (string)java_values($annotation->getProperty()->toStringID());
       $value = (string)java_values($annotation->getValue()->toStringID());

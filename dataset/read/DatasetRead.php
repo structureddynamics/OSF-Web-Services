@@ -1081,7 +1081,7 @@ class DatasetRead extends WebService
                       OPTIONAL{?dataset <http://purl.org/dc/terms/contributor> ?contributor.}
                       OPTIONAL{?dataset <http://purl.org/dc/terms/creator> ?creator.}
                     }    
-                  }";
+                  } ORDER BY ?title";
 
         $resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
           array ("dataset", "title", "description", "creator", "created", "modified", "contributor", "meta"), FALSE));
@@ -1264,7 +1264,7 @@ class DatasetRead extends WebService
                     OPTIONAL{<$dataset> <http://purl.org/dc/terms/modified> ?modified.} .
                     OPTIONAL{<$dataset> <http://purl.org/ontology/wsf#meta> ?meta.} .
                   }
-                }";
+                } ORDER BY ?title";
 
         $resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
           array ('title', 'description', 'creator', 'created', 'modified', 'meta'), FALSE));

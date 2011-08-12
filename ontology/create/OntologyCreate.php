@@ -515,6 +515,7 @@ class OntologyCreate extends WebService
             || stristr($xml->getURI($element), "/wsf/ws/crud/create/") !== FALSE
             || stristr($xml->getURI($element), "/wsf/ws/crud/update/") !== FALSE
             || stristr($xml->getURI($element), "/wsf/ws/crud/delete/") !== FALSE
+            || stristr($xml->getURI($element), "/wsf/ws/crud/read/") !== FALSE
             || stristr($xml->getURI($element), "/wsf/ws/ontology/create/") !== FALSE
             || stristr($xml->getURI($element), "/wsf/ws/ontology/read/") !== FALSE
             || stristr($xml->getURI($element), "/wsf/ws/ontology/update/") !== FALSE

@@ -470,7 +470,8 @@
    <field name="prefLabelAutocompletion" type="lowercase" indexed="true" stored="false"/>
    <field name="altLabel" type="text" indexed="true" stored="true" multiValued="true"/>
    <field name="description" type="text" indexed="true" stored="true"/>
-
+   <field name="prefURL" type="string" indexed="true" stored="true"/>
+   
    <!-- Used to create attribute/key pairs that were not previously created in this schema -->
    <dynamicField name="*_attr"  type="text"  indexed="true"  stored="true" multiValued="true"/>   
    <dynamicField name="*_attr_obj"  type="text"  indexed="true"  stored="true" multiValued="true"/>   

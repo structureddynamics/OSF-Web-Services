@@ -54,6 +54,8 @@ class OntologyUpdate extends WebService
   /*! @brief Requester's IP used for request validation */
   private $requester_ip = "";
   
+  private $OwlApiSession = null;
+  
   /*! @brief Error messages of this web service */
   private $errorMessenger =
     '{
@@ -508,7 +510,7 @@ class OntologyUpdate extends WebService
         }
         elseif((boolean)java_values($entity->isNamedIndividual()))
         {
-          $function = "getProperty";
+          $function = "getNamedIndividual";
           $params = "uri=".$newUri;
         }
         else
@@ -524,7 +526,7 @@ class OntologyUpdate extends WebService
 
         // Since we are in pipeline mode, we have to set the owlapisession using the current one.
         // otherwise the java bridge will return an error
-        $ontologyRead->setOwlApiSession($OwlApiSession);                                                    
+        $ontologyRead->setOwlApiSession($this->OwlApiSession);                                                    
                           
         $ontologyRead->ws_conneg("application/rdf+xml", $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
                                $_SERVER['HTTP_ACCEPT_LANGUAGE']);
@@ -663,7 +665,7 @@ class OntologyUpdate extends WebService
       {         
         $types = array();
         $literalValues = array();
-        $objectValues = array();        
+        $objectValues = array();    
        
         foreach($description as $predicate => $values)
         {
@@ -701,12 +703,12 @@ class OntologyUpdate extends WebService
             break;
           }
         }
-
+        
         // Call different API calls depending what we are manipulating
         switch($description[Namespaces::$rdf."type"][0]["value"])
         {
           case Namespaces::$owl."Class":
-            $this->ontology->updateClass($uri, $literalValues, $objectValues);              
+            $this->ontology->updateClass($uri, $literalValues, $objectValues);     
           break;
           
           case Namespaces::$owl."DatatypeProperty":
@@ -723,7 +725,7 @@ class OntologyUpdate extends WebService
               array_push($objectValues[Namespaces::$rdf."type"], $type);      
             }
           
-            $this->ontology->updateProperty($uri, $literalValues, $objectValues);              
+            $this->ontology->updateProperty($uri, $literalValues, $objectValues);      
           break;
           
           // By default, everything else is considered a named individual
@@ -736,6 +738,106 @@ class OntologyUpdate extends WebService
         // Call different API calls depending what we are manipulating
         if($advancedIndexation == TRUE)
         {          
+          $rdfxmlParser = ARC2::getRDFParser();
+          $rdfxmlSerializer = ARC2::getRDFXMLSerializer();
+          
+          $resourcesIndex = $rdfxmlParser->getSimpleIndex(0);
+          
+          // Index the entity to update
+          $rdfxmlParser->parse($uri, $rdfxmlSerializer->getSerializedIndex(array($uri => $resourceIndex[$uri])));
+          $rIndex = $rdfxmlParser->getSimpleIndex(0);
+          $resourcesIndex = ARC2::getMergedIndex($resourcesIndex, $rIndex);                    
+          
+          // Check if the entity got punned
+          $entities = $this->ontology->_getEntities($uri);
+          
+          if(count($entities) > 1)
+          {
+            // The entity got punned.
+            $isClass = FALSE;
+            $isProperty = FALSE;
+            $isNamedEntity = FALSE;
+            
+            
+            foreach($entities as $entity)
+            {
+              if((boolean)java_values($entity->isOWLClass()))
+              {
+                $isClass = TRUE;
+              }              
+              
+              if((boolean)java_values($entity->isOWLDataProperty()) ||
+                 (boolean)java_values($entity->isOWLObjectProperty()) ||
+                 (boolean)java_values($entity->isOWLAnnotationProperty()))
+              {
+                $isProperty = TRUE;
+              }
+              
+              if((boolean)java_values($entity->isOWLNamedIndividual()))
+              { 
+                $isNamedEntity = TRUE;
+              }             
+            }
+            
+            $queries = array();
+            
+            if($description[Namespaces::$rdf."type"][0]["value"] != Namespaces::$owl."Class" && $isClass)
+            {
+              array_push($queries, array("function" => "getClass", "params" => "uri=".$uri));
+            }
+            
+            if($description[Namespaces::$rdf."type"][0]["value"] != Namespaces::$owl."DatatypeProperty" && 
+               $description[Namespaces::$rdf."type"][0]["value"] != Namespaces::$owl."ObjectProperty" &&
+               $description[Namespaces::$rdf."type"][0]["value"] != Namespaces::$owl."AnnotationProperty" &&
+               $isProperty)
+            {
+              array_push($queries, array("function" => "getProperty", "params" => "uri=".$uri));
+            }
+            
+            if($description[Namespaces::$rdf."type"][0]["value"] != Namespaces::$owl."NamedIndividual" && $isNamedEntity)
+            {
+              array_push($queries, array("function" => "getNamedIndividual", "params" => "uri=".$uri));
+            }            
+            
+            foreach($queries as $query)
+            {
+              // Get the class description of the current punned entity
+              include_once("../read/OntologyRead.php");
+
+              $ontologyRead = new OntologyRead($this->ontologyUri, $query["function"], $query["params"],
+                                               $this->registered_ip, $this->requester_ip);
+
+              // Since we are in pipeline mode, we have to set the owlapisession using the current one.
+              // otherwise the java bridge will return an error
+              $ontologyRead->setOwlApiSession($this->OwlApiSession);                                                    
+                                
+              $ontologyRead->ws_conneg("application/rdf+xml", $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
+                                     $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+
+              $ontologyRead->process();
+              
+              if($ontologyRead->pipeline_getResponseHeaderStatus() != 200)
+              {
+                $this->conneg->setStatus($ontologyRead->pipeline_getResponseHeaderStatus());
+                $this->conneg->setStatusMsg($ontologyRead->pipeline_getResponseHeaderStatusMsg());
+                $this->conneg->setStatusMsgExt($ontologyRead->pipeline_getResponseHeaderStatusMsgExt());
+                $this->conneg->setError($ontologyRead->pipeline_getError()->id, $ontologyRead->pipeline_getError()->webservice,
+                  $ontologyRead->pipeline_getError()->name, $ontologyRead->pipeline_getError()->description,
+                  $ontologyRead->pipeline_getError()->debugInfo, $ontologyRead->pipeline_getError()->level);
+
+                return;
+              } 
+              
+              $entitySerialized = $ontologyRead->pipeline_serialize();
+              
+              $rdfxmlParser->parse($uri, $entitySerialized);
+              $rIndex = $rdfxmlParser->getSimpleIndex(0);
+              $resourcesIndex = ARC2::getMergedIndex($resourcesIndex, $rIndex);                
+              
+              unset($ontologyRead);            
+            }
+          }                   
+          
           switch($description[Namespaces::$rdf."type"][0]["value"])
           {
             case Namespaces::$owl."Class":
@@ -744,6 +846,49 @@ class OntologyUpdate extends WebService
             case Namespaces::$owl."AnnotationProperty":
             case Namespaces::$owl."NamedIndividual":
             default:
+            
+              // We have to check if this entity to update is punned. If yes, we have to merge all the
+              // punned descriptison together before updating them in structWSF (Virtuoso and Solr).
+              // otherwise we will loose information in these other systems.
+              
+              // Once we start the ontology creation process, we have to make sure that even if the server
+              // loose the connection with the user the process will still finish.
+              ignore_user_abort(true);
+
+              // However, maybe there is an issue with the server handling that file tht lead to some kind of infinite or near
+              // infinite loop; so we have to limit the execution time of this procedure to 45 mins.
+              set_time_limit(2700);                
+              
+              include_once("../../crud/update/CrudUpdate.php");
+              include_once("../../framework/Solr.php");
+              include_once("../../framework/ClassHierarchy.php");
+              
+              $serializedResource = $rdfxmlSerializer->getSerializedIndex($resourcesIndex);
+              
+              // Update the classes and properties into the Solr index
+              $crudUpdate = new CrudUpdate($serializedResource, "application/rdf+xml", $this->ontologyUri, 
+                                           $this->registered_ip, $this->requester_ip);
+
+              $crudUpdate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
+                $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+
+              $crudUpdate->process();
+              
+              if($crudUpdate->pipeline_getResponseHeaderStatus() != 200)
+              {
+                $this->conneg->setStatus($crudUpdate->pipeline_getResponseHeaderStatus());
+                $this->conneg->setStatusMsg($crudUpdate->pipeline_getResponseHeaderStatusMsg());
+                $this->conneg->setStatusMsgExt($crudUpdate->pipeline_getResponseHeaderStatusMsgExt());
+                $this->conneg->setError($crudUpdate->pipeline_getError()->id, $crudUpdate->pipeline_getError()->webservice,
+                  $crudUpdate->pipeline_getError()->name, $crudUpdate->pipeline_getError()->description,
+                  $crudUpdate->pipeline_getError()->debugInfo, $crudUpdate->pipeline_getError()->level);
+
+                return;
+              } 
+              
+              unset($crudUpdate);              
+            
+/*            
               // Once we start the ontology creation process, we have to make sure that even if the server
               // loose the connection with the user the process will still finish.
               ignore_user_abort(true);
@@ -781,6 +926,7 @@ class OntologyUpdate extends WebService
               } 
               
               unset($crudUpdate);  
+*/              
                           
             break;            
           }          

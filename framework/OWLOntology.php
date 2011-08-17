@@ -2059,7 +2059,34 @@ class OWLOntology
     }    
     
     return(null);
-  }    
+  }  
+  
+    
+  /**
+  * Gets all OWL Entities in the signature of the ontology for that IRI
+  * 
+  * @param string $iri The IRI of the entities to be obtained 
+  * 
+  * @return Returns a array of OWLEntity; empty array if not existing.
+  * 
+  * @see http://owlapi.sourceforge.net/javadoc/org/semanticweb/owlapi/model/OWLEntity.html
+  *  
+  * @author Frederick Giasson, Structured Dynamics LLC.
+  */
+  public function _getEntities($iri)
+  {
+    // Create a class object.
+    $entities = $this->ontology->getEntitiesInSignature(java("org.semanticweb.owlapi.model.IRI")->create($iri));
+    
+    $entitiesArr = array();
+    
+    foreach($entities as $entity)
+    {
+       array_push($entitiesArr, $entity);
+    }    
+    
+    return($entitiesArr);
+  } 
   
   /**
   * Gets the individuals URI which are instances of the specified class expression.

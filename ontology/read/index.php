@@ -68,6 +68,13 @@ if(isset($_POST['parameters']))
   $params = $_POST['parameters'];
 }
 
+$reasoner = "false";
+
+if(isset($_POST['reasoner']))
+{
+  $reasoner = $_POST['reasoner'];
+}
+ 
 // Optional IP
 $registered_ip = "";
 
@@ -113,6 +120,17 @@ $ws_or = new OntologyRead($ontology, $function, $params, $registered_ip, $reques
 $ws_or->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
   $_SERVER['HTTP_ACCEPT_LANGUAGE']);
 
+if(strtolower($reasoner) == "true" ||
+   strtolower($reasoner) == "on"   ||
+   strtolower($reasoner) == "1" ) 
+{
+  $ws_or->useReasoner();     
+} 
+else
+{
+  $ws_or->stopUsingReasoner();
+}
+  
 $ws_or->process();
 
 $ws_or->ws_respond($ws_or->ws_serialize());

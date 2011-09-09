@@ -84,6 +84,13 @@ class OWLOntology
   private $ontology = null;
   
   /**
+  * Specify if we want to use the reasonner in this Ontology object.
+  * 
+  * @var boolean
+  */
+  private $useReasoner = TRUE;
+  
+  /**
   * Constructor
   * 
   * @param string $uri
@@ -457,16 +464,27 @@ class OWLOntology
   {    
     // Create a class object.
     $class = $this->owlDataFactory->getOWLClass(java("org.semanticweb.owlapi.model.IRI")->create($uri));
-
-    $subClasses = $this->reasoner->getSubClasses($class, $direct); 
-
-    $classes = $subClasses->getFlattened();                                                     
+    
+    $subClasses;
+    
+    if($this->useReasoner)
+    {
+      $subClasses = $this->reasoner->getSubClasses($class, $direct); 
+      $subClasses = $subClasses->getFlattened();
+    } 
+    else
+    {
+      $subClasses = $class->getSubClasses($this->ontology);
+    } 
 
     $sc = array();
           
     foreach($classes as $class)
     {
-      array_push($sc, (string)java_values($class->toStringID()));
+      if(java_instanceof($class, java("org.semanticweb.owlapi.model.OWLClass")))
+      {
+        array_push($sc, (string)java_values($class->toStringID()));
+      }
     }
     
     return($sc);
@@ -484,15 +502,26 @@ class OWLOntology
     // Create a class object.
     $class = $this->owlDataFactory->getOWLClass(java("org.semanticweb.owlapi.model.IRI")->create($uri));
 
-    $superClasses = $this->reasoner->getSuperClasses($class, $direct); 
-
-    $classes = $superClasses->getFlattened();                                                     
+    $superClasses;
+    
+    if($this->useReasoner)
+    {
+      $superClasses = $this->reasoner->getSuperClasses($class, $direct); 
+      $superClasses = $superClasses->getFlattened();
+    } 
+    else
+    {
+      $superClasses = $class->getSubClasses($this->ontology);
+    } 
 
     $sc = array();
           
     foreach($classes as $class)
     {
-      array_push($sc, (string)java_values($class->toStringID()));
+      if(java_instanceof($class, java("org.semanticweb.owlapi.model.OWLClass")))
+      {
+        array_push($sc, (string)java_values($class->toStringID()));
+      }
     }
     
     return($sc);
@@ -639,24 +668,35 @@ class OWLOntology
     // Create a class object.
     $class = $this->owlDataFactory->getOWLClass(java("org.semanticweb.owlapi.model.IRI")->create($uri));
         
-    $subClasses = $this->reasoner->getSubClasses($class, $direct); 
+    $subClasses;
 
-    $subClasses = $subClasses->getFlattened();
+    if($this->useReasoner)
+    {
+      $subClasses = $this->reasoner->getSubClasses($class, $direct); 
+      $subClasses = $subClasses->getFlattened();
+    } 
+    else
+    {
+      $subClasses = $class->getSubClasses($this->ontology);
+    }   
     
     $classDescription = array();
 
     foreach($subClasses as $subClass)
     {
-      $subClassUri = (string)java_values($subClass->toStringID());
-      $classDescription[$subClassUri] = array();
-      
-      // Skip owl:Nothing and return an empty record for it.
-      if($subClassUri == Namespaces::$owl."Nothing")
+      if(java_instanceof($subClass, java("org.semanticweb.owlapi.model.OWLClass")))
       {
-        continue;
+        $subClassUri = (string)java_values($subClass->toStringID());
+        $classDescription[$subClassUri] = array();
+        
+        // Skip owl:Nothing and return an empty record for it.
+        if($subClassUri == Namespaces::$owl."Nothing")
+        {
+          continue;
+        }
+        
+        $classDescription[$subClassUri] = $this->_getClassDescription($subClass);
       }
-      
-      $classDescription[$subClassUri] = $this->_getClassDescription($subClass);
     }
     
     return($classDescription);
@@ -785,24 +825,35 @@ class OWLOntology
     // Create a class object.
     $class = $this->owlDataFactory->getOWLClass(java("org.semanticweb.owlapi.model.IRI")->create($uri));
         
-    $superClasses = $this->reasoner->getSuperClasses($class, $direct); 
-
-    $superClasses = $superClasses->getFlattened();
+    $superClasses;
+    
+    if($this->useReasoner)
+    {
+      $superClasses = $this->reasoner->getSuperClasses($class, $direct); 
+      $superClasses = $superClasses->getFlattened();
+    } 
+    else
+    {
+      $superClasses = $class->getSubClasses($this->ontology);
+    } 
     
     $classDescription = array();
 
     foreach($superClasses as $superClass)
     {
-      $superClassUri = (string)java_values($superClass->toStringID());
-      $classDescription[$superClassUri] = array();
-      
-      // Skip owl:Nothing and return an empty record for it.
-      if($superClassUri == Namespaces::$owl."Nothing")
+      if(java_instanceof($superClass, java("org.semanticweb.owlapi.model.OWLClass")))
       {
-        continue;
-      }      
-      
-      $classDescription[$superClassUri] = $this->_getClassDescription($superClass);
+        $superClassUri = (string)java_values($superClass->toStringID());
+        $classDescription[$superClassUri] = array();
+        
+        // Skip owl:Nothing and return an empty record for it.
+        if($superClassUri == Namespaces::$owl."Nothing")
+        {
+          continue;
+        }      
+        
+        $classDescription[$superClassUri] = $this->_getClassDescription($superClass);
+      }
     }
     
     return($classDescription);
@@ -971,23 +1022,48 @@ class OWLOntology
     if($isDataProperty)
     {
       $property = $this->owlDataFactory->getOWLDataProperty(java("org.semanticweb.owlapi.model.IRI")->create($uri));
-      $subProperties = $this->reasoner->getSubDataProperties($property, $direct); 
+      
+      if($this->useReasoner)
+      {
+        $subProperties = $this->reasoner->getSubDataProperties($property, $direct); 
+      } 
+      else
+      {
+        $subProperties = $property->getSubProperties($this->ontology);
+      }      
     }
     else
     {
       $property = $this->owlDataFactory->getOWLObjectProperty(java("org.semanticweb.owlapi.model.IRI")->create($uri));
       $subProperties = $this->reasoner->getSubObjectProperties($property, $direct); 
+      
+      if($this->useReasoner)
+      {
+        $subProperties = $this->reasoner->getSubObjectProperties($property, $direct); 
+      } 
+      else
+      {
+        $subProperties = $property->getSubProperties($this->ontology);
+      }            
     }
 
-    $subProperties = $subProperties->getFlattened();     
+    if($this->useReasoner)
+    {
+      $subProperties = $subProperties->getFlattened();     
+    }
     
     $propertyDescription = array();
 
     foreach($subProperties as $subProperty)
     {
-      $subPropertyUri = (string)java_values($subProperty->toStringID());
+      if(java_instanceof($subProperty, java("org.semanticweb.owlapi.model.OWLObjectProperty")) ||
+         java_instanceof($subProperty, java("org.semanticweb.owlapi.model.OWLDataProperty")) ||
+         java_instanceof($subProperty, java("org.semanticweb.owlapi.model.OWLAnnotationProperty")))      
+      {
+        $subPropertyUri = (string)java_values($subProperty->toStringID());
       
-      array_push($propertyDescription, $subPropertyUri);
+        array_push($propertyDescription, $subPropertyUri);
+      }
     }    
     
     return($propertyDescription);
@@ -1024,24 +1100,49 @@ class OWLOntology
     if($isDataProperty)
     {
       $property = $this->owlDataFactory->getOWLDataProperty(java("org.semanticweb.owlapi.model.IRI")->create($uri));
-      $subProperties = $this->reasoner->getSubDataProperties($property, $direct); 
+      
+      if($this->useReasoner)
+      {
+        $subProperties = $this->reasoner->getSubDataProperties($property, $direct); 
+      } 
+      else
+      {
+        $subProperties = $property->getSubProperties($this->ontology);
+      }      
     }
     else
     {
       $property = $this->owlDataFactory->getOWLObjectProperty(java("org.semanticweb.owlapi.model.IRI")->create($uri));
       $subProperties = $this->reasoner->getSubObjectProperties($property, $direct); 
+      
+      if($this->useReasoner)
+      {
+        $subProperties = $this->reasoner->getSubObjectProperties($property, $direct); 
+      } 
+      else
+      {
+        $subProperties = $property->getSubProperties($this->ontology);
+      }            
     }
 
-    $subProperties = $subProperties->getFlattened();     
+    if($this->useReasoner)
+    {
+      $subProperties = $subProperties->getFlattened();     
+    }    
     
     $propertyDescription = array();
 
     foreach($subProperties as $subProperty)
     {
-      $subPropertyUri = (string)java_values($subProperty->toStringID());
-      $propertyDescription[$subPropertyUri] = array();
-      
-      $propertyDescription[$subPropertyUri] = $this->_getPropertyDescription($subProperty);
+      if(java_instanceof($subProperty, java("org.semanticweb.owlapi.model.OWLObjectProperty")) ||
+         java_instanceof($subProperty, java("org.semanticweb.owlapi.model.OWLDataProperty")) ||
+         java_instanceof($subProperty, java("org.semanticweb.owlapi.model.OWLAnnotationProperty")))      
+      {
+        $subPropertyUri = (string)java_values($subProperty->toStringID());
+        $propertyDescription[$subPropertyUri] = array();
+        
+        $propertyDescription[$subPropertyUri] = $this->_getPropertyDescription($subProperty);
+      }
     }
     
     return($propertyDescription);
@@ -1061,55 +1162,80 @@ class OWLOntology
   public function getSuperPropertiesUri($uri, $direct = FALSE, $isDataProperty = TRUE)
   {  
     $superProperties;
-    
+  
     if($isDataProperty)
     {
       $property = $this->owlDataFactory->getOWLDataProperty(java("org.semanticweb.owlapi.model.IRI")->create($uri));
-      $superProperties = $this->reasoner->getSuperDataProperties($property, $direct); 
+      
+      if($this->useReasoner)
+      {
+        $superProperties = $this->reasoner->getSuperDataProperties($class, $direct); 
+      } 
+      else
+      {
+        $superProperties = $property->getSuperProperties($this->ontology);
+      }      
     }
     else
     {
       $property = $this->owlDataFactory->getOWLObjectProperty(java("org.semanticweb.owlapi.model.IRI")->create($uri));
-      $superProperties = $this->reasoner->getSuperObjectProperties($property, $direct); 
+      $superProperties = $this->reasoner->getSubObjectProperties($property, $direct); 
+      
+      if($this->useReasoner)
+      {
+        $superProperties = $this->reasoner->getSuperObjectProperties($class, $direct); 
+      } 
+      else
+      {
+        $superProperties = $property->getSuperProperties($this->ontology);
+      }            
     }
 
-    $superProperties = $superProperties->getFlattened();     
+    if($this->useReasoner)
+    {
+      $superProperties = $superProperties->getFlattened();     
+    }    
     
     $propertyDescription = array();
 
     foreach($superProperties as $superProperty)
     {
-      $superPropertyUri = (string)java_values($superProperty->toStringID());
-      
-      switch($superPropertyUri)
+      if(java_instanceof($superProperty, java("org.semanticweb.owlapi.model.OWLObjectProperty")) ||
+         java_instanceof($superProperty, java("org.semanticweb.owlapi.model.OWLDataProperty")) ||
+         java_instanceof($superProperty, java("org.semanticweb.owlapi.model.OWLAnnotationProperty")))      
       {
-        case "_TOP_DATA_PROPERTY_":
-        case "http://www.w3.org/2002/07/owl#topDataProperty":
-          
-          // If a topDataProperty is returned but that an object property was requested, we simply return an empty
-          // description.
-          if(!$isDataProperty)
-          {
-            return($propertyDescription);;
-          }
+        $superPropertyUri = (string)java_values($superProperty->toStringID());
         
-          $superPropertyUri = Namespaces::$owl."topDataProperty";
-        break;
-        case "_TOP_OBJECT_PROPERTY_":
-        case "http://www.w3.org/2002/07/owl#topObjectProperty":
-        
-          // If a topObjectProperty is returned but that a data property was requested, we simply return an empty
-          // description.
-          if($isDataProperty)
-          {
-            return($propertyDescription);;
-          }
+        switch($superPropertyUri)
+        {
+          case "_TOP_DATA_PROPERTY_":
+          case "http://www.w3.org/2002/07/owl#topDataProperty":
+            
+            // If a topDataProperty is returned but that an object property was requested, we simply return an empty
+            // description.
+            if(!$isDataProperty)
+            {
+              return($propertyDescription);;
+            }
           
-          $superPropertyUri = Namespaces::$owl."topObjectProperty";
-        break;
-      }      
-      
-      array_push($propertyDescription, $superPropertyUri);
+            $superPropertyUri = Namespaces::$owl."topDataProperty";
+          break;
+          case "_TOP_OBJECT_PROPERTY_":
+          case "http://www.w3.org/2002/07/owl#topObjectProperty":
+          
+            // If a topObjectProperty is returned but that a data property was requested, we simply return an empty
+            // description.
+            if($isDataProperty)
+            {
+              return($propertyDescription);;
+            }
+            
+            $superPropertyUri = Namespaces::$owl."topObjectProperty";
+          break;
+        }      
+        
+        array_push($propertyDescription, $superPropertyUri);
+      }
     }    
     
     return($propertyDescription);
@@ -1142,57 +1268,82 @@ class OWLOntology
   public function getSuperPropertiesDescription($uri, $direct = FALSE, $isDataProperty = TRUE)
   {
     $superProperties;
-    
+  
     if($isDataProperty)
     {
       $property = $this->owlDataFactory->getOWLDataProperty(java("org.semanticweb.owlapi.model.IRI")->create($uri));
-      $superProperties = $this->reasoner->getSuperDataProperties($property, $direct); 
+      
+      if($this->useReasoner)
+      {
+        $superProperties = $this->reasoner->getSuperDataProperties($class, $direct); 
+      } 
+      else
+      {
+        $superProperties = $property->getSuperProperties($this->ontology);
+      }      
     }
     else
     {
       $property = $this->owlDataFactory->getOWLObjectProperty(java("org.semanticweb.owlapi.model.IRI")->create($uri));
-      $superProperties = $this->reasoner->getSuperObjectProperties($property, $direct); 
+      $superProperties = $this->reasoner->getSubObjectProperties($property, $direct); 
+      
+      if($this->useReasoner)
+      {
+        $superProperties = $this->reasoner->getSuperObjectProperties($class, $direct); 
+      } 
+      else
+      {
+        $superProperties = $property->getSuperProperties($this->ontology);
+      }            
     }
 
-    $superProperties = $superProperties->getFlattened();     
+    if($this->useReasoner)
+    {
+      $superProperties = $superProperties->getFlattened();     
+    }    
     
     $propertyDescription = array();
 
     foreach($superProperties as $superProperty)
     {
-      $superPropertyUri = (string)java_values($superProperty->toStringID());
-
-      switch($superPropertyUri)
+      if(java_instanceof($superProperty, java("org.semanticweb.owlapi.model.OWLObjectProperty")) ||
+         java_instanceof($superProperty, java("org.semanticweb.owlapi.model.OWLDataProperty")) ||
+         java_instanceof($superProperty, java("org.semanticweb.owlapi.model.OWLAnnotationProperty")))      
       {
-        case "_TOP_DATA_PROPERTY_":
-        case "http://www.w3.org/2002/07/owl#topDataProperty":
-        
-          // If a topDataProperty is returned but that an object property was requested, we simply return an empty
-          // description.
-          if(!$isDataProperty)
-          {
-            return($propertyDescription);;
-          }
+        $superPropertyUri = (string)java_values($superProperty->toStringID());
+
+        switch($superPropertyUri)
+        {
+          case "_TOP_DATA_PROPERTY_":
+          case "http://www.w3.org/2002/07/owl#topDataProperty":
           
-          $superPropertyUri = Namespaces::$owl."topDataProperty";
-        break;
-        case "_TOP_OBJECT_PROPERTY_":
-        case "http://www.w3.org/2002/07/owl#topObjectProperty":
+            // If a topDataProperty is returned but that an object property was requested, we simply return an empty
+            // description.
+            if(!$isDataProperty)
+            {
+              return($propertyDescription);;
+            }
+            
+            $superPropertyUri = Namespaces::$owl."topDataProperty";
+          break;
+          case "_TOP_OBJECT_PROPERTY_":
+          case "http://www.w3.org/2002/07/owl#topObjectProperty":
+          
+            // If a topObjectProperty is returned but that a data property was requested, we simply return an empty
+            // description.
+            if($isDataProperty)
+            {
+              return($propertyDescription);;
+            }
+          
+            $superPropertyUri = Namespaces::$owl."topObjectProperty";
+          break;
+        }
         
-          // If a topObjectProperty is returned but that a data property was requested, we simply return an empty
-          // description.
-          if($isDataProperty)
-          {
-            return($propertyDescription);;
-          }
+        $propertyDescription[$superPropertyUri] = array();
         
-          $superPropertyUri = Namespaces::$owl."topObjectProperty";
-        break;
+        $propertyDescription[$superPropertyUri] = $this->_getPropertyDescription($superProperty);
       }
-      
-      $propertyDescription[$superPropertyUri] = array();
-      
-      $propertyDescription[$superPropertyUri] = $this->_getPropertyDescription($superProperty);
     }
     
     return($propertyDescription);
@@ -1214,26 +1365,47 @@ class OWLOntology
     $equivalentProperties;
     $property;
     
-    if($isDataProperty)
+    if($this->useReasoner)
     {
-      $property = $this->owlDataFactory->getOWLDataProperty(java("org.semanticweb.owlapi.model.IRI")->create($uri));
-      $equivalentProperties = $this->reasoner->getEquivalentDataProperties($property); 
+      if($isDataProperty)
+      {
+        $property = $this->owlDataFactory->getOWLDataProperty(java("org.semanticweb.owlapi.model.IRI")->create($uri));
+        $equivalentProperties = $this->reasoner->getEquivalentDataProperties($property); 
+      }
+      else
+      {
+        $property = $this->owlDataFactory->getOWLObjectProperty(java("org.semanticweb.owlapi.model.IRI")->create($uri));
+        $equivalentProperties = $this->reasoner->getEquivalentObjectProperties($property); 
+      }
+      
+      $equivalentProperties = $equivalentProperties->getEntitiesMinus($property);
     }
     else
     {
-      $property = $this->owlDataFactory->getOWLObjectProperty(java("org.semanticweb.owlapi.model.IRI")->create($uri));
-      $equivalentProperties = $this->reasoner->getEquivalentObjectProperties($property); 
+      if($isDataProperty)
+      {
+        $property = $this->owlDataFactory->getOWLDataProperty(java("org.semanticweb.owlapi.model.IRI")->create($uri));
+      }
+      else
+      {
+        $property = $this->owlDataFactory->getOWLObjectProperty(java("org.semanticweb.owlapi.model.IRI")->create($uri));
+      }
+      
+      $equivalentProperties = $equivalentProperties->getEntitiesMinus($property);
     }
-    
-    $equivalentProperties = $equivalentProperties->getEntitiesMinus($property);
 
     $propertyDescription = array();
 
     foreach($equivalentProperties as $equivalentProperty)
     {
-      $equivalentPropertyUri = (string)java_values($equivalentProperty->toStringID());
-      
-      array_push($propertyDescription, $equivalentPropertyUri);
+      if(java_instanceof($equivalentProperty, java("org.semanticweb.owlapi.model.OWLObjectProperty")) ||
+         java_instanceof($equivalentProperty, java("org.semanticweb.owlapi.model.OWLDataProperty")) ||
+         java_instanceof($equivalentProperty, java("org.semanticweb.owlapi.model.OWLAnnotationProperty")))      
+      {
+        $equivalentPropertyUri = (string)java_values($equivalentProperty->toStringID());
+        
+        array_push($propertyDescription, $equivalentPropertyUri);
+      }
     }    
     
     return($propertyDescription);
@@ -1268,27 +1440,48 @@ class OWLOntology
     $equivalentProperties;
     $property;
     
-    if($isDataProperty)
+    if($this->useReasoner)
     {
-      $property = $this->owlDataFactory->getOWLDataProperty(java("org.semanticweb.owlapi.model.IRI")->create($uri));
-      $equivalentProperties = $this->reasoner->getEquivalentDataProperties($property); 
+      if($isDataProperty)
+      {
+        $property = $this->owlDataFactory->getOWLDataProperty(java("org.semanticweb.owlapi.model.IRI")->create($uri));
+        $equivalentProperties = $this->reasoner->getEquivalentDataProperties($property); 
+      }
+      else
+      {
+        $property = $this->owlDataFactory->getOWLObjectProperty(java("org.semanticweb.owlapi.model.IRI")->create($uri));
+        $equivalentProperties = $this->reasoner->getEquivalentObjectProperties($property); 
+      }
+      
+      $equivalentProperties = $equivalentProperties->getEntitiesMinus($property);
     }
     else
     {
-      $property = $this->owlDataFactory->getOWLObjectProperty(java("org.semanticweb.owlapi.model.IRI")->create($uri));
-      $equivalentProperties = $this->reasoner->getEquivalentObjectProperties($property); 
+      if($isDataProperty)
+      {
+        $property = $this->owlDataFactory->getOWLDataProperty(java("org.semanticweb.owlapi.model.IRI")->create($uri));
+      }
+      else
+      {
+        $property = $this->owlDataFactory->getOWLObjectProperty(java("org.semanticweb.owlapi.model.IRI")->create($uri));
+      }
+      
+      $equivalentProperties = $equivalentProperties->getEntitiesMinus($property);
     }
-
-    $equivalentProperties = $equivalentProperties->getEntitiesMinus($property);
     
     $propertyDescription = array();
 
     foreach($equivalentProperties as $equivalentProperty)
     {
-      $equivalentPropertyUri = (string)java_values($equivalentProperty->toStringID());
-      $propertyDescription[$equivalentPropertyUri] = array();
-      
-      $propertyDescription[$equivalentPropertyUri] = $this->_getPropertyDescription($equivalentProperty);
+      if(java_instanceof($equivalentProperty, java("org.semanticweb.owlapi.model.OWLObjectProperty")) ||
+         java_instanceof($equivalentProperty, java("org.semanticweb.owlapi.model.OWLDataProperty")) ||
+         java_instanceof($equivalentProperty, java("org.semanticweb.owlapi.model.OWLAnnotationProperty")))      
+      {
+        $equivalentPropertyUri = (string)java_values($equivalentProperty->toStringID());
+        $propertyDescription[$equivalentPropertyUri] = array();
+        
+        $propertyDescription[$equivalentPropertyUri] = $this->_getPropertyDescription($equivalentProperty);
+      }
     }
     
     return($propertyDescription);
@@ -1312,23 +1505,49 @@ class OWLOntology
     if($isDataProperty)
     {
       $property = $this->owlDataFactory->getOWLDataProperty(java("org.semanticweb.owlapi.model.IRI")->create($uri));
-      $disjointProperties = $this->reasoner->getDisjointDataProperties($property); 
+      
+      if($this->useReasoner)
+      {
+        $disjointProperties = $this->reasoner->getDisjointDataProperties($property); 
+        $disjointProperties = $disjointProperties->getFlattened();
+      } 
+      else
+      {
+        $disjointProperties = $class->getDisjointProperties($this->ontology);
+      }             
     }
     else
     {
       $property = $this->owlDataFactory->getOWLObjectProperty(java("org.semanticweb.owlapi.model.IRI")->create($uri));
-      $disjointProperties = $this->reasoner->getDisjointObjectProperties($property); 
+      
+      if($this->useReasoner)
+      {
+        $disjointProperties = $this->reasoner->getDisjointObjectProperties($property); 
+        $disjointProperties = $disjointProperties->getFlattened();
+      } 
+      else
+      {
+        $disjointProperties = $class->getDisjointProperties($this->ontology);
+      }         
     }
     
-    $disjointProperties = $disjointProperties->getFlattened();    
+    if($this->useReasoner)
+    {
+      $disjointProperties = $disjointProperties->getFlattened();  
+    }
 
     $propertyDescription = array();
 
     foreach($disjointProperties as $disjointProperty)
     {
-      $disjointPropertyUri = (string)java_values($disjointProperty->toStringID());
-      
-      array_push($propertyDescription, $disjointPropertyUri);
+      if(java_instanceof($disjointProperty, java("org.semanticweb.owlapi.model.OWLObjectProperty")) ||
+         java_instanceof($disjointProperty, java("org.semanticweb.owlapi.model.OWLDataProperty")) ||
+         java_instanceof($disjointProperty, java("org.semanticweb.owlapi.model.OWLAnnotationProperty")))      
+      {
+        $disjointPropertyUri = (string)java_values($disjointProperty->toStringID());
+        
+        array_push($propertyDescription, $disjointPropertyUri);
+      }
     }    
     
     return($propertyDescription);
@@ -1365,24 +1584,50 @@ class OWLOntology
     if($isDataProperty)
     {
       $property = $this->owlDataFactory->getOWLDataProperty(java("org.semanticweb.owlapi.model.IRI")->create($uri));
-      $disjointProperties = $this->reasoner->getDisjointDataProperties($property); 
+      
+      if($this->useReasoner)
+      {
+        $disjointProperties = $this->reasoner->getDisjointDataProperties($property); 
+        $disjointProperties = $disjointProperties->getFlattened();
+      } 
+      else
+      {
+        $disjointProperties = $class->getDisjointProperties($this->ontology);
+      }             
     }
     else
     {
       $property = $this->owlDataFactory->getOWLObjectProperty(java("org.semanticweb.owlapi.model.IRI")->create($uri));
-      $disjointProperties = $this->reasoner->getDisjointObjectProperties($property); 
+      
+      if($this->useReasoner)
+      {
+        $disjointProperties = $this->reasoner->getDisjointObjectProperties($property); 
+        $disjointProperties = $disjointProperties->getFlattened();
+      } 
+      else
+      {
+        $disjointProperties = $class->getDisjointProperties($this->ontology);
+      }         
     }
-
-    $disjointProperties = $disjointProperties->getFlattened();    
+    
+    if($this->useReasoner)
+    {
+      $disjointProperties = $disjointProperties->getFlattened();  
+    }
     
     $propertyDescription = array();
 
     foreach($disjointProperties as $disjointProperty)
     {
-      $disjointPropertyUri = (string)java_values($disjointProperty->toStringID());
-      $propertyDescription[$disjointPropertyUri] = array();
-      
-      $propertyDescription[$disjointPropertyUri] = $this->_getPropertyDescription($disjointProperty);
+      if(java_instanceof($disjointProperty, java("org.semanticweb.owlapi.model.OWLObjectProperty")) ||
+         java_instanceof($disjointProperty, java("org.semanticweb.owlapi.model.OWLDataProperty")) ||
+         java_instanceof($disjointProperty, java("org.semanticweb.owlapi.model.OWLAnnotationProperty")))      
+      {
+        $disjointPropertyUri = (string)java_values($disjointProperty->toStringID());
+        $propertyDescription[$disjointPropertyUri] = array();
+        
+        $propertyDescription[$disjointPropertyUri] = $this->_getPropertyDescription($disjointProperty);
+      }
     }
     
     return($propertyDescription);
@@ -1532,61 +1777,85 @@ class OWLOntology
       $subProperties;
 
       if(java_values($property->isOWLDataProperty()))
-      {                                        
-        $subProperties = $this->reasoner->getSubDataProperties($property, TRUE);
-        $subProperties = $subProperties->getFlattened();   
+      {                                               
+        if($this->useReasoner)
+        {
+          $subProperties = $this->reasoner->getSubDataProperties($property, TRUE); 
+          $subProperties = $subProperties->getFlattened();
+        } 
+        else
+        {
+          $subProperties = $property->getSubProperties($this->ontology);
+        }               
         
         foreach($subProperties as $subProperty)
         {
-          $spUri = (string)java_values($subProperty->toStringID());
-          
-          if($spUri == Namespaces::$owl."bottomDataProperty" ||
-             $spUri == Namespaces::$owl."topDataProperty")
+          if(java_instanceof($subProperty, java("org.semanticweb.owlapi.model.OWLObjectProperty")) ||
+             java_instanceof($subProperty, java("org.semanticweb.owlapi.model.OWLDataProperty")) ||
+             java_instanceof($subProperty, java("org.semanticweb.owlapi.model.OWLAnnotationProperty")))      
           {
-            continue;
-          }
-                
-          if(is_array($propertyDescription[Namespaces::$umbel."superPropertyOf"]) === FALSE)
-          {
-            $propertyDescription[Namespaces::$umbel."superPropertyOf"] = array(); 
-          }
+            $spUri = (string)java_values($subProperty->toStringID());
+            
+            if($spUri == Namespaces::$owl."bottomDataProperty" ||
+               $spUri == Namespaces::$owl."topDataProperty")
+            {
+              continue;
+            }
+                  
+            if(is_array($propertyDescription[Namespaces::$umbel."superPropertyOf"]) === FALSE)
+            {
+              $propertyDescription[Namespaces::$umbel."superPropertyOf"] = array(); 
+            }
 
-          array_push($propertyDescription[Namespaces::$umbel."superPropertyOf"], array("value" => $spUri,
-                                                                                 "datatype" => "rdf:Resource",
-                                                                                 "lang" => "",
-                                                                                 "rei" => array(array(
-                                                                                  "type" => "rdfs:Label",
-                                                                                  "value" => $this->getPrefLabel($subProperty)
-                                                                                 )))); 
+            array_push($propertyDescription[Namespaces::$umbel."superPropertyOf"], array("value" => $spUri,
+                                                                                   "datatype" => "rdf:Resource",
+                                                                                   "lang" => "",
+                                                                                   "rei" => array(array(
+                                                                                    "type" => "rdfs:Label",
+                                                                                    "value" => $this->getPrefLabel($subProperty)
+                                                                                   )))); 
+          }
         }
       }
       else if(java_values($property->isOWLObjectProperty()))
       {   
-        $subProperties = $this->reasoner->getSubObjectProperties($property, TRUE);
-        $subProperties = $subProperties->getFlattened();   
+        if($this->useReasoner)
+        {
+          $subProperties = $this->reasoner->getSubObjectProperties($property, TRUE); 
+          $subProperties = $subProperties->getFlattened();
+        } 
+        else
+        {
+          $subProperties = $property->getSubProperties($this->ontology);
+        }        
         
         foreach($subProperties as $subProperty)
         {
-          $spUri = (string)java_values($subProperty->toStringID());
-          
-          if($spUri == Namespaces::$owl."bottomObjectProperty" ||
-             $spUri == Namespaces::$owl."topObjectProperty")
+          if(java_instanceof($subProperty, java("org.semanticweb.owlapi.model.OWLObjectProperty")) ||
+             java_instanceof($subProperty, java("org.semanticweb.owlapi.model.OWLDataProperty")) ||
+             java_instanceof($subProperty, java("org.semanticweb.owlapi.model.OWLAnnotationProperty")))      
           {
-            continue;
-          }
-                
-          if(is_array($propertyDescription[Namespaces::$umbel."superPropertyOf"]) === FALSE)
-          {
-            $propertyDescription[Namespaces::$umbel."superPropertyOf"] = array(); 
-          }
+            $spUri = (string)java_values($subProperty->toStringID());
+            
+            if($spUri == Namespaces::$owl."bottomObjectProperty" ||
+               $spUri == Namespaces::$owl."topObjectProperty")
+            {
+              continue;
+            }
+                  
+            if(is_array($propertyDescription[Namespaces::$umbel."superPropertyOf"]) === FALSE)
+            {
+              $propertyDescription[Namespaces::$umbel."superPropertyOf"] = array(); 
+            }
 
-          array_push($propertyDescription[Namespaces::$umbel."superPropertyOf"], array("value" => $spUri,
-                                                                                 "datatype" => "rdf:Resource",
-                                                                                 "lang" => "",
-                                                                                 "rei" => array(array(
-                                                                                  "type" => "rdfs:Label",
-                                                                                  "value" => $this->getPrefLabel($subProperty)
-                                                                                 )))); 
+            array_push($propertyDescription[Namespaces::$umbel."superPropertyOf"], array("value" => $spUri,
+                                                                                   "datatype" => "rdf:Resource",
+                                                                                   "lang" => "",
+                                                                                   "rei" => array(array(
+                                                                                    "type" => "rdfs:Label",
+                                                                                    "value" => $this->getPrefLabel($subProperty)
+                                                                                   )))); 
+          }
         }  
       }
       
@@ -1861,60 +2130,80 @@ class OWLOntology
                                                              "rei" => $info["rei"]));       
     }
     
-    // Get Sub Classes Of properties
-    $superClasses = $this->reasoner->getSuperClasses($class, TRUE);
-    $superClasses = $superClasses->getFlattened();   
+    // Get Sub Classes Of properties 
+    if($this->useReasoner)
+    {
+      $superClasses = $this->reasoner->getSuperClasses($class, TRUE); 
+      $superClasses = $superClasses->getFlattened();
+    } 
+    else
+    {
+      $superClasses = $class->getSuperClasses($this->ontology);
+    }           
     
     foreach($superClasses as $superClass)
     {
-      // Since getSuperClasses returns a set of OWLClassExpression, then we have to make sure that
-      // we only keep the OWLClassImpl for this process.
-      /*if(!java_instanceof($superClass, java("uk.ac.manchester.cs.owl.owlapi.OWLClassImpl")))
+      if(java_instanceof($superClass, java("org.semanticweb.owlapi.model.OWLClass")))
       {
-        continue;
-      }*/
-      
-      $scUri = (string)java_values($superClass->toStringID());
-            
-      if(is_array($classDescription[Namespaces::$rdfs."subClassOf"]) === FALSE)
-      {
-        $classDescription[Namespaces::$rdfs."subClassOf"] = array(); 
-      }
+        // Since getSuperClasses returns a set of OWLClassExpression, then we have to make sure that
+        // we only keep the OWLClassImpl for this process.
+        /*if(!java_instanceof($superClass, java("uk.ac.manchester.cs.owl.owlapi.OWLClassImpl")))
+        {
+          continue;
+        }*/
+        
+        $scUri = (string)java_values($superClass->toStringID());
+              
+        if(is_array($classDescription[Namespaces::$rdfs."subClassOf"]) === FALSE)
+        {
+          $classDescription[Namespaces::$rdfs."subClassOf"] = array(); 
+        }
 
-      array_push($classDescription[Namespaces::$rdfs."subClassOf"], array("value" => $scUri,
-                                                                         "datatype" => "rdf:Resource",
-                                                                         "lang" => "",
-                                                                         "rei" => array(array(
-                                                                          "type" => "rdfs:Label",
-                                                                          "value" => $this->getPrefLabel($superClass)
-                                                                         )))); 
+        array_push($classDescription[Namespaces::$rdfs."subClassOf"], array("value" => $scUri,
+                                                                           "datatype" => "rdf:Resource",
+                                                                           "lang" => "",
+                                                                           "rei" => array(array(
+                                                                            "type" => "rdfs:Label",
+                                                                            "value" => $this->getPrefLabel($superClass)
+                                                                           )))); 
+      }
     } 
     
     // Specify Super Classes Of properties   
-    $subClasses = $this->reasoner->getSubClasses($class, TRUE);
-    $subClasses = $subClasses->getFlattened();   
+    if($this->useReasoner)
+    {
+      $subClasses = $this->reasoner->getSubClasses($class, TRUE); 
+      $subClasses = $subClasses->getFlattened();
+    } 
+    else
+    {
+      $subClasses = $class->getSubClasses($this->ontology);
+    }             
     
     foreach($subClasses as $subClass)
     {
-      $scUri = (string)java_values($subClass->toStringID());
-      
-      if($scUri == Namespaces::$owl."Nothing")
+      if(java_instanceof($subClass, java("org.semanticweb.owlapi.model.OWLClass")))
       {
-        continue;
-      }
-            
-      if(is_array($classDescription[Namespaces::$umbel."superClassOf"]) === FALSE)
-      {
-        $classDescription[Namespaces::$umbel."superClassOf"] = array(); 
-      }
+        $scUri = (string)java_values($subClass->toStringID());
+        
+        if($scUri == Namespaces::$owl."Nothing")
+        {
+          continue;
+        }
+              
+        if(is_array($classDescription[Namespaces::$umbel."superClassOf"]) === FALSE)
+        {
+          $classDescription[Namespaces::$umbel."superClassOf"] = array(); 
+        }
 
-      array_push($classDescription[Namespaces::$umbel."superClassOf"], array("value" => $scUri,
-                                                                             "datatype" => "rdf:Resource",
-                                                                             "lang" => "",
-                                                                             "rei" => array(array(
-                                                                              "type" => "rdfs:Label",
-                                                                              "value" => $this->getPrefLabel($subClass)
-                                                                             )))); 
+        array_push($classDescription[Namespaces::$umbel."superClassOf"], array("value" => $scUri,
+                                                                               "datatype" => "rdf:Resource",
+                                                                               "lang" => "",
+                                                                               "rei" => array(array(
+                                                                                "type" => "rdfs:Label",
+                                                                                "value" => $this->getPrefLabel($subClass)
+                                                                               )))); 
+      }
     }    
     
     // Get Equivalent Classes
@@ -2112,9 +2401,15 @@ class OWLOntology
     {
       $class = $this->owlDataFactory->getOWLClass(java("org.semanticweb.owlapi.model.IRI")->create($classUri));
 
-      $individuals = $this->reasoner->getInstances($class, $direct); 
-
-      $individuals = $individuals->getFlattened();                                                     
+      if($this->useReasoner)
+      {
+        $individuals = $this->reasoner->getInstances($class, $direct); 
+        $individuals = $individuals->getFlattened();
+      } 
+      else
+      {
+        $individuals = $class->getIndividuals($this->ontology);
+      }       
     }
     else
     {
@@ -2127,22 +2422,25 @@ class OWLOntology
           
     foreach($individuals as $individual)
     {
-      if($limit > -1 && $offset > -1)
+      if(java_instanceof($individual, java("org.semanticweb.owlapi.model.OWLNamedIndividual")))
       {
-        if($nb >= $offset + $limit)  
+        if($limit > -1 && $offset > -1)
         {
-          break;
+          if($nb >= $offset + $limit)  
+          {
+            break;
+          }
+          
+          if($nb < $offset)
+          {
+            $nb++;
+            continue;
+          }
         }
         
-        if($nb < $offset)
-        {
-          $nb++;
-          continue;
-        }
+        array_push($is, (string)java_values($individual->toStringID()));
+        $nb++;     
       }
-      
-      array_push($is, (string)java_values($individual->toStringID()));
-      $nb++;     
     }    
     
     return($is);    
@@ -2188,9 +2486,15 @@ class OWLOntology
     {
       $class = $this->owlDataFactory->getOWLClass(java("org.semanticweb.owlapi.model.IRI")->create($classUri));
 
-      $namedIndividuals = $this->reasoner->getInstances($class, $direct); 
-
-      $namedIndividuals = $individuals->getFlattened();                                                     
+      if($this->useReasoner)
+      {
+        $namedIndividuals = $this->reasoner->getInstances($class, $direct); 
+        $namedIndividuals = $namedIndividuals->getFlattened();
+      } 
+      else
+      {
+        $namedIndividuals = $class->getIndividuals($this->ontology);
+      }                                                        
     }
     else
     {
@@ -2203,25 +2507,28 @@ class OWLOntology
     
     foreach($namedIndividuals as $ni)
     {
-      if($limit > -1 && $offset > -1)
+      if(java_instanceof($ni, java("org.semanticweb.owlapi.model.OWLNamedIndividual")))
       {
-        if($nb >= $offset + $limit)  
+        if($limit > -1 && $offset > -1)
         {
-          break;
+          if($nb >= $offset + $limit)  
+          {
+            break;
+          }
+          
+          if($nb < $offset)
+          {
+            $nb++;
+            continue;
+          }
         }
         
-        if($nb < $offset)
-        {
-          $nb++;
-          continue;
-        }
-      }
-      
-      $niUri = (string)java_values($ni->toStringID());
-      $niDescription[$niUri] = array();
-      
-      $niDescription[$niUri] = $this->_getNamedIndividualDescription($ni);
-      $nb++;     
+        $niUri = (string)java_values($ni->toStringID());
+        $niDescription[$niUri] = array();
+        
+        $niDescription[$niUri] = $this->_getNamedIndividualDescription($ni);
+        $nb++;  
+      }   
     }
     
     return($niDescription);    
@@ -3151,6 +3458,11 @@ class OWLOntology
     $datatype = "";
     $lang = "";
     $rei = array();
+    
+    if(!java_instanceof($annotation, java("org.semanticweb.owlapi.model.OWLAnnotation")))
+    {
+      return(array("property" => "", "value" => "", "datatype" => "", "lang" => "", "rei" => ""));
+    }
    
     // Check if the value is an OWLLiteral
     if(java_instanceof($annotation->getValue(), java("org.semanticweb.owlapi.model.OWLLiteral")))
@@ -3320,6 +3632,22 @@ class OWLOntology
     $this->manager->saveOntology($this->ontology, $outputStream);
     
     return((string)java_values($outputStream->toString()));
+  }
+  
+  /**
+  * Start using the reasoner for the subsequent OWLOntology functions calls.
+  */
+  public function useReasoner()
+  {
+    $this->useReasoner = TRUE;
+  }
+  
+  /**
+  * Stop using the reasoner for the subsequent OWLOntology functions calls.
+  */
+  public function stopUsingReasoner()
+  {
+    $this->useReasoner = FALSE;
   }
 }  
 

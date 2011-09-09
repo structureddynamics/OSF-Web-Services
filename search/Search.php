@@ -1384,7 +1384,7 @@ class Search extends WebService
       // Get all datasets accessible to that user
       $accessibleDatasets = array();
 
-      $ws_al = new AuthLister("access_user", "", $this->registered_ip, $this->wsf_local_ip);
+      $ws_al = new AuthLister("access_user", "", $this->registered_ip, $this->wsf_local_ip, "none");
 
       $ws_al->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
         $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
@@ -1425,7 +1425,7 @@ class Search extends WebService
         // Get all datasets accessible to that system
         $accessibleDatasetsSystem = array();
 
-        $ws_al = new AuthLister("access_user", "", $this->requester_ip, $this->wsf_local_ip);
+        $ws_al = new AuthLister("access_user", "", $this->requester_ip, $this->wsf_local_ip, "none");
 
         $ws_al->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
           $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());

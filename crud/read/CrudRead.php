@@ -257,7 +257,7 @@ class CrudRead extends WebService
     {
       include_once("../../auth/lister/AuthLister.php");
 
-      $ws_al = new AuthLister("access_user", "", $this->registered_ip, $this->wsf_local_ip);
+      $ws_al = new AuthLister("access_user", "", $this->registered_ip, $this->wsf_local_ip, "none");
 
       $ws_al->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
         $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());

@@ -54,6 +54,9 @@ class AuthLister extends WebService
 
   /*! @brief List of accesses being listed */
   private $accesses = array();
+  
+  /*! @brief Specifies what web service we want to focus on for that query */
+  private $targetWebservice = "all";
 
   /*! @brief Error messages of this web service */
   private $errorMessenger =
@@ -127,7 +130,7 @@ class AuthLister extends WebService
   
     \n\n\n
 */
-  function __construct($mode, $dataset, $registered_ip, $requester_ip)
+  function __construct($mode, $dataset, $registered_ip, $requester_ip, $target_webservice = "all")
   {
     parent::__construct();
 
@@ -136,7 +139,9 @@ class AuthLister extends WebService
     $this->requester_ip = $requester_ip;
     $this->mode = $mode;
     $this->dataset = $dataset;
-
+    $this->targetWebservice = strtolower($target_webservice);
+    
+    
     if($registered_ip == "")
     {
       $this->registered_ip = $requester_ip;
@@ -1004,10 +1009,10 @@ class AuthLister extends WebService
           }
         }
         else
-        {
+        { 
           if(strtolower($this->mode) == "access_user")
           {
-            $query = "  select ?access ?datasetAccess ?create ?read ?update ?delete ?registeredIP
+            $query = "  select ?access ?datasetAccess ?create ?read ?update ?delete ?registeredIP ".($this->targetWebservice == "all" ? "?webServiceAccess" : "")."
                     from <" . $this->wsf_graph
               . ">
                     where
@@ -1020,6 +1025,8 @@ class AuthLister extends WebService
                               <http://purl.org/ontology/wsf#update> ?update ;
                               <http://purl.org/ontology/wsf#delete> ?delete ;
                               <http://purl.org/ontology/wsf#datasetAccess> ?datasetAccess ;
+                              ".($this->targetWebservice == "all" ? "<http://purl.org/ontology/wsf#webServiceAccess> ?webServiceAccess ;" : "")."
+                              ".($this->targetWebservice != "none" && $this->targetWebservice != "all" ? "<http://purl.org/ontology/wsf#webServiceAccess> <".$this->targetWebservice."> ;" : "")."
                               <http://purl.org/ontology/wsf#registeredIP> ?registeredIP .
                       }
                       union
@@ -1031,6 +1038,8 @@ class AuthLister extends WebService
                               <http://purl.org/ontology/wsf#update> ?update ;
                               <http://purl.org/ontology/wsf#delete> ?delete ;
                               <http://purl.org/ontology/wsf#datasetAccess> ?datasetAccess ;                      
+                              ".($this->targetWebservice == "all" ? "<http://purl.org/ontology/wsf#webServiceAccess> ?webServiceAccess ;" : "")."
+                              ".($this->targetWebservice != "none" && $this->targetWebservice != "all" ? "<http://purl.org/ontology/wsf#webServiceAccess> <".$this->targetWebservice."> ;" : "")."
                               <http://purl.org/ontology/wsf#registeredIP> ?registeredIP .
                               
                         filter( str(?create) = \"True\" or str(?read) = \"True\" or str(?update) = \"True\" or str(?delete) = \"True\").
@@ -1039,7 +1048,7 @@ class AuthLister extends WebService
           }
           else // access_dataset
           {
-            $query = "  select ?access ?registeredIP ?create ?read ?update ?delete  
+            $query = "  select ?access ?registeredIP ?create ?read ?update ?delete ".($this->targetWebservice == "all" ? "?webServiceAccess" : "")." 
                     from <" . $this->wsf_graph
               . ">
                     where
@@ -1050,6 +1059,8 @@ class AuthLister extends WebService
                             <http://purl.org/ontology/wsf#read> ?read ;
                             <http://purl.org/ontology/wsf#update> ?update ;
                             <http://purl.org/ontology/wsf#delete> ?delete ;
+                            ".($this->targetWebservice == "all" ? "<http://purl.org/ontology/wsf#webServiceAccess> ?webServiceAccess ;" : "")."
+                            ".($this->targetWebservice != "none" && $this->targetWebservice != "all" ? "<http://purl.org/ontology/wsf#webServiceAccess> <".$this->targetWebservice."> ;" : "")."
                             <http://purl.org/ontology/wsf#datasetAccess> <$this->dataset> .
                     }";
           }
@@ -1080,21 +1091,36 @@ class AuthLister extends WebService
 
             return;
           }
-
+          
+          $accessPreviousId = "";
           while(odbc_fetch_row($resultset))
           {
-            $lastElement = "";
-
-            if(strtolower($this->mode) == "access_user")
+            $accessId = odbc_result($resultset, 1);
+            
+            if($accessPreviousId != $accessId)
             {
-              $lastElement = odbc_result($resultset, 7);
+              $accessPreviousId = $accessId;
+            
+              $lastElement = "";
+
+              if(strtolower($this->mode) == "access_user")
+              {
+                $lastElement = odbc_result($resultset, 7);
+              }
+
+              array_push($this->accesses, array (odbc_result($resultset, 1), 
+                                                 odbc_result($resultset, 2), 
+                                                 odbc_result($resultset, 3),
+                                                 odbc_result($resultset, 4), 
+                                                 odbc_result($resultset, 5), 
+                                                 odbc_result($resultset, 6), $lastElement));
             }
-
-            array_push($this->accesses,
-              array (odbc_result($resultset, 1), odbc_result($resultset, 2), odbc_result($resultset, 3),
-                odbc_result($resultset, 4), odbc_result($resultset, 5), odbc_result($resultset, 6), $lastElement));
+            else
+            {
+              array_push($this->accesses[$accessId], odbc_result($resultset, 8));
+            }
           }
-
+          /*
           foreach($this->accesses as $key => $access)
           {
             $query = "select ?webServiceAccess  from <" . $this->wsf_graph . ">
@@ -1121,7 +1147,7 @@ class AuthLister extends WebService
             {
               array_push($this->accesses[$key], odbc_result($resultset, 1));
             }
-          }
+          }*/
         }
       }
     }

@@ -59,6 +59,15 @@ if(isset($_GET['dataset']))
   $dataset = $_GET['dataset'];
 }
 
+
+$target_webservice = "all";
+
+if(isset($_GET['target_webservice']))
+{
+  $dataset = $_GET['target_webservice'];
+}
+
+
 $mtime = microtime();
 $mtime = explode(' ', $mtime);
 $mtime = $mtime[1] + $mtime[0];
@@ -91,7 +100,7 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_al = new AuthLister($mode, $dataset, $registered_ip, $requester_ip);
+$ws_al = new AuthLister($mode, $dataset, $registered_ip, $requester_ip, $target_webservice);
 
 $ws_al->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
   $_SERVER['HTTP_ACCEPT_LANGUAGE']);

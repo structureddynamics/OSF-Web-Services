@@ -492,40 +492,6 @@ switch($action)
               wsf:datasetAccess <$server_address/wsf/track/> .";
   break;
   
-  case "create_ontology_delete_ws":
-    $rdf =
-      "@prefix wsf: <http://purl.org/ontology/wsf#> .
-            @prefix void: <http://rdfs.org/ns/void#> .
-            @prefix dcterms: <http://purl.org/dc/terms/> .
-            @prefix foaf: <http://xmlns.com/foaf/0.1/> .
-            @prefix owl: <http://www.w3.org/2002/07/owl#> .
-            @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-            @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-            @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-            
-            <$server_address/wsf/> wsf:hasWebService <$server_address/wsf/ws/ontology/delete/> .
-              
-            <$server_address/wsf/ws/ontology/delete/> rdf:type wsf:WebService ;
-              dcterms:title \"Ontology Delete web service\" ;
-              wsf:endpoint \"\"\"$server_address/ws/ontology/delete/\"\"\";
-              wsf:hasCrudUsage <$server_address/wsf/usage/ontology/delete/> .
-            
-            <$server_address/wsf/usage/ontology/delete/> rdf:type wsf:CrudUsage ;
-              wsf:create \"False\" ;
-              wsf:read \"False\" ;
-              wsf:update \"False\" ;
-              wsf:delete \"True\" .                
-              
-            <$server_address/wsf/access/5b2b633495a58612b63724ef71729ea6103> rdf:type wsf:Access ;
-              wsf:registeredIP \"$wsf_local_ip\" ;
-              wsf:create \"True\" ;
-              wsf:read \"True\" ;
-              wsf:update \"True\" ;
-              wsf:delete \"True\" ;
-              wsf:webServiceAccess <$server_address/wsf/ws/ontology/delete/> ;
-              wsf:datasetAccess <$server_address/wsf/ontologies/> .";
-  break; 
-  
   case "create_world_accessible_ontology":
       $rdf = "@prefix wsf: <http://purl.org/ontology/wsf#> .
               @prefix void: <http://rdfs.org/ns/void#> .

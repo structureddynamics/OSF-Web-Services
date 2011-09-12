@@ -1064,7 +1064,7 @@ class AuthLister extends WebService
                             <http://purl.org/ontology/wsf#datasetAccess> <$this->dataset> .
                     }";
           }
-
+         // DebugBReak();
           $resultset =
             @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
               FALSE));
@@ -1093,6 +1093,7 @@ class AuthLister extends WebService
           }
           
           $accessPreviousId = "";
+
           while(odbc_fetch_row($resultset))
           {
             $accessId = odbc_result($resultset, 1);
@@ -1107,17 +1108,17 @@ class AuthLister extends WebService
               {
                 $lastElement = odbc_result($resultset, 7);
               }
-
-              array_push($this->accesses, array (odbc_result($resultset, 1), 
-                                                 odbc_result($resultset, 2), 
-                                                 odbc_result($resultset, 3),
-                                                 odbc_result($resultset, 4), 
-                                                 odbc_result($resultset, 5), 
-                                                 odbc_result($resultset, 6), $lastElement));
+              
+              $this->accesses[$accessId] = array (odbc_result($resultset, 1), 
+                                                  odbc_result($resultset, 2), 
+                                                  odbc_result($resultset, 3),
+                                                  odbc_result($resultset, 4), 
+                                                  odbc_result($resultset, 5), 
+                                                  odbc_result($resultset, 6), $lastElement);
             }
             else
             {
-              array_push($this->accesses[$accessId], odbc_result($resultset, 8));
+              array_push($this->accesses[$accessId], odbc_result($resultset, 7));
             }
           }
           /*

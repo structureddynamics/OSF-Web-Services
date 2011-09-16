@@ -630,7 +630,7 @@ class OntologyRead extends WebService
 
       break;
 
-      case "application/json":
+      case "application/json":                    
         $json_part = "";
         $xml = new ProcessorXML();
         $xml->loadXML($this->pipeline_getResultset());
@@ -1356,6 +1356,10 @@ class OntologyRead extends WebService
             
             case "descriptions":
               $this->subjectTriples = $ontology->getSubClassesDescription($this->parameters["uri"], (boolean)$this->parameters["direct"]);
+            break;
+
+            case "hierarchy":
+              $this->subjectTriples = $ontology->getSubClassesDescription($this->parameters["uri"], TRUE, TRUE);
             break;
             
             default:

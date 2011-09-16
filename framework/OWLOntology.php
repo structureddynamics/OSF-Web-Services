@@ -181,6 +181,13 @@ class OWLOntology
       
       // HermiT
       //$this->reasoner = new java("org.semanticweb.HermiT.Reasoner", $this->ontology);
+                                         
+      // Fact++ (Currently NOT WORKING)
+      //$FactppReasonnerFactory= new java("uk.ac.manchester.cs.factplusplus.owlapiv3.FaCTPlusPlusReasonerFactory", $this->ontology);
+      //$FactppReasonnerFactory = $FactppReasonnerFactory->getInstance();
+      //$this->reasoner = $FactppReasonnerFactory->createNonBufferingReasoner($this->ontology);
+      //$this->manager->addOntologyChangeListener($this->reasoner);
+      
       
       // Persist this ontology
       if(!is_null($OwlApiSession))
@@ -663,7 +670,7 @@ class OWLOntology
   *  
   * @author Frederick Giasson, Structured Dynamics LLC.
   */
-  public function getSubClassesDescription($uri, $direct = false)
+  public function getSubClassesDescription($uri, $direct = FALSE, $hierarchy = FALSE)
   {
     // Create a class object.
     $class = $this->owlDataFactory->getOWLClass(java("org.semanticweb.owlapi.model.IRI")->create($uri));
@@ -695,10 +702,17 @@ class OWLOntology
           continue;
         }
         
-        $classDescription[$subClassUri] = $this->_getClassDescription($subClass);
+        if($hierarchy)
+        {
+          $classDescription[$subClassUri] = $this->_getClassHierarchyDescription($subClass);
+        }
+        else
+        {
+          $classDescription[$subClassUri] = $this->_getClassDescription($subClass);
+        }
       }
     }
-    
+
     return($classDescription);
   }
   
@@ -2080,6 +2094,95 @@ class OWLOntology
   }
   
   /**
+  * Get the list of classes description for the sub-classes described in this ontology. 
+  * The class description being returned is a lightweight version of the full "description" 
+  * mode. The goal is to manipulate and transmit a simpler structure that would be used by 
+  * user interfaces that wants to display some parts of the hierarchy of an ontology. What 
+  * is returned is all the annotation properties (used to get some label to display for one
+  * of the sub-class) and a possible attribute: "sco:hasSubClass" which has "true" as value. 
+  * If this triple exists, it means that the sub-class has itself other subclasses (this is 
+  * mainly used to be able to display an "extend" button in a tree control).
+  * 
+  * The array is defined as:
+  *   
+  *   $classDescription = array(
+  *                              "predicate-uri" => array(
+  *                                                       array(
+  *                                                               "value" => "the value of the predicate",
+  *                                                               "datatype" => "the type of the value",
+  *                                                               "lang" => "language reference of the value (if literal)"
+  *                                                            ),
+  *                                                       array(...)
+  *                                                     ),
+  *                              "..." => array(...)
+  *                            )
+  * 
+  * @param mixed $class The OWLAPI class instance.
+  * 
+  * @see http://owlapi.sourceforge.net/javadoc/uk/ac/manchester/cs/owl/owlapi/OWLClassImpl.html
+  *  
+  * @author Frederick Giasson, Structured Dynamics LLC.
+  */
+  public function _getClassHierarchyDescription($class)
+  {
+    $classDescription = array();
+    
+    // Get the types of the entity
+    $classDescription[Namespaces::$rdf."type"] = array(array("value" => "owl:".$class->getEntityType()->getName(),
+                                                             "datatype" => "rdf:Resource",
+                                                             "lang" => ""));       
+    // Get all the annotations
+    $annotations = $class->getAnnotations($this->ontology);
+
+    foreach($annotations as $annotation)
+    {
+      $info = $this->getAnnotationInfo($annotation);
+      
+      if(is_array($classDescription[$info["property"]]) === FALSE)
+      {
+        $classDescription[$info["property"]] = array(); 
+      }
+
+      array_push($classDescription[$info["property"]], array("value" => $info["value"],
+                                                             "datatype" => $info["datatype"],
+                                                             "lang" => $info["lang"],
+                                                             "rei" => $info["rei"]));     
+    } 
+    
+    // Specify Super Classes Of properties   
+    if($this->useReasoner)
+    {
+      $subClasses = $this->reasoner->getSubClasses($class, TRUE); 
+      $subClasses = $subClasses->getFlattened();
+    } 
+    else
+    {
+      $subClasses = $class->getSubClasses($this->ontology);
+    }             
+
+    foreach($subClasses as $subClass)
+    {
+      if(java_instanceof($subClass, java("org.semanticweb.owlapi.model.OWLClass")))
+      {
+        $scUri = (string)java_values($subClass->toStringID());
+        
+        if($scUri == Namespaces::$owl."Nothing")
+        {
+          break;
+        }
+
+        $classDescription[Namespaces::$sco."hasSubClasses"] = array(array("value" => "true",
+                                                                          "datatype" => "rdf:Literal",
+                                                                          "lang" => "",
+                                                                          "rei" => ""));   
+        break;
+      }  
+    }    
+    
+    return($classDescription);  
+  }
+  
+  /**
   * Convert the OWLAPI class description into an array describing the class. This array is a simplification
   * of the OWLAPI that is used by other parts of this API, along with other scripts that uses this
   * API such as the various ontology related structWSF endpoints.
@@ -2181,7 +2284,7 @@ class OWLOntology
     }             
     
     foreach($subClasses as $subClass)
-    {
+    {      
       if(java_instanceof($subClass, java("org.semanticweb.owlapi.model.OWLClass")))
       {
         $scUri = (string)java_values($subClass->toStringID());
@@ -2249,7 +2352,7 @@ class OWLOntology
     }  
     
     return($classDescription);  
-  }
+  }  
   
   /**
   * Convert the OWLAPI ontology description into an array describing the ontology's annotations. This array 

@@ -102,7 +102,7 @@ class OntologyRead extends WebService
                           "description": "Unsupported type used for this query"
                         },                        
                         "_300": {
-                          "id": "WS-CRUD-READ-300",
+                          "id": "WS-ONTOLOGY-READ-300",
                           "level": "Warning",
                           "name": "Target ontology not loaded",
                           "description": "The target ontology is not loaded into the ontological structure of this instance."

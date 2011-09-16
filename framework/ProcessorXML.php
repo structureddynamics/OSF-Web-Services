@@ -310,14 +310,14 @@ class ProcessorXML
     // Get all prefixes for this XML document.
     $prefixPos = 0;
 
-    while (($prefixPos = stripos($xml_doc, "<prefix", $prefixPos)) !== FALSE)
+    while (($prefixPos = strpos($xml_doc, "<prefix", $prefixPos)) !== FALSE)
     {
-      $entityPosStart = stripos($xml_doc, 'entity="', $prefixPos);
-      $entityPosEnd = stripos($xml_doc, '"', $entityPosStart + 9);
+      $entityPosStart = strpos($xml_doc, 'entity="', $prefixPos);
+      $entityPosEnd = strpos($xml_doc, '"', $entityPosStart + 9);
       $entity = substr($xml_doc, $entityPosStart + 8, ($entityPosEnd - $entityPosStart - 8));
 
-      $uriPosStart = stripos($xml_doc, 'uri="', $entityPosEnd);
-      $uriPosEnd = stripos($xml_doc, '"', $uriPosStart + 6);
+      $uriPosStart = strpos($xml_doc, 'uri="', $entityPosEnd);
+      $uriPosEnd = strpos($xml_doc, '"', $uriPosStart + 6);
       $uri = substr($xml_doc, $uriPosStart + 5, ($uriPosEnd - $uriPosStart - 5));
 
       $prefixPos = $uriPosEnd;
@@ -825,7 +825,7 @@ class ProcessorXML
         {
           foreach ($this->prefixes as $entity => $uri)
           {
-            if (stripos($node->attributes->getNamedItem("type")->nodeValue, $uri) !== FALSE)
+            if (strpos($node->attributes->getNamedItem("type")->nodeValue, $uri) !== FALSE)
             {
               return (str_replace($uri, $entity . ":", $node->attributes->getNamedItem("type")->nodeValue));
             }

@@ -115,6 +115,14 @@ class Search extends WebService
   
   /*! @brief Attributes URI for which we want the aggregations of their values */
   public $aggregateAttributes = array();
+  
+  /*! @brief Specifies the type of the aggregated values for the list of aggregate attributes requested
+             for this query. This value can be: (1) "literal" or, (2) "uri" */
+  public $aggregateAttributesObjectType = "literal";
+  
+  /*! @brief Number of aggregated values to return for each attribute of the list of aggregated attributes requested
+             for this query. If this value is "-1", then it means all the possible values. */
+  public $aggregateAttributesNb = 10;
 
   /*! @brief Supported serialization mime types by this Web service */
   public static $supportedSerializations =
@@ -204,7 +212,8 @@ class Search extends WebService
   function __construct($query, $types, $attributes, $datasets, $items, $page, $inference, $include_aggregates,
                        $registered_ip, $requester_ip, $distanceFilter = "", $rangeFilter = "", 
                        $aggregate_attributes = "", $attributesBooleanOperator = "and",
-                       $includeAttributesList = "")
+                       $includeAttributesList = "", $aggregate_attributes_object_type = "literal",
+                       $aggregate_attributes_nb = 10)
   {
     parent::__construct();
  
@@ -216,6 +225,8 @@ class Search extends WebService
     $this->inference = $inference;
     $this->includeAggregates = $include_aggregates;
     $this->attributesBooleanOperator = strtoupper($attributesBooleanOperator);
+    $this->aggregateAttributesObjectType = $aggregate_attributes_object_type;
+    $this->aggregateAttributesNb = $aggregate_attributes_nb;
     
     if($includeAttributesList != "")
     {
@@ -228,7 +239,14 @@ class Search extends WebService
       
       for($i = 0; $i < count($aas); $i++)
       {
-        $aas[$i] = $aas[$i]."_attr_facets";
+        if($this->aggregateAttributesObjectType == "uri")
+        {
+          $aas[$i] = $aas[$i]."_attr_obj_uri";
+        }
+        else // "literal" and all other unknown type
+        {
+          $aas[$i] = $aas[$i]."_attr_facets";
+        }
       }
       
       $this->aggregateAttributes = $aas;
@@ -625,17 +643,27 @@ class Search extends WebService
         {
           $subject =
             $xml->createSubject("http://purl.org/ontology/aggregate#Aggregate", $aggregatesUri . "/" . md5($ftype) . "/");
-
+                                                                                 
           $pred = $xml->createPredicate("http://purl.org/ontology/aggregate#property");
-          $object = $xml->createObject("", str_replace("_attr_facets", "", urldecode($attribute)));
+          $object = $xml->createObject("", str_replace(array("_attr_facets", "_attr_obj_uri"), "", urldecode($attribute)));
           $pred->appendChild($object);
           $subject->appendChild($pred);
 
-          $pred = $xml->createPredicate("http://purl.org/ontology/aggregate#object");
-          $object = $xml->createObjectContent($ftype);
-          $pred->appendChild($object);
-          $subject->appendChild($pred);
-
+          if($this->aggregateAttributesObjectType == "uri")
+          {          
+            $pred = $xml->createPredicate("http://purl.org/ontology/aggregate#object");
+            $object = $xml->createObject("", $ftype);
+            $pred->appendChild($object);
+            $subject->appendChild($pred);                
+          }
+          else
+          {
+            $pred = $xml->createPredicate("http://purl.org/ontology/aggregate#object");
+            $object = $xml->createObjectContent($ftype);
+            $pred->appendChild($object);
+            $subject->appendChild($pred);
+          }          
+            
           $pred = $xml->createPredicate("http://purl.org/ontology/aggregate#count");
           $object = $xml->createObjectContent($fcount);
           $pred->appendChild($object);
@@ -1918,16 +1946,15 @@ class Search extends WebService
         
         $solrQuery .= "&fq=lat:[".$p1." TO ".$p2."]&fq=long:[".$p3." TO ".$p4."]";
       }
-      
+
       // Add the attribute/value aggregates if needed
-      if(count($this->aggregateAttributes) > 0 && $this->includeAggregates) 
+      if(count($this->aggregateAttributes) > 0 && strtolower($this->includeAggregates) == "true") 
       {
         foreach($this->aggregateAttributes as $attribute)
         {
           $solrQuery .= "&facet.field=".urlencode($attribute);
-          $solrQuery .= "&f.".urlencode($attribute).".facet.limit=10";
+          $solrQuery .= "&f.".urlencode($attribute).".facet.limit=".$this->aggregateAttributesNb;
         }
-
       }
       
       // Only return these fields in the resultset

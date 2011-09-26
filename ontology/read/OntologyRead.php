@@ -388,17 +388,17 @@ class OntologyRead extends WebService
           }
         }
       }
-      
-      // Creation of the prefixes elements.
-      foreach($this->namespaces as $uri => $prefix)
-      {
-        $ns = $xml->createPrefix($prefix, $uri);
-        $resultset->appendChild($ns);
-      }      
 
       $resultset->appendChild($subject);
     }
 
+    // Creation of the prefixes elements.
+    foreach($this->namespaces as $uri => $prefix)
+    {
+      $ns = $xml->createPrefix($prefix, $uri);
+      $resultset->appendChild($ns);
+    }          
+    
     return ($this->injectDoctype($xml->saveXML($resultset)));
   }
 

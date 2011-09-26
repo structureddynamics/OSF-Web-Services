@@ -636,7 +636,7 @@ class OntologyCreate extends WebService
 
           // However, maybe there is an issue with the server handling that file tht lead to some kind of infinite 
           // or near infinite loop; so we have to limit the execution time of this procedure to 45 mins.
-          set_time_limit(2700);        
+          set_time_limit(86400);    
 
           // Get the description of the classes, properties and named individuals of this ontology.
 
@@ -646,164 +646,397 @@ class OntologyCreate extends WebService
           include_once("../../framework/Namespaces.php");
           include_once("../../framework/Solr.php");
           include_once("../../framework/ClassHierarchy.php");
+                    
+          // Check the size of the Ontology file to import. If the size is bigger than 6MB, then we will
+          // use another method that incurs some Virtuoso indexing. If it is the case, you have to make sure
+          // that Virtuoso is properly configured so that it can access (DirsAllowed Virtuoso config option)
+          // the folder where the ontology file has been saved.
 
-          $nbClasses = $ontology->getNbClasses();
-          $sliceSize = 200;
-          
-          // Note: in OntologyCreate, we have to merge all the classes, properties and named individuals
-          //       together. This is needed to properly handle possible punning used in imported ontologies.
-          //       If we don't do this, and that a resource is both a class and an individual, then only
-          //       the individual will be in the Solr index because it would overwrite the Class 
-          //       record document with the same URI.
-          
-          $rdfxmlParser = ARC2::getRDFParser();
-          $rdfxmlSerializer = ARC2::getRDFXMLSerializer();
-          
-          $resourcesIndex = $rdfxmlParser->getSimpleIndex(0);
-          
-          for($i = 0; $i < $nbClasses; $i += $sliceSize)
+          if(filesize($this->ontologyUri) > 6000000)
           {
-            $ontologyRead =
-              new OntologyRead($this->ontologyUri, "getClasses", "mode=descriptions;limit=$sliceSize;offset=$i",
-                $this->registered_ip, $this->requester_ip);
+            $sliceSize = 100;          
 
-            // Since we are in pipeline mode, we have to set the owlapisession using the current one.
-            // otherwise the java bridge will return an error
-            $ontologyRead->setOwlApiSession($OwlApiSession);
-
-            $ontologyRead->ws_conneg("application/rdf+xml", $_SERVER['HTTP_ACCEPT_CHARSET'],
-              $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
-
-            $ontologyRead->process();
-
-            $classesRDF = $ontologyRead->ws_serialize();
-
-            $rdfxmlParser->parse($this->ontologyUri, $classesRDF);
-            $resourceIndex = $rdfxmlParser->getSimpleIndex(0);
-            $resourcesIndex = ARC2::getMergedIndex($resourcesIndex, $resourceIndex);
+            // Import the big file into Virtuoso  
+            $sqlQuery = "DB.DBA.RDF_LOAD_RDFXML_MT(file_to_string_output('".str_replace("file://localhost", "", $this->ontologyUri)."'),'".$this->ontologyUri."/import','".$this->ontologyUri."/import')";
             
-            unset($ontologyRead);
-          }
-
-          $nbProperties = 0;
-          $nbProperties += $ontology->getNbObjectProperties();
-          $nbProperties += $ontology->getNbDataProperties();
-          $nbProperties += $ontology->getNbAnnotationProperties();
-          $sliceSize = 200;
-
-          for($i = 0; $i < $nbProperties; $i += $sliceSize)
-          {
-            $ontologyRead = new OntologyRead($this->ontologyUri, "getProperties",
-              "mode=descriptions;limit=$sliceSize;offset=$i;type=all", $this->registered_ip, $this->requester_ip);
-
-            // Since we are in pipeline mode, we have to set the owlapisession using the current one.
-            // otherwise the java bridge will return an error
-            $ontologyRead->setOwlApiSession($OwlApiSession);
-
-            $ontologyRead->ws_conneg("application/rdf+xml", $_SERVER['HTTP_ACCEPT_CHARSET'],
-              $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
-
-            $ontologyRead->process();
-
-            $propertiesRDF = $ontologyRead->ws_serialize();
-
-            $rdfxmlParser->parse($this->ontologyUri, $propertiesRDF);
-            $resourceIndex = $rdfxmlParser->getSimpleIndex(0);
-            $resourcesIndex = ARC2::getMergedIndex($resourcesIndex, $resourceIndex);            
+            $resultset = $this->db->query($sqlQuery);
             
-            unset($ontologyRead);
-          }
-
-          $nbNamedIndividuals = $ontology->getNbNamedIndividuals();
-          $sliceSize = 200;
-
-          for($i = 0; $i < $nbNamedIndividuals; $i += $sliceSize)
-          {
-            $ontologyRead = new OntologyRead($this->ontologyUri, "getNamedIndividuals",
-              "classuri=all;mode=descriptions;limit=$sliceSize;offset=$i", $this->registered_ip, $this->requester_ip);
-
-            // Since we are in pipeline mode, we have to set the owlapisession using the current one.
-            // otherwise the java bridge will return an error
-            $ontologyRead->setOwlApiSession($OwlApiSession);
-
-            $ontologyRead->ws_conneg("application/rdf+xml", $_SERVER['HTTP_ACCEPT_CHARSET'],
-              $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
-
-            $ontologyRead->process();
-
-            $namedIndividualsRDF = $ontologyRead->ws_serialize();
-            
-            $rdfxmlParser->parse($this->ontologyUri, $namedIndividualsRDF);
-            $resourceIndex = $rdfxmlParser->getSimpleIndex(0);
-            $resourcesIndex = ARC2::getMergedIndex($resourcesIndex, $resourceIndex);              
-
-            unset($ontologyRead);
-          }
-          
-          // Now, let's index the resources of this ontology within structWSF (for the usage of browse, search 
-          // and sparql)
-          
-          // Split the aggregated resources in multiple slices
-          $nbResources = count($resourcesIndex);
-          $sliceSize = 200;
-                                         
-          for($i = 0; $i < $nbResources; $i += $sliceSize)
-          {
-            $slicedResourcesIndex = array_slice($resourcesIndex, $i, $sliceSize);
-            
-            $resourcesRDF = $rdfxmlSerializer->getSerializedIndex($slicedResourcesIndex);
-            
-            $crudCreate =
-              new CrudCreate($resourcesRDF, "application/rdf+xml", "full", $this->ontologyUri, $this->registered_ip,
-                $this->requester_ip);
-
-            $crudCreate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'],
-              $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
-
-            $crudCreate->process();
-
-            if($crudCreate->pipeline_getResponseHeaderStatus() != 200)
+            if(odbc_error())
             {
-              $this->conneg->setStatus($crudCreate->pipeline_getResponseHeaderStatus());
-              $this->conneg->setStatusMsg($crudCreate->pipeline_getResponseHeaderStatusMsg());
-              $this->conneg->setStatusMsgExt($crudCreate->pipeline_getResponseHeaderStatusMsgExt());
-              $this->conneg->setError($crudCreate->pipeline_getError()->id,
-                $crudCreate->pipeline_getError()->webservice, $crudCreate->pipeline_getError()->name,
-                $crudCreate->pipeline_getError()->description, $crudCreate->pipeline_getError()->debugInfo,
-                $crudCreate->pipeline_getError()->level);
+              // If there is an error, try to load it using the Turtle parser
+              $sqlQuery = "DB.DBA.TTLP_MT(file_to_string_output('".str_replace("file://localhost", "", $this->ontologyUri)."'),'".$this->ontologyUri."/import','".$this->ontologyUri."/import')";
+              
+              $resultset = $this->db->query($sqlQuery);
+              
+              if(odbc_error())
+              {
+  //            echo "Error: can't import the file: $file, into the triple store.\n";
+  //            return;
+              }            
+            }    
+            
+            unset($resultset);     
 
-              // In case of error, we delete the dataset we previously created.
-              include_once("../../ontology/delete/OntologyDelete.php");
+            // count the number of records
+            $sparqlQuery = "
+            
+              select count(distinct ?s) as ?nb from <".$this->ontologyUri."/import>
+              where
+              {
+                ?s a ?o .
+              }
+            
+            ";
 
-              $ontologyDelete = new OntologyDelete($this->ontologyUri, $this->registered_ip, $this->requester_ip);
+            $resultset = $this->db->query($this->db->build_sparql_query($sparqlQuery, array ('nb'), FALSE));
+            
+            $nb = odbc_result($resultset, 1);
 
-              $ontologyDelete->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'],
+            unset($resultset);
+            
+            $nbRecordsDone = 0;
+            
+            while($nbRecordsDone < $nb && $nb > 0)
+            {
+              // Create slices of 100 records.
+              $sparqlQuery = "
+                
+                select ?s ?p ?o (DATATYPE(?o)) as ?otype (LANG(?o)) as ?olang
+                where 
+                {
+                  {
+                    select distinct ?s from <".$this->ontologyUri."/import> 
+                    where 
+                    {
+                      ?s a ?type.
+                    } 
+                    limit ".$sliceSize." 
+                    offset ".$nbRecordsDone."
+                  } 
+                  
+                  ?s ?p ?o
+                }
+              
+              ";
+
+              $resultset = $this->db->query($this->db->build_sparql_query($sparqlQuery, array ('s', 'p', 'o', 'otype', 'olang'), FALSE));
+              
+              if(odbc_error())
+              {
+  //              echo "Error: can't get records slices.\n";
+  //              return;
+              }          
+              
+              $crudCreates = "";
+              $crudUpdates = "";
+              $crudDeletes = array();
+              
+              $rdfDocumentN3 = "";
+              
+              $currentSubject = "";
+              $subjectDescription = "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n";
+
+              while(odbc_fetch_row($resultset))
+              {
+                $s = odbc_result($resultset, 1);
+                $p = odbc_result($resultset, 2);
+                $o = odbc_result($resultset, 3);
+                $otype = odbc_result($resultset, 4);
+                $olang = odbc_result($resultset, 5);
+                
+                if($otype != "" || $olang != "")
+                {
+                  $subjectDescription .= "<$s> <$p> \"\"\"".$this->n3Encode($o)."\"\"\" .\n";
+                }
+                else
+                {
+                  $subjectDescription .= "<$s> <$p> <$o> .\n";
+                }
+              }  
+              
+              unset($resultset);  
+
+             
+              include_once("../../framework/WebServiceQuerier.php");           
+              
+              $wsq = new WebServiceQuerier(rtrim($this->wsf_base_url, "/") . "/ws/crud/create/", "post",
+                "application/rdf+xml", 
+                "document=" . urlencode($subjectDescription) .
+                "&dataset=" . urlencode($this->ontologyUri) .
+                "&mime=" . urlencode("application/rdf+n3") .
+                "&mode=full" .
+                "&registered_ip=" . urlencode($this->registered_ip));
+
+              if($wsq->getStatus() != 200)
+              {
+                $this->conneg->setStatus($wsq->getStatus());
+                $this->conneg->setStatusMsg($wsq->getStatusMessage());
+                $this->conneg->setStatusMsgExt($wsq->getStatusMessageDescription());
+                /*
+                $this->conneg->setError($wsq->pipeline_getError()->id,
+                  $crudCreate->pipeline_getError()->webservice, $crudCreate->pipeline_getError()->name,
+                  $crudCreate->pipeline_getError()->description, $crudCreate->pipeline_getError()->debugInfo,
+                  $crudCreate->pipeline_getError()->level);               
+                */
+                
+                // In case of error, we delete the dataset we previously created.
+                include_once("../../ontology/delete/OntologyDelete.php");
+
+                $ontologyDelete = new OntologyDelete($this->ontologyUri, $this->registered_ip, $this->requester_ip);
+
+                $ontologyDelete->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'],
+                  $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+
+                $ontologyDelete->deleteOntology();
+
+                if($ontologyDelete->pipeline_getResponseHeaderStatus() != 200)
+                {
+                  $this->conneg->setStatus($ontologyDelete->pipeline_getResponseHeaderStatus());
+                  $this->conneg->setStatusMsg($ontologyDelete->pipeline_getResponseHeaderStatusMsg());
+                  $this->conneg->setStatusMsgExt($ontologyDelete->pipeline_getResponseHeaderStatusMsgExt());
+                  $this->conneg->setError($ontologyDelete->pipeline_getError()->id,
+                    $ontologyDelete->pipeline_getError()->webservice, $ontologyDelete->pipeline_getError()->name,
+                    $ontologyDelete->pipeline_getError()->description, $ontologyDelete->pipeline_getError()->debugInfo,
+                    $ontologyDelete->pipeline_getError()->level);
+
+                  //return;
+                }
+
+                //return;              
+              }              
+              
+              $nbRecordsDone += $sliceSize;
+            }
+          
+            // Now delete the graph we used to import the file
+
+            $sqlQuery = "sparql clear graph <".$this->ontologyUri."/import>";
+            
+            $resultset = $this->db->query($sqlQuery);
+
+            if(odbc_error())
+            {
+  //            echo "Error: can't delete the graph sued for importing the file\n";
+  //            return;
+            }    
+            
+            unset($resultset);    
+          }
+          else
+          {
+            $nbClasses = $ontology->getNbClasses();
+            $sliceSize = 200;
+            
+            // Note: in OntologyCreate, we have to merge all the classes, properties and named individuals
+            //       together. This is needed to properly handle possible punning used in imported ontologies.
+            //       If we don't do this, and that a resource is both a class and an individual, then only
+            //       the individual will be in the Solr index because it would overwrite the Class 
+            //       record document with the same URI.
+            
+            $rdfxmlParser = ARC2::getRDFParser();
+            $rdfxmlSerializer = ARC2::getRDFXMLSerializer();
+            
+            $resourcesIndex = $rdfxmlParser->getSimpleIndex(0);
+            
+            for($i = 0; $i < $nbClasses; $i += $sliceSize)
+            {
+              $ontologyRead =
+                new OntologyRead($this->ontologyUri, "getClasses", "mode=descriptions;limit=$sliceSize;offset=$i",
+                  $this->registered_ip, $this->requester_ip);
+
+              // Since we are in pipeline mode, we have to set the owlapisession using the current one.
+              // otherwise the java bridge will return an error
+              $ontologyRead->setOwlApiSession($OwlApiSession);
+
+              $ontologyRead->ws_conneg("application/rdf+xml", $_SERVER['HTTP_ACCEPT_CHARSET'],
                 $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
 
-              $ontologyDelete->deleteOntology();
+              $ontologyRead->process();
 
-              if($ontologyDelete->pipeline_getResponseHeaderStatus() != 200)
+              $classesRDF = $ontologyRead->ws_serialize();
+
+              $rdfxmlParser->parse($this->ontologyUri, $classesRDF);
+              $resourceIndex = $rdfxmlParser->getSimpleIndex(0);
+              $resourcesIndex = ARC2::getMergedIndex($resourcesIndex, $resourceIndex);
+              
+              unset($ontologyRead);
+            }
+
+            $nbProperties = 0;
+            $nbProperties += $ontology->getNbObjectProperties();
+            $nbProperties += $ontology->getNbDataProperties();
+            $nbProperties += $ontology->getNbAnnotationProperties();
+            $sliceSize = 200;
+
+            for($i = 0; $i < $nbProperties; $i += $sliceSize)
+            {
+              $ontologyRead = new OntologyRead($this->ontologyUri, "getProperties",
+                "mode=descriptions;limit=$sliceSize;offset=$i;type=all", $this->registered_ip, $this->requester_ip);
+
+              // Since we are in pipeline mode, we have to set the owlapisession using the current one.
+              // otherwise the java bridge will return an error
+              $ontologyRead->setOwlApiSession($OwlApiSession);
+
+              $ontologyRead->ws_conneg("application/rdf+xml", $_SERVER['HTTP_ACCEPT_CHARSET'],
+                $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+
+              $ontologyRead->process();
+
+              $propertiesRDF = $ontologyRead->ws_serialize();
+
+              $rdfxmlParser->parse($this->ontologyUri, $propertiesRDF);
+              $resourceIndex = $rdfxmlParser->getSimpleIndex(0);
+              $resourcesIndex = ARC2::getMergedIndex($resourcesIndex, $resourceIndex);            
+              
+              unset($ontologyRead);
+            }
+
+            $nbNamedIndividuals = $ontology->getNbNamedIndividuals();
+            $sliceSize = 200;
+
+            for($i = 0; $i < $nbNamedIndividuals; $i += $sliceSize)
+            {
+              $ontologyRead = new OntologyRead($this->ontologyUri, "getNamedIndividuals",
+                "classuri=all;mode=descriptions;limit=$sliceSize;offset=$i", $this->registered_ip, $this->requester_ip);
+
+              // Since we are in pipeline mode, we have to set the owlapisession using the current one.
+              // otherwise the java bridge will return an error
+              $ontologyRead->setOwlApiSession($OwlApiSession);
+
+              $ontologyRead->ws_conneg("application/rdf+xml", $_SERVER['HTTP_ACCEPT_CHARSET'],
+                $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+
+              $ontologyRead->process();
+
+              $namedIndividualsRDF = $ontologyRead->ws_serialize();
+              
+              $rdfxmlParser->parse($this->ontologyUri, $namedIndividualsRDF);
+              $resourceIndex = $rdfxmlParser->getSimpleIndex(0);
+              $resourcesIndex = ARC2::getMergedIndex($resourcesIndex, $resourceIndex);              
+
+              unset($ontologyRead);
+            }
+            
+            // Now, let's index the resources of this ontology within structWSF (for the usage of browse, search 
+            // and sparql)
+            
+            // Split the aggregated resources in multiple slices
+            $nbResources = count($resourcesIndex);
+            $sliceSize = 200;
+                                           
+            for($i = 0; $i < $nbResources; $i += $sliceSize)
+            {
+              $slicedResourcesIndex = array_slice($resourcesIndex, $i, $sliceSize);
+              
+              $resourcesRDF = $rdfxmlSerializer->getSerializedIndex($slicedResourcesIndex);
+              
+              $crudCreate =
+                new CrudCreate($resourcesRDF, "application/rdf+xml", "full", $this->ontologyUri, $this->registered_ip,
+                  $this->requester_ip);
+
+              $crudCreate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'],
+                $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+
+              $crudCreate->process();
+
+              if($crudCreate->pipeline_getResponseHeaderStatus() != 200)
               {
-                $this->conneg->setStatus($ontologyDelete->pipeline_getResponseHeaderStatus());
-                $this->conneg->setStatusMsg($ontologyDelete->pipeline_getResponseHeaderStatusMsg());
-                $this->conneg->setStatusMsgExt($ontologyDelete->pipeline_getResponseHeaderStatusMsgExt());
-                $this->conneg->setError($ontologyDelete->pipeline_getError()->id,
-                  $ontologyDelete->pipeline_getError()->webservice, $ontologyDelete->pipeline_getError()->name,
-                  $ontologyDelete->pipeline_getError()->description, $ontologyDelete->pipeline_getError()->debugInfo,
-                  $ontologyDelete->pipeline_getError()->level);
+                $this->conneg->setStatus($crudCreate->pipeline_getResponseHeaderStatus());
+                $this->conneg->setStatusMsg($crudCreate->pipeline_getResponseHeaderStatusMsg());
+                $this->conneg->setStatusMsgExt($crudCreate->pipeline_getResponseHeaderStatusMsgExt());
+                $this->conneg->setError($crudCreate->pipeline_getError()->id,
+                  $crudCreate->pipeline_getError()->webservice, $crudCreate->pipeline_getError()->name,
+                  $crudCreate->pipeline_getError()->description, $crudCreate->pipeline_getError()->debugInfo,
+                  $crudCreate->pipeline_getError()->level);
+
+                // In case of error, we delete the dataset we previously created.
+                include_once("../../ontology/delete/OntologyDelete.php");
+
+                $ontologyDelete = new OntologyDelete($this->ontologyUri, $this->registered_ip, $this->requester_ip);
+
+                $ontologyDelete->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'],
+                  $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+
+                $ontologyDelete->deleteOntology();
+
+                if($ontologyDelete->pipeline_getResponseHeaderStatus() != 200)
+                {
+                  $this->conneg->setStatus($ontologyDelete->pipeline_getResponseHeaderStatus());
+                  $this->conneg->setStatusMsg($ontologyDelete->pipeline_getResponseHeaderStatusMsg());
+                  $this->conneg->setStatusMsgExt($ontologyDelete->pipeline_getResponseHeaderStatusMsgExt());
+                  $this->conneg->setError($ontologyDelete->pipeline_getError()->id,
+                    $ontologyDelete->pipeline_getError()->webservice, $ontologyDelete->pipeline_getError()->name,
+                    $ontologyDelete->pipeline_getError()->description, $ontologyDelete->pipeline_getError()->debugInfo,
+                    $ontologyDelete->pipeline_getError()->level);
+
+                  return;
+                }
 
                 return;
               }
 
-              return;
+              unset($crudCreate);             
             }
-
-            unset($crudCreate);             
-          }         
+          }
         }
       }
     }
-  }
+  } 
+  
+  private function n3Encode($string)
+  {
+    return(trim(str_replace(array( "\\" ), "\\\\", $string), '"'));
+  }  
+  
+  private function indexRdfData($rdfContent)
+  {
+    $crudCreate =
+      new CrudCreate($rdfContent, "application/rdf+xml", "full", $this->ontologyUri, $this->registered_ip,
+        $this->requester_ip);
+
+    $crudCreate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'],
+      $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+
+    $crudCreate->process();
+
+    if($crudCreate->pipeline_getResponseHeaderStatus() != 200)
+    {
+      $this->conneg->setStatus($crudCreate->pipeline_getResponseHeaderStatus());
+      $this->conneg->setStatusMsg($crudCreate->pipeline_getResponseHeaderStatusMsg());
+      $this->conneg->setStatusMsgExt($crudCreate->pipeline_getResponseHeaderStatusMsgExt());
+      $this->conneg->setError($crudCreate->pipeline_getError()->id,
+        $crudCreate->pipeline_getError()->webservice, $crudCreate->pipeline_getError()->name,
+        $crudCreate->pipeline_getError()->description, $crudCreate->pipeline_getError()->debugInfo,
+        $crudCreate->pipeline_getError()->level);
+
+      // In case of error, we delete the dataset we previously created.
+      include_once("../../ontology/delete/OntologyDelete.php");
+
+      $ontologyDelete = new OntologyDelete($this->ontologyUri, $this->registered_ip, $this->requester_ip);
+
+      $ontologyDelete->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'],
+        $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+
+      $ontologyDelete->deleteOntology();
+
+      if($ontologyDelete->pipeline_getResponseHeaderStatus() != 200)
+      {
+        $this->conneg->setStatus($ontologyDelete->pipeline_getResponseHeaderStatus());
+        $this->conneg->setStatusMsg($ontologyDelete->pipeline_getResponseHeaderStatusMsg());
+        $this->conneg->setStatusMsgExt($ontologyDelete->pipeline_getResponseHeaderStatusMsgExt());
+        $this->conneg->setError($ontologyDelete->pipeline_getError()->id,
+          $ontologyDelete->pipeline_getError()->webservice, $ontologyDelete->pipeline_getError()->name,
+          $ontologyDelete->pipeline_getError()->description, $ontologyDelete->pipeline_getError()->debugInfo,
+          $ontologyDelete->pipeline_getError()->level);
+
+        return(FALSE);
+      }
+
+      return(FALSE);
+    }
+
+    unset($crudCreate);              
+  }  
 
   /*! @brief Get the preferred label for a resource (class, proeperty, instance).
   

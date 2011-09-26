@@ -1064,7 +1064,7 @@ class AuthLister extends WebService
                             <http://purl.org/ontology/wsf#datasetAccess> <$this->dataset> .
                     }";
           }
-         // DebugBReak();
+
           $resultset =
             @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
               FALSE));
@@ -1105,20 +1105,43 @@ class AuthLister extends WebService
               $lastElement = "";
 
               if(strtolower($this->mode) == "access_user")
+              {                
+                $this->accesses[$accessId] = array (odbc_result($resultset, 1),   // Access URI
+                                                    odbc_result($resultset, 2),   // Dataset URI
+                                                    odbc_result($resultset, 3),   // Create
+                                                    odbc_result($resultset, 4),   // Read
+                                                    odbc_result($resultset, 5),   // Update
+                                                    odbc_result($resultset, 6),   // Delete
+                                                    odbc_result($resultset, 7));  // Registered IP
+                                                    
+                if($this->targetWebservice == "all")
+                {                                                    
+                  array_push($this->accesses[$accessId], odbc_result($resultset, 8)); // Web service access URI
+                }
+              }
+              else
               {
-                $lastElement = odbc_result($resultset, 7);
+                $this->accesses[$accessId] = array (odbc_result($resultset, 1),   // Access URI
+                                                    odbc_result($resultset, 2),   // Registered IP
+                                                    odbc_result($resultset, 3),   // Create
+                                                    odbc_result($resultset, 4),   // Read
+                                                    odbc_result($resultset, 5),   // Update
+                                                    odbc_result($resultset, 6),   // Delete
+                                                    "");                          // Empty (padding)
               }
               
-              $this->accesses[$accessId] = array (odbc_result($resultset, 1), 
-                                                  odbc_result($resultset, 2), 
-                                                  odbc_result($resultset, 3),
-                                                  odbc_result($resultset, 4), 
-                                                  odbc_result($resultset, 5), 
-                                                  odbc_result($resultset, 6), $lastElement);
+
             }
             else
             {
-              array_push($this->accesses[$accessId], odbc_result($resultset, 7));
+              if(strtolower($this->mode) == "access_user")
+              {              
+                array_push($this->accesses[$accessId], odbc_result($resultset, 8));
+              }
+              else
+              {
+                array_push($this->accesses[$accessId], odbc_result($resultset, 7));
+              }
             }
           }
           /*

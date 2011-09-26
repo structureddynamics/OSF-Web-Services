@@ -147,6 +147,21 @@ if(isset($_POST['include_attributes_list']))
   $includeAttributesList = $_POST['include_attributes_list'];
 }
 
+$aggregateAttributesObjectType = "literal";
+
+if(isset($_POST['aggregate_attributes_object_type']))
+{
+  $aggregateAttributesObjectType = $_POST['aggregate_attributes_object_type'];
+}
+
+$aggregateAttributesNb = "literal";
+
+if(isset($_POST['aggregate_attributes_object_nb']))
+{
+  $aggregateAttributesNb = $_POST['aggregate_attributes_object_nb'];
+}
+
+
 // Optional IP
 $registered_ip = "";
 
@@ -189,7 +204,8 @@ elseif(isset($_SERVER['PHP_SELF']))
 
 $ws_s = new Search($query, $types, $attributes, $datasets, $items, $page, $inference, $include_aggregates, 
                    $registered_ip, $requester_ip, $distanceFilter, $rangeFilter, $aggregate_attributes, 
-                   $attributesBooleanOperator, $includeAttributesList);
+                   $attributesBooleanOperator, $includeAttributesList,$aggregateAttributesObjectType,
+                   $aggregateAttributesNb);
 
 $ws_s->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
   $_SERVER['HTTP_ACCEPT_LANGUAGE']);

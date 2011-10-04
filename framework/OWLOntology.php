@@ -1183,7 +1183,7 @@ class OWLOntology
       
       if($this->useReasoner)
       {
-        $superProperties = $this->reasoner->getSuperDataProperties($class, $direct); 
+        $superProperties = $this->reasoner->getSuperDataProperties($property, $direct); 
       } 
       else
       {
@@ -1197,7 +1197,7 @@ class OWLOntology
       
       if($this->useReasoner)
       {
-        $superProperties = $this->reasoner->getSuperObjectProperties($class, $direct); 
+        $superProperties = $this->reasoner->getSuperObjectProperties($property, $direct); 
       } 
       else
       {
@@ -1289,7 +1289,7 @@ class OWLOntology
       
       if($this->useReasoner)
       {
-        $superProperties = $this->reasoner->getSuperDataProperties($class, $direct); 
+        $superProperties = $this->reasoner->getSuperDataProperties($property, $direct); 
       } 
       else
       {
@@ -1303,7 +1303,7 @@ class OWLOntology
       
       if($this->useReasoner)
       {
-        $superProperties = $this->reasoner->getSuperObjectProperties($class, $direct); 
+        $superProperties = $this->reasoner->getSuperObjectProperties($property, $direct); 
       } 
       else
       {

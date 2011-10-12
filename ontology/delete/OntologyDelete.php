@@ -483,9 +483,9 @@ class OntologyDelete extends WebService
       $this->ontology->removeProperty($uri);
 
       // Check to delete potential datasets that have been created within structWSF
-      include_once("../../crud/delete/CrudDelete.php");
-      include_once("../../dataset/read/DatasetRead.php");
-      include_once("../../framework/Solr.php");
+      include_once($this->wsf_base_path."crud/delete/CrudDelete.php");
+      include_once($this->wsf_base_path."dataset/read/DatasetRead.php");
+      include_once($this->wsf_base_path."framework/Solr.php");
 
       $crudDelete =
         new CrudDelete($uri, $this->ontologyUri, $this->registered_ip, $this->requester_ip);
@@ -538,9 +538,9 @@ class OntologyDelete extends WebService
       $this->ontology->removeClass($uri);
 
       // Check to delete potential datasets that have been created within structWSF
-      include_once("../../crud/delete/CrudDelete.php");
-      include_once("../../dataset/read/DatasetRead.php");
-      include_once("../../framework/Solr.php");
+      include_once($this->wsf_base_path."crud/delete/CrudDelete.php");
+      include_once($this->wsf_base_path."dataset/read/DatasetRead.php");
+      include_once($this->wsf_base_path."framework/Solr.php");
 
       $crudDelete = new CrudDelete($uri, $this->ontologyUri, $this->registered_ip, $this->requester_ip);
 
@@ -593,9 +593,9 @@ class OntologyDelete extends WebService
         FALSE));    
 
       // Check to delete potential datasets that have been created within structWSF
-      include_once("../../dataset/delete/DatasetDelete.php");
-      include_once("../../auth/registrar/access/AuthRegistrarAccess.php");
-      include_once("../../framework/Solr.php");
+      include_once($this->wsf_base_path."dataset/delete/DatasetDelete.php");
+      include_once($this->wsf_base_path."auth/registrar/access/AuthRegistrarAccess.php");
+      include_once($this->wsf_base_path."framework/Solr.php");
 
       $datasetDelete = new DatasetDelete($this->ontologyUri, $this->registered_ip, $this->requester_ip);
 

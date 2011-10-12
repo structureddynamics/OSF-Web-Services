@@ -255,7 +255,7 @@ class CrudRead extends WebService
      */
     if($this->globalDataset === TRUE)
     {
-      include_once("../../auth/lister/AuthLister.php");
+      include_once($this->wsf_base_path."auth/lister/AuthLister.php");
 
       $ws_al = new AuthLister("access_user", "", $this->registered_ip, $this->wsf_local_ip, "none");
 
@@ -691,12 +691,12 @@ class CrudRead extends WebService
     {
       case "application/bib+json":
       case "application/iron+json":
-        include_once("../../converter/irjson/ConverterIrJSON.php");
-        include_once("../../converter/irjson/Dataset.php");
-        include_once("../../converter/irjson/InstanceRecord.php");
-        include_once("../../converter/irjson/LinkageSchema.php");
-        include_once("../../converter/irjson/StructureSchema.php");
-        include_once("../../converter/irjson/irJSONParser.php");
+        include_once($this->wsf_base_path."converter/irjson/ConverterIrJSON.php");
+        include_once($this->wsf_base_path."converter/irjson/Dataset.php");
+        include_once($this->wsf_base_path."converter/irjson/InstanceRecord.php");
+        include_once($this->wsf_base_path."converter/irjson/LinkageSchema.php");
+        include_once($this->wsf_base_path."converter/irjson/StructureSchema.php");
+        include_once($this->wsf_base_path."converter/irjson/irJSONParser.php");
 
         // Include more information about the dataset (at least the ID)
         $documentToConvert = $this->pipeline_getResultset();

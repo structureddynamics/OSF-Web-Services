@@ -478,7 +478,7 @@ class OntologyCreate extends WebService
         $ontologyDescription = $this->getDescription($ontologyDescription);
 
         // Get the list of webservices that will be accessible for this ontology dataset.
-        include_once("../../auth/lister/AuthLister.php");
+        include_once($this->wsf_base_path."auth/lister/AuthLister.php");
 
         $authLister = new AuthLister("ws", $this->ontologyUri, $this->requester_ip, $this->wsf_local_ip);
 
@@ -531,8 +531,8 @@ class OntologyCreate extends WebService
         unset($authLister);
 
         // Create a new dataset for this ontology
-        include_once("../../dataset/create/DatasetCreate.php");
-        include_once("../../auth/registrar/access/AuthRegistrarAccess.php");
+        include_once($this->wsf_base_path."dataset/create/DatasetCreate.php");
+        include_once($this->wsf_base_path."auth/registrar/access/AuthRegistrarAccess.php");
 
         $globalPermissions = "";
         
@@ -640,12 +640,12 @@ class OntologyCreate extends WebService
 
           // Get the description of the classes, properties and named individuals of this ontology.
 
-          include_once("../../ontology/read/OntologyRead.php");
-          include_once("../../crud/create/CrudCreate.php");
-          include_once("../../framework/arc2/ARC2.php");
-          include_once("../../framework/Namespaces.php");
-          include_once("../../framework/Solr.php");
-          include_once("../../framework/ClassHierarchy.php");
+          include_once($this->wsf_base_path."ontology/read/OntologyRead.php");
+          include_once($this->wsf_base_path."crud/create/CrudCreate.php");
+          include_once($this->wsf_base_path."framework/arc2/ARC2.php");
+          include_once($this->wsf_base_path."framework/Namespaces.php");
+          include_once($this->wsf_base_path."framework/Solr.php");
+          include_once($this->wsf_base_path."framework/ClassHierarchy.php");
                     
           // Check the size of the Ontology file to import. If the size is bigger than 6MB, then we will
           // use another method that incurs some Virtuoso indexing. If it is the case, you have to make sure
@@ -757,7 +757,7 @@ class OntologyCreate extends WebService
               unset($resultset);  
 
              
-              include_once("../../framework/WebServiceQuerier.php");           
+              include_once($this->wsf_base_path."framework/WebServiceQuerier.php");           
               
               $wsq = new WebServiceQuerier(rtrim($this->wsf_base_url, "/") . "/ws/crud/create/", "post",
                 "application/rdf+xml", 
@@ -780,7 +780,7 @@ class OntologyCreate extends WebService
                 */
                 
                 // In case of error, we delete the dataset we previously created.
-                include_once("../../ontology/delete/OntologyDelete.php");
+                include_once($this->wsf_base_path."ontology/delete/OntologyDelete.php");
 
                 $ontologyDelete = new OntologyDelete($this->ontologyUri, $this->registered_ip, $this->requester_ip);
 
@@ -950,7 +950,7 @@ class OntologyCreate extends WebService
                   $crudCreate->pipeline_getError()->level);
 
                 // In case of error, we delete the dataset we previously created.
-                include_once("../../ontology/delete/OntologyDelete.php");
+                include_once($this->wsf_base_path."ontology/delete/OntologyDelete.php");
 
                 $ontologyDelete = new OntologyDelete($this->ontologyUri, $this->registered_ip, $this->requester_ip);
 
@@ -1010,7 +1010,7 @@ class OntologyCreate extends WebService
         $crudCreate->pipeline_getError()->level);
 
       // In case of error, we delete the dataset we previously created.
-      include_once("../../ontology/delete/OntologyDelete.php");
+      include_once($this->wsf_base_path."ontology/delete/OntologyDelete.php");
 
       $ontologyDelete = new OntologyDelete($this->ontologyUri, $this->registered_ip, $this->requester_ip);
 

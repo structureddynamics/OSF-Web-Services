@@ -519,7 +519,7 @@ class OntologyUpdate extends WebService
         }
         
         // Get the description of the newly updated entity.
-        include_once("../read/OntologyRead.php");
+        include_once($this->wsf_base_path."ontology/read/OntologyRead.php");
 
         $ontologyRead = new OntologyRead($this->ontologyUri, $function, $params,
                                          $this->registered_ip, $this->requester_ip);
@@ -550,9 +550,9 @@ class OntologyUpdate extends WebService
         unset($ontologyRead);  
 
         // Delete the old entity in Solr
-        include_once("../../crud/delete/CrudDelete.php");
-        include_once("../../framework/Solr.php");
-        include_once("../../framework/ClassHierarchy.php");
+        include_once($this->wsf_base_path."crud/delete/CrudDelete.php");
+        include_once($this->wsf_base_path."framework/Solr.php");
+        include_once($this->wsf_base_path."framework/ClassHierarchy.php");
         
         // Update the classes and properties into the Solr index
         $crudDelete = new CrudDelete($oldUri, $this->ontologyUri, 
@@ -578,10 +578,10 @@ class OntologyUpdate extends WebService
         unset($crudDelete);                
         
         // Add the new entity in Solr
-        include_once("../../crud/create/CrudCreate.php");
-        include_once("../../framework/arc2/ARC2.php");    
-        include_once("../../framework/Namespaces.php");
-        include_once("../../framework/Solr.php");
+        include_once($this->wsf_base_path."crud/create/CrudCreate.php");
+        include_once($this->wsf_base_path."framework/arc2/ARC2.php");    
+        include_once($this->wsf_base_path."framework/Namespaces.php");
+        include_once($this->wsf_base_path."framework/Solr.php");
 
         // Update the classes and properties into the Solr index
         $crudCreate = new CrudCreate($entitySerialized, "application/rdf+xml", "full", $this->ontologyUri, 
@@ -632,8 +632,8 @@ class OntologyUpdate extends WebService
       // Basically, we list all the entities (classes, properties and instance)
       // and we update each of them, one by one, in both the OWLAPI instance
       // and structWSF if the advancedIndexation is enabled.
-      include_once("../../framework/arc2/ARC2.php");  
-      include_once("../../framework/Namespaces.php");  
+      include_once($this->wsf_base_path."framework/arc2/ARC2.php");  
+      include_once($this->wsf_base_path."framework/Namespaces.php");  
        
       $parser = ARC2::getRDFParser();
       $parser->parse($this->ontologyUri, $document);
@@ -802,7 +802,7 @@ class OntologyUpdate extends WebService
             foreach($queries as $query)
             {
               // Get the class description of the current punned entity
-              include_once("../read/OntologyRead.php");
+              include_once($this->wsf_base_path."ontology/read/OntologyRead.php");
 
               $ontologyRead = new OntologyRead($this->ontologyUri, $query["function"], $query["params"],
                                                $this->registered_ip, $this->requester_ip);
@@ -859,9 +859,9 @@ class OntologyUpdate extends WebService
               // infinite loop; so we have to limit the execution time of this procedure to 45 mins.
               set_time_limit(2700);                
               
-              include_once("../../crud/update/CrudUpdate.php");
-              include_once("../../framework/Solr.php");
-              include_once("../../framework/ClassHierarchy.php");
+              include_once($this->wsf_base_path."crud/update/CrudUpdate.php");
+              include_once($this->wsf_base_path."framework/Solr.php");
+              include_once($this->wsf_base_path."framework/ClassHierarchy.php");
               
               $serializedResource = $rdfxmlSerializer->getSerializedIndex($resourcesIndex);
               
@@ -900,9 +900,9 @@ class OntologyUpdate extends WebService
               $ser = ARC2::getTurtleSerializer();
               $serializedResource = $ser->getSerializedIndex(array($uri => $resourceIndex[$uri]));
               
-              include_once("../../crud/update/CrudUpdate.php");
-              include_once("../../framework/Solr.php");
-              include_once("../../framework/ClassHierarchy.php");
+              include_once($this->wsf_base_path."crud/update/CrudUpdate.php");
+              include_once($this->wsf_base_path."framework/Solr.php");
+              include_once($this->wsf_base_path."framework/ClassHierarchy.php");
               
               // Update the classes and properties into the Solr index
               $crudUpdate = new CrudUpdate($serializedResource, "application/rdf+n3", $this->ontologyUri, 

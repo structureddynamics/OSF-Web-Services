@@ -578,12 +578,12 @@ class OntologyRead extends WebService
       
       case "application/bib+json":
       case "application/iron+json":
-        include_once("../../converter/irjson/ConverterIrJSON.php");
-        include_once("../../converter/irjson/Dataset.php");
-        include_once("../../converter/irjson/InstanceRecord.php");
-        include_once("../../converter/irjson/LinkageSchema.php");
-        include_once("../../converter/irjson/StructureSchema.php");
-        include_once("../../converter/irjson/irJSONParser.php");
+        include_once($this->wsf_base_path."converter/irjson/ConverterIrJSON.php");
+        include_once($this->wsf_base_path."converter/irjson/Dataset.php");
+        include_once($this->wsf_base_path."converter/irjson/InstanceRecord.php");
+        include_once($this->wsf_base_path."converter/irjson/LinkageSchema.php");
+        include_once($this->wsf_base_path."converter/irjson/StructureSchema.php");
+        include_once($this->wsf_base_path."converter/irjson/irJSONParser.php");
 
         // Include more information about the dataset (at least the ID)
         $documentToConvert = $this->pipeline_getResultset();

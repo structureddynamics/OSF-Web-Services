@@ -1985,7 +1985,7 @@ class Search extends WebService
         $solrQuery .= "prefLabelAutocompletion";
         
       }
-
+   
       $resultset = $solr->select($solrQuery);
 
       $domResultset = new DomDocument("1.0", "utf-8");

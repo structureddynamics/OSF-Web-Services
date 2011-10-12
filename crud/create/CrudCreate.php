@@ -627,7 +627,7 @@ class CrudCreate extends WebService
           foreach($irsUri as $uri)
           {
             // First check if the record is already existing for this record, within this dataset.
-            include_once("../read/CrudRead.php"); 
+            include_once($this->wsf_base_path."crud/read/CrudRead.php"); 
             
             $ws_cr = new CrudRead($uri, $this->dataset, FALSE, TRUE, $this->registered_ip, $this->requester_ip);
             
@@ -670,7 +670,7 @@ class CrudCreate extends WebService
               $endpoint = $this->wsf_base_url."/ws/tracker/create/";
             }
 
-            include_once("../../framework/WebServiceQuerier.php");                                                  
+            include_once($this->wsf_base_path."framework/WebServiceQuerier.php");                                                  
             
             $wsq = new WebServiceQuerier($endpoint, "post",
               "text/xml", "from_dataset=" . urlencode($this->dataset) .
@@ -971,7 +971,7 @@ class CrudCreate extends WebService
                   
                   // Add hashcode
                           
-                  include_once("../../framework/geohash.php");                                                  
+                  include_once($this->wsf_base_path."framework/geohash.php");                                                  
                   
                   $geohash = new Geohash();
                   
@@ -1061,7 +1061,7 @@ class CrudCreate extends WebService
                       
                       // Add hashcode
                               
-                      include_once("../../framework/geohash.php");                                                  
+                      include_once($this->wsf_base_path."framework/geohash.php");                                                  
                       
                       $geohash = new Geohash();
                       

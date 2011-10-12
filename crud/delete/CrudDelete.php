@@ -488,7 +488,7 @@ class CrudDelete extends WebService
         if($this->track_delete === TRUE)
         {
           // First check if the record is already existing for this record, within this dataset.
-          include_once("../read/CrudRead.php"); 
+          include_once($this->wsf_base_path."crud/read/CrudRead.php"); 
 
           $ws_cr = new CrudRead($this->resourceUri, $this->dataset, FALSE, TRUE, $this->registered_ip, $this->requester_ip);
           
@@ -526,7 +526,7 @@ class CrudDelete extends WebService
             $endpoint = $this->wsf_base_url."/ws/tracker/create/";
           }
           
-          include_once("../../framework/WebServiceQuerier.php");                                                  
+          include_once($this->wsf_base_path."framework/WebServiceQuerier.php");                                                  
           
           $wsq = new WebServiceQuerier($endpoint, "post",
             "text/xml", "from_dataset=" . urlencode($this->dataset) .

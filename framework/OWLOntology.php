@@ -283,7 +283,8 @@ class OWLOntology
     {
       $info = $this->getAnnotationInfo($annotation);
       
-      if(is_array($niDescription[$info["property"]]) === FALSE)
+      if(!isset($niDescription[$info["property"]]) || 
+         is_array($niDescription[$info["property"]]) === FALSE)
       {
         $niDescription[$info["property"]] = array(); 
       }
@@ -318,7 +319,8 @@ class OWLOntology
       
       $valuesOWLLiteral = $datapropertiesValuesMap->get($property);
       
-      if(!is_array($niDescription[$propertyUri]))
+      if(!isset($niDescription[$propertyUri]) ||
+         !is_array($niDescription[$propertyUri]))
       {
         $niDescription[$propertyUri] = array();
       }
@@ -343,7 +345,8 @@ class OWLOntology
       
       $valuesOWLIndividual = $objectpropertiesValuesMap->get($property);
       
-      if(!is_array($niDescription[$propertyUri]))
+      if(!isset($niDescription[$propertyUri]) || 
+         !is_array($niDescription[$propertyUri]))
       {
         $niDescription[$propertyUri] = array();
       }
@@ -987,34 +990,39 @@ class OWLOntology
         $properties = $this->ontology->getAnnotationPropertiesInSignature();
       }    
       
-      if(is_array(java_values($properties)))
+      if(isset($properties))
       {
-        foreach($properties as $property)
+        $properties = java_values($properties);
+        
+        if(is_array($properties))
         {
-          if($limit > -1 && $offset > -1)
+          foreach($properties as $property)
           {
-            if($nb >= $offset + $limit)  
+            if($limit > -1 && $offset > -1)
             {
-              break;
-            }
+              if($nb >= $offset + $limit)  
+              {
+                break;
+              }
+              
+              if($nb < $offset)
+              {
+                $nb++;
+                continue;
+              }
+            }      
             
-            if($nb < $offset)
-            {
-              $nb++;
-              continue;
-            }
-          }      
-          
-          $propertyUri = (string)java_values($property->toStringID());
-          
-          $propertyDescription[$propertyUri] = array();
-          
-          $propertyDescription[$propertyUri] = $this->_getPropertyDescription($property);      
-          $nb++;   
-        }    
+            $propertyUri = (string)java_values($property->toStringID());
+            
+            $propertyDescription[$propertyUri] = array();
+            
+            $propertyDescription[$propertyUri] = $this->_getPropertyDescription($property);      
+            $nb++;   
+          }    
+        }
       }
     }
-    
+      
     return($propertyDescription);    
   }    
   
@@ -1709,6 +1717,11 @@ class OWLOntology
     
     $pType = "owl:DatatypeProperty";
     
+    if(!isset($property))
+    {
+      return($propertyDescription);
+    }
+    
     switch($property->getEntityType()->getName())
     {
       case "DataProperty":
@@ -1735,7 +1748,8 @@ class OWLOntology
     {
       $info = $this->getAnnotationInfo($annotation);
       
-      if(is_array($propertyDescription[$info["property"]]) === FALSE)
+      if(!isset($propertyDescription[$info["property"]]) || 
+         is_array($propertyDescription[$info["property"]]) === FALSE)
       {
         $propertyDescription[$info["property"]] = array(); 
       }
@@ -1748,8 +1762,7 @@ class OWLOntology
      
      
     if(java_values($property->isOWLDataProperty()) || java_values($property->isOWLObjectProperty()))
-    { 
-      
+    {       
       // Get super properties 
       $superProperties = $property->getSuperProperties($this->ontology);
       
@@ -1757,7 +1770,8 @@ class OWLOntology
       {
         $spUri = (string)java_values($superProperty->toStringID());
               
-        if(is_array($propertyDescription[Namespaces::$rdfs."subPropertyOf"]) === FALSE)
+        if(!isset($propertyDescription[Namespaces::$rdfs."subPropertyOf"]) || 
+           is_array($propertyDescription[Namespaces::$rdfs."subPropertyOf"]) === FALSE)
         {
           $propertyDescription[Namespaces::$rdfs."subPropertyOf"] = array(); 
         }
@@ -1773,9 +1787,9 @@ class OWLOntology
       
       // Ensure that if it has no subPropertyOf relationship, that it at least has
       // topData/ObjectProperty as super properties.
-      if(is_array($propertyDescription[Namespaces::$rdfs."subPropertyOf"]) === FALSE &&
+      if(!isset($propertyDescription[Namespaces::$rdfs."subPropertyOf"]) || (is_array($propertyDescription[Namespaces::$rdfs."subPropertyOf"]) === FALSE &&
          ((string)java_values($property->toStringID()) != "_TOP_DATA_PROPERTY_" && (string)java_values($property->toStringID()) != "_TOP_OBJECT_PROPERTY_" &&
-          (string)java_values($property->toStringID()) != Namespaces::$owl."topDataProperty" && (string)java_values($property->toStringID()) != Namespaces::$owl."topObjectProperty"))
+          (string)java_values($property->toStringID()) != Namespaces::$owl."topDataProperty" && (string)java_values($property->toStringID()) != Namespaces::$owl."topObjectProperty")))
       {
         $propertyDescription[Namespaces::$rdfs."subPropertyOf"] = array(); 
         array_push($propertyDescription[Namespaces::$rdfs."subPropertyOf"], array("value" => (java_values($property->isOWLObjectProperty()) ? Namespaces::$owl."topObjectProperty" : Namespaces::$owl."topDataProperty"),
@@ -1816,7 +1830,8 @@ class OWLOntology
               continue;
             }
                   
-            if(is_array($propertyDescription[Namespaces::$umbel."superPropertyOf"]) === FALSE)
+            if(!isset($propertyDescription[Namespaces::$umbel."superPropertyOf"]) || 
+               is_array($propertyDescription[Namespaces::$umbel."superPropertyOf"]) === FALSE)
             {
               $propertyDescription[Namespaces::$umbel."superPropertyOf"] = array(); 
             }
@@ -1857,7 +1872,8 @@ class OWLOntology
               continue;
             }
                   
-            if(is_array($propertyDescription[Namespaces::$umbel."superPropertyOf"]) === FALSE)
+            if(!isset($propertyDescription[Namespaces::$umbel."superPropertyOf"]) || 
+               is_array($propertyDescription[Namespaces::$umbel."superPropertyOf"]) === FALSE)
             {
               $propertyDescription[Namespaces::$umbel."superPropertyOf"] = array(); 
             }
@@ -1880,7 +1896,8 @@ class OWLOntology
       {
         $epUri = (string)java_values($equivalentProperty->toStringID());
               
-        if(is_array($propertyDescription[Namespaces::$owl."equivalentProperty"]) === FALSE)
+        if(!isset($propertyDescription[Namespaces::$owl."equivalentProperty"]) || 
+           is_array($propertyDescription[Namespaces::$owl."equivalentProperty"]) === FALSE)
         {
           $propertyDescription[Namespaces::$owl."equivalentProperty"] = array(); 
         }
@@ -1901,7 +1918,8 @@ class OWLOntology
       {
         $dpUri = (string)java_values($disjointProperty->toStringID());
               
-        if(is_array($propertyDescription[Namespaces::$owl."propertyDisjointWith"]) === FALSE)
+        if(!isset($propertyDescription[Namespaces::$owl."propertyDisjointWith"]) || 
+           is_array($propertyDescription[Namespaces::$owl."propertyDisjointWith"]) === FALSE)
         {
           $propertyDescription[Namespaces::$owl."propertyDisjointWith"] = array(); 
         }
@@ -1924,7 +1942,8 @@ class OWLOntology
         {
           $ipUri = (string)java_values($inverseProperty->toStringID());
                 
-          if(is_array($propertyDescription[Namespaces::$owl."inverseOf"]) === FALSE)
+          if(!isset($propertyDescription[Namespaces::$owl."inverseOf"]) || 
+             is_array($propertyDescription[Namespaces::$owl."inverseOf"]) === FALSE)
           {
             $propertyDescription[Namespaces::$owl."inverseOf"] = array(); 
           }
@@ -1950,7 +1969,8 @@ class OWLOntology
           {
             $domainClassUri = (string)java_values($domain->toStringID());
                   
-            if(is_array($propertyDescription[Namespaces::$rdfs."domain"]) === FALSE)
+            if(!isset($propertyDescription[Namespaces::$rdfs."domain"]) || 
+               is_array($propertyDescription[Namespaces::$rdfs."domain"]) === FALSE)
             {
               $propertyDescription[Namespaces::$rdfs."domain"] = array(); 
             }
@@ -1977,7 +1997,8 @@ class OWLOntology
           {
             $rangeClassUri = (string)java_values($range->toStringID());
                   
-            if(is_array($propertyDescription[Namespaces::$rdfs."range"]) === FALSE)
+            if(!isset($propertyDescription[Namespaces::$rdfs."range"]) || 
+               is_array($propertyDescription[Namespaces::$rdfs."range"]) === FALSE)
             {
               $propertyDescription[Namespaces::$rdfs."range"] = array(); 
             }
@@ -2138,7 +2159,8 @@ class OWLOntology
     {
       $info = $this->getAnnotationInfo($annotation);
       
-      if(is_array($classDescription[$info["property"]]) === FALSE)
+      if(!isset($classDescription[$info["property"]]) ||
+         is_array($classDescription[$info["property"]]) === FALSE)
       {
         $classDescription[$info["property"]] = array(); 
       }
@@ -2222,7 +2244,8 @@ class OWLOntology
     {
       $info = $this->getAnnotationInfo($annotation);
       
-      if(is_array($classDescription[$info["property"]]) === FALSE)
+      if(!isset($classDescription[$info["property"]]) ||
+         is_array($classDescription[$info["property"]]) === FALSE)
       {
         $classDescription[$info["property"]] = array(); 
       }
@@ -2257,7 +2280,8 @@ class OWLOntology
         
         $scUri = (string)java_values($superClass->toStringID());
               
-        if(is_array($classDescription[Namespaces::$rdfs."subClassOf"]) === FALSE)
+        if(!isset($classDescription[Namespaces::$rdfs."subClassOf"]) ||
+           is_array($classDescription[Namespaces::$rdfs."subClassOf"]) === FALSE)
         {
           $classDescription[Namespaces::$rdfs."subClassOf"] = array(); 
         }
@@ -2294,7 +2318,8 @@ class OWLOntology
           continue;
         }
               
-        if(is_array($classDescription[Namespaces::$umbel."superClassOf"]) === FALSE)
+        if(!isset($classDescription[Namespaces::$umbel."superClassOf"]) || 
+           is_array($classDescription[Namespaces::$umbel."superClassOf"]) === FALSE)
         {
           $classDescription[Namespaces::$umbel."superClassOf"] = array(); 
         }
@@ -2316,7 +2341,8 @@ class OWLOntology
     {
       $ecUri = (string)java_values($equivalentClass->toStringID());
             
-      if(is_array($classDescription[Namespaces::$owl."equivalentClass"]) === FALSE)
+      if(!isset($classDescription[Namespaces::$owl."equivalentClass"]) ||
+         is_array($classDescription[Namespaces::$owl."equivalentClass"]) === FALSE)
       {
         $classDescription[Namespaces::$owl."equivalentClass"] = array(); 
       }
@@ -2337,7 +2363,8 @@ class OWLOntology
     {
       $dcUri = (string)java_values($disjointClass->toStringID());
             
-      if(is_array($classDescription[Namespaces::$owl."disjointWith"]) === FALSE)
+      if(!isset($classDescription[Namespaces::$owl."disjointWith"]) ||
+         is_array($classDescription[Namespaces::$owl."disjointWith"]) === FALSE)
       {
         $classDescription[Namespaces::$owl."disjointWith"] = array(); 
       }
@@ -2391,7 +2418,8 @@ class OWLOntology
     {
       $info = $this->getAnnotationInfo($annotation);
       
-      if(is_array($ontologyDescription[$info["property"]]) === FALSE)
+      if(!isset($ontologyDescription[$info["property"]]) || 
+         is_array($ontologyDescription[$info["property"]]) === FALSE)
       {
         $ontologyDescription[$info["property"]] = array(); 
       }

@@ -819,20 +819,26 @@ class ProcessorXML
     if($node != null && (get_class($node) == "DOMNode" ||
                          get_class($node) == "DOMElement")) 
     {
-      if (isset($node->attributes))
+      if(isset($node->attributes))
       {
-        if ($prefixed === TRUE)
+        if($prefixed === TRUE)
         {
-          foreach ($this->prefixes as $entity => $uri)
+          foreach($this->prefixes as $entity => $uri)
           {
-            if (strpos($node->attributes->getNamedItem("type")->nodeValue, $uri) !== FALSE)
+            if(isset($node->attributes->getNamedItem("type")->nodeValue))
             {
-              return (str_replace($uri, $entity . ":", $node->attributes->getNamedItem("type")->nodeValue));
+              if(strpos($node->attributes->getNamedItem("type")->nodeValue, $uri) !== FALSE)
+              {
+                return(str_replace($uri, $entity . ":", $node->attributes->getNamedItem("type")->nodeValue));
+              }
             }
           }
         }
 
-        return ($node->attributes->getNamedItem("type")->nodeValue);
+        if(isset($node->attributes->getNamedItem("type")->nodeValue))
+        {        
+          return ($node->attributes->getNamedItem("type")->nodeValue);
+        }
       }
     }
 

@@ -283,6 +283,7 @@ class OntologyRead extends WebService
     $resultset = $xml->createResultset();
 
     $subject;
+    $nsId = 0;
     
     foreach($this->subjectTriples as $u => $sts)
     {
@@ -341,7 +342,7 @@ class OntologyRead extends WebService
               $object = $xml->createObjectContent($value["value"]);
               $pred->appendChild($object);
 
-              if(isset($value["rei"]))
+              if(isset($value["rei"]) && is_array($value["rei"]))
               {
                 foreach($value["rei"] as $rStatement)
                 {
@@ -1188,8 +1189,8 @@ class OntologyRead extends WebService
         }
       }
        
-      if($ontology)
-      {
+      if(isset($ontology))
+      {                  
         if($this->useReasoner)
         {   
           $ontology->useReasoner();

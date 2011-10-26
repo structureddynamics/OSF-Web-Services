@@ -99,6 +99,9 @@ abstract class WebService
   /*! @brief Name of the logging table on the Virtuoso instance */
   protected $log_table = "SD.WSF.ws_queries_log";
 
+  /*! @brief Determine if the logging capabilities of structWSF are enabled. */
+  protected $log_enable = TRUE;
+
 /*! @brief   Auto commit handled by the Solr data management systems. If this parameter is true, then this means
  *         Solr will handle the commit operation by itself. If it is false, then the web services will trigger the commit
  *         operations. Usually, Auto-commit should be handled by Solr when the size of the dataset is too big, otherwise
@@ -263,6 +266,7 @@ abstract class WebService
       $this->wsf_graph = $data_ini["datasets"]["wsf_graph"];
     }
     
+    
     if(isset($network_ini["network"]["wsf_base_url"]))
     {
       $this->wsf_base_url = $network_ini["network"]["wsf_base_url"];
@@ -276,6 +280,17 @@ abstract class WebService
       $this->wsf_local_ip = $network_ini["network"]["wsf_local_ip"];
     }
 
+    if(isset($network_ini["network"]["log_enable"]))
+    {
+      if(strtolower($network_ini["network"]["log_enable"]) == "true" || $network_ini["network"]["log_enable"] == "1")
+      {
+        $this->log_enable = TRUE;
+      }
+      else
+      {
+        $this->log_enable = FALSE;
+      }
+    }    
     
     if(isset($network_ini["tracking"]["track_create"]))
     {
@@ -544,6 +559,21 @@ abstract class WebService
   */
   abstract protected function validateQuery();
 
+  /*!   @brief Determine if the logging capabilities of this endpoint are enabled.
+              
+      \n
+      
+      @return returns TRUE if enabled, FALSE otherwise.
+    
+      @author Frederick Giasson, Structured Dynamics LLC.
+    
+      \n\n\n
+  */
+  public function isLoggingEnabled()
+  { 
+    return($this->log_enable);
+  }  
+  
   /*!   @brief Encode content to be included in XML files
               
       \n

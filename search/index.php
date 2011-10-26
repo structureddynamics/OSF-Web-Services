@@ -207,8 +207,10 @@ $ws_s = new Search($query, $types, $attributes, $datasets, $items, $page, $infer
                    $attributesBooleanOperator, $includeAttributesList,$aggregateAttributesObjectType,
                    $aggregateAttributesNb);
 
-$ws_s->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
-  $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+$ws_s->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
+                 (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
+                 (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
+                 (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : "")); 
 
 $ws_s->process();
 
@@ -220,13 +222,27 @@ $mtime = $mtime[1] + $mtime[0];
 $endtime = $mtime;
 $totaltime = ($endtime - $starttime);
 
-$logger = new Logger("search", $requester_ip,
-  "?query=" . $query . "&datasets=" . $datasets . "&types=" . $types . "&items=" . $items . "&page=" . $page
-  . "&inference=" . $inference . "&include_aggregates=" . $include_aggregates . "&registered_ip=" . $registered_ip
-  . "&requester_ip=$requester_ip&distance_filter=$distanceFilter&range_filter=$rangeFilter",
-  $_SERVER['HTTP_ACCEPT'], $start_datetime, $totaltime, $ws_s->pipeline_getResponseHeaderStatus(),
-  $_SERVER['HTTP_USER_AGENT']);
-
+if($ws_s->isLoggingEnabled())
+{
+  $logger = new Logger("search", 
+                       $requester_ip,
+                       "?query=" . $query . 
+                       "&datasets=" . $datasets . 
+                       "&types=" . $types . 
+                       "&items=" . $items . 
+                       "&page=" . $page . 
+                       "&inference=" . $inference . 
+                       "&include_aggregates=" . $include_aggregates . 
+                       "&registered_ip=" . $registered_ip . 
+                       "&requester_ip=$requester_ip" . 
+                       "&distance_filter=$distanceFilter" . 
+                       "&range_filter=$rangeFilter",
+                       (isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""),
+                       $start_datetime, 
+                       $totaltime, 
+                       $ws_s->pipeline_getResponseHeaderStatus(),
+                       (isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : ""));
+}
 
 //@}
 

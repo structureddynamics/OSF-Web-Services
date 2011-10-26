@@ -15,8 +15,7 @@
    \n\n\n
  */
 
-ini_set("display_errors",
-  "Off"); // Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
+ini_set("display_errors", "Off"); // Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
 
 ini_set("memory_limit", "256M");
 
@@ -117,8 +116,10 @@ elseif(isset($_SERVER['PHP_SELF']))
 
 $ws_or = new OntologyRead($ontology, $function, $params, $registered_ip, $requester_ip);
 
-$ws_or->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
-  $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+$ws_or->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
+                  (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
+                  (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
+                  (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : "")); 
 
 if(strtolower($reasoner) == "true" ||
    strtolower($reasoner) == "on"   ||
@@ -141,11 +142,22 @@ $mtime = $mtime[1] + $mtime[0];
 $endtime = $mtime;
 $totaltime = ($endtime - $starttime);
 
-$logger = new Logger("ontology_read", $requester_ip,
-  "?ontology=" . $ontology . "&function=" . $function . "&parameters=" . $params . "&registered_ip="
-  . $registered_ip . "&requester_ip=$requester_ip", $_SERVER['HTTP_ACCEPT'], $start_datetime, $totaltime,
-  $ws_or->pipeline_getResponseHeaderStatus(), $_SERVER['HTTP_USER_AGENT']);
-
+if($ws_or->isLoggingEnabled())
+{
+  $logger = new Logger( "ontology_read", 
+                        $requester_ip,
+                        "?ontology=" . $ontology . 
+                        "&function=" . $function . 
+                        "&parameters=" . $params . 
+                        "&registered_ip="
+                        . $registered_ip . 
+                        "&requester_ip=$requester_ip",
+                        (isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""),
+                        $start_datetime, 
+                        $totaltime,
+                        $ws_or->pipeline_getResponseHeaderStatus(), 
+                        (isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : ""));
+}
 
 //@}
 

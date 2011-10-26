@@ -102,8 +102,10 @@ elseif(isset($_SERVER['PHP_SELF']))
 
 $ws_al = new AuthLister($mode, $dataset, $registered_ip, $requester_ip, $target_webservice);
 
-$ws_al->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
-  $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+$ws_al->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
+                  (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
+                  (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
+                  (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : "")); 
 
 $ws_al->process();
 
@@ -115,11 +117,20 @@ $mtime = $mtime[1] + $mtime[0];
 $endtime = $mtime;
 $totaltime = ($endtime - $starttime);
 
-$logger = new Logger("auth_lister", $requester_ip,
-  "?mode=" . $mode . "&dataset=" . $dataset . "&registered_ip=" . $registered_ip . "&requester_ip=$requester_ip",
-  $_SERVER['HTTP_ACCEPT'], $start_datetime, $totaltime, $ws_al->pipeline_getResponseHeaderStatus(),
-  $_SERVER['HTTP_USER_AGENT']);
-
+if($ws_al->isLoggingEnabled())
+{
+  $logger = new Logger("auth_lister", 
+                       $requester_ip,
+                       "?mode=" . $mode . 
+                       "&dataset=" . $dataset . 
+                       "&registered_ip=" . $registered_ip . 
+                       "&requester_ip=$requester_ip",
+                       (isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER[''] : "HTTP_ACCEPT"),
+                       $start_datetime, 
+                       $totaltime, 
+                       $ws_al->pipeline_getResponseHeaderStatus(),
+                       (isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER[''] : "HTTP_USER_AGENT"));
+}
 
 //@}
 

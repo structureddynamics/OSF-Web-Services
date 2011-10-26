@@ -87,8 +87,10 @@ if(isset($_SERVER['REMOTE_ADDR']))
 
 $ws_ontologydelete = new OntologyDelete($ontology, $registered_ip, $requester_ip);
 
-$ws_ontologydelete->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'],
-  $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+$ws_ontologydelete->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
+                              (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
+                              (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
+                              (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : "")); 
 
 
 $params = explode(";", $params);
@@ -139,12 +141,20 @@ $mtime = $mtime[1] + $mtime[0];
 $endtime = $mtime;
 $totaltime = ($endtime - $starttime);
 
-$logger = new Logger("ontology_delete", $requester_ip,
-  "?ontology=" . substr($ontology, 0, 64) . "&mime=" . $mime . "&registered_ip=" . $registered_ip
-  . "&requester_ip=$requester_ip",
-  $_SERVER['HTTP_ACCEPT'], $start_datetime, $totaltime, $ws_ontologydelete->pipeline_getResponseHeaderStatus(),
-  $_SERVER['HTTP_USER_AGENT']);
-
+if($ws_ontologydelete->isLoggingEnabled())
+{
+  $logger = new Logger("ontology_delete", 
+                       $requester_ip,
+                       "?ontology=" . substr($ontology, 0, 64) . 
+                       "&mime=" . $mime . 
+                       "&registered_ip=" . $registered_ip . 
+                       "&requester_ip=$requester_ip",
+                       (isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""),
+                       $start_datetime, 
+                       $totaltime, 
+                       $ws_ontologydelete->pipeline_getResponseHeaderStatus(),
+                       (isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : ""));
+}
 
 //@}
 

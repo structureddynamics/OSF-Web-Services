@@ -113,8 +113,10 @@ elseif(isset($_SERVER['PHP_SELF']))
 
 $ws_arws = new AuthRegistrarWs($title, $endpoint, $crud_usage, $ws_uri, $registered_ip, $requester_ip);
 
-$ws_arws->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
-  $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+$ws_arws->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
+                    (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
+                    (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
+                    (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : "")); 
 
 $ws_arws->process();
 
@@ -126,12 +128,21 @@ $mtime = $mtime[1] + $mtime[0];
 $endtime = $mtime;
 $totaltime = ($endtime - $starttime);
 
-$logger = new Logger("auth_registrar_ws", $requester_ip,
-  "?title=" . substr($mode, 0, 64) . "&endpoint=" . $endpoint . "&crud_usage=" . $crud_usage . "&ws_uri=" . $ws_uri
-  . "&requester_ip=$requester_ip",
-  $_SERVER['HTTP_ACCEPT'], $start_datetime, $totaltime, $ws_arws->pipeline_getResponseHeaderStatus(),
-  $_SERVER['HTTP_USER_AGENT']);
-
+if($ws_arws->isLoggingEnabled())
+{
+  $logger = new Logger("auth_registrar_ws", 
+                       $requester_ip,
+                       "?title=" . substr($mode, 0, 64) . 
+                       "&endpoint=" . $endpoint . 
+                       "&crud_usage=" . $crud_usage . 
+                       "&ws_uri=" . $ws_uri . 
+                       "&requester_ip=$requester_ip",
+                       (isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER[''] : "HTTP_ACCEPT"),
+                       $start_datetime, 
+                       $totaltime, 
+                       $ws_arws->pipeline_getResponseHeaderStatus(),
+                       (isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER[''] : "HTTP_USER_AGENT"));
+}
 
 //@}
 

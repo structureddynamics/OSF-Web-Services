@@ -145,8 +145,10 @@ elseif(isset($_SERVER['PHP_SELF']))
 
 $ws_cr = new CrudRead($uri, $dataset, $include_linksback, $include_reification, $registered_ip, $requester_ip, $include_attributes_list);
 
-$ws_cr->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
-  $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+$ws_cr->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
+                  (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
+                  (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
+                  (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : "")); 
 
 $ws_cr->process();
 
@@ -158,11 +160,21 @@ $mtime = $mtime[1] + $mtime[0];
 $endtime = $mtime;
 $totaltime = ($endtime - $starttime);
 
-$logger = new Logger("crud_read", $requester_ip,
-  "?uri=" . $uri . "&dataset=" . $dataset . "&include_linksback=" . $include_linksback . "&registered_ip="
-  . $registered_ip . "&requester_ip=$requester_ip", $_SERVER['HTTP_ACCEPT'], $start_datetime, $totaltime,
-  $ws_cr->pipeline_getResponseHeaderStatus(), $_SERVER['HTTP_USER_AGENT']);
-
+if($ws_cr->isLoggingEnabled())
+{
+  $logger = new Logger("crud_read", 
+                       $requester_ip,
+                       "?uri=" . $uri . 
+                       "&dataset=" . $dataset . 
+                       "&include_linksback=" . $include_linksback . 
+                       "&registered_ip=" . $registered_ip . 
+                       "&requester_ip=$requester_ip", 
+                       (isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""),
+                       $start_datetime,
+                       $totaltime,
+                       $ws_cr->pipeline_getResponseHeaderStatus(), 
+                       (isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : ""));
+}
 
 //@}
 

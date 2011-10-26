@@ -106,8 +106,10 @@ elseif(isset($_SERVER['PHP_SELF']))
 
 $ws_ontologyupdate = new OntologyUpdate($ontology, $registered_ip, $requester_ip);
 
-$ws_ontologyupdate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'],
-  $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+$ws_ontologyupdate->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
+                              (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
+                              (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
+                              (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : "")); 
 
 $params = explode(";", $params);
 $parameters = array();
@@ -163,12 +165,20 @@ $mtime = $mtime[1] + $mtime[0];
 $endtime = $mtime;
 $totaltime = ($endtime - $starttime);
 
-$logger = new Logger("ontology_update", $requester_ip,
-  "?ontology=" . substr($ontology, 0, 64) . "&mime=" . $mime . "&registered_ip=" . $registered_ip
-  . "&requester_ip=$requester_ip",
-  $_SERVER['HTTP_ACCEPT'], $start_datetime, $totaltime, $ws_ontologyupdate->pipeline_getResponseHeaderStatus(),
-  $_SERVER['HTTP_USER_AGENT']);
-
+if($ws_ontologyupdate->isLoggingEnabled())
+{
+  $logger = new Logger("ontology_update", 
+                       $requester_ip,
+                       "?ontology=" . substr($ontology, 0, 64) . 
+                       "&mime=" . $mime . 
+                       "&registered_ip=" . $registered_ip . 
+                       "&requester_ip=$requester_ip",
+                       $_SERVER['HTTP_ACCEPT'], 
+                       $start_datetime, 
+                       $totaltime, 
+                       $ws_ontologyupdate->pipeline_getResponseHeaderStatus(),
+                       $_SERVER['HTTP_USER_AGENT']);
+}
 
 //@}
 

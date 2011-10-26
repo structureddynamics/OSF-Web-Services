@@ -130,8 +130,10 @@ elseif(isset($_SERVER['PHP_SELF']))
 
 $ws_dc = new DatasetCreate($uri, $title, $description, $creator, $registered_ip, $requester_ip, $webservices, $globalPermissions);
 
-$ws_dc->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
-  $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+$ws_dc->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
+                  (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
+                  (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
+                  (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : "")); 
 
 $ws_dc->process();
 
@@ -143,11 +145,21 @@ $mtime = $mtime[1] + $mtime[0];
 $endtime = $mtime;
 $totaltime = ($endtime - $starttime);
 
-$logger = new Logger("dataset_create", $requester_ip,
-  "?uri=" . $uri . "&title=" . substr($title, 0, 64) . "&description=" . substr($description, 0, 64) . "&creator="
-  . $creator . "&requester_ip=$requester_ip", $_SERVER['HTTP_ACCEPT'], $start_datetime, $totaltime,
-  $ws_dc->pipeline_getResponseHeaderStatus(), $_SERVER['HTTP_USER_AGENT']);
-
+if($ws_dc->isLoggingEnabled())
+{
+  $logger = new Logger("dataset_create", 
+                       $requester_ip,
+                       "?uri=" . $uri . 
+                       "&title=" . substr($title, 0, 64) . 
+                       "&description=" . substr($description, 0, 64) . 
+                       "&creator=" . $creator . 
+                       "&requester_ip=$requester_ip", 
+                       (isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""),
+                       $start_datetime, 
+                       $totaltime,
+                       $ws_dc->pipeline_getResponseHeaderStatus(), 
+                       (isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : ""));
+}
 
 //@}
 

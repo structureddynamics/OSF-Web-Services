@@ -152,7 +152,7 @@ if($ws_araccess->isLoggingEnabled())
                        $start_datetime, 
                        $totaltime, 
                        $ws_araccess->pipeline_getResponseHeaderStatus(), 
-                       (isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : "");
+                       (isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : ""));
 }
 
 //@}

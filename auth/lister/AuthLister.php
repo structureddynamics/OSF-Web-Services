@@ -304,15 +304,15 @@ class AuthLister extends WebService
         (
           [0] => Array
             (
-              [0] => /wsf/access/auth/validator/2
-              [1] => /wsf/
-              [2] => True
-              [3] => True
-              [4] => True
-              [5] => True
-              [6] => /wsf/ws/auth/lister/
-              [7] => /wsf/ws/auth/registrar/ws/
-              [8] => /wsf/ws/auth/registrar/access/
+              [0] => Access URI
+              [1] => Dataset URI [access_user] / registered-ip [access_dataset]
+              [2] => Create
+              [3] => Read
+              [4] => Update
+              [5] => Delete
+              [6] => registered-ip [access_user] / empty [access_dataset]
+              [7] => Web services URI
+              [7+N] => More web services URI
             )
         
         )
@@ -336,7 +336,7 @@ class AuthLister extends WebService
           $pred->appendChild($object);
           $subject->appendChild($pred);
         }
-        else
+        else // access_dataset
         {
           $pred = $xml->createPredicate("wsf:registeredIP");
           $object = $xml->createObjectContent($access[1]);
@@ -1074,7 +1074,7 @@ class AuthLister extends WebService
             $this->conneg->setStatus(500);
             $this->conneg->setStatusMsg("Internal Error");
 
-            if(strtolower($this->mode) == "access_user")
+            if(strtolower($this->mode) == "access_user" || strtolower($this->mode) == "access_dataset")
             {
               $this->conneg->setStatusMsgExt($this->errorMessenger->_302->name);
               $this->conneg->setError($this->errorMessenger->_302->id, $this->errorMessenger->ws,
@@ -1119,7 +1119,7 @@ class AuthLister extends WebService
                   array_push($this->accesses[$accessId], odbc_result($resultset, 8)); // Web service access URI
                 }
               }
-              else
+              else // access_dataset
               {
                 $this->accesses[$accessId] = array (odbc_result($resultset, 1),   // Access URI
                                                     odbc_result($resultset, 2),   // Registered IP
@@ -1128,9 +1128,12 @@ class AuthLister extends WebService
                                                     odbc_result($resultset, 5),   // Update
                                                     odbc_result($resultset, 6),   // Delete
                                                     "");                          // Empty (padding)
-              }
-              
-
+                                                    
+                if($this->targetWebservice == "all")
+                {                                                    
+                  array_push($this->accesses[$accessId], odbc_result($resultset, 7)); // Web service access URI
+                }
+              }            
             }
             else
             {
@@ -1138,40 +1141,12 @@ class AuthLister extends WebService
               {              
                 array_push($this->accesses[$accessId], odbc_result($resultset, 8));
               }
-              else
+              else // access_dataset
               {
                 array_push($this->accesses[$accessId], odbc_result($resultset, 7));
               }
             }
           }
-          /*
-          foreach($this->accesses as $key => $access)
-          {
-            $query = "select ?webServiceAccess  from <" . $this->wsf_graph . ">
-                    {
-                      <" . $access[0] . "> <http://purl.org/ontology/wsf#webServiceAccess> ?webServiceAccess .
-                    }";
-
-            $resultset =
-              @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
-                array(), FALSE));
-
-            if(odbc_error())
-            {
-              $this->conneg->setStatus(500);
-              $this->conneg->setStatusMsg("Internal Error");
-              $this->conneg->setStatusMsgExt($this->errorMessenger->_304->name);
-              $this->conneg->setError($this->errorMessenger->_304->id, $this->errorMessenger->ws,
-                $this->errorMessenger->_304->name, $this->errorMessenger->_304->description, odbc_errormsg(),
-                $this->errorMessenger->_304->level);
-              return;
-            }
-
-            while(odbc_fetch_row($resultset))
-            {
-              array_push($this->accesses[$key], odbc_result($resultset, 1));
-            }
-          }*/
         }
       }
     }

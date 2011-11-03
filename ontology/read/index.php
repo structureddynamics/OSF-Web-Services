@@ -67,7 +67,7 @@ if(isset($_POST['parameters']))
   $params = $_POST['parameters'];
 }
 
-$reasoner = "false";
+$reasoner = "true";
 
 if(isset($_POST['reasoner']))
 {
@@ -121,6 +121,8 @@ $ws_or->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""
                   (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
                   (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : "")); 
 
+                  
+                  
 if(strtolower($reasoner) == "true" ||
    strtolower($reasoner) == "on"   ||
    strtolower($reasoner) == "1" ) 

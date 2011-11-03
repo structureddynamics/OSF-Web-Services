@@ -1200,6 +1200,22 @@ class OntologyRead extends WebService
           $ontology->stopUsingReasoner();
         }
       }
+      
+      if(isset($this->parameters["direct"]) && $this->parameters["direct"] != "")
+      {
+        $this->parameters["direct"] = strtolower($this->parameters["direct"]);
+        
+        if($this->parameters["direct"] == "false" ||
+           $this->parameters["direct"] == "0" ||
+           $this->parameters["direct"] == "off")
+         {
+           $this->parameters["direct"] = false;
+         }
+         else
+         {
+           $this->parameters["direct"] = true;
+         }
+      }
 
       switch(strtolower($this->function))
       {
@@ -1338,11 +1354,11 @@ class OntologyRead extends WebService
             $this->returnError(400, "Bad Request", "_202");
             return;              
           }
-        
+
           switch(strtolower($this->parameters["mode"]))
           {
             case "uris":
-              $classes = $ontology->getSubClassesUri($this->parameters["uri"], (boolean)$this->parameters["direct"]);
+              $classes = $ontology->getSubClassesUri($this->parameters["uri"], $this->parameters["direct"]);
               
               foreach($classes as $class)
               {
@@ -1356,7 +1372,7 @@ class OntologyRead extends WebService
             break;
             
             case "descriptions":
-              $this->subjectTriples = $ontology->getSubClassesDescription($this->parameters["uri"], (boolean)$this->parameters["direct"]);
+              $this->subjectTriples = $ontology->getSubClassesDescription($this->parameters["uri"], $this->parameters["direct"]);
             break;
 
             case "hierarchy":
@@ -1382,7 +1398,7 @@ class OntologyRead extends WebService
           switch(strtolower($this->parameters["mode"]))
           {
             case "uris":
-              $classes = $ontology->getSuperClassesUri($this->parameters["uri"], (boolean)$this->parameters["direct"]);
+              $classes = $ontology->getSuperClassesUri($this->parameters["uri"], $this->parameters["direct"]);
               
               foreach($classes as $class)
               {
@@ -1396,7 +1412,7 @@ class OntologyRead extends WebService
             break;
             
             case "descriptions":
-              $this->subjectTriples = $ontology->getSuperClassesDescription($this->parameters["uri"], (boolean)$this->parameters["direct"]);
+              $this->subjectTriples = $ontology->getSuperClassesDescription($this->parameters["uri"], $this->parameters["direct"]);
             break;
             
             default:
@@ -2353,7 +2369,7 @@ class OntologyRead extends WebService
               switch(strtolower($this->parameters["type"]))
               {
                 case "dataproperty":
-                  $properties = $ontology->getSubPropertiesUri((string)$this->parameters["uri"], (boolean)$this->parameters["direct"], TRUE);
+                  $properties = $ontology->getSubPropertiesUri((string)$this->parameters["uri"], $this->parameters["direct"], TRUE);
                   
                   foreach($properties as $property)
                   {
@@ -2367,7 +2383,7 @@ class OntologyRead extends WebService
                 break;
                 
                 case "objectproperty":
-                  $properties = $ontology->getSubPropertiesUri((string)$this->parameters["uri"], (boolean)$this->parameters["direct"], FALSE);
+                  $properties = $ontology->getSubPropertiesUri((string)$this->parameters["uri"], $this->parameters["direct"], FALSE);
                   
                   foreach($properties as $property)
                   {
@@ -2391,11 +2407,11 @@ class OntologyRead extends WebService
               switch(strtolower($this->parameters["type"]))
               {
                 case "dataproperty":
-                  $this->subjectTriples = $ontology->getSubPropertiesDescription((string)$this->parameters["uri"], (boolean)$this->parameters["direct"], TRUE);
+                  $this->subjectTriples = $ontology->getSubPropertiesDescription((string)$this->parameters["uri"], $this->parameters["direct"], TRUE);
                 break;
                 
                 case "objectproperty":
-                  $this->subjectTriples = $ontology->getSubPropertiesDescription((string)$this->parameters["uri"], (boolean)$this->parameters["direct"], FALSE);
+                  $this->subjectTriples = $ontology->getSubPropertiesDescription((string)$this->parameters["uri"], $this->parameters["direct"], FALSE);
                 break;
                 
                 default:
@@ -2426,7 +2442,7 @@ class OntologyRead extends WebService
               switch(strtolower($this->parameters["type"]))
               {
                 case "dataproperty":
-                  $properties = $ontology->getSuperPropertiesUri((string)$this->parameters["uri"], (boolean)$this->parameters["direct"], TRUE);
+                  $properties = $ontology->getSuperPropertiesUri((string)$this->parameters["uri"], $this->parameters["direct"], TRUE);
                   
                   foreach($properties as $property)
                   {
@@ -2440,7 +2456,7 @@ class OntologyRead extends WebService
                 break;
                 
                 case "objectproperty":
-                  $properties = $ontology->getSuperPropertiesUri((string)$this->parameters["uri"], (boolean)$this->parameters["direct"], FALSE);
+                  $properties = $ontology->getSuperPropertiesUri((string)$this->parameters["uri"], $this->parameters["direct"], FALSE);
                   
                   foreach($properties as $property)
                   {
@@ -2465,11 +2481,11 @@ class OntologyRead extends WebService
               switch(strtolower($this->parameters["type"]))
               {
                 case "dataproperty":
-                  $this->subjectTriples = $ontology->getSuperPropertiesDescription((string)$this->parameters["uri"], (boolean)$this->parameters["direct"], TRUE);
+                  $this->subjectTriples = $ontology->getSuperPropertiesDescription((string)$this->parameters["uri"], $this->parameters["direct"], TRUE);
                 break;
                 
                 case "objectproperty":
-                  $this->subjectTriples = $ontology->getSuperPropertiesDescription((string)$this->parameters["uri"], (boolean)$this->parameters["direct"], FALSE);
+                  $this->subjectTriples = $ontology->getSuperPropertiesDescription((string)$this->parameters["uri"], $this->parameters["direct"], FALSE);
                 break;
                 
                 default:

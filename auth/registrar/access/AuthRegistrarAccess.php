@@ -577,7 +577,10 @@ class AuthRegistrarAccess extends WebService
 
           foreach($this->ws_uris as $uri)
           {
-            $query .= "<http://purl.org/ontology/wsf#webServiceAccess> <$uri> ;";
+            if($uri != "")
+            {
+              $query .= "<http://purl.org/ontology/wsf#webServiceAccess> <$uri> ;";
+            }
           }
 
           $query .= "  <http://purl.org/ontology/wsf#create> " . ($this->crud->create ? "\"True\"" : "\"False\"") . " ;
@@ -620,7 +623,10 @@ class AuthRegistrarAccess extends WebService
 
           foreach($this->ws_uris as $uri)
           {
-            $query .= "<http://purl.org/ontology/wsf#webServiceAccess> <$uri> ;";
+            if($uri != "")
+            {            
+              $query .= "<http://purl.org/ontology/wsf#webServiceAccess> <$uri> ;";
+            }
           }
 
           $query .= "  <http://purl.org/ontology/wsf#create> " . ($this->crud->create ? "\"True\"" : "\"False\"") . " ;

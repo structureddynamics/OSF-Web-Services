@@ -55,6 +55,12 @@ class DatasetDelete extends WebService
                           "name": "No unique identifier specified for this dataset",
                           "description": "No URI defined for this new dataset"
                         },
+                        "_201": {
+                          "id": "WS-DATASET-DELETE-201",
+                          "level": "Warning",
+                          "name": "Invalid dataset URI",
+                          "description": "The URI of the dataset is not valid."
+                        },                        
                         "_300": {
                           "id": "WS-DATASET-DELETE-300",
                           "level": "Fatal",
@@ -100,8 +106,8 @@ class DatasetDelete extends WebService
                       }';
 
 
-  /*!   @brief Constructor
-       @details   Initialize the Auth Web Service
+  /*! @brief Constructor
+      @details   Initialize the Auth Web Service
           
       @param[in] $uri URI of the dataset to delete
       @param[in] $registered_ip Target IP address registered in the WSF
@@ -254,7 +260,31 @@ class DatasetDelete extends WebService
 
           return;
         }
-      }     
+      }  
+      
+      if($this->datasetUri == "")
+      {
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
+        $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, "",
+          $this->errorMessenger->_200->level);
+
+        return;
+      }      
+      
+      if(!$this->isValidIRI($this->datasetUri))
+      {
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
+        $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, "",
+          $this->errorMessenger->_201->level);
+
+        return;
+      }           
     }    
   }
 
@@ -322,23 +352,6 @@ class DatasetDelete extends WebService
 
     // Validate query
     $this->validateQuery();
-
-    // If the query is still valid
-    if($this->conneg->getStatus() == 200)
-    {
-      // Check for errors
-      if($this->datasetUri == "")
-      {
-        $this->conneg->setStatus(400);
-        $this->conneg->setStatusMsg("Bad Request");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
-        $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, "",
-          $this->errorMessenger->_200->level);
-
-        return;
-      }
-    }
   }
 
   /*!   @brief Do content negotiation as an internal, pipelined, Web Service that is part of a Compound Web Service

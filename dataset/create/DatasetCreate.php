@@ -276,7 +276,7 @@ class DatasetCreate extends WebService
       return;
     }  
     
-    if(!$this->isValidIRI($this->creator))
+    if($this->creator != "" && !$this->isValidIRI($this->creator))
     {
       $this->conneg->setStatus(400);
       $this->conneg->setStatusMsg("Bad Request");

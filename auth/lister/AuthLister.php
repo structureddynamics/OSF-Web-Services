@@ -141,7 +141,6 @@ class AuthLister extends WebService
     $this->dataset = $dataset;
     $this->targetWebservice = strtolower($target_webservice);
     
-    
     if($registered_ip == "")
     {
       $this->registered_ip = $requester_ip;
@@ -682,11 +681,12 @@ class AuthLister extends WebService
             $rdf_part .= "wsf:delete \"" . $xml->getContent($objects->item(0)) . "\" ;\n";
 
             // Get webServiceAccess(es)
-            $webservices = $xml->getXPath('//predicate/object[attribute::type="wsf:WebService"]', $access);
-
+            $webservices = $xml->getPredicatesByType($access, "wsf:webServiceAccess");
+            
             foreach($webservices as $element)
             {
-              $rdf_part .= "wsf:webServiceAccess <" . $xml->getURI($element) . "> ;\n";
+              $objects = $xml->getObjectsByType($element, "wsf:WebService");
+              $rdf_part .= "wsf:webServiceAccess <" . $xml->getURI($objects->item(0)) . "> ;\n";
             }
 
             if(strlen($rdf_part) > 0)
@@ -768,11 +768,12 @@ class AuthLister extends WebService
             $rdf_part .= "<wsf:delete>" . $xml->getContent($objects->item(0)) . "</wsf:delete>\n";
 
             // Get webServiceAccess(es)
-            $webservices = $xml->getXPath('//predicate/object[attribute::type="wsf:WebService"]', $access);
-
+            $webservices = $xml->getPredicatesByType($access, "wsf:webServiceAccess");
+            
             foreach($webservices as $element)
             {
-              $rdf_part .= "<wsf:webServiceAccess rdf:resource=\"" . $xml->getURI($element) . "\" />\n";
+              $objects = $xml->getObjectsByType($element, "wsf:WebService");
+              $rdf_part .= "<wsf:webServiceAccess rdf:resource=\"" . $xml->getURI($objects->item(0)) . "\" />\n";
             }
 
             $rdf_part .= "</wsf:Access>\n";
@@ -1011,7 +1012,7 @@ class AuthLister extends WebService
         else
         { 
           if(strtolower($this->mode) == "access_user")
-          {
+          { 
             $query = "  select ?access ?datasetAccess ?create ?read ?update ?delete ?registeredIP ".($this->targetWebservice == "all" ? "?webServiceAccess" : "")."
                     from <" . $this->wsf_graph
               . ">

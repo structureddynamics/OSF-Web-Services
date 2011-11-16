@@ -64,7 +64,7 @@ $target_webservice = "all";
 
 if(isset($_GET['target_webservice']))
 {
-  $dataset = $_GET['target_webservice'];
+  $target_webservice = $_GET['target_webservice'];
 }
 
 

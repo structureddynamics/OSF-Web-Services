@@ -20,6 +20,13 @@ ini_set("display_errors",
 
 ini_set("memory_limit", "64M");
 
+// Check if the HTTP method used by the requester is the good one
+if ($_SERVER['REQUEST_METHOD'] != 'GET') 
+{
+    header("HTTP/1.1 405 Method Not Allowed");  
+    die;
+}
+
 // Database connectivity procedures
 include_once("../../framework/db.php");
 
@@ -35,7 +42,6 @@ include_once("AuthLister.php");
 include_once("../validator/AuthValidator.php");
 
 include_once("../../framework/Logger.php");
-
 
 // Type of the thing to be listed
 $mode = "dataset";

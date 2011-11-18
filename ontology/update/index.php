@@ -20,6 +20,11 @@ ini_set("display_errors",
 
 ini_set("memory_limit", "256M");
 
+if ($_SERVER['REQUEST_METHOD'] != 'POST') 
+{
+    header("HTTP/1.1 405 Method Not Allowed");  
+    die;
+}
 
 // Database connectivity procedures
 include_once("../../framework/db.php");
@@ -156,6 +161,8 @@ switch(strtolower($function))
     $ws_ontologyupdate->returnError(400, "Bad Request", "_201");
   break;         
 }     
+
+
   
 $ws_ontologyupdate->ws_respond($ws_ontologyupdate->ws_serialize());
 

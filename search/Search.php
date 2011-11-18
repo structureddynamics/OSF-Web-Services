@@ -1705,7 +1705,7 @@ class Search extends WebService
                   break;
                   
                   default:
-                    $solrQuery .= "&fq=(".$attribute.":".urlencode(preg_replace("/[^A-Za-z0-9\s\*\\\]/", " ", $val)).")";
+                    $solrQuery .= "&fq=(".$attribute.":".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
                   break;
                 }
               }
@@ -1721,7 +1721,7 @@ class Search extends WebService
                 // the query anyway.
                 if(array_search(urlencode($attribute), $indexedFields) !== FALSE)
                 {
-                  $solrQuery .= "(".urlencode(urlencode($attribute)).":".urlencode(preg_replace("/[^A-Za-z0-9\s\*\\\]/", " ", $val)).")";  
+                  $solrQuery .= "(".urlencode(urlencode($attribute)).":".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";  
                   $addOR = TRUE;
                   $empty = FALSE;
                 }
@@ -1733,7 +1733,7 @@ class Search extends WebService
                     $solrQuery .= " OR ";
                   }
                   
-                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr:".urlencode(preg_replace("/[^A-Za-z0-9\s\*\\\]/", " ", $val)).")";
+                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr:".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
                   $addOR = TRUE;
                   $empty = FALSE;
                 }
@@ -1745,7 +1745,7 @@ class Search extends WebService
                     $solrQuery .= " OR ";
                   }
                   
-                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj:".urlencode(preg_replace("/[^A-Za-z0-9\s\*\\\]/", " ", $val)).")";
+                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj:".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
                   $addOR = TRUE;
                   $empty = FALSE;
                 }
@@ -1793,7 +1793,7 @@ class Search extends WebService
                   break;
                   
                   default:
-                    $solrQuery .= " ".$this->attributesBooleanOperator." (".$attribute.":".urlencode(preg_replace("/[^A-Za-z0-9\s\*\\\]/", " ", $val)).")";
+                    $solrQuery .= " ".$this->attributesBooleanOperator." (".$attribute.":".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
                   break;
                 }                
                 
@@ -1817,7 +1817,7 @@ class Search extends WebService
                 // the query anyway.
                 if(array_search(urlencode($attribute), $indexedFields) !== FALSE)
                 {
-                  $solrQuery .= "(".urlencode(urlencode($attribute)).":".urlencode(preg_replace("/[^A-Za-z0-9\s\*\\\]/", " ", $val)).")";
+                  $solrQuery .= "(".urlencode(urlencode($attribute)).":".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
                   $addOR = TRUE;
                   $empty = FALSE;
                 }
@@ -1829,7 +1829,7 @@ class Search extends WebService
                     $solrQuery .= " OR ";
                   }
                   
-                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr:".urlencode(preg_replace("/[^A-Za-z0-9\s\*\\\]/", " ", $val)).")";
+                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr:".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
                   $addOR = TRUE;
                   $empty = FALSE;
                 }
@@ -1841,7 +1841,7 @@ class Search extends WebService
                     $solrQuery .= " OR ";
                   }
                   
-                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj:".urlencode(preg_replace("/[^A-Za-z0-9\s\*\\\]/", " ", $val)).")";
+                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj:".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
                   $addOR = TRUE;
                   $empty = FALSE;
                 }
@@ -1985,7 +1985,7 @@ class Search extends WebService
         $solrQuery .= "prefLabelAutocompletion";
         
       }
-   
+      
       $resultset = $solr->select($solrQuery);
 
       $domResultset = new DomDocument("1.0", "utf-8");

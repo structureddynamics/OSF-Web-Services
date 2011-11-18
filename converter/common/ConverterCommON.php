@@ -792,14 +792,12 @@ class ConverterCommON extends WebService
   public function process()
   {
     if($this->conneg->getStatus() == 200)
-    {        
+    {    
       switch($this->docmime)
       {
         case "application/iron+csv":
           $this->parser = new CommonParser($this->text);
-
-//          var_dump($this->parser);die;
-
+ 
           $csvErrors = $this->parser->getCsvErrors();
           $commonErrors = $this->parser->getCommonErrors();
 

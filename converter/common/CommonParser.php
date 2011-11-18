@@ -741,7 +741,8 @@ class CommonParser
 
                       if($record[$key] != "")
                       {
-                        if(is_array($this->dataset[$reifiedAttribute["attribute"]][$reificationStatementId]["reify"]))
+                        if(isset($this->dataset[$reifiedAttribute["attribute"]][$reificationStatementId]["reify"]) &&
+                           is_array($this->dataset[$reifiedAttribute["attribute"]][$reificationStatementId]["reify"]))
                         {
                           array_push($this->dataset[$reifiedAttribute["attribute"]][$reificationStatementId]["reify"][
                                        $reifiedAttribute["reifiedAttribute"]], $record[$key]);
@@ -755,7 +756,8 @@ class CommonParser
                     }
                     else
                     {
-                      if(!is_array($this->dataset[$reifiedAttribute["attribute"]]["reify"]))
+                      if(!isset($this->dataset[$reifiedAttribute["attribute"]]["reify"]) ||
+                         !is_array($this->dataset[$reifiedAttribute["attribute"]]["reify"]))
                       {
                         $this->dataset[$reifiedAttribute["attribute"]]["reify"] = array();
                       }
@@ -775,7 +777,7 @@ class CommonParser
                   {
                     if($record[$key] != "")
                     {
-                      if(is_array($this->dataset[$rs]))
+                      if(isset($this->dataset[$rs]) && is_array($this->dataset[$rs]))
                       {
                         array_push($this->dataset[$rs], array ("value" => $record[$key], "reify" => ""));
                       }
@@ -787,7 +789,7 @@ class CommonParser
                   }
                   else
                   {
-                    if(!is_array($this->dataset[$rs]))
+                    if(!isset($this->dataset[$rs]) || !is_array($this->dataset[$rs]))
                     {
                       $this->dataset[$rs] = array();
                     }
@@ -870,7 +872,8 @@ class CommonParser
 
                       if($record[$key] != "")
                       {
-                        if(is_array($commonRecord[$reifiedAttribute["attribute"]][$reificationStatementId]["reify"]))
+                        if(isset($commonRecord[$reifiedAttribute["attribute"]][$reificationStatementId]["reify"]) &&
+                           is_array($commonRecord[$reifiedAttribute["attribute"]][$reificationStatementId]["reify"]))
                         {
                           array_push($commonRecord[$reifiedAttribute["attribute"]][$reificationStatementId]["reify"][
                                        $reifiedAttribute["reifiedAttribute"]], $record[$key]);
@@ -884,7 +887,8 @@ class CommonParser
                     }
                     else
                     {
-                      if(!is_array($commonRecord[$reifiedAttribute["attribute"]]["reify"]))
+                      if(!isset($commonRecord[$reifiedAttribute["attribute"]]["reify"]) ||
+                         !is_array($commonRecord[$reifiedAttribute["attribute"]]["reify"]))
                       {
                         $commonRecord[$reifiedAttribute["attribute"]]["reify"] = array();
                       }
@@ -904,7 +908,7 @@ class CommonParser
                   {
                     if($record[$key] != "")
                     {
-                      if(is_array($commonRecord[$rs]))
+                      if(isset($commonRecord[$rs]) && is_array($commonRecord[$rs]))
                       {
                         array_push($commonRecord[$rs], array ("value" => $record[$key], "reify" => ""));
                       }
@@ -916,7 +920,7 @@ class CommonParser
                   }
                   else
                   {
-                    if(!is_array($commonRecord[$rs]))
+                    if(!isset($commonRecord[$rs]) || !is_array($commonRecord[$rs]))
                     {
                       $commonRecord[$rs] = array();
                     }
@@ -955,7 +959,8 @@ class CommonParser
                   return;
                 }
 
-                if(!is_array($this->commonLinkageSchema["properties"]))
+                if(!isset($this->commonLinkageSchema["properties"]) || 
+                   !is_array($this->commonLinkageSchema["properties"]))
                 {
                   $this->commonLinkageSchema["properties"] = array();
                 }
@@ -978,7 +983,7 @@ class CommonParser
               }
               elseif(array_search("&prefixList", $recordStructure) !== FALSE)
               {
-                if(!is_array($this->commonLinkageSchema["prefixes"]))
+                if(!isset($this->commonLinkageSchema["prefixes"]) || !is_array($this->commonLinkageSchema["prefixes"]))
                 {
                   $this->commonLinkageSchema["prefixes"] = array();
                 }
@@ -1020,7 +1025,7 @@ class CommonParser
                   return;
                 }
 
-                if(!is_array($this->commonLinkageSchema["types"]))
+                if(!isset($this->commonLinkageSchema["types"]) || !is_array($this->commonLinkageSchema["types"]))
                 {
                   $this->commonLinkageSchema["types"] = array();
                 }
@@ -1062,7 +1067,8 @@ class CommonParser
                   return;
                 }
 
-                if(!is_array($this->commonLinkageSchema["description"]))
+                if(!isset($this->commonLinkageSchema["description"]) || 
+                   !is_array($this->commonLinkageSchema["description"]))
                 {
                   $this->commonLinkageSchema["description"] = array();
                 }
@@ -1271,7 +1277,7 @@ class CommonParser
               }                
               
               // Check if there is some statements to reify
-              if(is_array($value["reify"]))
+              if(isset($value["reify"]) && is_array($value["reify"]))
               {
                 foreach($value["reify"] as $reifiedAttribute => $reiValues)
                 {
@@ -1345,7 +1351,7 @@ class CommonParser
       $targetAttribute = substr($targetAttribute, 1, strlen($targetAttribute) - 1);
     }
 
-    if(is_array($this->commonLinkageSchema["properties"]))
+    if(isset($this->commonLinkageSchema["properties"]) && is_array($this->commonLinkageSchema["properties"]))
     {
       foreach($this->commonLinkageSchema["properties"] as $property)
       {
@@ -1380,7 +1386,7 @@ class CommonParser
       $targetType = substr($targetType, 1, strlen($targetType) - 1);
     }
 
-    if(is_array($this->commonLinkageSchema["types"]))
+    if(isset($this->commonLinkageSchema["types"]) && is_array($this->commonLinkageSchema["types"]))
     {
       foreach($this->commonLinkageSchema["types"] as $type)
       {

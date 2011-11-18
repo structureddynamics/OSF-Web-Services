@@ -21,6 +21,12 @@ ini_set("display_errors",
 ini_set("memory_limit", "128M");
 set_time_limit(2700);
 
+if ($_SERVER['REQUEST_METHOD'] != 'POST') 
+{
+    header("HTTP/1.1 405 Method Not Allowed");  
+    die;
+}
+
 // Database connectivity procedures
 include_once("../../framework/db.php");
 

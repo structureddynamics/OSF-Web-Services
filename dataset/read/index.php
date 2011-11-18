@@ -37,6 +37,11 @@ include_once("../../auth/validator/AuthValidator.php");
 
 include_once("../../framework/Logger.php");
 
+if ($_SERVER['REQUEST_METHOD'] != 'GET') 
+{
+    header("HTTP/1.1 405 Method Not Allowed");  
+    die;
+}
 
 // URI of the dataset to get the description of
 // "all" means all datasets visible to that user

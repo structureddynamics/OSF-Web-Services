@@ -38,6 +38,11 @@ include_once("../../auth/registrar/access/AuthRegistrarAccess.php");
 
 include_once("../../framework/Logger.php");
 
+if ($_SERVER['REQUEST_METHOD'] != 'POST') 
+{
+    header("HTTP/1.1 405 Method Not Allowed");  
+    die;
+}
 
 // URI for the dataset
 $uri = "";

@@ -291,16 +291,32 @@ class OntologyRead extends WebService
       {
         foreach($sts[Namespaces::$rdf."type"] as $key => $type)
         {     
-          if($key > 0)
+          if($key == 0)
           {
+            $subject = $xml->createSubject($type["value"], $u);            
+          }
+          
+          if($key > 0 || isset($type["rei"]))
+          {
+            // Here we automatically create a rdf:type property as a "predicate" if there is a reification
+            // statement attached to it. This means that even if it is the first type, we do "duplicate"
+            // that type statement such that the user of this information can get the reified information
+            // for this type as well.
+
             $pred = $xml->createPredicate(Namespaces::$rdf."type");
             $object = $xml->createObject("", $type["value"]);
             $pred->appendChild($object);
+            
+            if(isset($type["rei"]))
+            {
+              foreach($type["rei"] as $rStatement)
+              {
+                $reify = $xml->createReificationStatement($rStatement["type"], $rStatement["value"]);
+                $object->appendChild($reify);
+              }
+            }                
+            
             $subject->appendChild($pred);
-          }
-          else
-          {
-            $subject = $xml->createSubject($type["value"], $u);
           }
         }
       }

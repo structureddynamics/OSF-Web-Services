@@ -1353,8 +1353,12 @@ class OntologyRead extends WebService
               $this->subjectTriples = $ontology->getNamedIndividualsDescription($classUri, $direct, $limit, $offset);
             break;
             
+            case "list":
+              $this->subjectTriples = $ontology->getNamedIndividualsDescription($classUri, $direct, $limit, $offset, TRUE);
+            break;
+            
             default:
-              $this->returnError(400, "Bad Request", "_201");
+              $this->returnError(400, "Bad Request", "_201", "Mode provided: ".$this->parameters["mode"]);
               return;
             break;            
           }

@@ -131,7 +131,7 @@ class OntologyRead extends WebService
 
     $this->ontologyUri = $ontologyUri;
     $this->function = $function;
-    
+
     $params = explode(";", $parameters);
     
     foreach($params as $param)
@@ -1612,7 +1612,14 @@ class OntologyRead extends WebService
                   
                   case Namespaces::$sco."displayControl":
                     
-                    $displayControl = substr($value["value"], strripos($value["value"], "#") + 1);
+                    if(strtolower($value["datatype"]) == "rdf:Resource")
+                    {
+                      $displayControl = substr($value["value"], strripos($value["value"], "#") + 1);
+                    }
+                    else
+                    {
+                      $displayControl = $value["value"];
+                    }
                     
                     $schema .= "<displayControl>".$this->xmlEncode($displayControl)."</displayControl>";
                   break;
@@ -1666,7 +1673,15 @@ class OntologyRead extends WebService
                   break;
                   
                   case Namespaces::$sco."displayControl":
-                    $displayControl = substr($value["value"], strripos($value["value"], "#") + 1);
+                  
+                    if(strtolower($value["datatype"]) == "rdf:Resource")
+                    {
+                      $displayControl = substr($value["value"], strripos($value["value"], "#") + 1);
+                    }
+                    else
+                    {
+                      $displayControl = $value["value"];
+                    }
                     
                     $schema .= "<displayControl>".$this->xmlEncode($displayControl)."</displayControl>";
                   break;
@@ -1733,7 +1748,15 @@ class OntologyRead extends WebService
                   break;
                   
                   case Namespaces::$sco."displayControl":
-                    $displayControl = substr($value["value"], strripos($value["value"], "#") + 1);
+                  
+                    if(strtolower($value["datatype"]) == "rdf:Resource")
+                    {
+                      $displayControl = substr($value["value"], strripos($value["value"], "#") + 1);
+                    }
+                    else
+                    {
+                      $displayControl = $value["value"];
+                    }
                     
                     $schema .= "<displayControl>".$this->xmlEncode($displayControl)."</displayControl>";
                   break;
@@ -1872,8 +1895,15 @@ class OntologyRead extends WebService
                   
                   case Namespaces::$sco."displayControl":
                     
-                    $displayControl = substr($value["value"], strripos($value["value"], "#") + 1);
-                    
+                    if(strtolower($value["datatype"]) == "rdf:Resource")
+                    {
+                      $displayControl = substr($value["value"], strripos($value["value"], "#") + 1);
+                    }
+                    else
+                    {
+                      $displayControl = $value["value"];
+                    }
+                                       
                     $schema .= '"'.parent::jsonEncode($displayControl).'",';
                   break;
                   
@@ -1974,7 +2004,14 @@ class OntologyRead extends WebService
                   break;
                   
                   case Namespaces::$sco."displayControl":
-                    $displayControl = substr($value["value"], strripos($value["value"], "#") + 1);
+                    if(strtolower($value["datatype"]) == "rdf:Resource")
+                    {
+                      $displayControl = substr($value["value"], strripos($value["value"], "#") + 1);
+                    }
+                    else
+                    {
+                      $displayControl = $value["value"];
+                    }
                     
                     $schema .= '"'.parent::jsonEncode($displayControl).'",';
                   break;
@@ -2092,7 +2129,14 @@ class OntologyRead extends WebService
                   break;
                   
                   case Namespaces::$sco."displayControl":
-                    $displayControl = substr($value["value"], strripos($value["value"], "#") + 1);
+                    if(strtolower($value["datatype"]) == "rdf:Resource")
+                    {
+                      $displayControl = substr($value["value"], strripos($value["value"], "#") + 1);
+                    }
+                    else
+                    {
+                      $displayControl = $value["value"];
+                    }
                     
                     $schema .= '"'.parent::jsonEncode($displayControl).'",';
                   break;

@@ -369,7 +369,104 @@ class OWLOntology
     
     return($niDescription);
   }  
-                                                       "lang" => ""));       
+  
+  /**
+  * Convert the OWLAPI named individual description into an array describing the class. This array is a simplification
+  * of the OWLAPI that is used by other parts of this API, along with other scripts that uses this
+  * API such as the various ontology related structWSF endpoints.
+  * 
+  * This array is optimized for displaying the named individual references in some list controls. This function
+  * only returns the prefLabel, and types of the named individual.
+  * 
+  * Note: annotations on are converted into non-annotation attribute/value with this API call.
+  * 
+  * The array is defined as:
+  *   
+  *   $classDescription = array(
+  *                              "predicate-uri" => array(
+  *                                                       array(
+  *                                                               "value" => "the value of the predicate",
+  *                                                               "datatype" => "the type of the value",
+  *                                                               "lang" => "language reference of the value (if literal)"
+  *                                                            ),
+  *                                                       array(...)
+  *                                                     ),
+  *                              "..." => array(...)
+  *                            )
+  * 
+  * @param mixed $class The OWLAPI named individual instance.
+  * 
+  * @see http://owlapi.sourceforge.net/javadoc/uk/ac/manchester/cs/owl/owlapi/OWLNamedIndividual.html
+  *  
+  * @author Frederick Giasson, Structured Dynamics LLC.
+  */
+  public function _getNamedIndividualListDescription($namedIndividual)
+  {
+    $niDescription = array();
+
+    // Get the types of the entity
+    $niDescription[Namespaces::$rdf."type"] = array();     
+    
+    // Get all types of this named individual
+    $types = $namedIndividual->getTypes($this->ontology);
+    
+    foreach($types as $type)
+    {
+      $typeUri = (string)java_values($type->toStringID());
+      
+      array_push($niDescription[Namespaces::$rdf."type"], array("value" => $typeUri,
+                                                          "datatype" => "rdf:Resource",
+                                                          "lang" => "")); 
+    }
+    
+    // Get all the annotations
+    $annotations = $namedIndividual->getAnnotations($this->ontology);
+    
+    foreach($annotations as $annotation)
+    {
+      $info = $this->getAnnotationInfo($annotation);
+      
+      if(in_array($info["property"], Namespaces::getLabelProperties()))
+      {      
+        if(!isset($niDescription[$info["property"]]) || 
+           is_array($niDescription[$info["property"]]) === FALSE)
+        {
+          $niDescription[$info["property"]] = array(); 
+        }
+
+        array_push($niDescription[$info["property"]], array("value" => $info["value"],
+                                                            "datatype" => $info["datatype"],
+                                                            "lang" => $info["lang"],
+                                                            "rei" => $info["rei"]));
+      }       
+    }
+    
+    // Get all dataproperty/values defining this named individual
+    $datapropertiesValuesMap = $namedIndividual->getDataPropertyValues($this->ontology);
+    
+    $keys = $datapropertiesValuesMap->keySet();
+    $size = java_values($datapropertiesValuesMap->size());
+    
+    foreach($keys as $property)
+    {
+      $propertyUri = (string)java_values($property->toStringID());
+      
+      if(in_array($propertyUri, Namespaces::getLabelProperties()))
+      {
+        $valuesOWLLiteral = $datapropertiesValuesMap->get($property);
+        
+        if(!isset($niDescription[$propertyUri]) ||
+           !is_array($niDescription[$propertyUri]))
+        {
+          $niDescription[$propertyUri] = array();
+        }
+        
+        foreach($valuesOWLLiteral as $valueOWLLiteral)
+        {
+          array_push($niDescription[$propertyUri], array("value" => (string)$valueOWLLiteral->getLiteral(),
+                                                         "datatype" => "rdf:Literal",
+                                                         "lang" => (string)$valueOWLLiteral->getLang()));       
+        }
       }
     }
     
@@ -684,6 +781,7 @@ class OWLOntology
   * 
   * @param mixed $uri of the class for which to get the list of subclasses
   * @param boolean $direct Specifies if you want the direct sub-classes or the inherented ones also.
+  * @param boolean $hierarchy Specifies that we want a class description specialized for display in a hierarchy control.
   *  
   * @author Frederick Giasson, Structured Dynamics LLC.
   */
@@ -2619,12 +2717,13 @@ class OWLOntology
   *                        be retrieved (false). 
   * @param mixed $limit The maximum number of results to return with this function
   * @param mixed $offset The place, in the array, where to start returning results.
+  * @param boolean $list Specifies if we want the description of the named individuals being optimized for displaying in a list.
   * 
   * @return Returns a class description array as described above.
   *  
   * @author Frederick Giasson, Structured Dynamics LLC.
   */  
-  public function getNamedIndividualsDescription($classUri = "all", $direct = true, $limit = -1, $offset = -1)
+  public function getNamedIndividualsDescription($classUri = "all", $direct = true, $limit = -1, $offset = -1, $list = FALSE)
   {
     $namedIndividuals;
     if($classUri != "all")
@@ -2671,7 +2770,14 @@ class OWLOntology
         $niUri = (string)java_values($ni->toStringID());
         $niDescription[$niUri] = array();
         
-        $niDescription[$niUri] = $this->_getNamedIndividualDescription($ni);
+        if(!$list)
+        {
+          $niDescription[$niUri] = $this->_getNamedIndividualDescription($ni);
+        }
+        else
+        {
+          $niDescription[$niUri] = $this->_getNamedIndividualListDescription($ni);
+        }
         $nb++;  
       }   
     }

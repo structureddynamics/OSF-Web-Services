@@ -2147,13 +2147,17 @@ class OWLOntology
       Namespaces::$umbel."prefLabel",
       Namespaces::$dcterms."title",
       Namespaces::$dc."title",
-      Namespaces::$iron."prefLabel",
+      Namespaces::$iron."prefLabel"
+    );
+    
+    $altLabelAttributes = array(
       Namespaces::$skos_2004."altLabel",
       Namespaces::$skos_2008."altLabel",
       Namespaces::$umbel."altLabel",
       Namespaces::$iron."altLabel"
     );
     
+    $altLabelFound = "";
 
     // Get all the annotations
     if(strtolower((string)$entity->getEntityType()->getName()) == "namedindividual")
@@ -2178,6 +2182,14 @@ class OWLOntology
             return((string)$valueOWLLiteral->getLiteral());
           }        
         }
+        
+        if(array_search($propertyUri, $altLabelAttributes) !== FALSE)
+        {
+          foreach($valuesOWLLiteral as $valueOWLLiteral)
+          {        
+            $altLabelFound = (string)$valueOWLLiteral->getLiteral();
+          }        
+        }        
       }
     }
     
@@ -2191,6 +2203,17 @@ class OWLOntology
       {
         return($info["value"]);
       }
+      
+      if(array_search($info["property"], $altLabelAttributes) !== FALSE)
+      {
+        $altLabelFound = $info["value"];
+      }      
+    }
+    
+    // If no pref labels have been found, but that an alternative label exists, we return it immediately.
+    if($altLabelFound != "")
+    {
+      return($altLabelFound);
     }
     
     $uri = (string)java_values($entity->toStringID());    

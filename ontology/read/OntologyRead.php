@@ -369,8 +369,6 @@ class OntologyRead extends WebService
                 $nsId++;
               } 
               
-              $pred = $xml->createPredicate($this->namespaces[$ns[0]] . ":" . $ns[1]);              
-              
               $pred = $xml->createPredicate($this->namespaces[$ns[0]] . ":" . $ns[1]);
               $object = $xml->createObject("", $value["value"]);
               $pred->appendChild($object);

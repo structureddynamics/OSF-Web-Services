@@ -715,37 +715,32 @@ class OntologyUpdate extends WebService
             break;
           }
         }
-        
+ 
         // Call different API calls depending what we are manipulating
-        switch($description[Namespaces::$rdf."type"][0]["value"])
+        if($this->in_array_r(Namespaces::$owl."Class", $description[Namespaces::$rdf."type"]))
         {
-          case Namespaces::$owl."Class":
-            $this->ontology->updateClass($uri, $literalValues, $objectValues);     
-          break;
-          
-          case Namespaces::$owl."DatatypeProperty":
-          case Namespaces::$owl."ObjectProperty":
-          case Namespaces::$owl."AnnotationProperty":
-          
-            foreach($types as $type)
+          $this->ontology->updateClass($uri, $literalValues, $objectValues); 
+        }
+        elseif($this->in_array_r(Namespaces::$owl."DatatypeProperty", $description[Namespaces::$rdf."type"]) ||
+               $this->in_array_r(Namespaces::$owl."ObjectProperty", $description[Namespaces::$rdf."type"]) ||
+               $this->in_array_r(Namespaces::$owl."AnnotationProperty", $description[Namespaces::$rdf."type"]))
+        {
+          foreach($types as $type)
+          {
+            if(!is_array($objectValues[Namespaces::$rdf."type"]))
             {
-              if(!is_array($objectValues[Namespaces::$rdf."type"]))
-              {
-                $objectValues[Namespaces::$rdf."type"] = array();
-              }
-              
-              array_push($objectValues[Namespaces::$rdf."type"], $type);      
+              $objectValues[Namespaces::$rdf."type"] = array();
             }
-          
-            $this->ontology->updateProperty($uri, $literalValues, $objectValues);      
-          break;
-          
-          // By default, everything else is considered a named individual
-          case Namespaces::$owl."NamedIndividual":
-          default:
-            $this->ontology->updateNamedIndividual($uri, $types, $literalValues, $objectValues);              
-          break;            
-        }  
+            
+            array_push($objectValues[Namespaces::$rdf."type"], $type);      
+          }
+        
+          $this->ontology->updateProperty($uri, $literalValues, $objectValues);   
+        }
+        else
+        {
+          $this->ontology->updateNamedIndividual($uri, $types, $literalValues, $objectValues);   
+        }
         
         // Call different API calls depending what we are manipulating
         if($advancedIndexation == TRUE)

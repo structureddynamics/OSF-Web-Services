@@ -3417,6 +3417,29 @@ class OWLOntology
       {
         $syntaxedAxiom = (string)$ra->toString();
         
+        // Match:        
+        // ClassAssertion(<http://purl.org/ontology/peg#CrossCuttingIssue> <http://purl.org/ontology/peg/framework#Poverty>)
+        // ClassAssertion(<http://purl.org/ontology/peg#CrossCuttingIssue> <http://purl.org/ontology/peg/framework#Poverty> <http://purl.org/ontology/peg/framework#Test>)
+        // ClassAssertion(rdf:test <http://purl.org/ontology/peg/framework#Poverty> <http://purl.org/ontology/peg/framework#Test>)
+        // ClassAssertion(rdf:test <http://purl.org/ontology/peg/framework#Poverty>)
+        // DataPropertyAssertion(rdfs:label <http://purl.org/ontology/peg/framework#Energy> "energy"^^xsd:string)
+        
+        // Make sure it doesn't match:
+        // ClassAssertion(<http://purl.org/ontology/peg#CrossCuttingIssue> <http://purl.org/ontology/peg/framework#Test>)       
+        // ClassAssertion(rdf:test <http://purl.org/ontology/peg/framework#Test>)       
+        // ClassAssertion(<http://purl.org/ontology/peg#CrossCuttingIssue> <http://purl.org/ontology/peg/framework#test> <http://purl.org/ontology/peg/framework#Poverty>)
+        // ClassAssertion(rdf:test <http://purl.org/ontology/peg/framework#test> <http://purl.org/ontology/peg/framework#Poverty>)
+        // DataPropertyAssertion(<http://purl.org/ontology/iron#prefLabel> <http://purl.org/ontology/peg/framework#Energy> "Energy"^^xsd:string)
+        if(preg_match("/^[A-Za-z0-9_\\-]+\\(<([^\\s]*)>\\s<".str_replace("/", "\\/", $uri).">\\)\$/", $syntaxedAxiom) > 0 ||
+           preg_match("/^[A-Za-z0-9_\\-]+\\(<([^\\s]*)>\\s<".str_replace("/", "\\/", $uri).">\\s<([^\\s]*)>\\)\$/", $syntaxedAxiom) > 0 ||
+           preg_match("/^[A-Za-z0-9_\\-]+\\([A-Za-z0-9_\\-]+:[A-Za-z0-9_\\-]+\\s<".str_replace("/", "\\/", $uri).">\\s<([^\\s]*)>\\)$/", $syntaxedAxiom) > 0 ||
+           preg_match("/^[A-Za-z0-9_\\-]+\\([A-Za-z0-9_\\-]+:[A-Za-z0-9_\\-]+\\s<".str_replace("/", "\\/", $uri).">\\)$/", $syntaxedAxiom) > 0 ||
+           preg_match("/^[A-Za-z0-9_\\-]+\\([A-Za-z0-9_\\-]+:[A-Za-z0-9_\\-]+\\s<".str_replace("/", "\\/", $uri).">\\s\"(.+)\".*\\)$/", $syntaxedAxiom) ||
+           preg_match("/^[A-Za-z0-9_\\-]+\\(<([^\\s]*)>\\s<".str_replace("/", "\\/", $uri).">\\s\"(.+)\".*\\)$/", $syntaxedAxiom) > 0)
+        {
+          continue;         
+        }
+        
         $addAxiom = new Java("org.semanticweb.owlapi.model.AddAxiom", $this->ontology, $ra);
         $changesSet->add($addAxiom);
       }

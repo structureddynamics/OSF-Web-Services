@@ -56,6 +56,9 @@ class OntologyUpdate extends WebService
   
   private $OwlApiSession = null;
   
+  /*! @brief enable/disable the reasoner when doing advanced indexation */
+  private $reasoner = TRUE;  
+  
   /*! @brief Error messages of this web service */
   private $errorMessenger =
     '{
@@ -531,6 +534,15 @@ class OntologyUpdate extends WebService
         $ontologyRead->ws_conneg("application/rdf+xml", $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
                                $_SERVER['HTTP_ACCEPT_LANGUAGE']);
 
+        if($this->reasoner)
+        {
+          $ontologyRead->useReasoner(); 
+        }  
+        else
+        {
+          $ontologyRead->stopUsingReasoner();
+        }                               
+                               
         $ontologyRead->process();
         
         if($ontologyRead->pipeline_getResponseHeaderStatus() != 200)
@@ -703,37 +715,32 @@ class OntologyUpdate extends WebService
             break;
           }
         }
-        
+ 
         // Call different API calls depending what we are manipulating
-        switch($description[Namespaces::$rdf."type"][0]["value"])
+        if($this->in_array_r(Namespaces::$owl."Class", $description[Namespaces::$rdf."type"]))
         {
-          case Namespaces::$owl."Class":
-            $this->ontology->updateClass($uri, $literalValues, $objectValues);     
-          break;
-          
-          case Namespaces::$owl."DatatypeProperty":
-          case Namespaces::$owl."ObjectProperty":
-          case Namespaces::$owl."AnnotationProperty":
-          
-            foreach($types as $type)
+          $this->ontology->updateClass($uri, $literalValues, $objectValues); 
+        }
+        elseif($this->in_array_r(Namespaces::$owl."DatatypeProperty", $description[Namespaces::$rdf."type"]) ||
+               $this->in_array_r(Namespaces::$owl."ObjectProperty", $description[Namespaces::$rdf."type"]) ||
+               $this->in_array_r(Namespaces::$owl."AnnotationProperty", $description[Namespaces::$rdf."type"]))
+        {
+          foreach($types as $type)
+          {
+            if(!is_array($objectValues[Namespaces::$rdf."type"]))
             {
-              if(!is_array($objectValues[Namespaces::$rdf."type"]))
-              {
-                $objectValues[Namespaces::$rdf."type"] = array();
-              }
-              
-              array_push($objectValues[Namespaces::$rdf."type"], $type);      
+              $objectValues[Namespaces::$rdf."type"] = array();
             }
-          
-            $this->ontology->updateProperty($uri, $literalValues, $objectValues);      
-          break;
-          
-          // By default, everything else is considered a named individual
-          case Namespaces::$owl."NamedIndividual":
-          default:
-            $this->ontology->updateNamedIndividual($uri, $types, $literalValues, $objectValues);              
-          break;            
-        }  
+            
+            array_push($objectValues[Namespaces::$rdf."type"], $type);      
+          }
+        
+          $this->ontology->updateProperty($uri, $literalValues, $objectValues);   
+        }
+        else
+        {
+          $this->ontology->updateNamedIndividual($uri, $types, $literalValues, $objectValues);   
+        }
         
         // Call different API calls depending what we are manipulating
         if($advancedIndexation == TRUE)
@@ -814,6 +821,15 @@ class OntologyUpdate extends WebService
               $ontologyRead->ws_conneg("application/rdf+xml", $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
                                      $_SERVER['HTTP_ACCEPT_LANGUAGE']);
 
+              if($this->reasoner)
+              {
+                $ontologyRead->useReasoner(); 
+              }  
+              else
+              {
+                $ontologyRead->stopUsingReasoner();
+              }                                     
+                                     
               $ontologyRead->process();
               
               if($ontologyRead->pipeline_getResponseHeaderStatus() != 200)
@@ -1099,8 +1115,6 @@ class OntologyUpdate extends WebService
   }
   
   /**
-  * 
-  *  
   * @author Frederick Giasson, Structured Dynamics LLC.
   */
   private function isValid()
@@ -1119,6 +1133,39 @@ class OntologyUpdate extends WebService
     
     return(FALSE);    
   }  
+  
+  /*!
+  * Enable the reasoner for advanced indexation 
+  * 
+  * @author Frederick Giasson, Structured Dynamics LLC.
+  */
+  public function useReasonerForAdvancedIndexation()
+  {
+    $this->reasoner = TRUE;
+  }
+  
+  /*!
+  * Disable the reasoner for advanced indexation 
+  * 
+  * @author Frederick Giasson, Structured Dynamics LLC.
+  */
+  public function stopUsingReasonerForAdvancedIndexation()
+  {
+    $this->reasoner = FALSE;
+  }  
+  
+  private function in_array_r($needle, $haystack) 
+  {
+    foreach($haystack as $item) 
+    {
+      if($item === $needle || (is_array($item) && $this->in_array_r($needle, $item))) 
+      {
+        return TRUE;
+      }
+    }
+
+    return FALSE;
+  }
 }
 
 //@}

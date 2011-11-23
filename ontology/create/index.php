@@ -86,6 +86,21 @@ if(isset($_POST['advancedIndexation']))
   }  
 }
 
+$reasoner = "true";
+
+if(isset($_POST['reasoner']))
+{
+  if(strtolower($_POST['reasoner']) == "false")
+  {
+    $reasoner = FALSE;
+  }
+  else
+  {
+    $reasoner = TRUE;
+  }  
+}
+
+
 $mtime = microtime();
 $mtime = explode(' ', $mtime);
 $mtime = $mtime[1] + $mtime[0];
@@ -165,6 +180,16 @@ if(strtolower($permissions[3]) == "false")
 else
 {
   $ws_ontologycreate->setGlobalPermissionDelete(TRUE);
+}
+
+// set reasoner
+if($reasoner)
+{
+  $ws_ontologycreate->useReasonerForAdvancedIndexation();
+}
+else
+{
+  $ws_ontologycreate->stopUsingReasonerForAdvancedIndexation();
 }
   
   

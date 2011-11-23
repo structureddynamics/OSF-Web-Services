@@ -69,6 +69,9 @@ class OntologyCreate extends WebService
              will also become queryable via the standard services such as Search and Browse.
   */
   private $advancedIndexation = FALSE;
+  
+  /*! @brief enable/disable the reasoner when doing advanced indexation */
+  private $reasoner = TRUE;
 
   /*! @brief Error messages of this web service */
   private $errorMessenger =
@@ -629,7 +632,7 @@ class OntologyCreate extends WebService
         // description into the other structWSF data stores to enable search and filtering using the other
         // endpoints such as search, sparql, read, etc.
         if($this->advancedIndexation)
-        {
+        {          
           // Once we start the ontology creation process, we have to make sure that even if the server
           // loose the connection with the user the process will still finish.
           ignore_user_abort(true);
@@ -851,6 +854,15 @@ class OntologyCreate extends WebService
               $ontologyRead->ws_conneg("application/rdf+xml", $_SERVER['HTTP_ACCEPT_CHARSET'],
                 $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
 
+              if($this->reasoner)
+              {
+                $ontologyRead->useReasoner(); 
+              }  
+              else
+              {
+                $ontologyRead->stopUsingReasoner();
+              }
+                
               $ontologyRead->process();
 
               $classesRDF = $ontologyRead->ws_serialize();
@@ -880,6 +892,15 @@ class OntologyCreate extends WebService
               $ontologyRead->ws_conneg("application/rdf+xml", $_SERVER['HTTP_ACCEPT_CHARSET'],
                 $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
 
+              if($this->reasoner)
+              {
+                $ontologyRead->useReasoner(); 
+              }  
+              else
+              {
+                $ontologyRead->stopUsingReasoner();
+              }                
+                
               $ontologyRead->process();
 
               $propertiesRDF = $ontologyRead->ws_serialize();
@@ -906,6 +927,15 @@ class OntologyCreate extends WebService
               $ontologyRead->ws_conneg("application/rdf+xml", $_SERVER['HTTP_ACCEPT_CHARSET'],
                 $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
 
+              if($this->reasoner)
+              {
+                $ontologyRead->useReasoner(); 
+              }  
+              else
+              {
+                $ontologyRead->stopUsingReasoner();
+              }                
+                
               $ontologyRead->process();
 
               $namedIndividualsRDF = $ontologyRead->ws_serialize();
@@ -1189,6 +1219,26 @@ class OntologyCreate extends WebService
   public function setAdvancedIndexation($advancedIndexation)
   {
     $this->advancedIndexation = $advancedIndexation;
+  }
+    
+  /*!
+  * Enable the reasoner for advanced indexation 
+  * 
+  * @author Frederick Giasson, Structured Dynamics LLC.
+  */
+  public function useReasonerForAdvancedIndexation()
+  {
+    $this->reasoner = TRUE;
+  }
+  
+  /*!
+  * Disable the reasoner for advanced indexation 
+  * 
+  * @author Frederick Giasson, Structured Dynamics LLC.
+  */
+  public function stopUsingReasonerForAdvancedIndexation()
+  {
+    $this->reasoner = FALSE;
   }
   
   /*!

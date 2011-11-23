@@ -479,7 +479,7 @@ class OntologyDelete extends WebService
         return;
       }
 
-      // Delete the OWLAPI class entity
+      // Delete the OWLAPI property entity
       $this->ontology->removeProperty($uri);
 
       // Check to delete potential datasets that have been created within structWSF
@@ -512,6 +512,61 @@ class OntologyDelete extends WebService
       $this->ontology->addOntologyAnnotation("http://purl.org/ontology/wsf#ontologyModified", "true");    
     }
   }
+  
+  /**
+  * 
+  *  
+  * @param mixed $uri
+  *  
+  * @author Frederick Giasson, Structured Dynamics LLC.
+  */
+  public function deleteNamedIndividual($uri)
+  {
+    $this->initiateOwlBridgeSession();
+
+    $this->getOntologyReference();
+        
+    if($this->isValid())
+    {
+      if($uri == "")
+      {
+        $this->returnError(400, "Bad Request", "_201");
+        return;
+      }
+
+      // Delete the OWLAPI named individual entity
+      $this->ontology->removeNamedIndividual($uri);
+
+      // Check to delete potential datasets that have been created within structWSF
+      include_once($this->wsf_base_path."crud/delete/CrudDelete.php");
+      include_once($this->wsf_base_path."dataset/read/DatasetRead.php");
+      include_once($this->wsf_base_path."framework/Solr.php");
+
+      $crudDelete =
+        new CrudDelete($uri, $this->ontologyUri, $this->registered_ip, $this->requester_ip);
+
+      $crudDelete->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'],
+        $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+
+      $crudDelete->process();
+
+      if($crudDelete->pipeline_getResponseHeaderStatus() != 200)
+      {
+        $this->conneg->setStatus($crudDelete->pipeline_getResponseHeaderStatus());
+        $this->conneg->setStatusMsg($crudDelete->pipeline_getResponseHeaderStatusMsg());
+        $this->conneg->setStatusMsgExt($crudDelete->pipeline_getResponseHeaderStatusMsgExt());
+        $this->conneg->setError($crudDelete->pipeline_getError()->id,
+          $crudDelete->pipeline_getError()->webservice, $crudDelete->pipeline_getError()->name,
+          $crudDelete->pipeline_getError()->description, $crudDelete->pipeline_getError()->debugInfo,
+          $crudDelete->pipeline_getError()->level);
+
+        return;
+      }
+
+      // Update the name of the file of the ontology to mark it as "changed"
+      $this->ontology->addOntologyAnnotation("http://purl.org/ontology/wsf#ontologyModified", "true");    
+    }
+  }  
 
   /**
   * 

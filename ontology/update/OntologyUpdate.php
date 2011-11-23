@@ -56,6 +56,9 @@ class OntologyUpdate extends WebService
   
   private $OwlApiSession = null;
   
+  /*! @brief enable/disable the reasoner when doing advanced indexation */
+  private $reasoner = TRUE;  
+  
   /*! @brief Error messages of this web service */
   private $errorMessenger =
     '{
@@ -531,6 +534,15 @@ class OntologyUpdate extends WebService
         $ontologyRead->ws_conneg("application/rdf+xml", $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
                                $_SERVER['HTTP_ACCEPT_LANGUAGE']);
 
+        if($this->reasoner)
+        {
+          $ontologyRead->useReasoner(); 
+        }  
+        else
+        {
+          $ontologyRead->stopUsingReasoner();
+        }                               
+                               
         $ontologyRead->process();
         
         if($ontologyRead->pipeline_getResponseHeaderStatus() != 200)
@@ -814,6 +826,15 @@ class OntologyUpdate extends WebService
               $ontologyRead->ws_conneg("application/rdf+xml", $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
                                      $_SERVER['HTTP_ACCEPT_LANGUAGE']);
 
+              if($this->reasoner)
+              {
+                $ontologyRead->useReasoner(); 
+              }  
+              else
+              {
+                $ontologyRead->stopUsingReasoner();
+              }                                     
+                                     
               $ontologyRead->process();
               
               if($ontologyRead->pipeline_getResponseHeaderStatus() != 200)
@@ -1099,8 +1120,6 @@ class OntologyUpdate extends WebService
   }
   
   /**
-  * 
-  *  
   * @author Frederick Giasson, Structured Dynamics LLC.
   */
   private function isValid()
@@ -1119,6 +1138,39 @@ class OntologyUpdate extends WebService
     
     return(FALSE);    
   }  
+  
+  /*!
+  * Enable the reasoner for advanced indexation 
+  * 
+  * @author Frederick Giasson, Structured Dynamics LLC.
+  */
+  public function useReasonerForAdvancedIndexation()
+  {
+    $this->reasoner = TRUE;
+  }
+  
+  /*!
+  * Disable the reasoner for advanced indexation 
+  * 
+  * @author Frederick Giasson, Structured Dynamics LLC.
+  */
+  public function stopUsingReasonerForAdvancedIndexation()
+  {
+    $this->reasoner = FALSE;
+  }  
+  
+  private function in_array_r($needle, $haystack) 
+  {
+    foreach($haystack as $item) 
+    {
+      if($item === $needle || (is_array($item) && $this->in_array_r($needle, $item))) 
+      {
+        return TRUE;
+      }
+    }
+
+    return FALSE;
+  }
 }
 
 //@}

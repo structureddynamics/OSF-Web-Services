@@ -77,6 +77,20 @@ if(isset($_POST['parameters']))
   $params = $_POST['parameters'];
 }
 
+$reasoner = "true";
+
+if(isset($_POST['reasoner']))
+{
+  if(strtolower($_POST['reasoner']) == "false")
+  {
+    $reasoner = FALSE;
+  }
+  else
+  {
+    $reasoner = TRUE;
+  }  
+}
+
 $mtime = microtime();
 $mtime = explode(' ', $mtime);
 $mtime = $mtime[1] + $mtime[0];
@@ -116,6 +130,18 @@ $ws_ontologyupdate->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_A
                               (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
                               (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : "")); 
 
+                              
+// set reasoner
+if($reasoner)
+{
+  $ws_ontologyupdate->useReasonerForAdvancedIndexation();
+}
+else
+{
+  $ws_ontologyupdate->stopUsingReasonerForAdvancedIndexation();
+}
+                                
+                              
 $params = explode(";", $params);
 $parameters = array();
 

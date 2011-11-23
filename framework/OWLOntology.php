@@ -304,7 +304,11 @@ class OWLOntology
       
       array_push($niDescription[Namespaces::$rdf."type"], array("value" => $typeUri,
                                                           "datatype" => "rdf:Resource",
-                                                          "lang" => "")); 
+                                                          "lang" => "",
+                                                          "rei" => array(array(
+                                                            "type" => "rdfs:Label",
+                                                            "value" => $this->getPrefLabel($type)
+                                                           )))); 
     }
     
     // Get all dataproperty/values defining this named individual
@@ -355,6 +359,16 @@ class OWLOntology
       {
         array_push($niDescription[$propertyUri], array("value" => (string)$valueOWLIndividual->toStringID(),
                                                        "datatype" => "rdf:Resource",
+                                                       "lang" => "",
+                                                       "rei" => array(array(
+                                                        "type" => "rdfs:Label",
+                                                        "value" => $this->getPrefLabel($valueOWLIndividual)
+                                                       ))));       
+      }
+    }
+    
+    return($niDescription);
+  }  
                                                        "lang" => ""));       
       }
     }
@@ -3274,7 +3288,7 @@ class OWLOntology
   public function updateClass($uri, $literalValues = array(), $objectValues = array())
   {
     $class = $this->_getClass($uri);    
-    
+
     if($class != null)
     {
       $referencingAxioms = $class->getReferencingAxioms($this->ontology);

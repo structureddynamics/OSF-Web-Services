@@ -1,0 +1,3 @@
+== Endpoint Documentation ==
+  
+[http://techwiki.openstructs.org/index.php/Ontology:_Create Ontology Create Web Service Endpoint Documentation]

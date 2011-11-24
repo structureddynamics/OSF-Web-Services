@@ -1,0 +1,4 @@
+== Endpoint Documentation ==
+  
+[http://techwiki.openstructs.org/index.php/CRUD:_Create CRUD: Create Web Service Endpoint Documentation]
+  

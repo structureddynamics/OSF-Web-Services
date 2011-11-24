@@ -1,0 +1,3 @@
+== Endpoint Documentation ==
+  
+[http://techwiki.openstructs.org/index.php/CRUD:_Read CRUD: Read Web Service Endpoint Documentation]

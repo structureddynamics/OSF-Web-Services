@@ -1,0 +1,1 @@
+Put the ARC2 software code in this folder. All the ARC2 files have to be put directly in this folder, and not in any sub folder.

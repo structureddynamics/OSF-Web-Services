@@ -1,0 +1,1 @@
+Add the all the named entities dictionaries (*.lst files and the *.def index file) into this folder. These are the named entities files referenced in the Gate application.

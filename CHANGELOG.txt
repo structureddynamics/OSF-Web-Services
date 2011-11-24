@@ -1,3 +1,0 @@
-You can access the changelog from the community Wiki available at this address:
-
-http://wiki.openstructs.org/wiki/StructWSF_Installation

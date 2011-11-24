@@ -1,0 +1,74 @@
+== Introduction ==
+
+'''structWSF''' is a platform-independent Web services framework for accessing and exposing structured [http://techwiki.openstructs.org/index.php/RDF_Concept RDF] (Resource Description Framework) data. Its central organizing perspective is that of the dataset. These datasets contain instance records, with the structural relationships amongst the data and their attributes and concepts defined via ontologies (schema with accompanying vocabularies).
+
+The structWSF middleware framework is [http://www.mkbergman.com/?p=499 generally] [http://techwiki.openstructs.org/index.php/REST_Concept RESTful] in design and is based on HTTP and Web protocols and open standards. The initial structWSF framework comes packaged with a baseline set of more than 20 Web services in [http://techwiki.openstructs.org/index.php/CRUD_Concept CRUD], browse, search, tagging, ontology management, and export and import. All Web services are exposed via APIs and SPARQL endpoints. Each request to an individual Web service returns an HTTP status and optionally a document of ''resultsets''. Each results document can be serialized in many ways, and may be expressed as either RDF, pure XML, JSON, or different flavors of [http://techwiki.openstructs.org/index.php/Introduction_to_irON irON].
+
+In initial release, structWSF has direct interfaces to the [http://techwiki.openstructs.org/index.php/Virtuoso Virtuoso] RDF triple store (via ODBC, and later HTTP) and the [http://techwiki.openstructs.org/index.php/Solr Solr] faceted, full-text search engine(via HTTP). However, structWSF has been designed to be fully platform-independent. Support for additional datastores and engines are planned. The design also allows other specialized systems to be included, such as analysis or advanced inference engines.
+
+The framework is open source (Apache 2 license) and designed for extensibility. structWSF and its extensions and enhancements are distributed and documented on the '''OpenStructs''' [http://openstructs.org/  Web site].
+
+You can read more about [http://techwiki.openstructs.org/index.php/StructWSF structWSF here]
+
+== Documentation ==
+
+structWSF is fully documented on the [http://techwiki.openstructs.org Techwiki]. You can easily access all the documentation pages related to it by checking this [http://techwiki.openstructs.org/index.php/Category:StructWSF category section].
+
+== Architecture ==
+
+The general structWSF architecture is described in this [http://techwiki.openstructs.org/index.php/StructWSF_Architecture document page]. It also explains the echosystem in which it lives (and its related to other parts of the OSF (Open Semantic Framework) like [http://drupal.org/project/construct conStruct].
+
+== Installing structWSF ==
+
+A complete [http://techwiki.openstructs.org/index.php/StructWSF_Installation_Guide installation manual] has been written. structWSF is based on an stack of open source projects. The creation of the stack, and its configuration can be a daunting task. However this manual does outline all the steps needed in order to successfully create a structWSF server instance. It is constantly improved based on user feedbacks and on new code that get commited to the Git source control.
+
+Additionally you can find debugging tips and support on the [http://groups.google.com/group/open-semantic-framework Mailing List]
+
+You also have access to an annex to this installation guide that shows you [http://techwiki.openstructs.org/index.php/Multi-structWSF_Server_Instance how you can install multiple
+structWSF instance on the same server].
+
+== structWSF Web Services ==
+
+Here is a complete list of all the web service endpoints currently available in structWSF:
+
+* [http://techwiki.openstructs.org/index.php/Auth_Registrar:_Access Auth Registrar: Access]
+* [http://techwiki.openstructs.org/index.php/Auth_Registrar:_WS Auth Registrar: WS]
+* [http://techwiki.openstructs.org/index.php/Auth:_Lister Auth: Lister]
+* [http://techwiki.openstructs.org/index.php/Auth:_Validator Auth: Validator]
+* [http://techwiki.openstructs.org/index.php/Ontology_Create Ontology Create]
+* [http://techwiki.openstructs.org/index.php/Ontology_Read Ontology Read]
+* [http://techwiki.openstructs.org/index.php/Ontology_Update Ontology Update]
+* [http://techwiki.openstructs.org/index.php/Ontology_Delete Ontology Delete]
+* [http://techwiki.openstructs.org/index.php/Dataset:_Create Dataset: Create]
+* [http://techwiki.openstructs.org/index.php/Dataset:_Read Dataset: Read]
+* [http://techwiki.openstructs.org/index.php/Dataset:_Update Dataset: Update]
+* [http://techwiki.openstructs.org/index.php/Dataset:_Delete Dataset: Delete]
+* [http://techwiki.openstructs.org/index.php/CRUD:_Create CRUD: Create]
+* [http://techwiki.openstructs.org/index.php/CRUD:_Read CRUD: Read]
+* [http://techwiki.openstructs.org/index.php/CRUD:_Update CRUD: Update]
+* [http://techwiki.openstructs.org/index.php/CRUD:_Delete CRUD: Delete]
+* [http://techwiki.openstructs.org/index.php/Search Search]
+* [http://techwiki.openstructs.org/index.php/SPARQL SPARQL]
+* [http://techwiki.openstructs.org/index.php/Scones Scones]
+* Tracker: Create
+* [http://techwiki.openstructs.org/index.php/Converter:_commON Converter: commON] (import and export)
+* [http://techwiki.openstructs.org/index.php/Converter:_irJSON Converter: irJSON] (import and export)
+* [http://techwiki.openstructs.org/index.php/Converter:_BibTeX Converter: BibTeX] (import and export)
+* [http://techwiki.openstructs.org/index.php/Converter:_TSV/CSV Converter: TSV/CSV] (import and export)
+
+== How to Use Web Services Endpoint ==
+
+As you saw, structWSF is a set of web services endpoints. The main way to interact with the system is by sending HTTP queries to any of the endpoints. [http://techwiki.openstructs.org/index.php/StructWSF_Web_Services_Tutorial A tutorial has been written that explains the basis principles of how to query the endpoints, and it also includes a series of basic usage explains].
+
+The second way to use structWSF is by using the API direct. Each endpoint is composed of an interface that get called via a HTTP query (the <code>index.php</code> files within each web service folder), and a Class that represents the actual web service. It is that API that you can directly use in any PHP scripts running on the server.
+
+== structXML ==
+
+[http://techwiki.openstructs.org/index.php/StructXML structXML] is a straightforward RDF serialization in [http://techwiki.openstructs.org/index.php/XML_Concept XML] format used for internal communications between structWSF Web services, the Flex [http://techwiki.openstructs.org/index.php/Category:Semantic_Component Semantic Components] and conStruct; this is the core format used to transmit information between any OSF component. In structWSF, any data is internally processed as structXML, and is then converted into several other formats (RDF+XML, RDF+N3, irJSON, commON, etc.). It is composed of subjects (records) that are defined with properties and values. Values can be "data" values such as literals or "object" values that are reference to other subjects.
+
+Ironically, structXML data can also be serialized in JSON. If someone request <code>text/xml</code> mime to a endpoint, he will get structXML serialized in XML from the endpoint. If someone request <code>application/json</code> mime to a endpoint, he will get structXML serialized in JSON from the endpoint.
+
+== Developers ==
+
+Developers and commiters to the Git repository should comply to the coding standards. An outline of the coding style is available in the Coding Standard folder. Additional requirements are listed in the README.mediawiki file in that folder. Finally, coding style is enforced b the PolyStyle code formatter application available here: http://polystyle.com.
+

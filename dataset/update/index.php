@@ -38,6 +38,11 @@ include_once("../../auth/registrar/access/AuthRegistrarAccess.php");
 
 include_once("../../framework/Logger.php");
 
+if ($_SERVER['REQUEST_METHOD'] != 'POST') 
+{
+    header("HTTP/1.1 405 Method Not Allowed");  
+    die;
+}
 
 // URI for the dataset
 $uri = "";
@@ -141,8 +146,10 @@ elseif(isset($_SERVER['PHP_SELF']))
 
 $ws_du = new DatasetUpdate($uri, $title, $description, $contributors, $modified, $registered_ip, $requester_ip);
 
-$ws_du->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
-  $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+$ws_du->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
+                  (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
+                  (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
+                  (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : "")); 
 
 $ws_du->process();
 
@@ -154,11 +161,21 @@ $mtime = $mtime[1] + $mtime[0];
 $endtime = $mtime;
 $totaltime = ($endtime - $starttime);
 
-$logger = new Logger("dataset_update", $requester_ip,
-  "?uri=" . $uri . "&title=" . substr($title, 0, 64) . "&description=" . substr($description, 0, 64) . "&modified="
-  . $modified . "&requester_ip=$requester_ip", $_SERVER['HTTP_ACCEPT'], $start_datetime, $totaltime,
-  $ws_du->pipeline_getResponseHeaderStatus(), $_SERVER['HTTP_USER_AGENT']);
-
+if($ws_du->isLoggingEnabled())
+{
+  $logger = new Logger("dataset_update", 
+                       $requester_ip,
+                       "?uri=" . $uri . 
+                       "&title=" . substr($title, 0, 64) . 
+                       "&description=" . substr($description, 0, 64) . 
+                       "&modified=" . $modified . 
+                       "&requester_ip=$requester_ip", 
+                       (isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""),
+                       $start_datetime, 
+                       $totaltime,
+                       $ws_du->pipeline_getResponseHeaderStatus(), 
+                       (isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : ""));
+}
 
 //@}
 

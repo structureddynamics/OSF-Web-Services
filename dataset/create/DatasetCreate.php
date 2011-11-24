@@ -82,6 +82,18 @@ class DatasetCreate extends WebService
                           "name": "Dataset already existing",
                           "description": "This dataset is already existing in this web services framework"
                         },
+                        "_203": {
+                          "id": "WS-DATASET-CREATE-203",
+                          "level": "Warning",
+                          "name": "Invalid dataset URI",
+                          "description": "The URI of the dataset is not valid."
+                        },
+                        "_204": {
+                          "id": "WS-DATASET-CREATE-204",
+                          "level": "Warning",
+                          "name": "Invalid creator URI",
+                          "description": "The URI of the creator of the dataset is not valid."
+                        },
                         "_300": {
                           "id": "WS-DATASET-CREATE-300",
                           "level": "Fatal",
@@ -91,8 +103,8 @@ class DatasetCreate extends WebService
                       }';
 
 
-  /*!   @brief Constructor
-       @details   Initialize the Auth Web Service
+  /*! @brief Constructor
+      @details   Initialize the Auth Web Service
           
       @param[in] $uri URI to refer to this new dataset
       @param[in] $datasetTitle Title of the dataset to create
@@ -238,7 +250,43 @@ class DatasetCreate extends WebService
 
         return;
       }
+    }  
+    
+    if($this->datasetUri == "")
+    {
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
+      $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, "",
+        $this->errorMessenger->_200->level);
+
+      return;
     }    
+
+    if(!$this->isValidIRI($this->datasetUri))
+    {
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_203->name);
+      $this->conneg->setError($this->errorMessenger->_203->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_203->name, $this->errorMessenger->_203->description, "",
+        $this->errorMessenger->_203->level);
+
+      return;
+    }  
+    
+    if($this->creator != "" && !$this->isValidIRI($this->creator))
+    {
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_204->name);
+      $this->conneg->setError($this->errorMessenger->_204->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_204->name, $this->errorMessenger->_204->description, "",
+        $this->errorMessenger->_204->level);
+
+      return;
+    }      
   }
 
   /*!   @brief Returns the error structure
@@ -309,19 +357,6 @@ class DatasetCreate extends WebService
     // If the query is still valid
     if($this->conneg->getStatus() == 200)
     {
-      // Check for errors
-      if($this->datasetUri == "")
-      {
-        $this->conneg->setStatus(400);
-        $this->conneg->setStatusMsg("Bad Request");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
-        $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, "",
-          $this->errorMessenger->_200->level);
-
-        return;
-      }
-
       // Check if the dataset is already existing
       $query .= "  select ?dataset 
                 from <" . $this->wsf_graph . "datasets/>

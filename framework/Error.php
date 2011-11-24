@@ -153,7 +153,7 @@ class Error
     
       \n\n\n
   */
-  public function jsonEncode($string) { return str_replace(array ('\\', '"'), array ('\\\\', '\\"'), $string); }
+  public function jsonEncode($string) { return str_replace(array ('\\', '"', "\n", "\r", "\t"), array ('\\\\', '\\"', " ", " ", "\\t"), $string); }
 }
 
 //@}

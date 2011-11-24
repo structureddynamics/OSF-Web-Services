@@ -64,8 +64,9 @@ class Sparql extends WebService
   /*! @brief Namespaces/Prefixes binding */
   private $namespaces =
     array ("http://www.w3.org/2002/07/owl#" => "owl", "http://www.w3.org/1999/02/22-rdf-syntax-ns#" => "rdf",
-      "http://www.w3.org/2000/01/rdf-schema#" => "rdfs", "http://purl.org/ontology/wsf#" => "wsf");
-
+      "http://www.w3.org/2000/01/rdf-schema#" => "rdfs", "http://purl.org/ontology/wsf#" => "wsf", 
+      "http://purl.org/ontology/aggregate#" => "aggr");
+      
   /*! @brief Determine if this is a CONSTRUCT SPARQL query */
   private $isConstructQuery = FALSE;
   
@@ -287,16 +288,6 @@ class Sparql extends WebService
     // Creation of the RESULTSET
     $resultset = $xml->createResultset();
 
-    // Creation of the prefixes elements.
-    $void = $xml->createPrefix("owl", "http://www.w3.org/2002/07/owl#");
-    $resultset->appendChild($void);
-    $rdf = $xml->createPrefix("rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#");
-    $resultset->appendChild($rdf);
-    $dcterms = $xml->createPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
-    $resultset->appendChild($dcterms);
-    $dcterms = $xml->createPrefix("wsf", "http://purl.org/ontology/wsf#");
-    $resultset->appendChild($dcterms);
-
     $subject;
 
     foreach($this->instanceRecordsObjectResource as $uri => $result)
@@ -353,7 +344,21 @@ class Sparql extends WebService
               }
             }
 
-            $pred = $xml->createPredicate($property);
+            $ns = $this->getNamespace($property);
+
+            if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
+            {
+              // Make sure the ID is not already existing. Increase the counter if it is the case.
+              while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+              {
+                $nsId++;
+              }
+                                
+              $this->namespaces[$ns[0]] = "ns" . $nsId;
+              $nsId++;
+            }            
+            
+            $pred = $xml->createPredicate($this->namespaces[$ns[0]] . ":" . $ns[1]);
             $object = $xml->createObject("", $value, ($label != "" ? $label : ""));
             $pred->appendChild($object);
 
@@ -371,7 +376,21 @@ class Sparql extends WebService
           {
             foreach($values as $value)
             {
-              $pred = $xml->createPredicate($property);
+              $ns = $this->getNamespace($property);
+
+              if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
+              {
+                // Make sure the ID is not already existing. Increase the counter if it is the case.
+                while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+                {
+                  $nsId++;
+                }
+                  
+                $this->namespaces[$ns[0]] = "ns" . $nsId;
+                $nsId++;
+              }              
+              
+              $pred = $xml->createPredicate($this->namespaces[$ns[0]] . ":" . $ns[1]);
               $object = $xml->createObjectContent($value);
               $pred->appendChild($object);
               $subject->appendChild($pred);
@@ -382,6 +401,14 @@ class Sparql extends WebService
       
       $resultset->appendChild($subject);
     }
+    
+    // Creation of the prefixes elements.
+    foreach($this->namespaces as $uri => $prefix)
+    {
+      $ns = $xml->createPrefix($prefix, $uri);
+      $resultset->appendChild($ns);
+    }
+    
 
     return ($this->injectDoctype($xml->saveXML($resultset)));
 
@@ -611,8 +638,14 @@ class Sparql extends WebService
 
           $ns = $this->getNamespace($subjectType);
 
-          if(!isset($this->namespaces[$ns[0]]))
+          if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
           {
+            // Make sure the ID is not already existing. Increase the counter if it is the case.
+            while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+            {
+              $nsId++;
+            }
+                  
             $this->namespaces[$ns[0]] = "ns" . $nsId;
             $nsId++;
           }
@@ -620,7 +653,7 @@ class Sparql extends WebService
           $json_part .= "      { \n";
           $json_part .= "        \"uri\": \"" . parent::jsonEncode($subjectURI) . "\", \n";
           $json_part .= "        \"type\": \"" . parent::jsonEncode($this->namespaces[$ns[0]] . ":" . $ns[1])
-            . "\", \n";
+            . "\",\n";
 
           $predicates = $xml->getPredicates($subject);
 
@@ -636,7 +669,7 @@ class Sparql extends WebService
 
               if($nbPredicates == 1)
               {
-                $json_part .= "        \"predicates\": [ \n";
+                $json_part .= "        \"predicate\": [ \n";
               }
 
               $objectType = $xml->getType($object);
@@ -648,8 +681,14 @@ class Sparql extends WebService
 
                 $ns = $this->getNamespace($predicateType);
 
-                if(!isset($this->namespaces[$ns[0]]))
+                if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
                 {
+                  // Make sure the ID is not already existing. Increase the counter if it is the case.
+                  while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+                  {
+                    $nsId++;
+                  }
+                  
                   $this->namespaces[$ns[0]] = "ns" . $nsId;
                   $nsId++;
                 }
@@ -665,8 +704,14 @@ class Sparql extends WebService
 
                 $ns = $this->getNamespace($predicateType);
 
-                if(!isset($this->namespaces[$ns[0]]))
+                if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
                 {
+                  // Make sure the ID is not already existing. Increase the counter if it is the case.
+                  while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+                  {
+                    $nsId++;
+                  }
+                  
                   $this->namespaces[$ns[0]] = "ns" . $nsId;
                   $nsId++;
                 }
@@ -732,7 +777,7 @@ class Sparql extends WebService
           $json_part = substr($json_part, 0, strlen($json_part) - 2) . "\n";
         }
 
-        $json_header .= "  \"prefixes\": [ \n";
+        $json_header .= "  \"prefixes\": \n";
         $json_header .= "    {\n";
 
         foreach($this->namespaces as $ns => $prefix)
@@ -745,8 +790,7 @@ class Sparql extends WebService
           $json_header = substr($json_header, 0, strlen($json_header) - 2) . "\n";
         }
 
-        $json_header .= "    } \n";
-        $json_header .= "  ],\n";
+        $json_header .= "    }, \n";
         $json_header .= "  \"resultset\": {\n";
         $json_header .= "    \"subject\": [\n";
         $json_header .= $json_part;
@@ -820,8 +864,14 @@ class Sparql extends WebService
 
           $ns1 = $this->getNamespace($subjectType);
 
-          if(!isset($this->namespaces[$ns1[0]]))
+          if($ns !== FALSE && !isset($this->namespaces[$ns1[0]]))
           {
+            // Make sure the ID is not already existing. Increase the counter if it is the case.
+            while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+            {
+              $nsId++;
+            }
+                  
             $this->namespaces[$ns1[0]] = "ns" . $nsId;
             $nsId++;
           }
@@ -846,8 +896,14 @@ class Sparql extends WebService
 
                 $ns = $this->getNamespace($predicateType);
 
-                if(!isset($this->namespaces[$ns[0]]))
+                if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
                 {
+                  // Make sure the ID is not already existing. Increase the counter if it is the case.
+                  while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+                  {
+                    $nsId++;
+                  }
+                  
                   $this->namespaces[$ns[0]] = "ns" . $nsId;
                   $nsId++;
                 }
@@ -861,8 +917,14 @@ class Sparql extends WebService
 
                 $ns = $this->getNamespace($predicateType);
 
-                if(!isset($this->namespaces[$ns[0]]))
+                if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
                 {
+                  // Make sure the ID is not already existing. Increase the counter if it is the case.
+                  while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+                  {
+                    $nsId++;
+                  }
+                  
                   $this->namespaces[$ns[0]] = "ns" . $nsId;
                   $nsId++;
                 }
@@ -1301,8 +1363,6 @@ class Sparql extends WebService
         $queryFormat = "application/sparql-results+xml";
       }      
       
-      
-      
       // Add a limit to the query
 
       // Disable limits and offset for now until we figure out what to do (not limit on triples, but resources)
@@ -1376,6 +1436,9 @@ class Sparql extends WebService
             $s = "";
             $p = "";
             $o = "";
+            $g = "";
+            
+            $valueBoundType = "";
 
             foreach($result["_c"]["binding"] as $binding)
             {
@@ -1385,7 +1448,7 @@ class Sparql extends WebService
 
               $boundType = $keys[0];
               $boundValue = $binding["_c"][$boundType]["_v"];
-
+              
               switch($boundVariable)
               {
                 case "s":
@@ -1398,12 +1461,25 @@ class Sparql extends WebService
 
                 case "o":
                   $o = $boundValue;
+                  $valueBoundType = $boundType;
+                break;
+
+                case "g":
+                  $g = $boundValue;
                 break;
               }
             }
 
+            if($g != "")
+            {
+              if(!isset($this->instanceRecordsObjectResource[$s][Namespaces::$dcterms."isPartOf"]))
+              {
+                $this->instanceRecordsObjectResource[$s][Namespaces::$dcterms."isPartOf"] = array( $g );
+              }
+            }
+            
             // process URI
-            if($boundType == "uri")
+            if($valueBoundType == "uri")
             {
               if(!isset($this->instanceRecordsObjectResource[$s][$p]))
               {
@@ -1416,7 +1492,7 @@ class Sparql extends WebService
             }
 
             // Process Literal
-            if($boundType == "literal")
+            if($valueBoundType == "literal")
             {
               if(!isset($this->instanceRecordsObjectLiteral[$s][$p]))
               {
@@ -1429,7 +1505,7 @@ class Sparql extends WebService
             }
             
             // Process BNode
-            if($boundType == "bnode")
+            if($valueBoundType == "bnode")
             {
               if(!isset($this->instanceRecordsObjectResource[$s][$p]))
               {

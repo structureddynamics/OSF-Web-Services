@@ -40,7 +40,7 @@ class DatasetRead extends WebService
   /*! @brief Requested IP */
   private $registered_ip = "";
 
-  /*! @brief URI of the target dataset(s). "all"mean all datasets visible to thatuser. */
+  /*! @brief URI of the target dataset(s). "all" means all datasets visible to thatuser. */
   private $datasetUri = "";
 
   /*! @brief Description of one or multiple datasets */
@@ -52,7 +52,10 @@ class DatasetRead extends WebService
   /*! @brief Namespaces/Prefixes binding */
   private $namespaces =
     array ("http://www.w3.org/2002/07/owl#" => "owl", "http://www.w3.org/1999/02/22-rdf-syntax-ns#" => "rdf",
-      "http://www.w3.org/2000/01/rdf-schema#" => "rdfs", "http://purl.org/ontology/wsf#" => "wsf");
+      "http://www.w3.org/2000/01/rdf-schema#" => "rdfs", "http://purl.org/ontology/wsf#" => "wsf", 
+      "http://purl.org/ontology/aggregate#" => "aggr", "http://rdfs.org/ns/void#" => "void",
+      "http://rdfs.org/sioc/ns#" => "sioc", "http://purl.org/dc/terms/" => "dcterms", 
+      );
 
 
   /*! @brief Supported serialization mime types by this Web service */
@@ -70,6 +73,12 @@ class DatasetRead extends WebService
                           "name": "No unique identifier specified for this dataset",
                           "description": "No URI defined for this new dataset"
                         },
+                        "_201": {
+                          "id": "WS-DATASET-READ-201",
+                          "level": "Warning",
+                          "name": "Invalid dataset URI",
+                          "description": "The URI of the dataset is not valid."
+                        },                          
                         "_300": {
                           "id": "WS-DATASET-READ-300",
                           "level": "Fatal",
@@ -266,8 +275,33 @@ class DatasetRead extends WebService
 
           return;
         }
-      }     
-    }       
+      } 
+    }   
+  
+    if($this->datasetUri == "")
+    {
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt("No URI specified for any dataset");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
+      $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, "",
+        $this->errorMessenger->_200->level);
+
+      return;
+    }
+    
+    if($this->datasetUri != "all" && !$this->isValidIRI($this->datasetUri))
+    {
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
+      $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, "",
+        $this->errorMessenger->_201->level);
+
+      return;
+    } 
   }
 
   /*!   @brief Normalize the remaining of a URI
@@ -322,18 +356,11 @@ class DatasetRead extends WebService
     $resultset = $xml->createResultset();
 
     // Creation of the prefixes elements.
-    $wsf = $xml->createPrefix("wsf", "http://purl.org/ontology/wsf#");
-    $resultset->appendChild($wsf);
-    $void = $xml->createPrefix("void", "http://rdfs.org/ns/void#");
-    $resultset->appendChild($void);
-    $rdf = $xml->createPrefix("rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#");
-    $resultset->appendChild($rdf);
-    $sioc = $xml->createPrefix("sioc", "http://rdfs.org/sioc/ns#");
-    $resultset->appendChild($sioc);
-    $dcterms = $xml->createPrefix("dcterms", "http://purl.org/dc/terms/");
-    $resultset->appendChild($dcterms);
-    $dcterms = $xml->createPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
-    $resultset->appendChild($dcterms);
+    foreach($this->namespaces as $uri => $prefix)
+    {
+      $ns = $xml->createPrefix($prefix, $uri);
+      $resultset->appendChild($ns);
+    }
 
     // Creation of the SUBJECT of the RESULTSET
     foreach($this->datasetsDescription as $dd)
@@ -517,27 +544,9 @@ class DatasetRead extends WebService
   {
     $this->conneg =
       new Conneg($accept, $accept_charset, $accept_encoding, $accept_language, DatasetRead::$supportedSerializations);
-
+    
     // Validate query
     $this->validateQuery();
-
-    // If the query is still valid
-    if($this->conneg->getStatus() == 200)
-    {
-      // Check for errors
-      if($this->uri == "")
-      {
-        $this->conneg->setStatus(400);
-        $this->conneg->setStatusMsg("Bad Request");
-        $this->conneg->setStatusMsgExt("No URI specified for any dataset");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
-        $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, "",
-          $this->errorMessenger->_200->level);
-
-        return;
-      }
-    }
   }
 
   /*!   @brief Do content negotiation as an internal, pipelined, Web Service that is part of a Compound Web Service
@@ -682,7 +691,7 @@ class DatasetRead extends WebService
 
           $json_part .= "      { \n";
           $json_part .= "        \"uri\": \"" . parent::jsonEncode($subjectURI) . "\", \n";
-          $json_part .= "        \"type\": \"" . parent::jsonEncode($subjectType) . "\", \n";
+          $json_part .= "        \"type\": \"" . parent::jsonEncode($subjectType) . "\",\n";
 
           $predicates = $xml->getPredicates($subject);
 
@@ -1085,7 +1094,7 @@ class DatasetRead extends WebService
                       OPTIONAL{?dataset <http://purl.org/dc/terms/contributor> ?contributor.}
                       OPTIONAL{?dataset <http://purl.org/dc/terms/creator> ?creator.}
                     }    
-                  }";
+                  } ORDER BY ?title";
 
         $resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
           array ("dataset", "title", "description", "creator", "created", "modified", "contributor", "meta"), FALSE));
@@ -1268,7 +1277,7 @@ class DatasetRead extends WebService
                     OPTIONAL{<$dataset> <http://purl.org/dc/terms/modified> ?modified.} .
                     OPTIONAL{<$dataset> <http://purl.org/ontology/wsf#meta> ?meta.} .
                   }
-                }";
+                } ORDER BY ?title";
 
         $resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
           array ('title', 'description', 'creator', 'created', 'modified', 'meta'), FALSE));
@@ -1399,7 +1408,7 @@ class DatasetRead extends WebService
           }
         }
       }
-
+      
       if(count($this->datasetsDescription) == 0 && $this->datasetUri != "all")
       {
         $this->conneg->setStatus(400);

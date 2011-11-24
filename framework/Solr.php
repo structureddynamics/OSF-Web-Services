@@ -466,13 +466,13 @@ class Solr
   */  
   public function getFieldsIndex()
   {
-    if(!file_exists($this->fieldIndexFolder."solrFields.srz"))  
+    if(!file_exists($this->fieldIndexFolder."fieldsIndex.srz"))  
     {
       // Force the creation of the index if the file is not existing
       $this->updateFieldsIndex();
     }
     
-    return(unserialize(file_get_contents($this->fieldIndexFolder."solrFields.srz")));
+    return(unserialize(file_get_contents($this->fieldIndexFolder."fieldsIndex.srz")));
   }
   
   /**

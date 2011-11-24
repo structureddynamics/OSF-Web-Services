@@ -80,7 +80,7 @@ class AuthValidator extends WebService
                           "id": "WS-AUTH-VALIDATOR-300",
                           "level": "Fatal",
                           "name": "Can\'t get the CRUD permissions of the target web service",
-                          "description": "An error occured when wetried to get the CRUD permissions of the target web service"
+                          "description": "An error occured when we tried to get the CRUD permissions of the target web service"
                         },
                         "_301": {
                           "id": "WS-AUTH-VALIDATOR-301",

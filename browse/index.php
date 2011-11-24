@@ -20,6 +20,13 @@ ini_set("display_errors",
 
 ini_set("memory_limit", "64M");
 
+// Check if the HTTP method used by the requester is the good one
+if ($_SERVER['REQUEST_METHOD'] != 'POST') 
+{
+    header("HTTP/1.1 405 Method Not Allowed");  
+    die;
+}
+
 // Database connectivity procedures
 include_once("../framework/db.php");
 
@@ -141,8 +148,10 @@ elseif(isset($_SERVER['PHP_SELF']))
 $ws_b = new Browse($attributes, $types, $datasets, $items, $page, $inference, $include_aggregates, $registered_ip,
   $requester_ip);
 
-$ws_b->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
-  $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+$ws_b->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
+                 (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
+                 (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
+                 (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : "")); 
 
 $ws_b->process();
 
@@ -154,13 +163,25 @@ $mtime = $mtime[1] + $mtime[0];
 $endtime = $mtime;
 $totaltime = ($endtime - $starttime);
 
-$logger = new Logger("browse", $requester_ip,
-  "?attributes=" . $attributes . "&datasets=" . $datasets . "&types=" . $types . "&items=" . $items . "&page=" . $page
-  . "&inference=" . $inference . "&include_aggregates=" . $include_aggregates . "&registered_ip=" . $registered_ip
-  . "&requester_ip=$requester_ip",
-  $_SERVER['HTTP_ACCEPT'], $start_datetime, $totaltime, $ws_b->pipeline_getResponseHeaderStatus(),
-  $_SERVER['HTTP_USER_AGENT']);
-
+if($ws_b->isLoggingEnabled())
+{
+  $logger = new Logger("browse", 
+                       $requester_ip,
+                       "?attributes=" . $attributes . 
+                       "&datasets=" . $datasets . 
+                       "&types=" . $types . 
+                       "&items=" . $items . 
+                       "&page=" . $page . 
+                       "&inference=" . $inference . 
+                       "&include_aggregates=" . $include_aggregates . 
+                       "&registered_ip=" . $registered_ip . 
+                       "&requester_ip=$requester_ip",
+                       (isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""),
+                       $start_datetime, 
+                       $totaltime, 
+                       $ws_b->pipeline_getResponseHeaderStatus(),
+                       (isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : ""));
+}
 
 //@}
 

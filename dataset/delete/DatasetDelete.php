@@ -55,6 +55,12 @@ class DatasetDelete extends WebService
                           "name": "No unique identifier specified for this dataset",
                           "description": "No URI defined for this new dataset"
                         },
+                        "_201": {
+                          "id": "WS-DATASET-DELETE-201",
+                          "level": "Warning",
+                          "name": "Invalid dataset URI",
+                          "description": "The URI of the dataset is not valid."
+                        },                        
                         "_300": {
                           "id": "WS-DATASET-DELETE-300",
                           "level": "Fatal",
@@ -90,12 +96,18 @@ class DatasetDelete extends WebService
                           "level": "Fatal",
                           "name": "Can\'t commit changes to the Solr index",
                           "description": "An error occured when we tried to commit changes to the Solr index"
-                        }  
+                        },
+                        "_306": {
+                          "id": "WS-DATASET-DELETE-306",
+                          "level": "Error",
+                          "name": "Ontology dataset can\'t be deleted",
+                          "description": "This ontology dataset can\'t be deleted using the Dataset Delete web service endpoint. Please use the Ontology Dataset web service to delete this dataset."
+                        }                          
                       }';
 
 
-  /*!   @brief Constructor
-       @details   Initialize the Auth Web Service
+  /*! @brief Constructor
+      @details   Initialize the Auth Web Service
           
       @param[in] $uri URI of the dataset to delete
       @param[in] $registered_ip Target IP address registered in the WSF
@@ -248,7 +260,31 @@ class DatasetDelete extends WebService
 
           return;
         }
-      }     
+      }  
+      
+      if($this->datasetUri == "")
+      {
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
+        $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, "",
+          $this->errorMessenger->_200->level);
+
+        return;
+      }      
+      
+      if(!$this->isValidIRI($this->datasetUri))
+      {
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
+        $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, "",
+          $this->errorMessenger->_201->level);
+
+        return;
+      }           
     }    
   }
 
@@ -316,23 +352,6 @@ class DatasetDelete extends WebService
 
     // Validate query
     $this->validateQuery();
-
-    // If the query is still valid
-    if($this->conneg->getStatus() == 200)
-    {
-      // Check for errors
-      if($this->datasetUri == "")
-      {
-        $this->conneg->setStatus(400);
-        $this->conneg->setStatusMsg("Bad Request");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
-        $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, "",
-          $this->errorMessenger->_200->level);
-
-        return;
-      }
-    }
   }
 
   /*!   @brief Do content negotiation as an internal, pipelined, Web Service that is part of a Compound Web Service
@@ -470,6 +489,51 @@ class DatasetDelete extends WebService
     // Make sure there was no conneg error prior to this process call
     if($this->conneg->getStatus() == 200)
     {
+      // Make sure this is not an ontology dataset
+      $query = "select ?holdOntology
+                      from <" . $this->wsf_graph . "datasets/>
+                      where
+                      {
+                        <$this->datasetUri> <http://purl.org/ontology/wsf#holdOntology> ?holdOntology .
+                      }";
+
+      $resultset =
+        @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
+          array ('holdOntology'), FALSE));
+
+      if(odbc_error())
+      {
+        $this->conneg->setStatus(500);
+        $this->conneg->setStatusMsg("Internal Error");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_306->name);
+        $this->conneg->setError($this->errorMessenger->_306->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_306->name, $this->errorMessenger->_306->description, odbc_errormsg(),
+          $this->errorMessenger->_306->level);
+
+        return;
+      }
+      else
+      {
+        while(odbc_fetch_row($resultset))
+        {
+          $holdOntology = odbc_result($resultset, 1);
+
+          if(strtolower($holdOntology) == "true")
+          {
+            $this->conneg->setStatus(400);
+            $this->conneg->setStatusMsg("Bad Request");
+            $this->conneg->setStatusMsgExt($this->errorMessenger->_306->name);
+            $this->conneg->setError($this->errorMessenger->_306->id, $this->errorMessenger->ws,
+              $this->errorMessenger->_306->name, $this->errorMessenger->_306->description, odbc_errormsg(),
+              $this->errorMessenger->_306->level);
+
+            return;            
+          }
+        }
+      }
+
+      unset($resultset);      
+      
       // Remove  all the possible other meta descriptions
       // of the dataset introduced by the wsf:meta property.
 

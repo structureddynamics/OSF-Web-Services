@@ -325,6 +325,11 @@ class Conneg
       // break up string into pieces (languages and q factors)
       preg_match_all('/([^,]+)/', $header, $accepts);
 
+      // It is used to make a distinction in an array of mimes are doesn't have any weight value.
+      // If the requester has 3 mimes, without any weight for them, then we want to keep the order
+      // when we sort the mimes array. It is what this value is used for.
+      $equalityDistinguisher = 0.0001;
+      
       foreach($accepts[0] as $accept)
       {
         $foo = explode(";", str_replace(" ", "", $accept));
@@ -337,7 +342,7 @@ class Conneg
             
             /*
              This is to ensure that the "q=1" parameter will be prioritary on the "non-q" accept mimes.
-             It is the reason why we set it to 1.1
+             It is the reason why we set it to 3
              
              This is particularly interesting in some usecases when a user agent "highjack" the accept header sent by 
              another user agent. One good usecase is the one of a Flash Movie embedded in a FireFox Browser window.
@@ -347,17 +352,21 @@ class Conneg
             */
             if($foo[1] == "1")
             {
-              $foo[1] = "1.1";
+              $foo[1] = 3;
             }
           }
           else
           {
-            $foo[1] = "1";
+            $foo[1] = 1 - $equalityDistinguisher;
+            
+            $equalityDistinguisher += 0.0001;
           }
         }
         else
         {
-          array_push($foo, "1");
+          array_push($foo, 1 - $equalityDistinguisher);
+          
+          $equalityDistinguisher += 0.0001;
         }
 
         $mimes[$foo[0]] = $foo[1];

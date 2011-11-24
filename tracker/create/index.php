@@ -21,6 +21,12 @@ ini_set("display_errors", "Off");
 ini_set("memory_limit", "128M");
 set_time_limit(2700);
 
+if ($_SERVER['REQUEST_METHOD'] != 'POST') 
+{
+    header("HTTP/1.1 405 Method Not Allowed");  
+    die;
+}
+
 // Database connectivity procedures
 include_once("../../framework/db.php");
 
@@ -129,8 +135,10 @@ elseif(isset($_SERVER['PHP_SELF']))
 
 $ws_trackercreate = new TrackerCreate($fromDataset, $record, $action, $previousState, $previousStateMime, $performer, $registered_ip, $requester_ip);
 
-$ws_trackercreate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
-  $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+$ws_trackercreate->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
+                             (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
+                             (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
+                             (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : "")); 
 
 $ws_trackercreate->process();
 
@@ -142,12 +150,24 @@ $mtime = $mtime[1] + $mtime[0];
 $endtime = $mtime;
 $totaltime = ($endtime - $starttime);
 
-$logger = new Logger("tracker_create", $requester_ip,
-  "?from_dataset=" . urlencode($fromDataset) . "&record=" . urlencode($record) . "&action=" . $action . 
-  "&previous_state=&previous_state_mime=" . $previousStateMime . "&performer=" . urlencode($performer) . "&registered_ip="
-  . $registered_ip . "&requester_ip=$requester_ip", $_SERVER['HTTP_ACCEPT'], $start_datetime, $totaltime,
-  $ws_trackercreate->pipeline_getResponseHeaderStatus(), $_SERVER['HTTP_USER_AGENT']);
-
+if($ws_trackercreate->isLoggingEnabled())
+{
+  $logger = new Logger("tracker_create", 
+                       $requester_ip,
+                       "?from_dataset=" . urlencode($fromDataset) . 
+                       "&record=" . urlencode($record) . 
+                       "&action=" . $action . 
+                       "&previous_state=". 
+                       "&previous_state_mime=" . $previousStateMime . 
+                       "&performer=" . urlencode($performer) . 
+                       "&registered_ip=" . $registered_ip . 
+                       "&requester_ip=$requester_ip", 
+                       (isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""),
+                       $start_datetime, 
+                       $totaltime,
+                       $ws_trackercreate->pipeline_getResponseHeaderStatus(), 
+                       (isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : ""));
+}
 
 //@}
 

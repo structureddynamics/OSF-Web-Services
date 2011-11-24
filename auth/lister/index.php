@@ -20,6 +20,13 @@ ini_set("display_errors",
 
 ini_set("memory_limit", "64M");
 
+// Check if the HTTP method used by the requester is the good one
+if ($_SERVER['REQUEST_METHOD'] != 'GET') 
+{
+    header("HTTP/1.1 405 Method Not Allowed");  
+    die;
+}
+
 // Database connectivity procedures
 include_once("../../framework/db.php");
 
@@ -35,7 +42,6 @@ include_once("AuthLister.php");
 include_once("../validator/AuthValidator.php");
 
 include_once("../../framework/Logger.php");
-
 
 // Type of the thing to be listed
 $mode = "dataset";
@@ -58,6 +64,15 @@ if(isset($_GET['dataset']))
 {
   $dataset = $_GET['dataset'];
 }
+
+
+$target_webservice = "all";
+
+if(isset($_GET['target_webservice']))
+{
+  $target_webservice = $_GET['target_webservice'];
+}
+
 
 $mtime = microtime();
 $mtime = explode(' ', $mtime);
@@ -91,10 +106,12 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_al = new AuthLister($mode, $dataset, $registered_ip, $requester_ip);
+$ws_al = new AuthLister($mode, $dataset, $registered_ip, $requester_ip, $target_webservice);
 
-$ws_al->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
-  $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+$ws_al->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
+                  (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
+                  (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
+                  (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : "")); 
 
 $ws_al->process();
 
@@ -106,11 +123,20 @@ $mtime = $mtime[1] + $mtime[0];
 $endtime = $mtime;
 $totaltime = ($endtime - $starttime);
 
-$logger = new Logger("auth_lister", $requester_ip,
-  "?mode=" . $mode . "&dataset=" . $dataset . "&registered_ip=" . $registered_ip . "&requester_ip=$requester_ip",
-  $_SERVER['HTTP_ACCEPT'], $start_datetime, $totaltime, $ws_al->pipeline_getResponseHeaderStatus(),
-  $_SERVER['HTTP_USER_AGENT']);
-
+if($ws_al->isLoggingEnabled())
+{
+  $logger = new Logger("auth_lister", 
+                       $requester_ip,
+                       "?mode=" . $mode . 
+                       "&dataset=" . $dataset . 
+                       "&registered_ip=" . $registered_ip . 
+                       "&requester_ip=$requester_ip",
+                       (isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER[''] : "HTTP_ACCEPT"),
+                       $start_datetime, 
+                       $totaltime, 
+                       $ws_al->pipeline_getResponseHeaderStatus(),
+                       (isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER[''] : "HTTP_USER_AGENT"));
+}
 
 //@}
 

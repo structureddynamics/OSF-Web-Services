@@ -735,13 +735,14 @@ class CommonParser
                 {
                   if(isset($this->dataset[$reifiedAttribute["attribute"]]))
                   {
-                    if(strpos($record[$key], "|") === FALSE)
+                    if(strpos($record[$key], "||") === FALSE)
                     {
                       $reificationStatementId = count($this->dataset[$reifiedAttribute["attribute"]]) - 1;
 
                       if($record[$key] != "")
                       {
-                        if(is_array($this->dataset[$reifiedAttribute["attribute"]][$reificationStatementId]["reify"]))
+                        if(isset($this->dataset[$reifiedAttribute["attribute"]][$reificationStatementId]["reify"]) &&
+                           is_array($this->dataset[$reifiedAttribute["attribute"]][$reificationStatementId]["reify"]))
                         {
                           array_push($this->dataset[$reifiedAttribute["attribute"]][$reificationStatementId]["reify"][
                                        $reifiedAttribute["reifiedAttribute"]], $record[$key]);
@@ -755,12 +756,13 @@ class CommonParser
                     }
                     else
                     {
-                      if(!is_array($this->dataset[$reifiedAttribute["attribute"]]["reify"]))
+                      if(!isset($this->dataset[$reifiedAttribute["attribute"]]["reify"]) ||
+                         !is_array($this->dataset[$reifiedAttribute["attribute"]]["reify"]))
                       {
                         $this->dataset[$reifiedAttribute["attribute"]]["reify"] = array();
                       }
 
-                      $vs = explode("|", $record[$key]);
+                      $vs = explode("||", $record[$key]);
 
                       foreach($vs as $v)
                       {
@@ -771,11 +773,11 @@ class CommonParser
                 }
                 else
                 {
-                  if(strpos($record[$key], "|") === FALSE)
+                  if(strpos($record[$key], "||") === FALSE)
                   {
                     if($record[$key] != "")
                     {
-                      if(is_array($this->dataset[$rs]))
+                      if(isset($this->dataset[$rs]) && is_array($this->dataset[$rs]))
                       {
                         array_push($this->dataset[$rs], array ("value" => $record[$key], "reify" => ""));
                       }
@@ -787,12 +789,12 @@ class CommonParser
                   }
                   else
                   {
-                    if(!is_array($this->dataset[$rs]))
+                    if(!isset($this->dataset[$rs]) || !is_array($this->dataset[$rs]))
                     {
                       $this->dataset[$rs] = array();
                     }
 
-                    $vs = explode("|", $record[$key]);
+                    $vs = explode("||", $record[$key]);
 
                     foreach($vs as $v)
                     {
@@ -817,9 +819,9 @@ class CommonParser
               if(count($recordStructure) < count($record))
               {
                 array_push($this->commonErrors,
-                  "commON Parser (004): Too many properties defined for the record according to the record structure. 
+                  "commON Parser (004): Too many properties defined for the record ID#".$record[0]." according to the record structure. 
                    Please make sure that you don't have empty cells in ending columns for your records, that are
-                   not defined in the attribute definition line.");
+                   not defined in the attribute definition line. Also check to make sure that the commas are escaped.");
                 return;
               }
 
@@ -864,13 +866,14 @@ class CommonParser
                 {
                   if(isset($commonRecord[$reifiedAttribute["attribute"]]))
                   {
-                    if(strpos($record[$key], "|") === FALSE)
+                    if(strpos($record[$key], "||") === FALSE)
                     {
                       $reificationStatementId = count($commonRecord[$reifiedAttribute["attribute"]]) - 1;
 
                       if($record[$key] != "")
                       {
-                        if(is_array($commonRecord[$reifiedAttribute["attribute"]][$reificationStatementId]["reify"]))
+                        if(isset($commonRecord[$reifiedAttribute["attribute"]][$reificationStatementId]["reify"]) &&
+                           is_array($commonRecord[$reifiedAttribute["attribute"]][$reificationStatementId]["reify"]))
                         {
                           array_push($commonRecord[$reifiedAttribute["attribute"]][$reificationStatementId]["reify"][
                                        $reifiedAttribute["reifiedAttribute"]], $record[$key]);
@@ -884,12 +887,13 @@ class CommonParser
                     }
                     else
                     {
-                      if(!is_array($commonRecord[$reifiedAttribute["attribute"]]["reify"]))
+                      if(!isset($commonRecord[$reifiedAttribute["attribute"]]["reify"]) ||
+                         !is_array($commonRecord[$reifiedAttribute["attribute"]]["reify"]))
                       {
                         $commonRecord[$reifiedAttribute["attribute"]]["reify"] = array();
                       }
 
-                      $vs = explode("|", $record[$key]);
+                      $vs = explode("||", $record[$key]);
 
                       foreach($vs as $v)
                       {
@@ -900,11 +904,11 @@ class CommonParser
                 }
                 else
                 {
-                  if(strpos($record[$key], "|") === FALSE)
+                  if(strpos($record[$key], "||") === FALSE)
                   {
                     if($record[$key] != "")
                     {
-                      if(is_array($commonRecord[$rs]))
+                      if(isset($commonRecord[$rs]) && is_array($commonRecord[$rs]))
                       {
                         array_push($commonRecord[$rs], array ("value" => $record[$key], "reify" => ""));
                       }
@@ -916,12 +920,12 @@ class CommonParser
                   }
                   else
                   {
-                    if(!is_array($commonRecord[$rs]))
+                    if(!isset($commonRecord[$rs]) || !is_array($commonRecord[$rs]))
                     {
                       $commonRecord[$rs] = array();
                     }
 
-                    $vs = explode("|", $record[$key]);
+                    $vs = explode("||", $record[$key]);
 
                     foreach($vs as $v)
                     {
@@ -955,7 +959,8 @@ class CommonParser
                   return;
                 }
 
-                if(!is_array($this->commonLinkageSchema["properties"]))
+                if(!isset($this->commonLinkageSchema["properties"]) || 
+                   !is_array($this->commonLinkageSchema["properties"]))
                 {
                   $this->commonLinkageSchema["properties"] = array();
                 }
@@ -964,13 +969,13 @@ class CommonParser
 
                 foreach($recordStructure as $key => $rs)
                 {
-                  if(strpos($record[$key], "|") === FALSE)
+                  if(strpos($record[$key], "||") === FALSE)
                   {
                     $propertiesRecord[$rs] = array( $record[$key] );
                   }
                   else
                   {
-                    $propertiesRecord[$rs] = explode("|", $record[$key]);
+                    $propertiesRecord[$rs] = explode("||", $record[$key]);
                   }
                 }
 
@@ -978,7 +983,7 @@ class CommonParser
               }
               elseif(array_search("&prefixList", $recordStructure) !== FALSE)
               {
-                if(!is_array($this->commonLinkageSchema["prefixes"]))
+                if(!isset($this->commonLinkageSchema["prefixes"]) || !is_array($this->commonLinkageSchema["prefixes"]))
                 {
                   $this->commonLinkageSchema["prefixes"] = array();
                 }
@@ -987,13 +992,13 @@ class CommonParser
 
                 foreach($recordStructure as $key => $rs)
                 {
-                  if(strpos($record[$key], "|") === FALSE)
+                  if(strpos($record[$key], "||") === FALSE)
                   {
                     $prefixesRecord[$rs] = array( $record[$key] );
                   }
                   else
                   {
-                    $prefixesRecord[$rs] = explode("|", $record[$key]);
+                    $prefixesRecord[$rs] = explode("||", $record[$key]);
                   }
                 }
 
@@ -1020,7 +1025,7 @@ class CommonParser
                   return;
                 }
 
-                if(!is_array($this->commonLinkageSchema["types"]))
+                if(!isset($this->commonLinkageSchema["types"]) || !is_array($this->commonLinkageSchema["types"]))
                 {
                   $this->commonLinkageSchema["types"] = array();
                 }
@@ -1029,13 +1034,13 @@ class CommonParser
 
                 foreach($recordStructure as $key => $rs)
                 {
-                  if(strpos($record[$key], "|") === FALSE)
+                  if(strpos($record[$key], "||") === FALSE)
                   {
                     $typesRecord[$rs] = array( $record[$key] );
                   }
                   else
                   {
-                    $typesRecord[$rs] = explode("|", $record[$key]);
+                    $typesRecord[$rs] = explode("||", $record[$key]);
                   }
                 }
 
@@ -1062,20 +1067,21 @@ class CommonParser
                   return;
                 }
 
-                if(!is_array($this->commonLinkageSchema["description"]))
+                if(!isset($this->commonLinkageSchema["description"]) || 
+                   !is_array($this->commonLinkageSchema["description"]))
                 {
                   $this->commonLinkageSchema["description"] = array();
                 }
 
                 foreach($recordStructure as $key => $rs)
                 {
-                  if(strpos($rs, "|") === FALSE)
+                  if(strpos($rs, "||") === FALSE)
                   {
                     $this->commonLinkageSchema["description"][$rs] = array( $record[$key] );
                   }
                   else
                   {
-                    $this->commonLinkageSchema["description"][$rs] = explode("|", $record[$key]);
+                    $this->commonLinkageSchema["description"][$rs] = explode("||", $record[$key]);
                   }
                 }
 
@@ -1255,14 +1261,14 @@ class CommonParser
                 $p = $baseOntology . substr($property, 1, strlen($property) - 1);
               }
 
-              if(substr($value["value"], 0, 1) == "@")
+              // Check if the value is an external record reference
+              if(substr($value["value"], 0, 2) == "@@")
+              {
+                $n3 .= "<" . $recordId . "> <" . $p . "> <" . $this->unprefixize(substr($value["value"],2)) . "> .\n";
+              }
+              elseif(substr($value["value"], 0, 1) == "@")
               {
                 $n3 .= "<" . $recordId . "> <" . $p . "> <" . $baseInstance . substr($value["value"],1) . "> .\n";
-              }
-              // Check if the value is an external record reference
-              elseif(substr($value["value"], 0, 2) == "@@")
-              {
-                $n3 .= "<" . $recordId . "> <" . $p . "> <" . substr($value["value"],2) . "> .\n";
               }
               else
               {
@@ -1271,7 +1277,7 @@ class CommonParser
               }                
               
               // Check if there is some statements to reify
-              if(is_array($value["reify"]))
+              if(isset($value["reify"]) && is_array($value["reify"]))
               {
                 foreach($value["reify"] as $reifiedAttribute => $reiValues)
                 {
@@ -1321,7 +1327,7 @@ class CommonParser
         }
       }
     }
-
+    
     return ($n3 . $n3ReificationStatements);
   }
 
@@ -1345,7 +1351,7 @@ class CommonParser
       $targetAttribute = substr($targetAttribute, 1, strlen($targetAttribute) - 1);
     }
 
-    if(is_array($this->commonLinkageSchema["properties"]))
+    if(isset($this->commonLinkageSchema["properties"]) && is_array($this->commonLinkageSchema["properties"]))
     {
       foreach($this->commonLinkageSchema["properties"] as $property)
       {
@@ -1380,7 +1386,7 @@ class CommonParser
       $targetType = substr($targetType, 1, strlen($targetType) - 1);
     }
 
-    if(is_array($this->commonLinkageSchema["types"]))
+    if(isset($this->commonLinkageSchema["types"]) && is_array($this->commonLinkageSchema["types"]))
     {
       foreach($this->commonLinkageSchema["types"] as $type)
       {
@@ -1412,6 +1418,29 @@ class CommonParser
     $literal = str_replace("\\", "\\\\", $literal);
 
     return str_replace(array ('"', "'"), array ('\\"', "\\'"), $literal);
+  }
+  
+  private function unprefixize($val)
+  {
+    if(count($this->commonLinkageSchema["prefixes"][0]["&prefixList"]) > 0)
+    {
+      $pos = stripos($val, ":");
+
+      if($pos !== FALSE)
+      {
+        $prefix = substr($val, 0, $pos);
+
+        foreach($this->commonLinkageSchema["prefixes"] as $keyPrefix => $pref)
+        {
+          if($pref["&prefixList"][0] == $prefix)
+          {
+            return(str_replace($pref["&prefixList"][0] . ":", $this->commonLinkageSchema["prefixes"][$keyPrefix]["&mapTo"][0], $val));
+          }
+        }
+      }
+    }    
+    
+    return($val);
   }
 }
 ?>

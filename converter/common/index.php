@@ -18,9 +18,14 @@
 // Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
 ini_set("display_errors", "Off"); 
 
-ini_set("memory_limit", "256M");
+ini_set("memory_limit", "512M");
 set_time_limit(2700);
 
+if ($_SERVER['REQUEST_METHOD'] != 'POST') 
+{
+    header("HTTP/1.1 405 Method Not Allowed");  
+    die;
+}
 
 // Database connectivity procedures
 include_once("../../framework/db.php");
@@ -100,8 +105,10 @@ elseif(isset($_SERVER['PHP_SELF']))
 
 $ws_common = new ConverterCommon($document, $docmime, $registered_ip, $requester_ip);
 
-$ws_common->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
-  $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+$ws_common->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
+                      (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
+                      (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
+                      (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : "")); 
 
 $ws_common->process();
 
@@ -113,9 +120,17 @@ $mtime = $mtime[1] + $mtime[0];
 $endtime = $mtime;
 $totaltime = ($endtime - $starttime);
 
-$logger = new Logger("converter/common", $requester_ip, "--", $_SERVER['HTTP_ACCEPT'], $start_datetime, $totaltime,
-  $ws_common->pipeline_getResponseHeaderStatus(), $_SERVER['HTTP_USER_AGENT']);
-
+if($ws_common->isLoggingEnabled())
+{
+  $logger = new Logger("converter/common", 
+                       $requester_ip, 
+                       "--", 
+                       (isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""),
+                       $start_datetime, 
+                       $totaltime,
+                       $ws_common->pipeline_getResponseHeaderStatus(), 
+                       (isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : ""));
+}
 
 //@}
 

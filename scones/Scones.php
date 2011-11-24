@@ -56,9 +56,6 @@ class Sparql extends WebService
   /*! @brief The annotated document by Scones. */
   private $annotatedDocument = "";
   
-  /*! @brief Underscored namespaces used by the named entities annotations. */
-  private $namespaces;
-
   /*! @brief Supported MIME serializations by this web service */
   public static $supportedSerializations = array ("text/xml", "text/*", "*/xml", "*/*");
 
@@ -305,12 +302,7 @@ class Sparql extends WebService
         Can be a URL or a file reference.
       */
       $this->config_ini = parse_ini_file("config.ini", TRUE);   
-      
-      /*
-        Load the namespaces
-      */
-      $this->namespaces = parse_ini_file("namespaces.ini", TRUE);   
-      
+            
       // Make sure the service if configured
       if($this->config_ini === FALSE)
       {
@@ -597,7 +589,7 @@ class Sparql extends WebService
           {
             if((string) $feature->Name == "majorType")
             {
-              $feature->Value = $this->prefixToUri((string) $feature->Value);
+              $feature->Value = urldecode((string) $feature->Value);
             }
           }  
         }         
@@ -605,35 +597,6 @@ class Sparql extends WebService
     }
     
     $this->annotatedDocument = $annotatedNeXML->asXML();
-  }
-  
-  /*! @brief Replace the Prefixed form of the URI by its full URI.
-              
-      \n
-      
-      @author Frederick Giasson, Structured Dynamics LLC.
-    
-      \n\n\n
-  */
-  function prefixToUri($uri)
-  {
-    $pos = strpos($uri, "_");
-    
-    if($pos !== FALSE)
-    {
-      $prefix = substr($uri, 0, $pos);
-      
-      if(isset($this->namespaces[$prefix]))
-      {
-        return(str_replace($prefix."_", $this->namespaces[$prefix], $uri));
-      }
-      else
-      {
-        return($uri);
-      }
-    }
-    
-    return($uri);
   }
 }
 

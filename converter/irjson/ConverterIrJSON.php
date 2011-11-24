@@ -1611,6 +1611,12 @@ else
 
             if(!isset($this->namespaces[$stNs]))
             {
+              // Make sure the ID is not already existing. Increase the counter if it is the case.
+              while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+              {
+                $nsId++;
+              }              
+              
               $this->namespaces[$stNs] = "ns" . $nsId;
               $nsId++;
             }
@@ -1639,6 +1645,12 @@ else
 
                   if(!isset($this->namespaces[$ptNs]))
                   {
+                    // Make sure the ID is not already existing. Increase the counter if it is the case.
+                    while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+                    {
+                      $nsId++;
+                    }                    
+                    
                     $this->namespaces[$ptNs] = "ns" . $nsId;
                     $nsId++;
                   }
@@ -1656,6 +1668,12 @@ else
 
                   if(!isset($this->namespaces[$ptNs]))
                   {
+                    // Make sure the ID is not already existing. Increase the counter if it is the case.
+                    while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+                    {
+                      $nsId++;
+                    }
+                                      
                     $this->namespaces[$ptNs] = "ns" . $nsId;
                     $nsId++;
                   }
@@ -1812,6 +1830,12 @@ else
 
                 if(!isset($this->namespaces[$ptNs]))
                 {
+                  // Make sure the ID is not already existing. Increase the counter if it is the case.
+                  while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+                  {
+                    $nsId++;
+                  }
+                                    
                   $this->namespaces[$ptNs] = "ns" . $nsId;
                 }
 

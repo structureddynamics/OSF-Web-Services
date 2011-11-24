@@ -20,6 +20,11 @@ ini_set("display_errors",
 
 ini_set("memory_limit", "256M");
 
+if ($_SERVER['REQUEST_METHOD'] != 'POST') 
+{
+    header("HTTP/1.1 405 Method Not Allowed");  
+    die;
+}
 
 // Database connectivity procedures
 include_once("../framework/db.php");
@@ -125,8 +130,10 @@ elseif(isset($_SERVER['PHP_SELF']))
 
 $ws_sparql = new Sparql($query, $dataset, $limit, $offset, $registered_ip, $requester_ip);
 
-$ws_sparql->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
-  $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+$ws_sparql->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
+                      (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
+                      (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
+                      (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : "")); 
 
 $ws_sparql->process();
 
@@ -138,11 +145,21 @@ $mtime = $mtime[1] + $mtime[0];
 $endtime = $mtime;
 $totaltime = ($endtime - $starttime);
 
-$logger = new Logger("sparql", $requester_ip,
-  "?query=" . $query . "&dataset=" . $dataset . "&registered_ip=" . $registered_ip . "&requester_ip=$requester_ip",
-  $_SERVER['HTTP_ACCEPT'], $start_datetime, $totaltime, $ws_sparql->pipeline_getResponseHeaderStatus(),
-  $_SERVER['HTTP_USER_AGENT']);
 
+if($ws_sparql->isLoggingEnabled())
+{
+  $logger = new Logger("sparql", 
+                       $requester_ip,
+                       "?query=" . $query . 
+                       "&dataset=" . $dataset . 
+                       "&registered_ip=" . $registered_ip . 
+                       "&requester_ip=$requester_ip",
+                       (isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""),
+                       $start_datetime, 
+                       $totaltime, 
+                       $ws_sparql->pipeline_getResponseHeaderStatus(),
+                       (isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : ""));
+}
 
 //@}
 

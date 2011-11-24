@@ -68,6 +68,39 @@ class Namespaces
   public static $dbpedia_ont = "http://dbpedia.org/ontology/";
   public static $sco = "http://purl.org/ontology/sco#";
   
+  public static function getLabelProperties()
+  {
+    return(array(
+        Namespaces::$iron . "prefLabel",
+        Namespaces::$iron . "altLabel",
+        Namespaces::$dcterms . "title",
+        Namespaces::$dc . "title",
+        Namespaces::$doap . "name",
+        Namespaces::$foaf . "name",
+        Namespaces::$foaf . "givenName",
+        Namespaces::$foaf . "family_name",
+        Namespaces::$rdfs . "label",
+        Namespaces::$skos_2004 . "prefLabel",
+        Namespaces::$skos_2004 . "altLabel",
+        Namespaces::$skos_2008 . "prefLabel",
+        Namespaces::$skos_2008 . "altLabel",
+        Namespaces::$geoname."name"));
+  }  
+  
+  public static function getDescriptionProperties()
+  {
+    return(array(
+      Namespaces::$iron . "description",
+      Namespaces::$dcterms . "description",
+      Namespaces::$skos_2004 . "definition",
+      Namespaces::$skos_2008 . "definition",
+      Namespaces::$bio . "olb",
+      Namespaces::$bibo . "abstract",
+      Namespaces::$doap . "description",
+      Namespaces::$geoname."name"
+    ));    
+  }  
+  
   public static function getPrefixedUri($uri)
   {
     // Find the base URI of the ontology

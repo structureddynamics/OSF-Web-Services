@@ -560,6 +560,12 @@ class ConverterTsv extends WebService
 
           if(!isset($namespaces[$stNs]))
           {
+            // Make sure the ID is not already existing. Increase the counter if it is the case.
+            while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+            {
+              $nsId++;
+            }            
+            
             $namespaces[$stNs] = "ns" . $nsId;
             $nsId++;
           }
@@ -588,6 +594,12 @@ class ConverterTsv extends WebService
 
                 if(!isset($namespaces[$ptNs]))
                 {
+                  // Make sure the ID is not already existing. Increase the counter if it is the case.
+                  while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+                  {
+                    $nsId++;
+                  }
+                                    
                   $namespaces[$ptNs] = "ns" . $nsId;
                   $nsId++;
                 }
@@ -605,6 +617,12 @@ class ConverterTsv extends WebService
 
                 if(!isset($namespaces[$ptNs]))
                 {
+                  // Make sure the ID is not already existing. Increase the counter if it is the case.
+                  while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+                  {
+                    $nsId++;
+                  }
+                                    
                   $namespaces[$ptNs] = "ns" . $nsId;
                   $nsId++;
                 }

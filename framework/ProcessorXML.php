@@ -310,14 +310,14 @@ class ProcessorXML
     // Get all prefixes for this XML document.
     $prefixPos = 0;
 
-    while (($prefixPos = stripos($xml_doc, "<prefix", $prefixPos)) !== FALSE)
+    while (($prefixPos = strpos($xml_doc, "<prefix", $prefixPos)) !== FALSE)
     {
-      $entityPosStart = stripos($xml_doc, 'entity="', $prefixPos);
-      $entityPosEnd = stripos($xml_doc, '"', $entityPosStart + 9);
+      $entityPosStart = strpos($xml_doc, 'entity="', $prefixPos);
+      $entityPosEnd = strpos($xml_doc, '"', $entityPosStart + 9);
       $entity = substr($xml_doc, $entityPosStart + 8, ($entityPosEnd - $entityPosStart - 8));
 
-      $uriPosStart = stripos($xml_doc, 'uri="', $entityPosEnd);
-      $uriPosEnd = stripos($xml_doc, '"', $uriPosStart + 6);
+      $uriPosStart = strpos($xml_doc, 'uri="', $entityPosEnd);
+      $uriPosEnd = strpos($xml_doc, '"', $uriPosStart + 6);
       $uri = substr($xml_doc, $uriPosStart + 5, ($uriPosEnd - $uriPosStart - 5));
 
       $prefixPos = $uriPosEnd;
@@ -819,20 +819,26 @@ class ProcessorXML
     if($node != null && (get_class($node) == "DOMNode" ||
                          get_class($node) == "DOMElement")) 
     {
-      if (isset($node->attributes))
+      if(isset($node->attributes))
       {
-        if ($prefixed === TRUE)
+        if($prefixed === TRUE)
         {
-          foreach ($this->prefixes as $entity => $uri)
+          foreach($this->prefixes as $entity => $uri)
           {
-            if (stripos($node->attributes->getNamedItem("type")->nodeValue, $uri) !== FALSE)
+            if(isset($node->attributes->getNamedItem("type")->nodeValue))
             {
-              return (str_replace($uri, $entity . ":", $node->attributes->getNamedItem("type")->nodeValue));
+              if(strpos($node->attributes->getNamedItem("type")->nodeValue, $uri) !== FALSE)
+              {
+                return(str_replace($uri, $entity . ":", $node->attributes->getNamedItem("type")->nodeValue));
+              }
             }
           }
         }
 
-        return ($node->attributes->getNamedItem("type")->nodeValue);
+        if(isset($node->attributes->getNamedItem("type")->nodeValue))
+        {        
+          return ($node->attributes->getNamedItem("type")->nodeValue);
+        }
       }
     }
 
@@ -928,10 +934,15 @@ class ProcessorXML
     // Replace all the possible entities by their character. That way, we won't "double encode" 
     // these entities. Otherwise, we can endup with things such as "&amp;amp;" which some
     // XML parsers doesn't seem to like (and throws errors).
-    $string = str_replace(array ("%5C", "&amp;", "&lt;", "&gt;"), array ("\\", "&", "<", ">"), $string);
+    //$string = str_replace(array ("%5C", "&amp;", "&lt;", "&gt;"), array ("\\", "&", "<", ">"), $string);
     
     return str_replace(array ("\\", "&", "<", ">"), array ("%5C", "&amp;", "&lt;", "&gt;"), $string); 
   } 
+  
+  function xmlDecode($string)
+  { 
+    return str_replace(array ("%5C", "&amp;", "&lt;", "&gt;"), array ("\\", "&", "<", ">"), $string); 
+  }    
   
   function saveRdfN3()
   {

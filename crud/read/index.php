@@ -45,6 +45,10 @@ if(isset($_GET['uri']))
 {
   $uri = $_GET['uri'];
 }
+elseif(isset($_POST['uri']))
+{
+  $uri = $_POST['uri'];
+}
 
 // URI of the crud to get the description of
 $dataset = "";
@@ -52,6 +56,10 @@ $dataset = "";
 if(isset($_GET['dataset']))
 {
   $dataset = $_GET['dataset'];
+}
+elseif(isset($_POST['dataset']))
+{
+  $dataset = $_POST['dataset'];
 }
 
 // Include the reference of the resources that links to this resource
@@ -61,6 +69,10 @@ if(isset($_GET['include_linksback']))
 {
   $include_linksback = $_GET['include_linksback'];
 }
+elseif(isset($_POST['include_linksback']))
+{
+  $include_linksback = $_POST['include_linksback'];
+}
 
 // Include the reference of the resources that links to this resource
 $include_reification = "";
@@ -68,6 +80,22 @@ $include_reification = "";
 if(isset($_GET['include_reification']))
 {
   $include_reification = $_GET['include_reification'];
+}
+elseif(isset($_POST['include_reification']))
+{
+  $include_linksback = $_POST['include_reification'];
+}
+
+// Include attribute/values of the attributes defined in this list
+$include_attributes_list = "";
+
+if(isset($_GET['include_attributes_list']))
+{
+  $include_attributes_list = $_GET['include_attributes_list'];
+}
+elseif(isset($_POST['include_attributes_list']))
+{
+  $include_attributes_list = $_POST['include_attributes_list'];
 }
 
 
@@ -77,6 +105,10 @@ $registered_ip = "";
 if(isset($_GET['registered_ip']))
 {
   $registered_ip = $_GET['registered_ip'];
+}
+elseif(isset($_POST['include_attributes_list']))
+{
+  $registered_ip = $_GET['include_attributes_list'];
 }
 
 $mtime = microtime();
@@ -111,10 +143,12 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_cr = new CrudRead($uri, $dataset, $include_linksback, $include_reification, $registered_ip, $requester_ip);
+$ws_cr = new CrudRead($uri, $dataset, $include_linksback, $include_reification, $registered_ip, $requester_ip, $include_attributes_list);
 
-$ws_cr->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
-  $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+$ws_cr->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
+                  (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
+                  (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
+                  (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : "")); 
 
 $ws_cr->process();
 
@@ -126,11 +160,21 @@ $mtime = $mtime[1] + $mtime[0];
 $endtime = $mtime;
 $totaltime = ($endtime - $starttime);
 
-$logger = new Logger("crud_read", $requester_ip,
-  "?uri=" . $uri . "&dataset=" . $dataset . "&include_linksback=" . $include_linksback . "&registered_ip="
-  . $registered_ip . "&requester_ip=$requester_ip", $_SERVER['HTTP_ACCEPT'], $start_datetime, $totaltime,
-  $ws_cr->pipeline_getResponseHeaderStatus(), $_SERVER['HTTP_USER_AGENT']);
-
+if($ws_cr->isLoggingEnabled())
+{
+  $logger = new Logger("crud_read", 
+                       $requester_ip,
+                       "?uri=" . $uri . 
+                       "&dataset=" . $dataset . 
+                       "&include_linksback=" . $include_linksback . 
+                       "&registered_ip=" . $registered_ip . 
+                       "&requester_ip=$requester_ip", 
+                       (isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""),
+                       $start_datetime,
+                       $totaltime,
+                       $ws_cr->pipeline_getResponseHeaderStatus(), 
+                       (isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : ""));
+}
 
 //@}
 

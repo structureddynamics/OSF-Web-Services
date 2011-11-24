@@ -20,6 +20,12 @@ ini_set("display_errors",
 
 ini_set("memory_limit", "64M");
 
+// Check if the HTTP method used by the requester is the good one
+if ($_SERVER['REQUEST_METHOD'] != 'POST') 
+{
+    header("HTTP/1.1 405 Method Not Allowed");  
+    die;
+}
 
 // Database connectivity procedures
 include_once("../../framework/db.php");
@@ -95,8 +101,10 @@ elseif(isset($_SERVER['PHP_SELF']))
 
 $ws_av = new AuthValidator($ip, $datasets, $ws_uri);
 
-$ws_av->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
-  $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+$ws_av->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
+                  (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
+                  (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
+                  (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : "")); 
 
 $ws_av->process();
 
@@ -108,10 +116,19 @@ $mtime = $mtime[1] + $mtime[0];
 $endtime = $mtime;
 $totaltime = ($endtime - $starttime);
 
-$logger = new Logger("auth_validator", $requester_ip, "?ip=" . $ip . "&datasets=" . $datasets . "&ws_uri=" . $ws_uri,
-  $_SERVER['HTTP_ACCEPT'], $start_datetime, $totaltime, $ws_av->pipeline_getResponseHeaderStatus(),
-  $_SERVER['HTTP_USER_AGENT']);
-
+if($ws_av->isLoggingEnabled())
+{
+  $logger = new Logger("auth_validator", 
+                       $requester_ip, 
+                       "?ip=" . $ip . 
+                       "&datasets=" . $datasets . 
+                       "&ws_uri=" . $ws_uri,
+                       (isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""),
+                       $start_datetime, 
+                       $totaltime, 
+                       $ws_av->pipeline_getResponseHeaderStatus(),
+                       (isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : ""));
+}
 
 //@}
 

@@ -291,6 +291,9 @@ class ClassNode
   /*! @brief Array of references to immediate sub-classes-of this node  */
   public $superClassOf = array(); // array of pointers
 
+  /*! @brief Specifies where this class is defined in the ontology structure (mainly: the dataset URI of the ontology)  */
+  public $isDefinedBy = "";  
+  
   /*!   @brief Constructor
               
       \n

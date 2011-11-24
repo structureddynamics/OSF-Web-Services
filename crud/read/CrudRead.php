@@ -40,6 +40,9 @@ class CrudRead extends WebService
   /*! @brief Include potential reification statements */
   private $include_reification = "";
 
+  /*! @brief Include attribute/values of the attributes defined in this list */
+  private $include_attributes_list = "";
+
   /*! @brief URI of the resource to get its description */
   private $resourceUri = "";
 
@@ -61,7 +64,8 @@ class CrudRead extends WebService
   /*! @brief Namespaces/Prefixes binding */
   private $namespaces =
     array ("http://www.w3.org/2002/07/owl#" => "owl", "http://www.w3.org/1999/02/22-rdf-syntax-ns#" => "rdf",
-      "http://www.w3.org/2000/01/rdf-schema#" => "rdfs", "http://purl.org/ontology/wsf#" => "wsf");
+      "http://www.w3.org/2000/01/rdf-schema#" => "rdfs", "http://purl.org/ontology/wsf#" => "wsf", 
+      "http://purl.org/ontology/aggregate#" => "aggr");
 
   /*! @brief Array of triples where the current resource(s) is a subject. */
   public $subjectTriples = array();
@@ -145,6 +149,14 @@ class CrudRead extends WebService
       @param[in] $include_reification Include possible reification statements for a record
       @param[in] $registered_ip Target IP address registered in the WSF
       @param[in] $requester_ip IP address of the requester
+      @param[in] $include_attributes_list A list of attribute URIs to include into the resultset. Sometime, you may 
+                                          be dealing with datasets where the description of the entities are composed 
+                                          of thousands of attributes/values. Since the Crud: Read web service endpoint 
+                                          returns the complete entities descriptions in its resultsets, this parameter 
+                                          enables you to restrict the attribute/values you want included in the 
+                                          resultset which considerably reduce the size of the resultset to transmit 
+                                          and manipulate. Multiple attribute URIs can be added to this parameter by 
+                                          splitting them with ";".
               
               
       \n
@@ -155,13 +167,15 @@ class CrudRead extends WebService
     
       \n\n\n
   */
-  function __construct($uri, $dataset, $include_linksback, $include_reification, $registered_ip, $requester_ip)
+  function __construct($uri, $dataset, $include_linksback, $include_reification, $registered_ip, $requester_ip, $include_attributes_list="")
   {
     parent::__construct();
 
     $this->db = new DB_Virtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 
     $this->dataset = $dataset;
+    
+    $this->include_attributes_list = explode(";", $include_attributes_list);
 
     // If no dataset URI is defined for this query, we simply query all datasets accessible by the requester.
     if($this->dataset == "")
@@ -241,9 +255,9 @@ class CrudRead extends WebService
      */
     if($this->globalDataset === TRUE)
     {
-      include_once("../../auth/lister/AuthLister.php");
+      include_once($this->wsf_base_path."auth/lister/AuthLister.php");
 
-      $ws_al = new AuthLister("access_user", "", $this->registered_ip, $this->wsf_local_ip);
+      $ws_al = new AuthLister("access_user", "", $this->registered_ip, $this->wsf_local_ip, "none");
 
       $ws_al->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
         $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
@@ -373,16 +387,6 @@ class CrudRead extends WebService
     // Creation of the RESULTSET
     $resultset = $xml->createResultset();
 
-    // Creation of the prefixes elements.
-    $void = $xml->createPrefix("owl", "http://www.w3.org/2002/07/owl#");
-    $resultset->appendChild($void);
-    $rdf = $xml->createPrefix("rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#");
-    $resultset->appendChild($rdf);
-    $dcterms = $xml->createPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
-    $resultset->appendChild($dcterms);
-    $dcterms = $xml->createPrefix("wsf", "http://purl.org/ontology/wsf#");
-    $resultset->appendChild($dcterms);
-
     $subject;
 
     foreach($this->subjectTriples as $u => $sts)
@@ -421,7 +425,22 @@ class CrudRead extends WebService
                 @TODO The internal XML structure of structWSF should be enhanced with datatypes such as xsd:double, int, 
                       literal, etc.
               */
-              $pred = $xml->createPredicate($property);
+              
+              $ns = $this->getNamespace($property);
+
+              if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
+              {
+                // Make sure the ID is not already existing. Increase the counter if it is the case.
+                while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+                {
+                  $nsId++;
+                }
+                                
+                $this->namespaces[$ns[0]] = "ns" . $nsId;
+                $nsId++;
+              }               
+              
+              $pred = $xml->createPredicate($this->namespaces[$ns[0]] . ":" . $ns[1]);
               $object = $xml->createObjectContent($value[0]);
               $pred->appendChild($object);
 
@@ -474,7 +493,21 @@ class CrudRead extends WebService
           {
             $subject = $xml->createSubject("http://www.w3.org/2002/07/owl#Thing", $resource);
 
-            $pred = $xml->createPredicate($property);
+            $ns = $this->getNamespace($property);
+
+            if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
+            {
+              // Make sure the ID is not already existing. Increase the counter if it is the case.
+              while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+              {
+                $nsId++;
+              }
+                                
+              $this->namespaces[$ns[0]] = "ns" . $nsId;
+              $nsId++;
+            }           
+            
+            $pred = $xml->createPredicate($this->namespaces[$ns[0]] . ":" . $ns[1]);
             $object = $xml->createObject("", $u);
             $pred->appendChild($object);
             $subject->appendChild($pred);
@@ -485,6 +518,13 @@ class CrudRead extends WebService
       }
     }
 
+    // Creation of the prefixes elements.
+    foreach($this->namespaces as $uri => $prefix)
+    {
+      $ns = $xml->createPrefix($prefix, $uri);
+      $resultset->appendChild($ns);
+    }    
+    
     return ($this->injectDoctype($xml->saveXML($resultset)));
   }
 
@@ -554,6 +594,7 @@ class CrudRead extends WebService
     }
 
     // Check if we have the same number of URIs than Dataset URIs (only if at least one dataset URI is defined).
+    
     if($this->globalDataset === FALSE)
     {
       $uris = explode(";", $this->resourceUri);
@@ -650,12 +691,12 @@ class CrudRead extends WebService
     {
       case "application/bib+json":
       case "application/iron+json":
-        include_once("../../converter/irjson/ConverterIrJSON.php");
-        include_once("../../converter/irjson/Dataset.php");
-        include_once("../../converter/irjson/InstanceRecord.php");
-        include_once("../../converter/irjson/LinkageSchema.php");
-        include_once("../../converter/irjson/StructureSchema.php");
-        include_once("../../converter/irjson/irJSONParser.php");
+        include_once($this->wsf_base_path."converter/irjson/ConverterIrJSON.php");
+        include_once($this->wsf_base_path."converter/irjson/Dataset.php");
+        include_once($this->wsf_base_path."converter/irjson/InstanceRecord.php");
+        include_once($this->wsf_base_path."converter/irjson/LinkageSchema.php");
+        include_once($this->wsf_base_path."converter/irjson/StructureSchema.php");
+        include_once($this->wsf_base_path."converter/irjson/irJSONParser.php");
 
         // Include more information about the dataset (at least the ID)
         $documentToConvert = $this->pipeline_getResultset();
@@ -718,8 +759,14 @@ class CrudRead extends WebService
 
           $ns = $this->getNamespace($subjectType);
 
-          if(!isset($this->namespaces[$ns[0]]))
+          if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
           {
+            // Make sure the ID is not already existing. Increase the counter if it is the case.
+            while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+            {
+              $nsId++;
+            }
+                              
             $this->namespaces[$ns[0]] = "ns" . $nsId;
             $nsId++;
           }
@@ -727,7 +774,7 @@ class CrudRead extends WebService
           $json_part .= "      { \n";
           $json_part .= "        \"uri\": \"" . parent::jsonEncode($subjectURI) . "\", \n";
           $json_part .= "        \"type\": \"" . parent::jsonEncode($this->namespaces[$ns[0]] . ":" . $ns[1])
-            . "\", \n";
+            . "\",\n";
 
           $predicates = $xml->getPredicates($subject);
 
@@ -755,8 +802,14 @@ class CrudRead extends WebService
 
                 $ns = $this->getNamespace($predicateType);
 
-                if(!isset($this->namespaces[$ns[0]]))
+                if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
                 {
+                  // Make sure the ID is not already existing. Increase the counter if it is the case.
+                  while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+                  {
+                    $nsId++;
+                  }
+                                    
                   $this->namespaces[$ns[0]] = "ns" . $nsId;
                   $nsId++;
                 }
@@ -772,8 +825,14 @@ class CrudRead extends WebService
 
                 $ns = $this->getNamespace($predicateType);
 
-                if(!isset($this->namespaces[$ns[0]]))
+                if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
                 {
+                  // Make sure the ID is not already existing. Increase the counter if it is the case.
+                  while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+                  {
+                    $nsId++;
+                  }
+                                    
                   $this->namespaces[$ns[0]] = "ns" . $nsId;
                   $nsId++;
                 }
@@ -839,10 +898,8 @@ class CrudRead extends WebService
           $json_part = substr($json_part, 0, strlen($json_part) - 2) . "\n";
         }
 
-        $json_header .= "  \"prefixes\": [ \n";
+        $json_header .= "  \"prefixes\": \n";
         $json_header .= "    {\n";
-        $json_header .= "      \"rdf\": \"http://www.w3.org/1999/02/22-rdf-syntax-ns#\",\n";
-        $json_header .= "      \"wsf\": \"http://purl.org/ontology/wsf#\",\n";
 
         foreach($this->namespaces as $ns => $prefix)
         {
@@ -854,8 +911,7 @@ class CrudRead extends WebService
           $json_header = substr($json_header, 0, strlen($json_header) - 2) . "\n";
         }
 
-        $json_header .= "    } \n";
-        $json_header .= "  ],\n";
+        $json_header .= "    }, \n";
         $json_header .= "  \"resultset\": {\n";
         $json_header .= "    \"subject\": [\n";
         $json_header .= $json_part;
@@ -863,118 +919,6 @@ class CrudRead extends WebService
         $json_header .= "  }\n";
 
         return ($json_header);
-/*
-        $json_part = "";
-        $xml = new ProcessorXML();
-        $xml->loadXML($this->pipeline_getResultset());
-        
-        $subjects = $xml->getSubjects();
-      
-        foreach($subjects as $subject)
-        {
-          $subjectURI = $xml->getURI($subject);
-          $subjectType = $xml->getType($subject);
-        
-          $json_part .= "      { \n";
-          $json_part .= "        \"uri\": \"".parent::jsonEncode($subjectURI)."\", \n";
-          $json_part .= "        \"type\": \"".parent::jsonEncode($subjectType)."\", \n";
-
-          $predicates = $xml->getPredicates($subject);
-          
-          $nbPredicates = 0;
-          
-          foreach($predicates as $predicate)
-          {
-            $objects = $xml->getObjects($predicate);
-            
-            foreach($objects as $object)
-            {
-              $nbPredicates++;
-              
-              if($nbPredicates == 1)
-              {
-                $json_part .= "        \"predicates\": [ \n";
-              }
-              
-              $objectType = $xml->getType($object);            
-              $predicateType = $xml->getType($predicate);
-              
-              if($objectType == "rdfs:Literal")
-              {
-                $objectValue = $xml->getContent($object);
-                            
-                $json_part .= "          { \n";
-                $json_part .= "            \"".parent::jsonEncode($predicateType)."\": \"".parent::jsonEncode($objectValue)."\" \n";
-                $json_part .= "          },\n";
-              }
-              else
-              {
-                $objectURI = $xml->getURI($object);            
-                $rdf_part .= "          <$predicateType> <$objectURI> ;\n";
-                
-                $json_part .= "          { \n";
-                $json_part .= "            \"".parent::jsonEncode($predicateType)."\": { \n";
-                $json_part .= "                \"uri\": \"".parent::jsonEncode($objectURI)."\", \n";
-                
-                                // Check if there is a reification statement for this object.
-                                  $reifies = $xml->getReificationStatements($object);
-                                
-                                  $nbReification = 0;
-                                
-                                  foreach($reifies as $reify)
-                                  {
-                                    $nbReification++;
-                                    
-                                    if($nbReification > 0)
-                                    {
-                                      $json_part .= "               \"reifies\": [\n";
-                                    }
-                                    
-                                    $json_part .= "                 { \n";
-                                    $json_part .= "                     \"type\": \"wsf:objectLabel\", \n";
-                                    $json_part .= "                     \"value\": \"".parent::jsonEncode($xml->getValue($reify))."\" \n";
-                                    $json_part .= "                 },\n";
-                                  }
-                                  
-                                  if($nbReification > 0)
-                                  {
-                                    $json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
-                                    
-                                    $json_part .= "               ]\n";
-                                  }
-                                  else
-                                  {
-                                    $json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
-                                  }                
-                                                  
-                                  
-                                  $json_part .= "                } \n";
-                                  $json_part .= "          },\n";
-                                }
-                              }
-                            }
-                            
-                            if(strlen($json_part) > 0)
-                            {
-                              $json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
-                            }            
-                            
-                            if($nbPredicates > 0)
-                            {
-                              $json_part .= "        ]\n";
-                            }
-                            
-                            $json_part .= "      },\n";          
-                          }
-                          
-                          if(strlen($json_part) > 0)
-                          {
-                            $json_part = substr($json_part, 0, strlen($json_part) - 2)."\n";
-                          }
-                          
-                  
-                          return($json_part);    
-                          */
       break;
 
       case "application/rdf+n3":
@@ -1040,8 +984,14 @@ class CrudRead extends WebService
 
           $ns1 = $this->getNamespace($subjectType);
 
-          if(!isset($this->namespaces[$ns1[0]]))
+          if($ns !== FALSE && !isset($this->namespaces[$ns1[0]]))
           {
+            // Make sure the ID is not already existing. Increase the counter if it is the case.
+            while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+            {
+              $nsId++;
+            }
+                              
             $this->namespaces[$ns1[0]] = "ns" . $nsId;
             $nsId++;
           }
@@ -1066,8 +1016,14 @@ class CrudRead extends WebService
 
                 $ns = $this->getNamespace($predicateType);
 
-                if(!isset($this->namespaces[$ns[0]]))
+                if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
                 {
+                  // Make sure the ID is not already existing. Increase the counter if it is the case.
+                  while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+                  {
+                    $nsId++;
+                  }
+                                    
                   $this->namespaces[$ns[0]] = "ns" . $nsId;
                   $nsId++;
                 }
@@ -1081,8 +1037,14 @@ class CrudRead extends WebService
 
                 $ns = $this->getNamespace($predicateType);
 
-                if(!isset($this->namespaces[$ns[0]]))
+                if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
                 {
+                  // Make sure the ID is not already existing. Increase the counter if it is the case.
+                  while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+                  {
+                    $nsId++;
+                  }
+                                    
                   $this->namespaces[$ns[0]] = "ns" . $nsId;
                   $nsId++;
                 }
@@ -1210,6 +1172,12 @@ class CrudRead extends WebService
 
                 if(!isset($this->namespaces[$ns[0]]))
                 {
+                  // Make sure the ID is not already existing. Increase the counter if it is the case.
+                  while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+                  {
+                    $nsId++;
+                  }
+                  
                   $this->namespaces[$ns[0]] = "ns" . $nsId;
                   $nsId++;
                 }
@@ -1260,6 +1228,12 @@ class CrudRead extends WebService
 
                 if(!isset($this->namespaces[$ns[0]]))
                 {
+                  // Make sure the ID is not already existing. Increase the counter if it is the case.
+                  while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
+                  {
+                    $nsId++;
+                  }
+                                    
                   $this->namespaces[$ns[0]] = "ns" . $nsId;
                   $nsId++;
                 }
@@ -1412,21 +1386,35 @@ class CrudRead extends WebService
 
       foreach($uris as $key => $u)
       {
-
         // Decode potentially encoded ";" character.
         $u = str_ireplace("%3B", ";", $u);
         $d = str_ireplace("%3B", ";", $datasets[$key]);
 
         $query = "";
 
+        $attributesFilter = "";
+        
+        foreach($this->include_attributes_list as $attr)
+        {
+          $attributesFilter .= $attr."|";
+        }
+  
+        $attributesFilter = trim($attributesFilter, "|");
+        
         if($this->globalDataset === FALSE)
         {
           $d = str_ireplace("%3B", ";", $datasets[$key]);
 
           // Archiving suject triples
-          $query = $this->db->build_sparql_query("select ?p ?o (DATATYPE(?o)) as ?otype (LANG(?o)) as ?olang "
-            . "from <" . $d . "> where {<" . $u
-            . "> ?p ?o.}", array ('p', 'o', 'otype', 'olang'), FALSE);
+          $query = $this->db->build_sparql_query("
+            select ?p ?o (DATATYPE(?o)) as ?otype (LANG(?o)) as ?olang 
+            from <" . $d . "> 
+            where 
+            {
+              <$u> ?p ?o.
+              ".($attributesFilter == "" ? "" : "FILTER regex(str(?p), \"($attributesFilter)\")")."
+            }", 
+            array ('p', 'o', 'otype', 'olang'), FALSE);
         }
         else
         {
@@ -1441,9 +1429,25 @@ class CrudRead extends WebService
           }
 
           // Archiving suject triples
+          /*          
           $query = $this->db->build_sparql_query("select ?p ?o (DATATYPE(?o)) as ?otype (LANG(?o)) as ?olang "
             . " $d where {graph ?g{<" . $u
             . "> ?p ?o.}}", array ('p', 'o', 'otype', 'olang'), FALSE);
+          */
+          
+          $query = $this->db->build_sparql_query("
+            select ?p ?o (DATATYPE(?o)) as ?otype (LANG(?o)) as ?olang 
+            $d 
+            where 
+            {
+              graph ?g
+              {
+                <$u> ?p ?o.
+              }
+              ".($attributesFilter == "" ? "" : "FILTER regex(str(?p), \"($attributesFilter)\")")."
+            }", 
+            array ('p', 'o', 'otype', 'olang'), FALSE);
+          
         }
 
         $resultset = $this->db->query($query);

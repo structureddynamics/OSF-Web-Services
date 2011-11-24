@@ -54,6 +54,9 @@ class AuthLister extends WebService
 
   /*! @brief List of accesses being listed */
   private $accesses = array();
+  
+  /*! @brief Specifies what web service we want to focus on for that query */
+  private $targetWebservice = "all";
 
   /*! @brief Error messages of this web service */
   private $errorMessenger =
@@ -127,7 +130,7 @@ class AuthLister extends WebService
   
     \n\n\n
 */
-  function __construct($mode, $dataset, $registered_ip, $requester_ip)
+  function __construct($mode, $dataset, $registered_ip, $requester_ip, $target_webservice = "all")
   {
     parent::__construct();
 
@@ -136,7 +139,8 @@ class AuthLister extends WebService
     $this->requester_ip = $requester_ip;
     $this->mode = $mode;
     $this->dataset = $dataset;
-
+    $this->targetWebservice = strtolower($target_webservice);
+    
     if($registered_ip == "")
     {
       $this->registered_ip = $requester_ip;
@@ -299,15 +303,15 @@ class AuthLister extends WebService
         (
           [0] => Array
             (
-              [0] => /wsf/access/auth/validator/2
-              [1] => /wsf/
-              [2] => True
-              [3] => True
-              [4] => True
-              [5] => True
-              [6] => /wsf/ws/auth/lister/
-              [7] => /wsf/ws/auth/registrar/ws/
-              [8] => /wsf/ws/auth/registrar/access/
+              [0] => Access URI
+              [1] => Dataset URI [access_user] / registered-ip [access_dataset]
+              [2] => Create
+              [3] => Read
+              [4] => Update
+              [5] => Delete
+              [6] => registered-ip [access_user] / empty [access_dataset]
+              [7] => Web services URI
+              [7+N] => More web services URI
             )
         
         )
@@ -331,7 +335,7 @@ class AuthLister extends WebService
           $pred->appendChild($object);
           $subject->appendChild($pred);
         }
-        else
+        else // access_dataset
         {
           $pred = $xml->createPredicate("wsf:registeredIP");
           $object = $xml->createObjectContent($access[1]);
@@ -677,11 +681,12 @@ class AuthLister extends WebService
             $rdf_part .= "wsf:delete \"" . $xml->getContent($objects->item(0)) . "\" ;\n";
 
             // Get webServiceAccess(es)
-            $webservices = $xml->getXPath('//predicate/object[attribute::type="wsf:WebService"]', $access);
-
+            $webservices = $xml->getPredicatesByType($access, "wsf:webServiceAccess");
+            
             foreach($webservices as $element)
             {
-              $rdf_part .= "wsf:webServiceAccess <" . $xml->getURI($element) . "> ;\n";
+              $objects = $xml->getObjectsByType($element, "wsf:WebService");
+              $rdf_part .= "wsf:webServiceAccess <" . $xml->getURI($objects->item(0)) . "> ;\n";
             }
 
             if(strlen($rdf_part) > 0)
@@ -763,11 +768,12 @@ class AuthLister extends WebService
             $rdf_part .= "<wsf:delete>" . $xml->getContent($objects->item(0)) . "</wsf:delete>\n";
 
             // Get webServiceAccess(es)
-            $webservices = $xml->getXPath('//predicate/object[attribute::type="wsf:WebService"]', $access);
-
+            $webservices = $xml->getPredicatesByType($access, "wsf:webServiceAccess");
+            
             foreach($webservices as $element)
             {
-              $rdf_part .= "<wsf:webServiceAccess rdf:resource=\"" . $xml->getURI($element) . "\" />\n";
+              $objects = $xml->getObjectsByType($element, "wsf:WebService");
+              $rdf_part .= "<wsf:webServiceAccess rdf:resource=\"" . $xml->getURI($objects->item(0)) . "\" />\n";
             }
 
             $rdf_part .= "</wsf:Access>\n";
@@ -1004,10 +1010,10 @@ class AuthLister extends WebService
           }
         }
         else
-        {
+        { 
           if(strtolower($this->mode) == "access_user")
-          {
-            $query = "  select ?access ?datasetAccess ?create ?read ?update ?delete ?registeredIP
+          { 
+            $query = "  select ?access ?datasetAccess ?create ?read ?update ?delete ?registeredIP ".($this->targetWebservice == "all" ? "?webServiceAccess" : "")."
                     from <" . $this->wsf_graph
               . ">
                     where
@@ -1020,6 +1026,8 @@ class AuthLister extends WebService
                               <http://purl.org/ontology/wsf#update> ?update ;
                               <http://purl.org/ontology/wsf#delete> ?delete ;
                               <http://purl.org/ontology/wsf#datasetAccess> ?datasetAccess ;
+                              ".($this->targetWebservice == "all" ? "<http://purl.org/ontology/wsf#webServiceAccess> ?webServiceAccess ;" : "")."
+                              ".($this->targetWebservice != "none" && $this->targetWebservice != "all" ? "<http://purl.org/ontology/wsf#webServiceAccess> <".$this->targetWebservice."> ;" : "")."
                               <http://purl.org/ontology/wsf#registeredIP> ?registeredIP .
                       }
                       union
@@ -1031,6 +1039,8 @@ class AuthLister extends WebService
                               <http://purl.org/ontology/wsf#update> ?update ;
                               <http://purl.org/ontology/wsf#delete> ?delete ;
                               <http://purl.org/ontology/wsf#datasetAccess> ?datasetAccess ;                      
+                              ".($this->targetWebservice == "all" ? "<http://purl.org/ontology/wsf#webServiceAccess> ?webServiceAccess ;" : "")."
+                              ".($this->targetWebservice != "none" && $this->targetWebservice != "all" ? "<http://purl.org/ontology/wsf#webServiceAccess> <".$this->targetWebservice."> ;" : "")."
                               <http://purl.org/ontology/wsf#registeredIP> ?registeredIP .
                               
                         filter( str(?create) = \"True\" or str(?read) = \"True\" or str(?update) = \"True\" or str(?delete) = \"True\").
@@ -1039,7 +1049,7 @@ class AuthLister extends WebService
           }
           else // access_dataset
           {
-            $query = "  select ?access ?registeredIP ?create ?read ?update ?delete  
+            $query = "  select ?access ?registeredIP ?create ?read ?update ?delete ".($this->targetWebservice == "all" ? "?webServiceAccess" : "")." 
                     from <" . $this->wsf_graph
               . ">
                     where
@@ -1050,6 +1060,8 @@ class AuthLister extends WebService
                             <http://purl.org/ontology/wsf#read> ?read ;
                             <http://purl.org/ontology/wsf#update> ?update ;
                             <http://purl.org/ontology/wsf#delete> ?delete ;
+                            ".($this->targetWebservice == "all" ? "<http://purl.org/ontology/wsf#webServiceAccess> ?webServiceAccess ;" : "")."
+                            ".($this->targetWebservice != "none" && $this->targetWebservice != "all" ? "<http://purl.org/ontology/wsf#webServiceAccess> <".$this->targetWebservice."> ;" : "")."
                             <http://purl.org/ontology/wsf#datasetAccess> <$this->dataset> .
                     }";
           }
@@ -1063,7 +1075,7 @@ class AuthLister extends WebService
             $this->conneg->setStatus(500);
             $this->conneg->setStatusMsg("Internal Error");
 
-            if(strtolower($this->mode) == "access_user")
+            if(strtolower($this->mode) == "access_user" || strtolower($this->mode) == "access_dataset")
             {
               $this->conneg->setStatusMsgExt($this->errorMessenger->_302->name);
               $this->conneg->setError($this->errorMessenger->_302->id, $this->errorMessenger->ws,
@@ -1080,46 +1092,60 @@ class AuthLister extends WebService
 
             return;
           }
+          
+          $accessPreviousId = "";
 
           while(odbc_fetch_row($resultset))
           {
-            $lastElement = "";
-
-            if(strtolower($this->mode) == "access_user")
+            $accessId = odbc_result($resultset, 1);
+            
+            if($accessPreviousId != $accessId)
             {
-              $lastElement = odbc_result($resultset, 7);
+              $accessPreviousId = $accessId;
+            
+              $lastElement = "";
+
+              if(strtolower($this->mode) == "access_user")
+              {                
+                $this->accesses[$accessId] = array (odbc_result($resultset, 1),   // Access URI
+                                                    odbc_result($resultset, 2),   // Dataset URI
+                                                    odbc_result($resultset, 3),   // Create
+                                                    odbc_result($resultset, 4),   // Read
+                                                    odbc_result($resultset, 5),   // Update
+                                                    odbc_result($resultset, 6),   // Delete
+                                                    odbc_result($resultset, 7));  // Registered IP
+                                                    
+                if($this->targetWebservice == "all")
+                {                                                    
+                  array_push($this->accesses[$accessId], odbc_result($resultset, 8)); // Web service access URI
+                }
+              }
+              else // access_dataset
+              {
+                $this->accesses[$accessId] = array (odbc_result($resultset, 1),   // Access URI
+                                                    odbc_result($resultset, 2),   // Registered IP
+                                                    odbc_result($resultset, 3),   // Create
+                                                    odbc_result($resultset, 4),   // Read
+                                                    odbc_result($resultset, 5),   // Update
+                                                    odbc_result($resultset, 6),   // Delete
+                                                    "");                          // Empty (padding)
+                                                    
+                if($this->targetWebservice == "all")
+                {                                                    
+                  array_push($this->accesses[$accessId], odbc_result($resultset, 7)); // Web service access URI
+                }
+              }            
             }
-
-            array_push($this->accesses,
-              array (odbc_result($resultset, 1), odbc_result($resultset, 2), odbc_result($resultset, 3),
-                odbc_result($resultset, 4), odbc_result($resultset, 5), odbc_result($resultset, 6), $lastElement));
-          }
-
-          foreach($this->accesses as $key => $access)
-          {
-            $query = "select ?webServiceAccess  from <" . $this->wsf_graph . ">
-                    {
-                      <" . $access[0] . "> <http://purl.org/ontology/wsf#webServiceAccess> ?webServiceAccess .
-                    }";
-
-            $resultset =
-              @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
-                array(), FALSE));
-
-            if(odbc_error())
+            else
             {
-              $this->conneg->setStatus(500);
-              $this->conneg->setStatusMsg("Internal Error");
-              $this->conneg->setStatusMsgExt($this->errorMessenger->_304->name);
-              $this->conneg->setError($this->errorMessenger->_304->id, $this->errorMessenger->ws,
-                $this->errorMessenger->_304->name, $this->errorMessenger->_304->description, odbc_errormsg(),
-                $this->errorMessenger->_304->level);
-              return;
-            }
-
-            while(odbc_fetch_row($resultset))
-            {
-              array_push($this->accesses[$key], odbc_result($resultset, 1));
+              if(strtolower($this->mode) == "access_user")
+              {              
+                array_push($this->accesses[$accessId], odbc_result($resultset, 8));
+              }
+              else // access_dataset
+              {
+                array_push($this->accesses[$accessId], odbc_result($resultset, 7));
+              }
             }
           }
         }

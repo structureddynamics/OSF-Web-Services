@@ -147,11 +147,11 @@ class WebServiceQuerier
         }
         else
         {
-          $this->error = new QuerierError("WSF-600", "Fatal", $ws, "Query too big", 
+          $this->error = new QuerierError("WSF-600", "Fatal", $this->url, "Query too big", 
                                    "The query sent to the structWSF endpoint is too big given
                                     the current settings of the instance. The size of the
                                     query is ".number_format(strlen($this->parameters), 0, " ", " ")." bytes, 
-                                    and the autorized size of the query is ".$uploadMaxFileSize." bytes", $data);
+                                    and the autorized size of the query is ".$uploadMaxFileSize." bytes", "");
           
           return(FALSE);
         }

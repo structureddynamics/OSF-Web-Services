@@ -13,6 +13,10 @@
    \n\n\n
  */
 
+ini_set("display_errors", "On");
+error_reporting(E_ALL);
+
+ 
 $action = "";
 
 if(isset($_GET['action']))
@@ -89,7 +93,10 @@ switch($action)
               wsf:hasWebService <$server_address/wsf/ws/crud/read/> ;
               wsf:hasWebService <$server_address/wsf/ws/crud/update/> ;
               wsf:hasWebService <$server_address/wsf/ws/crud/delete/> ;
-              wsf:hasWebService <$server_address/wsf/ws/ontology/create/>.
+              wsf:hasWebService <$server_address/wsf/ws/ontology/create/> ;
+              wsf:hasWebService <$server_address/wsf/ws/ontology/delete/> ;
+              wsf:hasWebService <$server_address/wsf/ws/ontology/read/> ;
+              wsf:hasWebService <$server_address/wsf/ws/ontology/update/>.
               
               
             <$server_address/wsf/access/5b2b633495a58612b63724ef71729ea6> rdf:type wsf:Access ;
@@ -117,6 +124,38 @@ switch($action)
               wsf:delete \"True\" ;
               wsf:webServiceAccess <$server_address/wsf/ws/ontology/create/> ;
               wsf:datasetAccess <$server_address/wsf/ontologies/> .  
+              
+            <$server_address/wsf/access/459f32962858ffa9677a27c4612cb876> rdf:type wsf:Access ;
+              dcterms:description \"\"\"This access is used to enable the admin of the WSF to generate and manage ontologies of the WSF\"\"\";
+              wsf:registeredIP \"127.0.0.1\" ;
+              wsf:create \"True\" ;
+              wsf:read \"True\" ;
+              wsf:update \"True\" ;
+              wsf:delete \"True\" ;
+              wsf:webServiceAccess <$server_address/wsf/ws/ontology/delete/> ;
+              wsf:datasetAccess <$server_address/wsf/ontologies/> .  
+              
+            <$server_address/wsf/access/459f32962858ffa9677a27c4612cb877> rdf:type wsf:Access ;
+              dcterms:description \"\"\"This access is used to enable the admin of the WSF to generate and manage ontologies of the WSF\"\"\";
+              wsf:registeredIP \"127.0.0.1\" ;
+              wsf:create \"True\" ;
+              wsf:read \"True\" ;
+              wsf:update \"True\" ;
+              wsf:delete \"True\" ;
+              wsf:webServiceAccess <$server_address/wsf/ws/ontology/read/> ;
+              wsf:datasetAccess <$server_address/wsf/ontologies/> .  
+              
+            <$server_address/wsf/access/459f32962858ffa9677a27c4612cb878> rdf:type wsf:Access ;
+              dcterms:description \"\"\"This access is used to enable the admin of the WSF to generate and manage ontologies of the WSF\"\"\";
+              wsf:registeredIP \"127.0.0.1\" ;
+              wsf:create \"True\" ;
+              wsf:read \"True\" ;
+              wsf:update \"True\" ;
+              wsf:delete \"True\" ;
+              wsf:webServiceAccess <$server_address/wsf/ws/ontology/update/> ;
+              wsf:datasetAccess <$server_address/wsf/ontologies/> .  
+              
+              
               
             <$server_address/wsf/access/44b0867f6cd9170bead8d774fad4685b> rdf:type wsf:Access ;
               dcterms:description \"\"\"Access to be able to create new datasets\"\"\";
@@ -270,12 +309,45 @@ switch($action)
               dcterms:title \"Ontology Create web service\" ;
               wsf:endpoint \"\"\"$server_address/ws/ontology/create/\"\"\";
               wsf:hasCrudUsage <$server_address/wsf/usage/ontology/create/> .
-            
+
             <$server_address/wsf/usage/ontology/create/> rdf:type wsf:CrudUsage ;
               wsf:create \"True\" ;
               wsf:read \"False\" ;
               wsf:update \"False\" ;
-              wsf:delete \"False\" .  
+              wsf:delete \"False\" . 
+            
+            <$server_address/wsf/ws/ontology/read/> rdf:type wsf:WebService ;
+              dcterms:title \"Ontology Read web service\" ;
+              wsf:endpoint \"\"\"$server_address/ws/ontology/read/\"\"\";
+              wsf:hasCrudUsage <$server_address/wsf/usage/ontology/read/> .    
+                        
+            <$server_address/wsf/usage/ontology/read/> rdf:type wsf:CrudUsage ;
+              wsf:create \"False\" ;
+              wsf:read \"True\" ;
+              wsf:update \"False\" ;
+              wsf:delete \"False\" .                         
+                        
+            <$server_address/wsf/ws/ontology/update/> rdf:type wsf:WebService ;
+              dcterms:title \"Ontology Update web service\" ;
+              wsf:endpoint \"\"\"$server_address/ws/ontology/update/\"\"\";
+              wsf:hasCrudUsage <$server_address/wsf/usage/ontology/update/> .
+              
+            <$server_address/wsf/usage/ontology/update/> rdf:type wsf:CrudUsage ;
+              wsf:create \"False\" ;
+              wsf:read \"False\" ;
+              wsf:update \"True\" ;
+              wsf:delete \"False\" .               
+              
+            <$server_address/wsf/ws/ontology/delete/> rdf:type wsf:WebService ;
+              dcterms:title \"Ontology Delete web service\" ;
+              wsf:endpoint \"\"\"$server_address/ws/ontology/delete/\"\"\";
+              wsf:hasCrudUsage <$server_address/wsf/usage/ontology/delete/> .              
+
+             <$server_address/wsf/usage/ontology/delete/> rdf:type wsf:CrudUsage ;
+              wsf:create \"False\" ;
+              wsf:read \"False\" ;
+              wsf:update \"False\" ;
+              wsf:delete \"True\" . 
 
             <$server_address/wsf/ws/search/> rdf:type wsf:WebService ;
               dcterms:title \"Search web service\" ;
@@ -420,6 +492,29 @@ switch($action)
               wsf:datasetAccess <$server_address/wsf/track/> .";
   break;
   
+  case "create_world_accessible_ontology":
+      $rdf = "@prefix wsf: <http://purl.org/ontology/wsf#> .
+              @prefix void: <http://rdfs.org/ns/void#> .
+              @prefix dcterms: <http://purl.org/dc/terms/> .
+              @prefix foaf: <http://xmlns.com/foaf/0.1/> .
+              @prefix owl: <http://www.w3.org/2002/07/owl#> .
+              @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+              @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+              @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+              
+              <$server_address/wsf/access/" . md5("$server_address/wsf/ontology/0.0.0.0/") . "> rdf:type wsf:Access ;
+                wsf:registeredIP \"0.0.0.0\" ;
+                wsf:create \"True\" ;
+                wsf:read \"True\" ;
+                wsf:update \"True\" ;
+                wsf:delete \"True\" ;
+                wsf:webServiceAccess <$server_address/wsf/ws/ontology/create/> ;
+                wsf:webServiceAccess <$server_address/wsf/ws/ontology/delete/> ;
+                wsf:webServiceAccess <$server_address/wsf/ws/ontology/read/> ;
+                wsf:webServiceAccess <$server_address/wsf/ws/ontology/update/> ;
+                wsf:datasetAccess <$server_address/wsf/ontologies/> .";
+  break;
+  
   
   case "create_user_full_access":
     $rdf = "@prefix wsf: <http://purl.org/ontology/wsf#> .
@@ -453,6 +548,9 @@ switch($action)
               wsf:update \"True\" ;
               wsf:delete \"True\" ;
               wsf:webServiceAccess <$server_address/wsf/ws/ontology/create/> ;
+              wsf:webServiceAccess <$server_address/wsf/ws/ontology/delete/> ;
+              wsf:webServiceAccess <$server_address/wsf/ws/ontology/read/> ;
+              wsf:webServiceAccess <$server_address/wsf/ws/ontology/update/> ;
               wsf:datasetAccess <$server_address/wsf/ontologies/> .  
               
             <$server_address/wsf/access/" . md5("$server_address/wsf/datasets/" . $user_address) . "> rdf:type wsf:Access ;
@@ -473,6 +571,109 @@ switch($action)
               wsf:hasAccess <$server_address/wsf/access/" . md5("$server_address/wsf/" . $user_address) . "> .";
 
   break;
+  
+  case "update_wsf_for_ontology_ws":
+    $rdf =
+      "@prefix wsf: <http://purl.org/ontology/wsf#> .
+            @prefix void: <http://rdfs.org/ns/void#> .
+            @prefix dcterms: <http://purl.org/dc/terms/> .
+            @prefix foaf: <http://xmlns.com/foaf/0.1/> .
+            @prefix owl: <http://www.w3.org/2002/07/owl#> .
+            @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+            @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+            @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+            
+            <$server_address/wsf/> rdf:type wsf:WebServiceFramework ;
+              wsf:hasWebService <$server_address/wsf/ws/ontology/create/> ;
+              wsf:hasWebService <$server_address/wsf/ws/ontology/delete/> ;
+              wsf:hasWebService <$server_address/wsf/ws/ontology/read/> ;
+              wsf:hasWebService <$server_address/wsf/ws/ontology/update/>.
+        
+            <$server_address/wsf/access/459f32962858ffa9677a27c4612cb875> rdf:type wsf:Access ;
+              dcterms:description \"\"\"This access is used to enable the admin of the WSF to generate and manage ontologies of the WSF\"\"\";
+              wsf:registeredIP \"127.0.0.1\" ;
+              wsf:create \"True\" ;
+              wsf:read \"True\" ;
+              wsf:update \"True\" ;
+              wsf:delete \"True\" ;
+              wsf:webServiceAccess <$server_address/wsf/ws/ontology/create/> ;
+              wsf:datasetAccess <$server_address/wsf/ontologies/> .  
+              
+            <$server_address/wsf/access/459f32962858ffa9677a27c4612cb876> rdf:type wsf:Access ;
+              dcterms:description \"\"\"This access is used to enable the admin of the WSF to generate and manage ontologies of the WSF\"\"\";
+              wsf:registeredIP \"127.0.0.1\" ;
+              wsf:create \"True\" ;
+              wsf:read \"True\" ;
+              wsf:update \"True\" ;
+              wsf:delete \"True\" ;
+              wsf:webServiceAccess <$server_address/wsf/ws/ontology/delete/> ;
+              wsf:datasetAccess <$server_address/wsf/ontologies/> .  
+              
+            <$server_address/wsf/access/459f32962858ffa9677a27c4612cb877> rdf:type wsf:Access ;
+              dcterms:description \"\"\"This access is used to enable the admin of the WSF to generate and manage ontologies of the WSF\"\"\";
+              wsf:registeredIP \"127.0.0.1\" ;
+              wsf:create \"True\" ;
+              wsf:read \"True\" ;
+              wsf:update \"True\" ;
+              wsf:delete \"True\" ;
+              wsf:webServiceAccess <$server_address/wsf/ws/ontology/read/> ;
+              wsf:datasetAccess <$server_address/wsf/ontologies/> .  
+              
+            <$server_address/wsf/access/459f32962858ffa9677a27c4612cb878> rdf:type wsf:Access ;
+              dcterms:description \"\"\"This access is used to enable the admin of the WSF to generate and manage ontologies of the WSF\"\"\";
+              wsf:registeredIP \"127.0.0.1\" ;
+              wsf:create \"True\" ;
+              wsf:read \"True\" ;
+              wsf:update \"True\" ;
+              wsf:delete \"True\" ;
+              wsf:webServiceAccess <$server_address/wsf/ws/ontology/update/> ;
+              wsf:datasetAccess <$server_address/wsf/ontologies/> .    
+
+            <$server_address/wsf/ws/ontology/create/> rdf:type wsf:WebService ;
+              dcterms:title \"Ontology Create web service\" ;
+              wsf:endpoint \"\"\"$server_address/ws/ontology/create/\"\"\";
+              wsf:hasCrudUsage <$server_address/wsf/usage/ontology/create/> .
+
+            <$server_address/wsf/usage/ontology/create/> rdf:type wsf:CrudUsage ;
+              wsf:create \"True\" ;
+              wsf:read \"False\" ;
+              wsf:update \"False\" ;
+              wsf:delete \"False\" . 
+            
+            <$server_address/wsf/ws/ontology/read/> rdf:type wsf:WebService ;
+              dcterms:title \"Ontology Read web service\" ;
+              wsf:endpoint \"\"\"$server_address/ws/ontology/read/\"\"\";
+              wsf:hasCrudUsage <$server_address/wsf/usage/ontology/read/> .    
+                        
+            <$server_address/wsf/usage/ontology/read/> rdf:type wsf:CrudUsage ;
+              wsf:create \"False\" ;
+              wsf:read \"True\" ;
+              wsf:update \"False\" ;
+              wsf:delete \"False\" .                         
+                        
+            <$server_address/wsf/ws/ontology/update/> rdf:type wsf:WebService ;
+              dcterms:title \"Ontology Update web service\" ;
+              wsf:endpoint \"\"\"$server_address/ws/ontology/update/\"\"\";
+              wsf:hasCrudUsage <$server_address/wsf/usage/ontology/update/> .
+              
+            <$server_address/wsf/usage/ontology/update/> rdf:type wsf:CrudUsage ;
+              wsf:create \"False\" ;
+              wsf:read \"False\" ;
+              wsf:update \"True\" ;
+              wsf:delete \"False\" .               
+              
+            <$server_address/wsf/ws/ontology/delete/> rdf:type wsf:WebService ;
+              dcterms:title \"Ontology Delete web service\" ;
+              wsf:endpoint \"\"\"$server_address/ws/ontology/delete/\"\"\";
+              wsf:hasCrudUsage <$server_address/wsf/usage/ontology/delete/> .              
+
+             <$server_address/wsf/usage/ontology/delete/> rdf:type wsf:CrudUsage ;
+              wsf:create \"False\" ;
+              wsf:read \"False\" ;
+              wsf:update \"False\" ;
+              wsf:delete \"True\" .";
+
+  break;          
 
   case "reset":
 

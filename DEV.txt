@@ -1,1 +1,0 @@
-Developers and commiters to the SVN repository should comply to the coding standards. An outline of the coding style is available in the Coding Standard folder. Additional requirements are listed in the README.txt file in that folder. Finally, coding style is enforced b the PolyStyle code formatter application available here: http://polystyle.com.

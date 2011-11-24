@@ -1,7 +1,3 @@
-The code documentation page is accessible here:
-
-  http://openstructs.org/doc/code/structwsf/class_tracker.html
+== Endpoint Documentation ==
   
-The endpoint documentation page is accessible here:
-
-  http://techwiki.openstructs.org/index.php/Tracker
+[http://techwiki.openstructs.org/index.php/Tracker:_Create Tracker Create Web Service Endpoint Documentation]

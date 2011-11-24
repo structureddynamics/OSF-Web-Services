@@ -163,7 +163,7 @@ class ConverterTsv extends WebService
     $this->crud_usage = new CrudUsage(FALSE, TRUE, FALSE, FALSE);
     $this->endpoint = $this->wsf_base_url . "/ws/converter/tsv/";
 
-    $this->dtdURL = "converter/bitsvbtex.dtd";
+    $this->dtdURL = "converter/tsv/tsv.dtd";
 
     $this->errorMessenger = json_decode($this->errorMessenger);
   }

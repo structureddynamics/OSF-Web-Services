@@ -157,8 +157,6 @@ class AuthValidator extends WebService
     $this->crud_usage = new CrudUsage(FALSE, TRUE, FALSE, FALSE);
     $this->endpoint = $this->wsf_base_url . "/ws/auth/validator/";
 
-    $this->dtdURL = "auth/authValidator.dtd";
-
     $this->errorMessenger = json_decode($this->errorMessenger);
   }
 
@@ -222,16 +220,8 @@ class AuthValidator extends WebService
     
       \n\n\n
   */
-  public function injectDoctype($xmlDoc)
-  {
-    $posHeader = strpos($xmlDoc, '"?>') + 3;
-    $xmlDoc = substr($xmlDoc, 0, $posHeader)
-      . "\n<!DOCTYPE resultset PUBLIC \"-//Structured Dynamics LLC//Auth Validator DTD 0.1//EN\" \""
-      . $this->dtdBaseURL . $this->dtdURL . "\">" . substr($xmlDoc, $posHeader, strlen($xmlDoc) - $posHeader);
-
-    return ($xmlDoc);
-  }
-
+  public function injectDoctype($xmlDoc) { return ""; }
+  
   /*!   @brief Do content negotiation as an external Web Service
               
       \n

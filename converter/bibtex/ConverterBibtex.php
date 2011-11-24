@@ -217,7 +217,7 @@ class ConverterBibtex extends WebService
     $this->crud_usage = new CrudUsage(FALSE, TRUE, FALSE, FALSE);
     $this->endpoint = $this->wsf_base_url . "/ws/converter/bibtex/";
 
-    $this->dtdURL = "converter/bibtex.dtd";
+    $this->dtdURL = "converter/bibtex/bibtex.dtd";
   }
 
   function __destruct()

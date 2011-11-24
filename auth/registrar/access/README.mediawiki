@@ -1,0 +1,4 @@
+== Endpoint Documentation ==
+  
+[http://techwiki.openstructs.org/index.php/Auth_Registrar:_Access Auth Registrar: Access Web Service Endpoint Documentation]
+  

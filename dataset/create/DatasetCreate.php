@@ -168,8 +168,6 @@ class DatasetCreate extends WebService
     $this->crud_usage = new CrudUsage(TRUE, FALSE, FALSE, FALSE);
     $this->endpoint = $this->wsf_base_url . "/ws/dataset/create/";
 
-    $this->dtdURL = "dataset/datasetCreate.dtd";
-
     $this->errorMessenger = json_decode($this->errorMessenger);
   }
 

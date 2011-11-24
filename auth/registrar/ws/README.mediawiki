@@ -1,0 +1,4 @@
+== Endpoint Documentation ==
+  
+[http://techwiki.openstructs.org/index.php/Auth_Registrar:_WS Auth Registrar: WS Web Service Endpoint Documentation]
+  

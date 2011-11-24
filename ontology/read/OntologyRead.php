@@ -173,7 +173,7 @@ class OntologyRead extends WebService
     $this->crud_usage = new CrudUsage(FALSE, TRUE, FALSE, FALSE);
     $this->endpoint = $this->wsf_base_url . "/ws/ontology/read/";
 
-    $this->dtdURL = "ontology/ontologyRead.dtd";
+    $this->dtdURL = "ontology/read/ontologyRead.dtd";
 
     $this->errorMessenger = json_decode($this->errorMessenger);
   }

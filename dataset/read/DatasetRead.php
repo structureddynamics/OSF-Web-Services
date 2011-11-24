@@ -174,7 +174,7 @@ class DatasetRead extends WebService
     $this->crud_usage = new CrudUsage(FALSE, TRUE, FALSE, FALSE);
     $this->endpoint = $this->wsf_base_url . "/ws/dataset/read/";
 
-    $this->dtdURL = "dataset/datasetRead.dtd";
+    $this->dtdURL = "dataset/read/datasetRead.dtd";
 
     $this->errorMessenger = json_decode($this->errorMessenger);
   }

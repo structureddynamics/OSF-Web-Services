@@ -162,7 +162,7 @@ class ConverterCommON extends WebService
     $this->crud_usage = new CrudUsage(FALSE, TRUE, FALSE, FALSE);
     $this->endpoint = $this->wsf_base_url . "/ws/converter/common/";
 
-    $this->dtdURL = "converter/common.dtd";
+    $this->dtdURL = "converter/common/common.dtd";
 
     $this->errorMessenger = json_decode($this->errorMessenger);
   }

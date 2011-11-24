@@ -171,7 +171,7 @@ class AuthLister extends WebService
     $this->crud_usage = new CrudUsage(FALSE, TRUE, FALSE, FALSE);
     $this->endpoint = $this->wsf_base_url . "/ws/auth/lister/";
 
-    $this->dtdURL = "auth/authLister.dtd";
+    $this->dtdURL = "auth/lister/authLister.dtd";
 
     $this->errorMessenger = json_decode($this->errorMessenger);
   }

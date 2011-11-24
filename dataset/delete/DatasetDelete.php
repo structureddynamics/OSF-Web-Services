@@ -159,8 +159,6 @@ class DatasetDelete extends WebService
     $this->crud_usage = new CrudUsage(FALSE, FALSE, FALSE, TRUE);
     $this->endpoint = $this->wsf_base_url . "/ws/dataset/delete/";
 
-    $this->dtdURL = "dataset/datasetDelete.dtd";
-
     $this->errorMessenger = json_decode($this->errorMessenger);
   }
 

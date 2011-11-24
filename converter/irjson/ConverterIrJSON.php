@@ -170,7 +170,7 @@ class ConverterIrJSON extends WebService
     $this->crud_usage = new CrudUsage(FALSE, TRUE, FALSE, FALSE);
     $this->endpoint = $this->wsf_base_url . "/ws/converter/irjson/";
 
-    $this->dtdURL = "converter/irjson.dtd";
+    $this->dtdURL = "converter/irjson/irjson.dtd";
 
     $this->customLinkageSchema = new LinkageSchema();
     $this->customLinkageSchema->setLinkedType("application/rdf+xml");

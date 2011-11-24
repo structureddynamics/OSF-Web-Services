@@ -168,8 +168,6 @@ class DatasetUpdate extends WebService
     $this->crud_usage = new CrudUsage(FALSE, FALSE, TRUE, FALSE);
     $this->endpoint = $this->wsf_base_url . "/ws/dataset/update/";
 
-    $this->dtdURL = "dataset/datasetUpdate.dtd";
-
     $this->errorMessenger = json_decode($this->errorMessenger);
   }
 

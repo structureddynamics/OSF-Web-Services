@@ -168,8 +168,6 @@ class TrackerCreate extends WebService
     $this->crud_usage = new CrudUsage(TRUE, FALSE, FALSE, FALSE);
     $this->endpoint = $this->wsf_base_url . "/ws/tracker/create/";
 
-    $this->dtdURL = "auth/TrackerCreate.dtd";
-
     $this->errorMessenger = json_decode($this->errorMessenger);
   }
 
@@ -278,15 +276,7 @@ class TrackerCreate extends WebService
     
       \n\n\n
   */
-  public function injectDoctype($xmlDoc)
-  {
-    $posHeader = strpos($xmlDoc, '"?>') + 3;
-    $xmlDoc = substr($xmlDoc, 0, $posHeader)
-      . "\n<!DOCTYPE resultset PUBLIC \"-//Structured Dynamics LLC//Tracker Create DTD 0.1//EN\" \"" . $this->dtdBaseURL
-        . $this->dtdURL . "\">" . substr($xmlDoc, $posHeader, strlen($xmlDoc) - $posHeader);
-
-    return ($xmlDoc);
-  }
+  public function injectDoctype($xmlDoc) { return ""; }
 
   /*!   @brief Do content negotiation as an external Web Service
               

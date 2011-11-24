@@ -58,7 +58,7 @@ Here is a complete list of all the web service endpoints currently available in 
 
 == How to Use Web Services Endpoint ==
 
-As you saw, structWSF is a set of web services endpoints. The main way to interact with the system is by sending HTTP queries to any of the endpoints. A tutorial has been written that explains the basis principles of how to query the endpoints, and it also includes a series of basic usage explains.
+As you saw, structWSF is a set of web services endpoints. The main way to interact with the system is by sending HTTP queries to any of the endpoints. [http://techwiki.openstructs.org/index.php/StructWSF_Web_Services_Tutorial A tutorial has been written that explains the basis principles of how to query the endpoints, and it also includes a series of basic usage explains].
 
 The second way to use structWSF is by using the API direct. Each endpoint is composed of an interface that get called via a HTTP query (the <code>index.php</code> files within each web service folder), and a Class that represents the actual web service. It is that API that you can directly use in any PHP scripts running on the server.
 

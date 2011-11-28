@@ -85,6 +85,12 @@ class DatasetUpdate extends WebService
                           "name": "Invalid dataset URI",
                           "description": "The URI of the dataset is not valid."
                         },                        
+                        "_204": {
+                          "id": "WS-DATASET-UPDATE-204",
+                          "level": "Warning",
+                          "name": "Invalid contributor(s) IRI(s)",
+                          "description": "The URI of at least one of the contributors is not a valid IRI."
+                        },                        
                         "_300": {
                           "id": "WS-DATASET-UPDATE-300",
                           "level": "Fatal",
@@ -271,7 +277,35 @@ class DatasetUpdate extends WebService
       return;
     }
 
-    unset($resultset);    
+    unset($resultset);   
+    
+    $contribs = array();
+    
+    if(strpos($this->contributors, ";") !== FALSE)
+    {
+      $contribs = explode(";", $this->contributors);
+    }
+    else
+    {
+      array_push($contribs, $this->contributors);
+    }
+
+    foreach($contribs as $contrib)
+    {
+      if(!$this->isValidIRI($contrib))
+      {
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_204->name);
+        $this->conneg->setError($this->errorMessenger->_204->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_204->name, $this->errorMessenger->_204->description, "",
+          $this->errorMessenger->_204->level);
+
+        unset($resultset);      
+        
+        return;    
+      }
+    }
     
     
     // Check if the requester has access to the main "http://.../wsf/datasets/" graph.

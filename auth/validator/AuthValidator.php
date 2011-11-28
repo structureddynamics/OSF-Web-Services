@@ -74,7 +74,13 @@ class AuthValidator extends WebService
                           "id": "WS-AUTH-VALIDATOR-202",
                           "level": "Warning",
                           "name": "No web service URI available",
-                          "description": "NO target web service URI defined for this query"
+                          "description": "No target web service URI defined for this query"
+                        },
+                        "_203": {
+                          "id": "WS-AUTH-VALIDATOR-203",
+                          "level": "Warning",
+                          "name": "Invalid target dataset IRI",
+                          "description": "One of the IRI of the input target dataset(s) is not a valid IRI."
                         },
                         "_300": {
                           "id": "WS-AUTH-VALIDATOR-300",
@@ -284,6 +290,34 @@ class AuthValidator extends WebService
 
       return;
     }
+    
+    $datasets = array();
+    
+    if(strpos($this->requested_datasets, ";") !== FALSE)
+    {
+      $datasets = explode(";", $this->requested_datasets);
+    }
+    else
+    {
+      array_push($datasets, $this->requested_datasets);
+    }    
+    
+    foreach($datasets as $dataset)
+    {
+      if(!$this->isValidIRI($dataset))
+      {
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_203->name);
+        $this->conneg->setError($this->errorMessenger->_203->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_203->name, $this->errorMessenger->_203->description, "",
+          $this->errorMessenger->_203->level);
+
+        unset($resultset);      
+        
+        return;    
+      }
+    }    
   }
 
   /*!   @brief Do content negotiation as an internal, pipelined, Web Service that is part of a Compound Web Service
@@ -421,7 +455,7 @@ class AuthValidator extends WebService
   {
     // Make sure there was no conneg error prior to this process call
     if($this->conneg->getStatus() == 200)
-    {
+    {  
       // Get the CRUD usage of the target web service
       $resultset =
         $this->db->query($this->db->build_sparql_query("select ?_wsf ?_create ?_read ?_update ?_delete from <"
@@ -535,7 +569,7 @@ class AuthValidator extends WebService
 
         // Check if an access is defined for this IP, dataset and registered web service
         if(count($access) <= 0)
-        {
+        {          
           $this->conneg->setStatus(403);
           $this->conneg->setStatusMsg("Forbidden");
           $this->conneg->setStatusMsgExt($this->errorMessenger->_303->name);

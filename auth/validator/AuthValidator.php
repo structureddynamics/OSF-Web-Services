@@ -82,6 +82,12 @@ class AuthValidator extends WebService
                           "name": "Invalid target dataset IRI",
                           "description": "One of the IRI of the input target dataset(s) is not a valid IRI."
                         },
+                        "_204": {
+                          "id": "WS-AUTH-VALIDATOR-204",
+                          "level": "Warning",
+                          "name": "Invalid target web service IRI",
+                          "description": "The IRI of the input web service is not a valid IRI."
+                        },
                         "_300": {
                           "id": "WS-AUTH-VALIDATOR-300",
                           "level": "Fatal",
@@ -318,6 +324,20 @@ class AuthValidator extends WebService
         return;    
       }
     }    
+    
+    if(!$this->isValidIRI($this->requested_ws_uri))
+    {
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_204->name);
+      $this->conneg->setError($this->errorMessenger->_204->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_204->name, $this->errorMessenger->_204->description, "",
+        $this->errorMessenger->_204->level);
+
+      unset($resultset);      
+      
+      return;    
+    }
   }
 
   /*!   @brief Do content negotiation as an internal, pipelined, Web Service that is part of a Compound Web Service

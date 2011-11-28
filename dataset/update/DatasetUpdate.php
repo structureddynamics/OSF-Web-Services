@@ -204,6 +204,58 @@ class DatasetUpdate extends WebService
   */
   protected function validateQuery()
   {
+    // Check if the dataset URI is missing.
+    if($this->datasetUri == "")
+    {
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
+      $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, "",
+        $this->errorMessenger->_200->level);
+
+      return;
+    }
+    
+
+    // Check if the dataset is existing
+    $query .= "  select ?dataset 
+              from <" . $this->wsf_graph . "datasets/>
+              where
+              {
+                <$this->datasetUri> a ?dataset .
+              }";
+
+    $resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
+      array( "dataset" ), FALSE));
+
+    if(odbc_error())
+    {
+      $this->conneg->setStatus(500);
+      $this->conneg->setStatusMsg("Internal Error");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
+      $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, odbc_errormsg(),
+        $this->errorMessenger->_201->level);
+
+      return;
+    }
+    elseif(odbc_fetch_row($resultset) === FALSE)
+    {
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_202->name);
+      $this->conneg->setError($this->errorMessenger->_202->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_202->name, $this->errorMessenger->_202->description, "",
+        $this->errorMessenger->_202->level);
+
+      unset($resultset);
+      return;
+    }
+
+    unset($resultset);    
+    
+    
     // Check if the requester has access to the main "http://.../wsf/datasets/" graph.
     $ws_av = new AuthValidator($this->requester_ip, $this->wsf_graph . "datasets/", $this->uri);
 
@@ -335,59 +387,6 @@ class DatasetUpdate extends WebService
 
     // Validate query
     $this->validateQuery();
-
-    // If the query is still valid
-    if($this->conneg->getStatus() == 200)
-    {
-      // Check for errors
-      if($this->datasetUri == "")
-      {
-        $this->conneg->setStatus(400);
-        $this->conneg->setStatusMsg("Bad Request");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
-        $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, "",
-          $this->errorMessenger->_200->level);
-
-        return;
-      }
-
-      // Check if the dataset is existing
-      $query .= "  select ?dataset 
-                from <" . $this->wsf_graph . "datasets/>
-                where
-                {
-                  <$this->datasetUri> a ?dataset .
-                }";
-
-      $resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
-        array( "dataset" ), FALSE));
-
-      if(odbc_error())
-      {
-        $this->conneg->setStatus(500);
-        $this->conneg->setStatusMsg("Internal Error");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
-        $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, odbc_errormsg(),
-          $this->errorMessenger->_201->level);
-
-        return;
-      }
-      elseif(odbc_fetch_row($resultset) === FALSE)
-      {
-        $this->conneg->setStatus(400);
-        $this->conneg->setStatusMsg("Bad Request");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_202->name);
-        $this->conneg->setError($this->errorMessenger->_202->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_202->name, $this->errorMessenger->_202->description, "",
-          $this->errorMessenger->_202->level);
-
-        unset($resultset);
-      }
-
-      unset($resultset);
-    }
   }
 
   /*!   @brief Do content negotiation as an internal, pipelined, Web Service that is part of a Compound Web Service

@@ -79,6 +79,12 @@ class DatasetUpdate extends WebService
                           "name": "This dataset doesn\'t exist in this WSF",
                           "description": "The target dataset is not existing in the web service framework"
                         },
+                        "_203": {
+                          "id": "WS-DATASET-UPDATE-203",
+                          "level": "Warning",
+                          "name": "Invalid dataset URI",
+                          "description": "The URI of the dataset is not valid."
+                        },                        
                         "_300": {
                           "id": "WS-DATASET-UPDATE-300",
                           "level": "Fatal",
@@ -217,6 +223,18 @@ class DatasetUpdate extends WebService
       return;
     }
     
+    // Check if the dataset URI is valid
+    if(!$this->isValidIRI($this->datasetUri))
+    {
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_203->name);
+      $this->conneg->setError($this->errorMessenger->_203->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_203->name, $this->errorMessenger->_203->description, "",
+        $this->errorMessenger->_203->level);
+
+      return;
+    }      
 
     // Check if the dataset is existing
     $query .= "  select ?dataset 
@@ -319,7 +337,7 @@ class DatasetUpdate extends WebService
 
           return;
         }
-      }     
+      }
     }    
   }
 

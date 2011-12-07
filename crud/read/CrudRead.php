@@ -219,7 +219,7 @@ class CrudRead extends WebService
     $this->crud_usage = new CrudUsage(FALSE, TRUE, FALSE, FALSE);
     $this->endpoint = $this->wsf_base_url . "/ws/crud/read/";
 
-    $this->dtdURL = "crud/read/crudRead.dtd";
+    $this->dtdURL = "crud/crudRead.dtd";
 
     $this->errorMessenger = json_decode($this->errorMessenger);
   }
@@ -1450,7 +1450,6 @@ class CrudRead extends WebService
           
         }
 
-        /*
         $resultset = $this->db->query($query);
 
         if(odbc_error())
@@ -1470,92 +1469,7 @@ class CrudRead extends WebService
 
           $otype = odbc_result($resultset, 3);
           $olang = odbc_result($resultset, 4);
-        */
-        
-        // @FIX
-        $ch = curl_init();
 
-        $headers = array( "Content-Type: text/xml" );
-
-        curl_setopt($ch, CURLOPT_HEADER, 0);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_URL, "http://".$this->db_host.":8890/sparql/?query=".urlencode(str_replace("sparql", "", $query)));
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
-
-        $data = curl_exec($ch);
-
-        if(curl_errno($ch))
-        {
-          $this->conneg->setStatus(500);
-          $this->conneg->setStatusMsg("Internal Error");
-          $this->conneg->setStatusMsgExt($this->errorMessenger->_302->name);
-          $this->conneg->setError($this->errorMessenger->_302->id, $this->errorMessenger->ws,
-            $this->errorMessenger->_302->name, $this->errorMessenger->_302->description, "",
-            $this->errorMessenger->_302->level);          
-        }
-        
-        // @ENDFIX        
-
-        // @FIX
-        $xml = new SimpleXMLElement($data);        
-               
-        foreach($xml->results->children() as $result)
-        {
-          $p = "";
-          $o = "";
-          $otype = "";
-          $olang = "";
-          
-          foreach($result->children() as $binding)
-          {
-            switch($binding["name"])
-            {
-              case "p":
-                if(isset($binding->uri))
-                {
-                  $p = (string)$binding->uri;
-                }
-                if(isset($binding->literal))
-                {
-                  $p = (string)$binding->literal;
-                }
-              break;
-              case "o":
-                if(isset($binding->uri))
-                {
-                  $o = (string)$binding->uri;
-                }
-                if(isset($binding->literal))
-                {
-                  $o = (string)$binding->literal;
-                }
-              break;
-              case "otype":
-                if(isset($binding->uri))
-                {
-                  $otype = (string)$binding->uri;
-                }
-                if(isset($binding->literal))
-                {
-                  $otype = (string)$binding->literal;
-                }
-              break;
-              case "olang":
-                if(isset($binding->uri))
-                {
-                  $olang = (string)$binding->uri;
-                }
-                if(isset($binding->literal))
-                {
-                  $olang = (string)$binding->literal;
-                }
-              break;
-            }            
-          }
-
-        // @ENDFIX        
-        
           if(!isset($this->subjectTriples[$u][$p]))
           {
             $this->subjectTriples[$u][$p] = array();
@@ -1638,7 +1552,6 @@ class CrudRead extends WebService
                 FALSE);
           }
 
-          /*
           $resultset = $this->db->query($query);
 
           if(odbc_error())
@@ -1650,76 +1563,11 @@ class CrudRead extends WebService
               $this->errorMessenger->_303->name, $this->errorMessenger->_303->description, odbc_errormsg(),
               $this->errorMessenger->_303->level);
           }
-          */
-          
-          // @FIX
-          $ch = curl_init();
 
-          $headers = array( "Content-Type: text/xml" );
-
-          curl_setopt($ch, CURLOPT_HEADER, 0);
-          curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-          curl_setopt($ch, CURLOPT_URL, "http://".$this->db_host.":8890/sparql/?query=".urlencode(str_replace("sparql", "", $query)));
-          curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-          curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
-
-          $data = curl_exec($ch);
-
-          if(curl_errno($ch))
-          {
-            $this->conneg->setStatus(500);
-            $this->conneg->setStatusMsg("Internal Error");
-            $this->conneg->setStatusMsgExt($this->errorMessenger->_303 > name);
-            $this->conneg->setError($this->errorMessenger->_303->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_303->name, $this->errorMessenger->_303->description, "",
-              $this->errorMessenger->_303->level);        
-          }
-          
-          // @ENDFIX           
-
-          /*
           while(odbc_fetch_row($resultset))
           {
             $s = odbc_result($resultset, 1);
             $p = odbc_result($resultset, 2);
-          */
-          
-          // @FIX
-          $xml = new SimpleXMLElement($data);        
-                 
-          foreach($xml->results->children() as $result)
-          {
-            $s = "";
-            $p = "";
-            
-            foreach($result->children() as $binding)
-            {
-              switch($binding["name"])
-              {
-                case "s":
-                  if(isset($binding->uri))
-                  {
-                    $s = (string)$binding->uri;
-                  }
-                  if(isset($binding->literal))
-                  {
-                    $s = (string)$binding->literal;
-                  }
-                break;
-                case "p":
-                  if(isset($binding->uri))
-                  {
-                    $p = (string)$binding->uri;
-                  }
-                  if(isset($binding->literal))
-                  {
-                    $p = (string)$binding->literal;
-                  }
-                break;
-              }            
-            }
-
-          // @ENDFIX           
 
             if(!isset($this->objectTriples[$u][$p]))
             {
@@ -1777,7 +1625,7 @@ class CrudRead extends WebService
                       }
                     }";
           }
-          /*
+
           $query = $this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
             array ('rei_p', 'rei_o', 'p', 'o'), FALSE);
 
@@ -1792,100 +1640,13 @@ class CrudRead extends WebService
               $this->errorMessenger->_304->name, $this->errorMessenger->_304->description, odbc_errormsg(),
               $this->errorMessenger->_304->level);
           }
-          */
-          
-          // @FIX
-          $ch = curl_init();
 
-          $headers = array( "Content-Type: text/xml" );
-
-          curl_setopt($ch, CURLOPT_HEADER, 0);
-          curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-          curl_setopt($ch, CURLOPT_URL, "http://".$this->db_host.":8890/sparql/?query=".urlencode(str_replace("sparql", "", $query)));
-          curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-          curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
-
-          $data = curl_exec($ch);
-
-          if(curl_errno($ch))
-          {
-            $this->conneg->setStatus(500);
-            $this->conneg->setStatusMsg("Internal Error");
-            $this->conneg->setStatusMsgExt($this->errorMessenger->_304->name);
-            $this->conneg->setError($this->errorMessenger->_304->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_304->name, $this->errorMessenger->_304->description, "",
-              $this->errorMessenger->_304->level);      
-          }
-          
-          // @ENDFIX           
-
-          /*
           while(odbc_fetch_row($resultset))
           {
             $rei_p = odbc_result($resultset, 1);
             $rei_o = odbc_result($resultset, 2);
             $p = odbc_result($resultset, 3);
             $o = odbc_result($resultset, 4);
-          */
-          
-          // @FIX
-          $xml = new SimpleXMLElement($data);        
-          
-          foreach($xml->results->children() as $result)
-          {
-            $p = "";
-            $o = "";
-            $rei_p = "";
-            $rei_o = "";
-            
-            foreach($result->children() as $binding)
-            {
-              switch($binding["name"])
-              {
-                case "p":
-                  if(isset($binding->uri))
-                  {
-                    $p = (string)$binding->uri;
-                  }
-                  if(isset($binding->literal))
-                  {
-                    $p = (string)$binding->literal;
-                  }
-                break;
-                case "o":
-                  if(isset($binding->uri))
-                  {
-                    $o = (string)$binding->uri;
-                  }
-                  if(isset($binding->literal))
-                  {
-                    $o = (string)$binding->literal;
-                  }
-                break;
-                case "rei_p":
-                  if(isset($binding->uri))
-                  {
-                    $rei_p = (string)$binding->uri;
-                  }
-                  if(isset($binding->literal))
-                  {
-                    $rei_p = (string)$binding->literal;
-                  }
-                break;
-                case "rei_o":
-                  if(isset($binding->uri))
-                  {
-                    $rei_o = (string)$binding->uri;
-                  }
-                  if(isset($binding->literal))
-                  {
-                    $rei_o = (string)$binding->literal;
-                  }
-                break;
-              }            
-            }
-            
-          // @ENDFIX          
 
             if($p != "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject"
               && $p != "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate"

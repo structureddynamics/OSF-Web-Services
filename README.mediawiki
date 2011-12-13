@@ -22,7 +22,7 @@ The general structWSF architecture is described in this [http://techwiki.openstr
 
 {|
 |-
-| [http://openstructs.org/open-semantic-framework Get started  quickly with structWSF by using the Open Semantic Framework Installer]
+| [http://techwiki.openstructs.org/index.php/Open_Semantic_Framework_Installer Get started  quickly with structWSF by using the Open Semantic Framework Installer]
 | [[File:http://dev.openstructs.org/imgs/osf_installer.png]]
 |}
 

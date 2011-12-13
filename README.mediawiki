@@ -20,7 +20,13 @@ The general structWSF architecture is described in this [http://techwiki.openstr
 
 == Installing structWSF ==
 
-A complete [http://techwiki.openstructs.org/index.php/StructWSF_Installation_Guide installation manual] has been written. structWSF is based on an stack of open source projects. The creation of the stack, and its configuration can be a daunting task. However this manual does outline all the steps needed in order to successfully create a structWSF server instance. It is constantly improved based on user feedbacks and on new code that get commited to the Git source control.
+{|
+|-
+| [http://openstructs.org/open-semantic-framework Get started  quickly with structWSF by using the Open Semantic Framework Installer]
+| [http://dev.openstructs.org/imgs/osf_installer.png]
+|}
+
+Additionally, a complete [http://techwiki.openstructs.org/index.php/StructWSF_Installation_Guide installation manual] has been written. structWSF is based on an stack of open source projects. The creation of the stack, and its configuration can be a daunting task. However this manual does outline all the steps needed in order to successfully create a structWSF server instance. It is constantly improved based on user feedbacks and on new code that get commited to the Git source control.
 
 Additionally you can find debugging tips and support on the [http://groups.google.com/group/open-semantic-framework Mailing List]
 

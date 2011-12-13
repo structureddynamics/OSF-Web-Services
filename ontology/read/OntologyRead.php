@@ -2750,9 +2750,9 @@ class OntologyRead extends WebService
     {
       $propertyHierarchy->addPropertyRelationship($subProperty, $parentProperty);
 
-      $propertyHierarchy->properties[$subProperty]->label = $this->getLabel($subProperty, $description); 
-      $propertyHierarchy->properties[$subProperty]->description = $this->getDescription($description); 
-
+      $propertyHierarchy->properties[$subProperty]->label = preg_replace('/\s\s+/', ' ', str_replace(array("\r", "\n"), "", $this->getLabel($subProperty, $description))); 
+      $propertyHierarchy->properties[$subProperty]->description = preg_replace('/\s\s+/', ' ', str_replace(array("\r", "\n"), "", $this->getDescription($description))); 
+      
       $propertyHierarchy->properties[$subProperty]->isDefinedBy = $ontologyUri;
       
       // Add in-domain-of
@@ -2817,8 +2817,8 @@ class OntologyRead extends WebService
     {
       $classHierarchy->addClassRelationship($subClass, $parentClass);
 
-      $classHierarchy->classes[$subClass]->label = $this->getLabel($subClass, $description); 
-      $classHierarchy->classes[$subClass]->description = $this->getDescription($description); 
+      $classHierarchy->classes[$subClass]->label = preg_replace('/\s\s+/', ' ', str_replace(array("\r", "\n"), "", $this->getLabel($subClass, $description))); 
+      $classHierarchy->classes[$subClass]->description = preg_replace('/\s\s+/', ' ', str_replace(array("\r", "\n"), "", $this->getDescription($description))); 
       
       $classHierarchy->classes[$subClass]->isDefinedBy = $ontologyUri;
       

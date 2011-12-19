@@ -94,13 +94,18 @@ class OntologyCreate extends WebService
                           "level": "Error",
                           "name": "Can\'t tag dataset",
                           "description": "Can\'t tag the dataset as being a dataset holding an ontology description"
+                        },
+                        "_302": {
+                          "id": "WS-ONTOLOGY-CREATE-302",
+                          "level": "Error",
+                          "name": "Ontology already existing",
+                          "description": "Can\'t create the ontology because an ontology with that URI is already existing in the system."
                         }
-                        
                       }';
 
 
-  /*!   @brief Constructor
-       @details   Initialize the Ontology Create
+  /*! @brief Constructor
+      @details   Initialize the Ontology Create
           
       @param[in] $ontologyUri URI where the webservice can fetch the ontology file
       @param[in] $registered_ip Target IP address registered in the WSF
@@ -453,6 +458,17 @@ class OntologyCreate extends WebService
         // third param "0" => it nevers timeout.
         $OwlApiSession = java_session("OWLAPI", false, 0);
 
+        $register = java_values($OwlApiSession->get("ontologiesRegister"));
+        
+        // Check if the ontology is already existing
+        if(!is_null(java_values($OwlApiSession->get($this->getOntologySessionID($this->ontologyUri)))) ||
+           array_search($this->getOntologySessionID($this->ontologyUri), $register) !== FALSE) 
+        {
+          $this->returnError(400, "Bad Request", "_302", "");
+          
+          return;
+        }        
+        
         try
         {
           $ontology = new OWLOntology($this->ontologyUri, $OwlApiSession, FALSE);
@@ -1282,6 +1298,20 @@ class OntologyCreate extends WebService
   {
     $this->globalPermissionDelete = $delete;
   }
+  
+  /**
+  * Return the ID used as a session ID, within tomcat, for the ontology
+  * 
+  * @param string $uri URI of the ontology to load
+  * 
+  * @return Session ID of the ontology
+  *  
+  * @author Frederick Giasson, Structured Dynamics LLC.
+  */
+  private function getOntologySessionID($uri)
+  {
+    return("ontology__".preg_replace("/[^a-zA-Z0-9]/", "_", $uri));
+  }  
 }
 
 //@}

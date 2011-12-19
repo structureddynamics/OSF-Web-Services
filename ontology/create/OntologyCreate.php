@@ -462,7 +462,7 @@ class OntologyCreate extends WebService
         
         // Check if the ontology is already existing
         if(!is_null(java_values($OwlApiSession->get($this->getOntologySessionID($this->ontologyUri)))) ||
-           array_search($this->getOntologySessionID($this->ontologyUri), $register) !== FALSE) 
+           ($register != NULL && array_search($this->getOntologySessionID($this->ontologyUri), $register) !== FALSE)) 
         {
           $this->returnError(400, "Bad Request", "_302", "");
           

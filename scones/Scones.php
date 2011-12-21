@@ -531,7 +531,12 @@ class Sparql extends WebService
             $this->SconesSession->get("session".$i."_instance")->setCorpus($corpus);
             
             // Execute the pipeline
-            $this->SconesSession->get("session".$i."_instance")->execute();        
+            try 
+            {
+              $this->SconesSession->get("session".$i."_instance")->execute();        
+            } 
+            catch (Exception $e) 
+            {}            
             
             // output the XML document
             $this->annotatedDocument =  $document->toXML();

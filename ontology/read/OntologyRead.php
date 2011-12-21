@@ -101,6 +101,24 @@ class OntologyRead extends WebService
                           "name": "Unsupported type",
                           "description": "Unsupported type used for this query"
                         },                        
+                        "_204": {
+                          "id": "WS-ONTOLOGY-READ-204",
+                          "level": "Warning",
+                          "name": "Property not existing",
+                          "description": "The target property URI is not existing in the target ontology."
+                        },                        
+                        "_205": {
+                          "id": "WS-ONTOLOGY-READ-205",
+                          "level": "Warning",
+                          "name": "Class not existing",
+                          "description": "The target class URI is not existing in the target ontology."
+                        },                        
+                        "_206": {
+                          "id": "WS-ONTOLOGY-READ-206",
+                          "level": "Warning",
+                          "name": "Named individual not existing",
+                          "description": "The target named individual URI is not existing in the target ontology."
+                        },                        
                         "_300": {
                           "id": "WS-ONTOLOGY-READ-300",
                           "level": "Warning",
@@ -1247,7 +1265,16 @@ class OntologyRead extends WebService
             return;              
           }
 
-          $this->subjectTriples[$this->parameters["uri"]] = $ontology->_getClassDescription($ontology->_getClass($this->parameters["uri"]));
+          $class = $ontology->_getClass($this->parameters["uri"]);
+          
+          if($class == null)
+          {
+            $this->returnError(400, "Bad Request", "_205"); 
+          }
+          else
+          {
+            $this->subjectTriples[$this->parameters["uri"]] = $ontology->_getClassDescription($class);
+          }          
         break;
         
         case "getclasses":
@@ -1296,8 +1323,17 @@ class OntologyRead extends WebService
             $this->returnError(400, "Bad Request", "_202");
             return;              
           }
-
-          $this->subjectTriples[$this->parameters["uri"]] = $ontology->_getNamedIndividualDescription($ontology->_getNamedIndividual($this->parameters["uri"]));
+          
+          $namedIndividual = $ontology->_getNamedIndividual($this->parameters["uri"]);
+          
+          if($namedIndividual == null)
+          {
+            $this->returnError(400, "Bad Request", "_206"); 
+          }
+          else
+          {          
+            $this->subjectTriples[$this->parameters["uri"]] = $ontology->_getNamedIndividualDescription($namedIndividual);
+          }
         break;        
         
         case "getnamedindividuals":
@@ -2313,8 +2349,17 @@ class OntologyRead extends WebService
             $this->returnError(400, "Bad Request", "_202");
             return;              
           }
-
-          $this->subjectTriples[$this->parameters["uri"]] = $ontology->_getPropertyDescription($ontology->_getProperty($this->parameters["uri"]));
+          
+          $property = $ontology->_getProperty($this->parameters["uri"]);
+          
+          if($property == NULL)
+          {
+            $this->returnError(400, "Bad Request", "_204");
+          }
+          else
+          {
+            $this->subjectTriples[$this->parameters["uri"]] = $ontology->_getPropertyDescription($property);  
+          }
         break;
         
         case "getproperties":

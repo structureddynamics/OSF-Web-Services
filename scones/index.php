@@ -19,6 +19,7 @@
 ini_set("display_errors", "Off"); 
 
 ini_set("memory_limit", "256M");
+set_time_limit(2700);
 
 if ($_SERVER['REQUEST_METHOD'] != 'POST') 
 {

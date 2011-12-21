@@ -72,6 +72,24 @@ class OntologyDelete extends WebService
                           "name": "No Ontology URI defined for this request",
                           "description": "No Ontology URI defined for this request"
                         },
+                        "_202": {
+                          "id": "WS-ONTOLOGY-DELETE-202",
+                          "level": "Warning",
+                          "name": "No Property URI defined for this request",
+                          "description": "No Property URI defined for this request"
+                        },
+                        "_203": {
+                          "id": "WS-ONTOLOGY-DELETE-203",
+                          "level": "Warning",
+                          "name": "No Named Individual URI defined for this request",
+                          "description": "No Named Individual URI defined for this request"
+                        },                        
+                        "_204": {
+                          "id": "WS-ONTOLOGY-DELETE-204",
+                          "level": "Warning",
+                          "name": "No Class URI defined for this request",
+                          "description": "No Class URI defined for this request"
+                        },                        
                         "_300": {
                           "id": "WS-ONTOLOGY-DELETE-300",
                           "level": "Error",
@@ -228,6 +246,13 @@ class OntologyDelete extends WebService
         }      
       }
     }
+    
+    // Check if the URI is defined.
+    if($this->ontologyUri == "")
+    {
+      $this->returnError(400, "Bad Request", "_201");
+      return;
+    }
   }
 
   /*!   @brief Returns the error structure
@@ -291,20 +316,6 @@ class OntologyDelete extends WebService
   {
     $this->conneg = new Conneg($accept, $accept_charset, $accept_encoding, $accept_language,
       OntologyDelete::$supportedSerializations);
-
-    // Check for errors
-
-    if($this->ontologyUri == "")
-    {
-      $this->conneg->setStatus(400);
-      $this->conneg->setStatusMsg("Bad Request");
-      $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
-      $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
-        $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, "",
-        $this->errorMessenger->_201->level);
-
-      return;
-    }
   }
 
   /*!   @brief Do content negotiation as an internal, pipelined, Web Service that is part of a Compound Web Service
@@ -457,17 +468,17 @@ class OntologyDelete extends WebService
   */
   public function deleteProperty($uri)
   {
-    $this->initiateOwlBridgeSession();
-
-    $this->getOntologyReference();
-        
     if($this->isValid())
     {
       if($uri == "")
       {
-        $this->returnError(400, "Bad Request", "_201");
+        $this->returnError(400, "Bad Request", "_202");
         return;
-      }
+      }	
+	
+      $this->initiateOwlBridgeSession();
+
+      $this->getOntologyReference();      
 
       // Delete the OWLAPI property entity
       $this->ontology->removeProperty($uri);
@@ -512,17 +523,17 @@ class OntologyDelete extends WebService
   */
   public function deleteNamedIndividual($uri)
   {
-    $this->initiateOwlBridgeSession();
-
-    $this->getOntologyReference();
-        
     if($this->isValid())
     {
       if($uri == "")
       {
-        $this->returnError(400, "Bad Request", "_201");
+        $this->returnError(400, "Bad Request", "_203");
         return;
-      }
+      }	
+	
+      $this->initiateOwlBridgeSession();
+
+      $this->getOntologyReference();      
 
       // Delete the OWLAPI named individual entity
       $this->ontology->removeNamedIndividual($uri);
@@ -567,17 +578,17 @@ class OntologyDelete extends WebService
   */
   public function deleteClass($uri)
   {
-    $this->initiateOwlBridgeSession();
-
-    $this->getOntologyReference();
-        
     if($this->isValid())
     {
       if($uri == "")
       {
-        $this->returnError(400, "Bad Request", "_201");
+        $this->returnError(400, "Bad Request", "_204");
         return;
       }
+	  	
+      $this->initiateOwlBridgeSession();
+
+      $this->getOntologyReference();
 
       // Delete the OWLAPI class entity
       $this->ontology->removeClass($uri);
@@ -619,12 +630,12 @@ class OntologyDelete extends WebService
   */
   public function deleteOntology()
   {
-    $this->initiateOwlBridgeSession();
-
-    $this->getOntologyReference();
-        
     if($this->isValid())
     {
+      $this->initiateOwlBridgeSession();
+
+      $this->getOntologyReference();
+      
       // Delete the OWLAPI instance
       $this->ontology->delete();
       

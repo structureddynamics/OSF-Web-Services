@@ -116,30 +116,15 @@ switch(strtolower($function))
   break;
 
   case "deleteclass":
-    if(!isset($parameters["uri"]) || $parameters["uri"] == "")
-    {
-      $ws_ontologydelete->returnError(400, "Bad Request", "_201");
-    }
-    
     $ws_ontologydelete->deleteClass($parameters["uri"]);
   break;
 
   // Delete an annotation, object or datatype property from the ontology
   case "deleteproperty":
-    if(!isset($parameters["uri"]) || $parameters["uri"] == "")
-    {
-      $ws_ontologydelete->returnError(400, "Bad Request", "_201");
-    }
-
     $ws_ontologydelete->deleteProperty($parameters["uri"]);
   break;
 
   case "deletenamedindividual":
-    if(!isset($parameters["uri"]) || $parameters["uri"] == "")
-    {
-      $ws_ontologydelete->returnError(400, "Bad Request", "_201");
-    }
-
     $ws_ontologydelete->deleteNamedIndividual($parameters["uri"]);
   break;
   

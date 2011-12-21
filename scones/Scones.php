@@ -23,7 +23,7 @@
     \n\n\n
 */
 
-class Sparql extends WebService
+class Scones extends WebService
 {
   /*! @brief Conneg object that manage the content negotiation capabilities of the web service */
   private $conneg;

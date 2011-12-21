@@ -110,7 +110,7 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_scones = new Sparql($document, $docmime, $application, $registered_ip, $requester_ip);
+$ws_scones = new Scones($document, $docmime, $application, $registered_ip, $requester_ip);
 
 $ws_scones->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                       (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

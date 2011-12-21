@@ -129,7 +129,7 @@ class OWLOntology
       // IRI docIRI = IRI.create(DOCUMENT_IRI); 
       $iriClass = java("org.semanticweb.owlapi.model.IRI");
       $iri = $iriClass->create($uri);
-
+       
       // OWLOntology ont = manager.loadOntologyFromOntologyDocument(docIRI);
       $this->ontology = $this->manager->loadOntologyFromOntologyDocument($iri);    
       
@@ -231,13 +231,15 @@ class OWLOntology
   */
   public function _getNamedIndividual($uri)
   {
-    // Create a class object.
-    $ni = $this->owlDataFactory->getOWLNamedIndividual(java("org.semanticweb.owlapi.model.IRI")->create($uri));
+    $entities = $this->ontology->getEntitiesInSignature(java("org.semanticweb.owlapi.model.IRI")->create($uri));
 
-    if(is_null(java_values($ni)))
+    foreach($entities as $entity)
     {
-      return(null);
-    }
+      if(java_instanceof($entity, java("org.semanticweb.owlapi.model.OWLNamedIndividual")))
+      {
+        return($entity);
+      }
+    }     
     
     return($ni);
   }
@@ -2581,14 +2583,16 @@ class OWLOntology
   */
   public function _getClass($iri)
   {
-    // Create a class object.
-    $class = $this->owlDataFactory->getOWLClass(java("org.semanticweb.owlapi.model.IRI")->create($iri));
+    $entities = $this->ontology->getEntitiesInSignature(java("org.semanticweb.owlapi.model.IRI")->create($iri));
 
-    if(is_null(java_values($class)))
+    foreach($entities as $entity)
     {
-      return(null);
-    }
-    
+      if(java_instanceof($entity, java("org.semanticweb.owlapi.model.OWLClass")))
+      {
+        return($entity);
+      }
+    }    
+
     return($class);
   }  
 

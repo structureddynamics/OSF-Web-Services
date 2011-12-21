@@ -275,7 +275,7 @@ class Scones extends WebService
   public function ws_conneg($accept, $accept_charset, $accept_encoding, $accept_language)
   {
     $this->conneg =
-      new Conneg($accept, $accept_charset, $accept_encoding, $accept_language, Sparql::$supportedSerializations);
+      new Conneg($accept, $accept_charset, $accept_encoding, $accept_language, Scones::$supportedSerializations);
 
     // If the query is still valid
     if($this->conneg->getStatus() == 200)

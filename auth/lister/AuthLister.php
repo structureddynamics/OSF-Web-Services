@@ -856,14 +856,13 @@ class AuthLister extends WebService
         $json_document = "";
         $json_document .= "{\n";
 
-        $json_document .= "  \"prefixes\": [ \n";
+        $json_document .= "  \"prefixes\": \n";
         $json_document .= "    {\n";
         $json_document .= "      \"rdf\": \"http://www.w3.org/1999/02/22-rdf-syntax-ns#\",\n";
         $json_document .= "      \"owl\": \"http://www.w3.org/2002/07/owl#\",\n";
         $json_document .= "      \"rdfs\": \"http://www.w3.org/2000/01/rdf-schema#\",\n";
         $json_document .= "      \"wsf\": \"http://purl.org/ontology/wsf#\"\n";
-        $json_document .= "    } \n";
-        $json_document .= "  ],\n";
+        $json_document .= "    },\n";
 
         $json_document .= "  \"resultset\": {\n";
         $json_document .= "    \"subject\": [\n";

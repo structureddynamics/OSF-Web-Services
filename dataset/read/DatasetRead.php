@@ -969,14 +969,13 @@ class DatasetRead extends WebService
       case "application/json":
         $json_document = "";
         $json_document .= "{\n";
-        $json_document .= "  \"prefixes\": [ \n";
+        $json_document .= "  \"prefixes\": \n";
         $json_document .= "    {\n";
         $json_document .= "      \"rdf\": \"http:\/\/www.w3.org\/1999\/02\/22-rdf-syntax-ns#\",\n";
         $json_document .= "      \"rdfs\": \"http://www.w3.org/2000/01/rdf-schema#\",\n";
         $json_document .= "      \"void\": \"http://rdfs.org/ns/void#\",\n";
         $json_document .= "      \"dcterms\": \"http://purl.org/dc/terms/\"\n";
-        $json_document .= "    } \n";
-        $json_document .= "  ],\n";
+        $json_document .= "    },\n";
         $json_document .= "  \"resultset\": {\n";
         $json_document .= "    \"subject\": [\n";
         $json_document .= $this->pipeline_serialize();

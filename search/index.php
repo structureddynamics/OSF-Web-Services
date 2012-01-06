@@ -159,7 +159,7 @@ if(isset($_POST['aggregate_attributes_object_type']))
   $aggregateAttributesObjectType = $_POST['aggregate_attributes_object_type'];
 }
 
-$aggregateAttributesNb = "literal";
+$aggregateAttributesNb = 10;
 
 if(isset($_POST['aggregate_attributes_object_nb']))
 {

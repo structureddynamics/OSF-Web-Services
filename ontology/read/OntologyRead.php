@@ -1677,6 +1677,21 @@ class OntologyRead extends WebService
                     
                     $schema .= "<displayControl>".$this->xmlEncode($displayControl)."</displayControl>";
                   break;
+
+                  
+                  case Namespaces::$sco."ignoredBy":
+                    
+                    if(strtolower($value["datatype"]) == "rdf:Resource")
+                    {
+                      $ignoredBy = substr($value["value"], strripos($value["value"], "#") + 1);
+                    }
+                    else
+                    {
+                      $ignoredBy = $value["value"];
+                    }
+                    
+                    $schema .= "<ignoredBy>".$this->xmlEncode($ignoredBy)."</ignoredBy>";
+                  break;
                   
                   case Namespaces::$sco."shortLabel":
                     $schema .= "<shortLabel>".$this->xmlEncode($value["value"])."</shortLabel>";
@@ -1738,6 +1753,20 @@ class OntologyRead extends WebService
                     }
                     
                     $schema .= "<displayControl>".$this->xmlEncode($displayControl)."</displayControl>";
+                  break;
+
+                  case Namespaces::$sco."ignoredBy":
+                  
+                    if(strtolower($value["datatype"]) == "rdf:Resource")
+                    {
+                      $ignoredBy = substr($value["value"], strripos($value["value"], "#") + 1);
+                    }
+                    else
+                    {
+                      $ignoredBy = $value["value"];
+                    }
+                    
+                    $schema .= "<ignoredBy>".$this->xmlEncode($ignoredBy)."</ignoredBy>";
                   break;
 
                   case Namespaces::$sco."comparableWith":
@@ -1813,6 +1842,20 @@ class OntologyRead extends WebService
                     }
                     
                     $schema .= "<displayControl>".$this->xmlEncode($displayControl)."</displayControl>";
+                  break;
+                  
+                  case Namespaces::$sco."ignoredBy":
+                  
+                    if(strtolower($value["datatype"]) == "rdf:Resource")
+                    {
+                      $ignoredBy = substr($value["value"], strripos($value["value"], "#") + 1);
+                    }
+                    else
+                    {
+                      $ignoredBy = $value["value"];
+                    }
+                    
+                    $schema .= "<ignoredBy>".$this->xmlEncode($ignoredBy)."</ignoredBy>";
                   break;
 
                   case Namespaces::$sco."comparableWith":
@@ -1924,6 +1967,10 @@ class OntologyRead extends WebService
                   $schema .= '"displayControl": [';
                 break;
                 
+                case Namespaces::$sco."ignoredBy":
+                  $schema .= '"ignoredBy": [';
+                break;
+                
                 case Namespaces::$sco."shortLabel":
                   $schema .= '"shortLabel": [';
                 break;
@@ -1961,6 +2008,20 @@ class OntologyRead extends WebService
                     $schema .= '"'.parent::jsonEncode($displayControl).'",';
                   break;
                   
+                  case Namespaces::$sco."ignoredBy":
+                    
+                    if(strtolower($value["datatype"]) == "rdf:Resource")
+                    {
+                      $ignoredBy = substr($value["value"], strripos($value["value"], "#") + 1);
+                    }
+                    else
+                    {
+                      $ignoredBy = $value["value"];
+                    }
+                                       
+                    $schema .= '"'.parent::jsonEncode($ignoredBy).'",';
+                  break;
+                  
                   case Namespaces::$sco."shortLabel":
                     $schema .= '"'.parent::jsonEncode($value["value"]).'",';
                   break;
@@ -1981,6 +2042,7 @@ class OntologyRead extends WebService
               {
                 case Namespaces::$rdfs."subClassOf":
                 case Namespaces::$sco."displayControl":
+                case Namespaces::$sco."ignoredBy":
                 case Namespaces::$sco."shortLabel":
                 case Namespaces::$sco."mapMarkerImageUrl":
                 case Namespaces::$sco."relationBrowserNodeType":
@@ -2024,6 +2086,10 @@ class OntologyRead extends WebService
                 
                 case Namespaces::$sco."displayControl":
                   $schema .= '"displayControl": [';
+                break;
+                
+                case Namespaces::$sco."ignoredBy":
+                  $schema .= '"ignoredBy": [';
                 break;
 
                 case Namespaces::$sco."comparableWith":
@@ -2069,6 +2135,19 @@ class OntologyRead extends WebService
                     
                     $schema .= '"'.parent::jsonEncode($displayControl).'",';
                   break;
+                  
+                  case Namespaces::$sco."ignoredBy":
+                    if(strtolower($value["datatype"]) == "rdf:Resource")
+                    {
+                      $ignoredBy = substr($value["value"], strripos($value["value"], "#") + 1);
+                    }
+                    else
+                    {
+                      $ignoredBy = $value["value"];
+                    }
+                    
+                    $schema .= '"'.parent::jsonEncode($ignoredBy).'",';
+                  break;
 
                   case Namespaces::$sco."comparableWith":
                     $this->manageIronPrefixes($value["value"], $prefixes);
@@ -2102,6 +2181,7 @@ class OntologyRead extends WebService
               {
                 case Namespaces::$rdfs."domain":
                 case Namespaces::$sco."displayControl":
+                case Namespaces::$sco."ignoredBy":
                 case Namespaces::$sco."comparableWith":
                 case Namespaces::$sco."unitType":
                 case Namespaces::$sco."shortLabel":
@@ -2143,6 +2223,10 @@ class OntologyRead extends WebService
                 
                 case Namespaces::$sco."displayControl":
                   $schema .= '"displayControl": [';
+                break;
+                
+                case Namespaces::$sco."ignoredBy":
+                  $schema .= '"ignoredBy": [';
                 break;
 
                 case Namespaces::$sco."comparableWith":
@@ -2194,6 +2278,19 @@ class OntologyRead extends WebService
                     
                     $schema .= '"'.parent::jsonEncode($displayControl).'",';
                   break;
+                  
+                  case Namespaces::$sco."ignoredBy":
+                    if(strtolower($value["datatype"]) == "rdf:Resource")
+                    {
+                      $ignoredBy = substr($value["value"], strripos($value["value"], "#") + 1);
+                    }
+                    else
+                    {
+                      $ignoredBy = $value["value"];
+                    }
+                    
+                    $schema .= '"'.parent::jsonEncode($ignoredBy).'",';
+                  break;
 
                   case Namespaces::$sco."comparableWith":
                     $this->manageIronPrefixes($value["value"], $prefixes);
@@ -2228,6 +2325,7 @@ class OntologyRead extends WebService
                 case Namespaces::$rdfs."domain":
                 case Namespaces::$rdfs."range":
                 case Namespaces::$sco."displayControl":
+                case Namespaces::$sco."ignoredBy":
                 case Namespaces::$sco."comparableWith":
                 case Namespaces::$sco."unitType":
                 case Namespaces::$sco."shortLabel":

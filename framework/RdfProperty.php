@@ -78,8 +78,8 @@ class RdfProperty
     while(odbc_fetch_row($resultset))
     {
       $g = odbc_result($resultset, 1);
-      $p = odbc_result($resultset, 2);
-      $o = odbc_result($resultset, 3);
+      $p = odbc_result($resultset, 2);      
+      $db->odbc_getPossibleLongResult($resultset, 3);
 
       if(!isset($this->triples[$g]))
       {

@@ -222,42 +222,10 @@ class DatasetRead extends WebService
 
     if($ws_av->pipeline_getResponseHeaderStatus() != 200)
     {
-      // If he doesn't, then check if he has access to the dataset itself
-      $ws_av2 = new AuthValidator($this->requester_ip, $this->datasetUri, $this->uri);
-
-      $ws_av2->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
-        $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
-
-      $ws_av2->process();
-
-      if($ws_av2->pipeline_getResponseHeaderStatus() != 200)
-      {
-        $this->conneg->setStatus($ws_av2->pipeline_getResponseHeaderStatus());
-        $this->conneg->setStatusMsg($ws_av2->pipeline_getResponseHeaderStatusMsg());
-        $this->conneg->setStatusMsgExt($ws_av2->pipeline_getResponseHeaderStatusMsgExt());
-        $this->conneg->setError($ws_av2->pipeline_getError()->id, $ws_av2->pipeline_getError()->webservice,
-          $ws_av2->pipeline_getError()->name, $ws_av2->pipeline_getError()->description,
-          $ws_av2->pipeline_getError()->debugInfo, $ws_av2->pipeline_getError()->level);
-
-        return;
-      }
-    }
-           
-    // If the system send a query on the behalf of another user, we validate that other user as well
-    if($this->registered_ip != $this->requester_ip)
-    {
-      // Check if the requester has access to the main "http://.../wsf/datasets/" graph.
-      $ws_av = new AuthValidator($this->registered_ip, $this->wsf_graph . "datasets/", $this->uri);
-
-      $ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
-        $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
-
-      $ws_av->process();
-
-      if($ws_av->pipeline_getResponseHeaderStatus() != 200)
-      {
+      if($this->datasetUri != "all")
+      {      
         // If he doesn't, then check if he has access to the dataset itself
-        $ws_av2 = new AuthValidator($this->registered_ip, $this->datasetUri, $this->uri);
+        $ws_av2 = new AuthValidator($this->requester_ip, $this->datasetUri, $this->uri);
 
         $ws_av2->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
           $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
@@ -274,6 +242,62 @@ class DatasetRead extends WebService
             $ws_av2->pipeline_getError()->debugInfo, $ws_av2->pipeline_getError()->level);
 
           return;
+        }
+      }
+      else
+      {
+        $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
+        $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
+        $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
+        $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
+          $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
+          $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);          
+      }        
+    }
+           
+    // If the system send a query on the behalf of another user, we validate that other user as well
+    if($this->registered_ip != $this->requester_ip)
+    {
+      // Check if the requester has access to the main "http://.../wsf/datasets/" graph.
+      $ws_av = new AuthValidator($this->registered_ip, $this->wsf_graph . "datasets/", $this->uri);
+
+      $ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
+        $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
+
+      $ws_av->process();
+
+      if($ws_av->pipeline_getResponseHeaderStatus() != 200)
+      {
+        if($this->datasetUri != "all")
+        {
+          // If he doesn't, then check if he has access to the dataset itself
+          $ws_av2 = new AuthValidator($this->registered_ip, $this->datasetUri, $this->uri);
+
+          $ws_av2->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
+            $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
+
+          $ws_av2->process();
+
+          if($ws_av2->pipeline_getResponseHeaderStatus() != 200)
+          {
+            $this->conneg->setStatus($ws_av2->pipeline_getResponseHeaderStatus());
+            $this->conneg->setStatusMsg($ws_av2->pipeline_getResponseHeaderStatusMsg());
+            $this->conneg->setStatusMsgExt($ws_av2->pipeline_getResponseHeaderStatusMsgExt());
+            $this->conneg->setError($ws_av2->pipeline_getError()->id, $ws_av2->pipeline_getError()->webservice,
+              $ws_av2->pipeline_getError()->name, $ws_av2->pipeline_getError()->description,
+              $ws_av2->pipeline_getError()->debugInfo, $ws_av2->pipeline_getError()->level);
+
+            return;
+          }
+        }
+        else
+        {
+          $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
+          $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
+          $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
+          $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
+            $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
+            $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);          
         }
       } 
     }   
@@ -461,7 +485,7 @@ class DatasetRead extends WebService
                     {
                       $s = odbc_result($rset, 1);
                       $p = odbc_result($rset, 2);
-                      $o = odbc_result($rset, 3);
+                      $o = $this->db->odbc_getPossibleLongResult($rset, 3);
 
                       if($p == "http://purl.org/ontology/bibo/uri"
                         || $p == "http://www.w3.org/2000/01/rdf-schema#label")
@@ -1134,7 +1158,8 @@ class DatasetRead extends WebService
             $dataset = $dataset2;
 
             $title = odbc_result($resultset, 2);
-            $description = odbc_result($resultset, 3);
+            $description = $this->db->odbc_getPossibleLongResult($resultset, 3);
+
             $creator = odbc_result($resultset, 4);
             $created = odbc_result($resultset, 5);
             $modified = odbc_result($resultset, 6);
@@ -1176,7 +1201,7 @@ class DatasetRead extends WebService
               while(odbc_fetch_row($resultset))
               {
                 $predicate = odbc_result($resultset, 1);
-                $object = odbc_result($resultset, 2);
+                $object = $this->db->odbc_getPossibleLongResult($resultset, 2);
                 $otype = odbc_result($resultset, 3);
                 $olang = odbc_result($resultset, 4);
 
@@ -1297,7 +1322,7 @@ class DatasetRead extends WebService
           if(odbc_fetch_row($resultset))
           {
             $title = odbc_result($resultset, 1);
-            $description = odbc_result($resultset, 2);
+            $description = $this->db->odbc_getPossibleLongResult($resultset, 2);
             $creator = odbc_result($resultset, 3);
             $created = odbc_result($resultset, 4);
             $modified = odbc_result($resultset, 5);
@@ -1339,7 +1364,7 @@ class DatasetRead extends WebService
                 while(odbc_fetch_row($resultset))
                 {
                   $predicate = odbc_result($resultset, 1);
-                  $object = odbc_result($resultset, 2);
+                  $object = $this->db->odbc_getPossibleLongResult($resultset, 2);
                   $otype = odbc_result($resultset, 3);
                   $olang = odbc_result($resultset, 4);
 

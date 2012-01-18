@@ -1183,7 +1183,6 @@ class CrudCreate extends WebService
                       {
                         $p = odbc_result($resultset3, 1);
                         $o = $this->db->odbc_getPossibleLongResult($resultset3, 2);
-                        //$o = odbc_result($resultset3, 2);
 
                         if(!isset($subjectTriples[$p]))
                         {

@@ -749,7 +749,7 @@ class OntologyCreate extends WebService
               {
                 $s = odbc_result($resultset, 1);
                 $p = odbc_result($resultset, 2);
-                $o = odbc_result($resultset, 3);
+                $o = $this->db->odbc_getPossibleLongResult($resultset, 3);
                 $otype = odbc_result($resultset, 4);
                 $olang = odbc_result($resultset, 5);
                 

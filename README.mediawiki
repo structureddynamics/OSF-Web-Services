@@ -33,6 +33,12 @@ Additionally you can find debugging tips and support on the [http://groups.googl
 You also have access to an annex to this installation guide that shows you [http://techwiki.openstructs.org/index.php/Multi-structWSF_Server_Instance how you can install multiple
 structWSF instance on the same server].
 
+== Upgrading structWSF ==
+
+An existing structWSF instance can easily be upgrader using the [https://github.com/structureddynamics/structWSF-Upgrader structWSF Upgrader script]. Do follow the steps in the README.mediawiki file to upgrade an existing structWSF instance.
+
+Note: the version of the structWSF instance that should be minimally installed is v1.0a92. If you have an older version than that, then you will have to manually upgrade your version to the version v1.0a92 and then you will have to run the struct Upgrader script.
+
 == structWSF Web Services ==
 
 Here is a complete list of all the web service endpoints currently available in structWSF:

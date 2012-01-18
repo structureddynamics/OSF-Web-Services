@@ -536,7 +536,9 @@ class Scones extends WebService
               $this->SconesSession->get("session".$i."_instance")->execute();        
             } 
             catch (Exception $e) 
-            {}            
+            {
+              $this->SconesSession->put("session".$i."_used", FALSE);
+            }            
             
             // output the XML document
             $this->annotatedDocument =  $document->toXML();

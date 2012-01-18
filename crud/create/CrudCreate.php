@@ -78,13 +78,13 @@ class CrudCreate extends WebService
         },
         "_301": {
           "id": "WS-CRUD-CREATE-301",
-          "level": "Warning",
+          "level": "Fatal",
           "name": "Can\'t parse RDF document",
           "description": "Can\'t parse the specified RDF document"
         },
         "_302": {
           "id": "WS-CRUD-CREATE-302",
-          "level": "Warning",
+          "level": "Fatal",
           "name": "Syntax error in the RDF document",
           "description": "A syntax error exists in the specified RDF document"
         },
@@ -105,6 +105,12 @@ class CrudCreate extends WebService
           "level": "Fatal",
           "name": "Can\'t create a tracking record for one of the input records",
           "description": "We can\'t create the records because we can\'t ensure that we have a track of their changes."
+        },
+        "_306": {
+          "id": "WS-CRUD-CREATE-306",
+          "level": "Fatal",
+          "name": "Can\'t parse the classHierarchySerialized.srz file",
+          "description": "We can\'t parse the classHierarchySerialized.srz file. Please do make sure that this file is properly serialized. You can try to fix that issue by re-creating a serialization file from the latest version of the OntologyRead web service endpoint and to replace the result with the current file being used."
         }  
       }';
 
@@ -785,37 +791,22 @@ class CrudCreate extends WebService
             $descriptionProperties = array (Namespaces::$iron . "description", Namespaces::$dcterms . "description",
               Namespaces::$skos_2008 . "definition", Namespaces::$skos_2004 . "definition");
 
-            /*!
-                    @todo Fixing this to use the DB.
-                    
-                    // This method is currently not working. The problem is that we ahve an issue in CrudCreate and Virtuoso's
-                    // LONG VARCHAR column. It appears that there is a bug somewhere in the "php -> odbc -> virtuoso" path.
-                    // If we are not requesting to return the LONG VARCHAR column, everything works fine.
-            */
-            /*    
-                     $resultset = $this->db->query("select * from SD.WSF.ws_ontologies where struct_type = 'class'");
-                    
-                    odbc_binmode($resultset, ODBC_BINMODE_PASSTHRU);
-                    odbc_longreadlen($resultset, 16384);       
-                    
-                    odbc_fetch_row($resultset);
-                    $classHierarchy = unserialize(odbc_result($resultset, "struct"));
-                    
-                    if (odbc_error())
-                    {
-                      $this->conneg->setStatus(500);
-                      $this->conneg->setStatusMsg("Internal Error");
-                      $this->conneg->setStatusMsgExt("Error #crud-create-103");  
-                      return;
-                    }          
-            */
-
             $filename = rtrim($this->ontological_structure_folder, "/") . "/classHierarchySerialized.srz";
 
             $file = fopen($filename, "r");
             $classHierarchy = fread($file, filesize($filename));
-            $classHierarchy = unserialize($classHierarchy);
+            $classHierarchy = unserialize($classHierarchy);                        
             fclose($file);
+            
+            if($classHierarchy === FALSE)
+            {
+              $this->conneg->setStatus(500);
+              $this->conneg->setStatusMsg("Internal Error");
+              $this->conneg->setError($this->errorMessenger->_306->id, $this->errorMessenger->ws,
+                $this->errorMessenger->_306->name, $this->errorMessenger->_306->description, "",
+                $this->errorMessenger->_306->level);
+              return;
+            }
 
             // Index in Solr
 
@@ -1191,7 +1182,8 @@ class CrudCreate extends WebService
                       while(odbc_fetch_row($resultset3))
                       {
                         $p = odbc_result($resultset3, 1);
-                        $o = odbc_result($resultset3, 2);
+                        $o = $this->db->odbc_getPossibleLongResult($resultset3, 2);
+                        //$o = odbc_result($resultset3, 2);
 
                         if(!isset($subjectTriples[$p]))
                         {

@@ -45,7 +45,10 @@ class DB_Virtuoso
 
   /*! @brief Query process time in milliseconds; This is used for benchmarking purposes */
   private $queryProcessTime = 0; // In milliseconds
-
+  
+  /*! @brief Main version of the Virtuoso server used by this structWSF instance (4, 5 or 6) */
+  private $virtuoso_main_version = "6";
+                               
   /*!   @brief Creating a connection to the datbase system.
               
       \n
@@ -61,6 +64,10 @@ class DB_Virtuoso
   */
   public function DB_Virtuoso($username, $password, $dsn, $host)
   {
+    include_once("WebService.php");
+    
+    $this->virtuoso_main_version = WebService::$virtuoso_main_version;    
+    
     // Connection Database informations
     $this->db_host = $host;
     $this->db_user = $username;
@@ -79,13 +86,17 @@ class DB_Virtuoso
       \n\n\n
   */
   private function connect()
-  {
-    $this->db_link = odbc_connect($this->dsn, $this->db_user, $this->db_pass, SQL_CUR_USE_ODBC);
+  {    
+    if($this->virtuoso_main_version >= 6)
+    {
+      ini_set("odbc.default_cursortype", "0");
+      $this->db_link = odbc_connect($this->dsn, $this->db_user, $this->db_pass);
+    }
 
-    //    odbc_binmode(0, 1);
-    //    odbc_longreadlen(0, 65534);
-
-    //    ini_set("odbc.defaultlrl", "65534");
+    if($this->virtuoso_main_version <= 5)
+    {
+      $this->db_link = odbc_connect($this->dsn, $this->db_user, $this->db_pass, SQL_CUR_USE_ODBC);
+    }
 
     return;
   }
@@ -195,54 +206,68 @@ class DB_Virtuoso
   */
   private function delete() { unset($this); }
 
-/*!   @brief Build a SPARQL query to send to the datastore. This wrap the sparql query for delevery of the query via a ODB channel
-            
-    \n
+  /*!   @brief Build a SPARQL query to send to the datastore. This wrap the sparql query for delevery of the query via a ODB channel
+              
+      \n
 
-    @param[in] $query SPARQL query to to wrap
-    @param[in] $query_variables An array that list all the variables used in the SPARLQ query to wrap (take care of the order!)
-    @param[in] $sponger Enables the sponger
+      @param[in] $query SPARQL query to to wrap
+      @param[in] $query_variables An array that list all the variables used in the SPARLQ query to wrap (take care of the order!)
+      @param[in] $sponger Enables the sponger
+      
+      @return returns the SPARQL query to send the to triple store
+      
+      @author Frederick Giasson, Structured Dynamics LLC.
     
-    @return returns the SPARQL query to send the to triple store
-    
-    @author Frederick Giasson, Structured Dynamics LLC.
-  
-    \n\n\n
-*/
+      \n\n\n
+  */
   public function build_sparql_query($query, $query_variables, $sponger)
   {
-    $sparql_query = "exst('";
-
-    if(count($query_variables) > 0)
-    {
-      $sparql_query .= "select ";
-
-      foreach($query_variables as $variable)
-      {
-        $sparql_query .= $variable . " as " . $variable . ", ";
-      }
-      $sparql_query = substr($sparql_query, 0, strlen($sparql_query) - 2);
-      $sparql_query .= " from (";
-    }
-    else
-    {
-      $sparql_query .= "select * from (";
-    }
-
-    $sparql_query .= "SPARQL ";
-
+    $sparql_query = "sparql ";
+      
     if($sponger == TRUE)
     {
-      $sparql_query .= " define get:soft \"replacing\" ";
-    //    $sparql_query .= " define get:soft \"soft\" ";
+      $sparql_query .= "define get:soft \"replacing\" ";
     }
 
     $sparql_query .= $query;
 
-    $sparql_query .= ") sub')";
-
     return $sparql_query;
   }
+  
+  public function odbc_getPossibleLongResult(&$resultset, $fieldID)
+  {
+    $longValue = "";
+    
+    $longValue = odbc_result($resultset, $fieldID);
+    
+    if($longValue != "" && odbc_field_len($resultset, $fieldID) > ini_get("odbc.defaultlrl"))
+    {
+      while(($chunk = odbc_result($resultset, $fieldID)) !== FALSE)
+      {
+        $longValue .= $chunk;
+      } 
+    }
+    
+    return($longValue);       
+    
+    /*
+    $longValue = "";
+    
+    if(odbc_field_len($resultset, $fieldID) > ini_get("odbc.defaultlrl"))
+    {
+      while(($chunk = odbc_result($resultset, $fieldID)) !== FALSE)
+      {
+        $longValue .= $chunk;
+      } 
+    }
+    else
+    {
+      $longValue = odbc_result($resultset, $fieldID);
+    } 
+    
+    return($longValue);   
+    */
+  }  
 }
 
 //@}

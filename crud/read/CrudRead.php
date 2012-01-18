@@ -219,7 +219,7 @@ class CrudRead extends WebService
     $this->crud_usage = new CrudUsage(FALSE, TRUE, FALSE, FALSE);
     $this->endpoint = $this->wsf_base_url . "/ws/crud/read/";
 
-    $this->dtdURL = "crud/crudRead.dtd";
+    $this->dtdURL = "crud/read/crudRead.dtd";
 
     $this->errorMessenger = json_decode($this->errorMessenger);
   }
@@ -1465,7 +1465,8 @@ class CrudRead extends WebService
         while(odbc_fetch_row($resultset))
         {
           $p = odbc_result($resultset, 1);
-          $o = odbc_result($resultset, 2);
+          
+          $o = $this->db->odbc_getPossibleLongResult($resultset, 2);
 
           $otype = odbc_result($resultset, 3);
           $olang = odbc_result($resultset, 4);
@@ -1644,9 +1645,9 @@ class CrudRead extends WebService
           while(odbc_fetch_row($resultset))
           {
             $rei_p = odbc_result($resultset, 1);
-            $rei_o = odbc_result($resultset, 2);
+            $rei_o = $this->db->odbc_getPossibleLongResult($resultset, 2);
             $p = odbc_result($resultset, 3);
-            $o = odbc_result($resultset, 4);
+            $o = $this->db->odbc_getPossibleLongResult($resultset, 4);
 
             if($p != "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject"
               && $p != "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate"

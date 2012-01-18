@@ -34,6 +34,9 @@ abstract class WebService
   /*! @brief network.ini file folder */
   public static $network_ini = "/usr/share/structwsf/";
 
+  /*! @brief Main version of the Virtuoso server used by this structWSF instance (4, 5 or 6) */
+  public static $virtuoso_main_version = "6";
+  
   /*! @brief Database user name */
   protected $db_username = "";
 
@@ -132,6 +135,9 @@ abstract class WebService
   
   /*! @brief URL where the Java Bridge can be accessed from this server */
   protected $owlapiBridgeURI;
+  
+  /*! @brief Enable the Long Read Len feature of Virtuoso. */  
+  protected $enable_lrl = FALSE;
   
   protected $geoEnabled = FALSE;
 
@@ -359,6 +365,14 @@ abstract class WebService
     {
       $this->triplestore_port = $data_ini["triplestore"]["port"];
     }
+    if(isset($data_ini["triplestore"]["virtuoso_main_version"]))
+    {
+      $this->virtuoso_main_version = $data_ini["triplestore"]["virtuoso_main_version"];
+    }    
+    if(strtolower($data_ini["triplestore"]["enable_lrl"]) == "true" || $data_ini["triplestore"]["enable_lrl"] == "1")
+    {
+      $this->enable_lrl = TRUE;
+    }    
     if(isset($data_ini["solr"]["port"]))
     {
       $this->solr_port = $data_ini["solr"]["port"];

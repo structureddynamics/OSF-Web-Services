@@ -36,7 +36,10 @@ abstract class WebService
 
   /*! @brief Main version of the Virtuoso server used by this structWSF instance (4, 5 or 6) */
   public static $virtuoso_main_version = "6";
-  
+
+  /*! @brief Enable the Long Read Len feature of Virtuoso. */  
+  public static $enable_lrl = FALSE;
+    
   /*! @brief Database user name */
   protected $db_username = "";
 
@@ -135,9 +138,6 @@ abstract class WebService
   
   /*! @brief URL where the Java Bridge can be accessed from this server */
   protected $owlapiBridgeURI;
-  
-  /*! @brief Enable the Long Read Len feature of Virtuoso. */  
-  protected $enable_lrl = FALSE;
   
   protected $geoEnabled = FALSE;
 

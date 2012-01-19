@@ -48,6 +48,9 @@ class DB_Virtuoso
   
   /*! @brief Main version of the Virtuoso server used by this structWSF instance (4, 5 or 6) */
   private $virtuoso_main_version = "6";
+  
+  /*! @brief Enable the Long Read Len feature of Virtuoso. */
+  private $enable_lrl = FALSE;
                                
   /*!   @brief Creating a connection to the datbase system.
               
@@ -67,6 +70,7 @@ class DB_Virtuoso
     include_once("WebService.php");
     
     $this->virtuoso_main_version = WebService::$virtuoso_main_version;    
+    $this->enable_lrl = WebService::$enable_lrl;    
     
     // Connection Database informations
     $this->db_host = $host;
@@ -240,7 +244,9 @@ class DB_Virtuoso
     
     $longValue = odbc_result($resultset, $fieldID);
     
-    if($longValue != "" && odbc_field_len($resultset, $fieldID) > ini_get("odbc.defaultlrl"))
+    if($this->enable_lrl && 
+       $longValue != "" && 
+       odbc_field_len($resultset, $fieldID) > ini_get("odbc.defaultlrl"))
     {
       while(($chunk = odbc_result($resultset, $fieldID)) !== FALSE)
       {
@@ -249,24 +255,6 @@ class DB_Virtuoso
     }
     
     return($longValue);       
-    
-    /*
-    $longValue = "";
-    
-    if(odbc_field_len($resultset, $fieldID) > ini_get("odbc.defaultlrl"))
-    {
-      while(($chunk = odbc_result($resultset, $fieldID)) !== FALSE)
-      {
-        $longValue .= $chunk;
-      } 
-    }
-    else
-    {
-      $longValue = odbc_result($resultset, $fieldID);
-    } 
-    
-    return($longValue);   
-    */
   }  
 }
 

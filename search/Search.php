@@ -1669,6 +1669,16 @@ class Search extends WebService
                 $coreAttr = TRUE;
               break;
               
+              case Namespaces::$sco."polygonCoordinates":
+                $attribute = "polygonCoordinates";
+                $coreAttr = TRUE;
+              break;
+              
+              case Namespaces::$sco."polylineCoordinates":
+                $attribute = "polylineCoordinates";
+                $coreAttr = TRUE;
+              break;
+              
               case Namespaces::$rdf."type":
                 $attribute = "type";
                 $coreAttr = TRUE;
@@ -1975,6 +1985,8 @@ class Search extends WebService
         $solrQuery .= "description ";
         $solrQuery .= "lat ";
         $solrQuery .= "long ";
+        $solrQuery .= "polygonCoordinates ";
+        $solrQuery .= "polylineCoordinates ";
         $solrQuery .= "type ";
         $solrQuery .= "uri ";
         $solrQuery .= "locatedIn ";
@@ -1985,7 +1997,7 @@ class Search extends WebService
         $solrQuery .= "prefLabelAutocompletion";
         
       }
-      
+    
       $resultset = $solr->select($solrQuery);
 
       $domResultset = new DomDocument("1.0", "utf-8");

@@ -1436,7 +1436,7 @@ class CrudRead extends WebService
           */
           
           $query = $this->db->build_sparql_query("
-            select ?p ?o (DATATYPE(?o)) as ?otype (LANG(?o)) as ?olang 
+            select ?p ?o (DATATYPE(?o)) as ?otype (LANG(?o)) as ?olang ?g 
             $d 
             where 
             {
@@ -1446,7 +1446,7 @@ class CrudRead extends WebService
               }
               ".($attributesFilter == "" ? "" : "FILTER regex(str(?p), \"($attributesFilter)\")")."
             }", 
-            array ('p', 'o', 'otype', 'olang'), FALSE);
+            array ('p', 'o', 'otype', 'olang', 'g'), FALSE);
           
         }
 
@@ -1461,6 +1461,8 @@ class CrudRead extends WebService
             $this->errorMessenger->_302->name, $this->errorMessenger->_302->description, odbc_errormsg(),
             $this->errorMessenger->_302->level);
         }
+        
+        $g = "";
 
         while(odbc_fetch_row($resultset))
         {
@@ -1470,6 +1472,18 @@ class CrudRead extends WebService
 
           $otype = odbc_result($resultset, 3);
           $olang = odbc_result($resultset, 4);
+                    
+          if($g == "")
+          {
+            if($this->globalDataset === FALSE)
+            {
+              $g = str_ireplace("%3B", ";", $datasets[$key]);
+            }
+            else
+            {
+              $g = odbc_result($resultset, 5);
+            }
+          }
 
           if(!isset($this->subjectTriples[$u][$p]))
           {
@@ -1525,6 +1539,17 @@ class CrudRead extends WebService
 
           return;
         }
+        
+        // Assigning the Dataset relationship
+        if($g != "")
+        {         
+          if(!isset($this->subjectTriples[$u]["http://purl.org/dc/terms/isPartOf"]))
+          {
+            $this->subjectTriples[$u]["http://purl.org/dc/terms/isPartOf"] = array();
+          }         
+          
+          array_push($this->subjectTriples[$u]["http://purl.org/dc/terms/isPartOf"], array ($g, "http://www.w3.org/2001/XMLSchema#string"));  
+        }        
 
         // Archiving object triples
         if(strtolower($this->include_linksback) == "true")

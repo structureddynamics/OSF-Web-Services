@@ -1659,17 +1659,31 @@ class Search extends WebService
                 $coreAttr = TRUE;
               break;
               
-              case Namespaces::$geonames."lat":
+              case Namespaces::$geo."lat":
+                if(!is_numeric(urldecode($attributeValue[1])))
+                {
+                  // If the value is not numeric, we skip that attribute/value. 
+                  // Otherwise an exception will be raised by Solr.
+                  continue;
+                }
+                              
                 $attribute = "lat";
                 $coreAttr = TRUE;
               break;
               
-              case Namespaces::$geonames."long":
+              case Namespaces::$geo."long":
+                if(!is_numeric(urldecode($attributeValue[1])))
+                {
+                  // If the value is not numeric, we skip that attribute/value. 
+                  // Otherwise an exception will be raised by Solr.
+                  continue;
+                }
+                
                 $attribute = "long";
                 $coreAttr = TRUE;
               break;
               
-              case Namespaces::$sco."polygonCoordinates":
+              case Namespaces::$sco."polygonCoordinates":              
                 $attribute = "polygonCoordinates";
                 $coreAttr = TRUE;
               break;
@@ -1997,7 +2011,10 @@ class Search extends WebService
         $solrQuery .= "prefLabelAutocompletion";
         
       }
-    
+      
+      // Remove possible left-over introduced by the procedure above for some rare usecases.
+      $solrQuery = str_replace("fq= OR ", "fq=", $solrQuery);      
+      
       $resultset = $solr->select($solrQuery);
 
       $domResultset = new DomDocument("1.0", "utf-8");

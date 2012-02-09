@@ -1394,12 +1394,30 @@ class CrudRead extends WebService
 
         $attributesFilter = "";
         
-        foreach($this->include_attributes_list as $attr)
+        // If the structWSF instance uses Virtuoso 6, then we use the new FILTER...IN... statement
+        // instead of the FILTER...regex. This makes the queries much faster and fix an issue
+        // when the Virtuoso instance has been fixed with the LRL (long read length) path
+        if($this->virtuoso_main_version != 6)
         {
-          $attributesFilter .= $attr."|";
+          foreach($this->include_attributes_list as $attr)
+          {
+            $attributesFilter .= $attr."|";
+          }
+          
+          $attributesFilter = trim($attributesFilter, "|");
         }
-  
-        $attributesFilter = trim($attributesFilter, "|");
+        else
+        {
+          foreach($this->include_attributes_list as $attr)
+          {
+            if($attr != "")
+            {
+              $attributesFilter .= "<$attr>,";
+            }
+          }
+          
+          $attributesFilter = trim($attributesFilter, ",");
+        }
         
         if($this->globalDataset === FALSE)
         {
@@ -1412,7 +1430,11 @@ class CrudRead extends WebService
             where 
             {
               <$u> ?p ?o.
-              ".($attributesFilter == "" ? "" : "FILTER regex(str(?p), \"($attributesFilter)\")")."
+              ".(
+                  $this->virtuoso_main_version != 6 ?
+                  ($attributesFilter == "" ? "" : "FILTER regex(str(?p), \"($attributesFilter)\")") : 
+                  ($attributesFilter == "" ? "" : "FILTER (?p IN($attributesFilter))")
+                )."
             }", 
             array ('p', 'o', 'otype', 'olang'), FALSE);
         }
@@ -1429,12 +1451,6 @@ class CrudRead extends WebService
           }
 
           // Archiving suject triples
-          /*          
-          $query = $this->db->build_sparql_query("select ?p ?o (DATATYPE(?o)) as ?otype (LANG(?o)) as ?olang "
-            . " $d where {graph ?g{<" . $u
-            . "> ?p ?o.}}", array ('p', 'o', 'otype', 'olang'), FALSE);
-          */
-          
           $query = $this->db->build_sparql_query("
             select ?p ?o (DATATYPE(?o)) as ?otype (LANG(?o)) as ?olang ?g 
             $d 
@@ -1444,10 +1460,14 @@ class CrudRead extends WebService
               {
                 <$u> ?p ?o.
               }
-              ".($attributesFilter == "" ? "" : "FILTER regex(str(?p), \"($attributesFilter)\")")."
+              ".(
+                  $this->virtuoso_main_version != 6 ?
+                  ($attributesFilter == "" ? "" : "FILTER regex(str(?p), \"($attributesFilter)\")") : 
+                  ($attributesFilter == "" ? "" : "FILTER (?p IN($attributesFilter))")
+                )."
             }", 
             array ('p', 'o', 'otype', 'olang', 'g'), FALSE);
-          
+               
         }
 
         $resultset = $this->db->query($query);

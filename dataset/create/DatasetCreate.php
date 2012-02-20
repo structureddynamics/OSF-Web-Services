@@ -535,7 +535,7 @@ class DatasetCreate extends WebService
                 " . ($this->datasetTitle != "" ? "<http://purl.org/dc/terms/title> \"\"\"" . str_replace("'", "\'", $this->datasetTitle) . "\"\"\" ; " : "") . "
                 " . ($this->description != "" ? "<http://purl.org/dc/terms/description> \"\"\"" . str_replace("'", "\'", $this->description) . "\"\"\" ; " : "") . "
                 " . ($this->creator != "" ? "<http://purl.org/dc/terms/creator> <$this->creator> ; " : "") . "
-                <http://purl.org/dc/terms/created> \"" . date("Y-m-j") . "\" .
+                <http://purl.org/dc/terms/created> \"" . date("Y-n-j") . "\" .
               }";
 
       @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),

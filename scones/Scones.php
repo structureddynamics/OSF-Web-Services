@@ -25,9 +25,6 @@
 
 class Scones extends WebService
 {
-  /*! @brief Conneg object that manage the content negotiation capabilities of the web service */
-  private $conneg;
-
   /*! @brief URL where the DTD of the XML document can be located on the Web */
   private $dtdURL;
 
@@ -453,35 +450,6 @@ class Scones extends WebService
       break;
     }
   }
-
-  /*!   @brief Sends the HTTP response to the requester
-              
-      \n
-      
-      @param[in] $content The content (body) of the response.
-      
-      @return NULL
-    
-      @author Frederick Giasson, Structured Dynamics LLC.
-    
-      \n\n\n
-  */
-  public function ws_respond($content)
-  {
-    // First send the header of the request
-    $this->conneg->respond();
-
-    // second, send the content of the request
-
-    // Make sure there is no error.
-    if($this->conneg->getStatus() == 200)
-    {
-      echo $content;
-    }
-
-    $this->__destruct();
-  }
-
 
   /*!   @brief Process the document by tagging it using Scones.
               

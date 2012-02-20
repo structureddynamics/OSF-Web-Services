@@ -40,6 +40,9 @@ abstract class WebService
   /*! @brief Enable the Long Read Len feature of Virtuoso. */  
   public static $enable_lrl = FALSE;
     
+  /*! @brief Conneg object that manage the content negotiation capabilities of the web service */
+  protected $conneg;	
+	
   /*! @brief Database user name */
   protected $db_username = "";
 
@@ -424,19 +427,33 @@ abstract class WebService
   */
   abstract public function ws_serialize();
 
-/*!   @brief Sends the respond to the user. The $content should come from ws_serialize() to be valid according to the conneg with the user.
-            
-    \n
+  /*!   @brief Sends the HTTP response to the requester
+              
+      \n
+      
+      @param[in] $content The content (body) of the response.
+      
+      @return NULL
     
-    @param[in] $content The content (body) of the response.
+      @author Frederick Giasson, Structured Dynamics LLC.
     
-    @return NULL
-  
-    @author Frederick Giasson, Structured Dynamics LLC.
-  
-    \n\n\n
-*/
-  abstract public function ws_respond($content);
+      \n\n\n
+  */
+  public function ws_respond($content)
+  {
+    // First send the header of the request
+    $this->conneg->respond();
+
+    // second, send the content of the request
+
+    // Make sure there is no error.
+    if($this->conneg->getStatus() == 200)
+    {
+      echo $content;
+    }
+
+    $this->__destruct();
+  }
 
 
   /*!   @brief Propagate the conneg to the nodes that belong to the current pipeline of web services.

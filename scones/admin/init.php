@@ -1,8 +1,4 @@
 <?php
-
-  error_reporting(E_ALL);
-  ini_set('display_errors', '1');
-
   /*
       This script initialize all the running (and persisted) Gate application sessions.
       These sessions are used simultaneously to process different corpus of documents
@@ -10,6 +6,9 @@
       
       This init.php script has to be ran each time that tomcat is restarted.
   */
+
+  error_reporting(E_ALL);
+  ini_set('display_errors', '1');
   
   /*
     Get the pool of stories to process

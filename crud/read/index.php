@@ -83,7 +83,7 @@ if(isset($_GET['include_reification']))
 }
 elseif(isset($_POST['include_reification']))
 {
-  $include_linksback = $_POST['include_reification'];
+  $include_reification = $_POST['include_reification'];
 }
 
 // Include attribute/values of the attributes defined in this list
@@ -97,7 +97,6 @@ elseif(isset($_POST['include_attributes_list']))
 {
   $include_attributes_list = $_POST['include_attributes_list'];
 }
-
 
 // Optional IP
 $registered_ip = "";

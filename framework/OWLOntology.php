@@ -485,7 +485,7 @@ class OWLOntology
   *  
   * @author Frederick Giasson, Structured Dynamics LLC.
   */  
-  public function getClassesUri($limit = -1, $offset = -1)
+  public function getClassesUri($limit = -1, $offset = 0)
   {
     $classes = $this->ontology->getClassesInSignature();
 
@@ -495,7 +495,7 @@ class OWLOntology
           
     foreach($classes as $class)
     {
-      if($limit > -1 && $offset > -1)
+      if($limit > -1)
       {
         if($nb >= $offset + $limit)  
         {
@@ -726,7 +726,7 @@ class OWLOntology
   *  
   * @author Frederick Giasson, Structured Dynamics LLC.
   */  
-  public function getClassesDescription($limit = -1, $offset = -1)
+  public function getClassesDescription($limit = -1, $offset = 0)
   {
     $classes = $this->ontology->getClassesInSignature();
     
@@ -736,7 +736,7 @@ class OWLOntology
     
     foreach($classes as $class)
     {
-      if($limit > -1 && $offset > -1)
+      if($limit > -1)
       {
         if($nb >= $offset + $limit)  
         {
@@ -1003,7 +1003,7 @@ class OWLOntology
   *  
   * @author Frederick Giasson, Structured Dynamics LLC.
   */  
-  public function getPropertiesUri($includesDataProperties = TRUE, $includesObjectProperties = FALSE, $includesAnnotationProperties = FALSE, $limit = -1, $offset = -1)
+  public function getPropertiesUri($includesDataProperties = TRUE, $includesObjectProperties = FALSE, $includesAnnotationProperties = FALSE, $limit = -1, $offset = 0)
   {
     $propertyUris = array();
     $nb = 0;      
@@ -1029,7 +1029,7 @@ class OWLOntology
       
       foreach($properties as $property)
       {
-        if($limit > -1 && $offset > -1)
+        if($limit > -1 )
         {
           if($nb >= $offset + $limit)  
           {
@@ -1079,7 +1079,7 @@ class OWLOntology
   *  
   * @author Frederick Giasson, Structured Dynamics LLC.
   */  
-  public function getPropertiesDescription($includesDataProperties = TRUE, $includesObjectProperties = FALSE, $includesAnnotationProperties = FALSE, $limit = -1, $offset = -1)
+  public function getPropertiesDescription($includesDataProperties = TRUE, $includesObjectProperties = FALSE, $includesAnnotationProperties = FALSE, $limit = -1, $offset = 0)
   {
     $propertyDescription = array();
 
@@ -1112,7 +1112,7 @@ class OWLOntology
         {
           foreach($properties as $property)
           {
-            if($limit > -1 && $offset > -1)
+            if($limit > -1)
             {
               if($nb >= $offset + $limit)  
               {
@@ -2662,7 +2662,7 @@ class OWLOntology
   *  
   * @author Frederick Giasson, Structured Dynamics LLC.
   */
-  public function getNamedIndividualsUri($classUri = "all", $direct = true, $limit = -1, $offset = -1)
+  public function getNamedIndividualsUri($classUri = "all", $direct = true, $limit = -1, $offset = 0)
   {
     // Create a class object.
     $individuals;
@@ -2694,7 +2694,7 @@ class OWLOntology
     {
       if(java_instanceof($individual, java("org.semanticweb.owlapi.model.OWLNamedIndividual")))
       {
-        if($limit > -1 && $offset > -1)
+        if($limit > -1)
         {
           if($nb >= $offset + $limit)  
           {
@@ -2750,7 +2750,7 @@ class OWLOntology
   *  
   * @author Frederick Giasson, Structured Dynamics LLC.
   */  
-  public function getNamedIndividualsDescription($classUri = "all", $direct = true, $limit = -1, $offset = -1, $list = FALSE)
+  public function getNamedIndividualsDescription($classUri = "all", $direct = true, $limit = -1, $offset = 0, $list = FALSE)
   {
     $namedIndividuals;
     if($classUri != "all")
@@ -2780,7 +2780,7 @@ class OWLOntology
     {
       if(java_instanceof($ni, java("org.semanticweb.owlapi.model.OWLNamedIndividual")))
       {
-        if($limit > -1 && $offset > -1)
+        if($limit > -1)
         {
           if($nb >= $offset + $limit)  
           {

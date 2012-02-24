@@ -67,7 +67,7 @@ class ConverterIrJSON extends WebService
   /*! @brief Supported serialization mime types by this Web service */
   public static $supportedSerializations =
     array ("application/iron+json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/tsv",
-      "text/csv", "text/xml", "text/*", "*/*");
+      "text/csv", "text/xml", "text/*", "*/*");  
 
   /*! @brief Error messages of this web service */
   private $errorMessenger =
@@ -879,8 +879,6 @@ class ConverterIrJSON extends WebService
         // (1) if a type already exists, the type of the first schema will be used
         // (2) if an attribute already exists, the attribute of the first schema will be used.
 
-        $parsedContent = $parsedContent->linkage;
-
         $merged = FALSE;
 
         $mergedSchemas = array();
@@ -983,8 +981,6 @@ class ConverterIrJSON extends WebService
 
               foreach($objects as $object)
               {
-                $objectType = $xml->getType($object);
-
                 if($predicateType != $xml->getType($predicate, FALSE))
                 {
                   $predicateType = $xml->getType($predicate, FALSE);
@@ -1036,7 +1032,7 @@ class ConverterIrJSON extends WebService
                     }
                   }
 
-                  if($objectType == "rdfs:Literal")
+                  if($xml->getURI($object) == "")
                   {
                     $objectValue = $xml->getContent($object);
 
@@ -1310,7 +1306,7 @@ class ConverterIrJSON extends WebService
                   $instanceRecordsJson .= "            \"$predicateName\": [\n";
                 }
 
-                if($objectType == "rdfs:Literal")
+                if($xml->getURI($object) == "")
                 {
                   $objectValue = $xml->getContent($object);
 
@@ -1510,7 +1506,7 @@ else
                 $predicateType = $xml->getType($predicate, FALSE);
                 $objectContent = $xml->getContent($object);
 
-                if($objectType == "rdfs:Literal")
+                if($xml->getURI($object) == "")
                 {
                   $objectValue = $xml->getContent($object);
                   $tsv .= str_replace($this->delimiter, urlencode($this->delimiter), $subjectURI) . $this->delimiter
@@ -1559,7 +1555,7 @@ else
                 $predicateType = $xml->getType($predicate, FALSE);
                 $objectContent = $xml->getContent($object);
 
-                if($objectType == "rdfs:Literal")
+                if($xml->getURI($object) == "")
                 {
                   $objectValue = $xml->getContent($object);
                   $rdf_part .= "        <$predicateType> \"\"\"" . str_replace(array( "\\" ), "\\\\", $objectValue)
@@ -1632,7 +1628,7 @@ else
                 $objectType = $xml->getType($object);
                 $predicateType = $xml->getType($predicate, FALSE);
 
-                if($objectType == "rdfs:Literal")
+                if($xml->getURI($object) == "")
                 {
                   $objectValue = $xml->getContent($object);
 

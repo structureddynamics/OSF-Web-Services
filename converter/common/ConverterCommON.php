@@ -63,7 +63,7 @@ class ConverterCommON extends WebService
 
   /*! @brief Supported serialization mime types by this Web service */
   public static $supportedSerializations =
-    array ("application/iron+csv", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");
+    array ("application/iron+csv", "application/rdf+n3", "application/*", "text/xml", "text/*", "*/*");   
 
   /*! @brief Error messages of this web service */
   private $errorMessenger =
@@ -124,7 +124,7 @@ class ConverterCommON extends WebService
 
     $this->text = $document;
     $this->docmime = $docmime;
-
+         
     $this->requester_ip = $requester_ip;
 
     if($registered_ip == "")
@@ -233,7 +233,12 @@ class ConverterCommON extends WebService
       \n\n\n
   */
   public function pipeline_getResultset()
-  {
+  {  
+    if($this->docmime == "text/xml")
+    {
+      return ($this->text);
+    }    
+    
     if($this->docmime == "application/iron+csv")
     {
       // Get the ID of the dataset has the base ID of the records
@@ -644,24 +649,280 @@ class ConverterCommON extends WebService
         return($this->parser->getRdfN3($datasetID, $datasetID));
       }
       break;
-    }
-  }
-
-  /*!   @brief Non implemented method (only defined)
-              
-      \n
       
-      @author Frederick Giasson, Structured Dynamics LLC.
-    
-      \n\n\n
-  */
-  public function pipeline_serialize_reification()
-  {
-    $rdf_reification = "";
+      case "application/iron+csv":
+      {
+        $commON = "";
 
-    switch($this->conneg->getMime())
-    {
+        $xml = new ProcessorXML();
+        $xml->loadXML($this->pipeline_getResultset());
 
+        $subjects = $xml->getSubjects();
+
+        $commON .= "&&recordList\n";  
+        
+        $prefixes = array();
+        
+        // Get the complete list of all the attributes used in this resultset.
+        $attributes = array();    
+ 
+        foreach($subjects as $subject)
+        {
+          $predicates = $xml->getPredicates($subject);
+
+          foreach($predicates as $predicate)
+          {
+            $attributeURI = $xml->getType($predicate, FALSE);
+            
+            if(!isset($attributes[$attributeURI]))
+            {
+              $prefix = "";
+              $baseUri = "";
+              
+              if(($pos = strripos($attributeURI, "#")) !== FALSE)
+              {
+                $baseUri = substr($attributeURI, 0, $pos + 1);
+                
+                if(isset($prefixes[$baseUri]))
+                {
+                  $prefix = $prefixes[$baseUri];
+                }
+                else
+                {
+                  $prefix = "ns".count($prefixes);
+                }
+              }
+              elseif(($pos = strripos($attributeURI, "/")) !== FALSE)
+              {
+                $baseUri = substr($attributeURI, 0, $pos + 1);
+                
+                if(isset($prefixes[$baseUri]))
+                {
+                  $prefix = $prefixes[$baseUri];
+                }
+                else
+                {
+                  $prefix = "ns".count($prefixes);
+                }
+              }
+              
+              if($prefix != "" && $baseUri != "")
+              {
+                $prefixes[$baseUri] = $prefix;
+                $attributes[$attributeURI] = str_replace($baseUri, $prefix."_", $attributeURI);
+              }
+              else
+              {
+                $attributes[$attributeURI] = $attributeUri;
+              }
+            }
+          }
+        }
+        
+        // Get the complete list of all the types used in this resultset.
+        $types = array();    
+        
+        foreach($subjects as $subject)
+        {
+          $typeURI = $xml->getType($subject, FALSE);
+          
+          if($typeURI == "http://rdfs.org/ns/void#Dataset")
+          {
+            continue;
+          }
+          
+          if(!isset($types[$typeURI]))
+          {
+            $prefix = "";
+            $baseUri = "";
+            
+            if(($pos = strripos($typeURI, "#")) !== FALSE)
+            {
+              $baseUri = substr($typeURI, 0, $pos + 1);
+              
+              if(isset($prefixes[$baseUri]))
+              {
+                $prefix = $prefixes[$baseUri];
+              }
+              else
+              {
+                $prefix = "ns".count($prefixes);
+              }
+            }
+            elseif(($pos = strripos($typeURI, "/")) !== FALSE)
+            {
+              $baseUri = substr($typeURI, 0, $pos + 1);
+              
+              if(isset($prefixes[$baseUri]))
+              {
+                $prefix = $prefixes[$baseUri];
+              }
+              else
+              {
+                $prefix = "ns".count($prefixes);
+              }
+            }
+            
+            if($prefix != "" && $baseUri != "")
+            {
+              $prefixes[$baseUri] = $prefix;
+              $types[$typeURI] = str_replace($baseUri, $prefix."_", $typeURI);
+            }
+            else
+            {
+              $types[$typeURI] = $typeURI;              
+            }
+          }
+        }
+        
+        // Now create the complete list of attributes of this resultset
+        $commON .= "&id,&type,";
+        
+        foreach($attributes as $attributeURI => $attributePrefixed)
+        {
+          $commON .= "&".str_replace(':', '_', $attributePrefixed).",";
+        }        
+        
+        $commON = trim($commON, ",")."\n";
+
+        // Now populate the commON file with all the records
+        foreach($subjects as $subject)
+        {
+          $subjectURI = $xml->getURI($subject);
+          $subjectTypeURI = $xml->getType($subject, FALSE);
+          
+          if($subjectTypeURI == "http://rdfs.org/ns/void#Dataset")
+          {
+            continue;
+          }
+          
+          $commON .= $subjectURI.",";
+          
+          if(($pos = strripos($subjectTypeURI, "#")) !== FALSE)
+          {
+            $baseUri = substr($subjectTypeURI, 0, $pos + 1);
+          }
+          elseif(($pos = strripos($subjectTypeURI, "/")) !== FALSE)
+          {
+            $baseUri = substr($subjectTypeURI, 0, $pos + 1);
+          }        
+          
+          $commON .= str_replace(":", "_", str_replace($baseUri, $prefixes[$baseUri].":", $subjectTypeURI)).",";
+     
+          foreach($attributes as $attributeURI => $attributePrefix)
+          {
+            $values = $xml->getPredicatesByType($subject, $attributeURI);
+            
+            if($values->length > 0)
+            {
+              $commON .= '"';
+              
+              foreach($values as $element)
+              {
+                $objects = $xml->getObjects($element);
+                
+                foreach($objects as $object)
+                {
+                  if($xml->getURI($object) == "")
+                  {
+                    $objectValue = $xml->getContent($object);
+                    $commON .= str_replace('"', '\"', $objectValue).'||';
+                  }
+                  else
+                  {
+                    $objectURI = $xml->getURI($object);                    
+                    
+                    $prefix = "";
+                    $baseUri = "";
+                    
+                    if(($pos = strripos($objectURI, "#")) !== FALSE)
+                    {
+                      $baseUri = substr($objectURI, 0, $pos + 1);
+                      
+                      if(isset($prefixes[$baseUri]))
+                      {
+                        $prefix = $prefixes[$baseUri];
+                      }
+                      else
+                      {
+                        $prefix = "ns".count($prefixes);
+                      }
+                    }
+                    elseif(($pos = strripos($objectURI, "/")) !== FALSE)
+                    {
+                      $baseUri = substr($objectURI, 0, $pos + 1);
+                      
+                      if(isset($prefixes[$baseUri]))
+                      {
+                        $prefix = $prefixes[$baseUri];
+                      }
+                      else
+                      {
+                        $prefix = "ns".count($prefixes);
+                      }
+                    }
+                    
+                    if($prefix != "" && $baseUri != "")
+                    {
+                      $prefixes[$baseUri] = $prefix;
+                      
+                      $commON .= str_replace('"', '\"', "@@".str_replace($baseUri, $prefix.":", $objectURI)).'||';
+                    }
+                    else
+                    {
+                      $commON .= str_replace('"', '\"', "@@".$objectURI).'||';
+                    }                                        
+                  }
+                }              
+              }            
+              
+              $commON = substr($commON, 0, strlen($commON) - 2);
+              $commON .= '",';              
+            }
+            else
+            {
+              $commON .= ",";
+            }
+          }
+          
+          $commON = trim($commON, ",")."\n";
+        }
+        
+        $commON .= "\n";
+        
+        $commON .= "&&linkage\n";
+        $commON .= "&version,&linkageType\n";
+        $commON .= "1,application/rdf+xml\n";
+        
+        $commON .= "\n";        
+        
+        $commON .= "&prefixList,&mapTo\n";
+        
+        foreach($prefixes as $baseUri => $prefix)
+        {
+          $commON .= $prefix.",".$baseUri."\n";
+        }
+        
+        $commON .= "\n";        
+        
+        $commON .= "&attributeList,&mapTo\n";
+        
+        foreach($attributes as $uri => $attr)
+        {
+          $commON .= $attr.",".$uri."\n";
+        }
+        
+        $commON .= "\n";        
+        
+        $commON .= "&typeList,&mapTo\n";
+        
+        foreach($types as $uri => $type)
+        {
+          $commON .= $type.",".$uri."\n";
+        }
+        
+        return($commON);        
+      }
     }
   }
 
@@ -686,6 +947,10 @@ class ConverterCommON extends WebService
     {
       switch($this->conneg->getMime())
       {
+        case "application/iron+csv":
+          return ($this->pipeline_serialize());
+        break;
+        
         case "text/xml":
         case "application/rdf+n3":
           return ($this->pipeline_serialize());

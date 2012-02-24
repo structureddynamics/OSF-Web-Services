@@ -1249,14 +1249,18 @@ class OntologyRead extends WebService
         case "getclasses":
 
           $limit = -1;
-          $offset = -1;
+          $offset = 0;
           
-          if(isset($this->parameters["limit"]) && isset($this->parameters["offset"]))
+          if(isset($this->parameters["limit"]))
           {
             $limit = $this->parameters["limit"];
-            $offset = $this->parameters["offset"];
           }
-        
+          
+          if(isset($this->parameters["offset"]))
+          {
+            $offset = $this->parameters["offset"];
+          }          
+          
           switch(strtolower($this->parameters["mode"]))
           {
             case "uris":
@@ -1308,13 +1312,17 @@ class OntologyRead extends WebService
         case "getnamedindividuals":
 
           $limit = -1;
-          $offset = -1;
+          $offset = 0;
           
           $direct = true;
           
-          if(isset($this->parameters["limit"]) && isset($this->parameters["offset"]))
+          if(isset($this->parameters["limit"]))
           {
             $limit = $this->parameters["limit"];
+          }
+          
+          if(isset($this->parameters["offset"]))
+          {
             $offset = $this->parameters["offset"];
           }
 
@@ -2432,13 +2440,17 @@ class OntologyRead extends WebService
         case "getproperties":
         
           $limit = -1;
-          $offset = -1;
+          $offset = 0;
           
-          if(isset($this->parameters["limit"]) && isset($this->parameters["offset"]))
+          if(isset($this->parameters["limit"]))
           {
             $limit = $this->parameters["limit"];
+          }
+          
+          if(isset($this->parameters["offset"]))
+          {
             $offset = $this->parameters["offset"];
-          }        
+          }
         
           switch(strtolower($this->parameters["mode"]))
           {

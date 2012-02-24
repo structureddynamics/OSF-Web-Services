@@ -250,6 +250,7 @@ class Conneg
 
       case "text/tsv":
       case "text/csv":
+      case "application/iron+csv":
       case "application/x-bibtex":
         $mime = "text/plain";
       break;
@@ -583,6 +584,18 @@ class Conneg
           $this->status = 200;
           $this->statusMsg = "OK";
           $this->mime = "application/iron+json";
+
+          $notAcceptable406 = FALSE;
+
+          break;
+        }
+
+        if($mime == "application/iron+csv"
+          && array_search("application/iron+csv", $this->supported_serializations) !== FALSE)
+        {
+          $this->status = 200;
+          $this->statusMsg = "OK";
+          $this->mime = "application/iron+csv";
 
           $notAcceptable406 = FALSE;
 

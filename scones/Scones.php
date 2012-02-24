@@ -412,43 +412,9 @@ class Scones extends WebService
     
       \n\n\n
   */
-  public function pipeline_serialize()
-  {
-    return $this->pipeline_getResultset();
-  }
-
-  /*!   @brief Non implemented method (only defined)
-              
-      \n
-      
-      @author Frederick Giasson, Structured Dynamics LLC.
-    
-      \n\n\n
-  */
-  public function pipeline_serialize_reification() { }
-
-  /*!   @brief Serialize the web service answer.
-              
-      \n
-      
-      @return returns the serialized content
-    
-      @author Frederick Giasson, Structured Dynamics LLC.
-    
-      \n\n\n
-  */
   public function ws_serialize()
   {
-    switch($this->conneg->getMime())
-    {
-      case "text/xml":
-        return $this->pipeline_serialize();
-      break;
-
-      default:
-        return $this->pipeline_getResultset();
-      break;
-    }
+    return($this->pipeline_getResultset());
   }
 
   /*!   @brief Process the document by tagging it using Scones.
@@ -473,8 +439,9 @@ class Scones extends WebService
         for($i = 1; $i <= $this->config_ini["gate"]["nbSessions"]; $i++)
         {
           // Make sure the issued is not currently used by another user/process
-          if(java_values($this->SconesSession->get("session".$i."_used")) === FALSE)
-          {
+          //if(java_values($this->SconesSession->get("session".$i."_used")) === FALSE)
+          //{
+
             $this->SconesSession->put("session".$i."_used", TRUE);
             
             // Process the incoming article
@@ -521,10 +488,10 @@ class Scones extends WebService
             $this->SconesSession->put("session".$i."_used", FALSE);
             
             // Fix namespaces of the type of the tagged named entities
-            $this->fixNamedEntitiesNamespaces();
+            //$this->fixNamedEntitiesNamespaces();
             
             break;
-          }
+          //}
         }
         
         sleep(1);

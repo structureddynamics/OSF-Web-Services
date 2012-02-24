@@ -418,28 +418,6 @@ class DatasetDelete extends WebService
     
       \n\n\n
   */
-  public function pipeline_serialize() { return ""; }
-
-  /*!   @brief Non implemented method (only defined)
-              
-      \n
-      
-      @author Frederick Giasson, Structured Dynamics LLC.
-    
-      \n\n\n
-  */
-  public function pipeline_serialize_reification() { return ""; }
-
-  /*!   @brief Serialize the web service answer.
-              
-      \n
-      
-      @return returns the serialized content
-    
-      @author Frederick Giasson, Structured Dynamics LLC.
-    
-      \n\n\n
-  */
   public function ws_serialize() { return ""; }
 
   /*!   @brief Delete a dataset from the WSF

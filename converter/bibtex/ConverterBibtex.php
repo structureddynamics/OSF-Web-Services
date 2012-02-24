@@ -864,16 +864,6 @@ class ConverterBibtex extends WebService
     }
   }
 
-  /*!   @brief Non implemented method (only defined)
-              
-      \n
-      
-      @author Frederick Giasson, Structured Dynamics LLC.
-    
-      \n\n\n
-  */
-  public function pipeline_serialize_reification() { return ""; }
-
   /*!   @brief Serialize the converted UCB Memorial Data content into different serialization formats
               
       \n

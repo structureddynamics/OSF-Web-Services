@@ -42,15 +42,6 @@ class AuthLister extends WebService
 
   /*! @brief Type of the thing to list */
   private $mode = "";
-
-  /*! @brief List of datasets being listed */
-  private $datasets = array();
-
-  /*! @brief List of webservices being listed */
-  private $webservices = array();
-
-  /*! @brief List of accesses being listed */
-  private $accesses = array();
   
   /*! @brief Specifies what web service we want to focus on for that query */
   private $targetWebservice = "all";
@@ -105,8 +96,8 @@ class AuthLister extends WebService
 
   /*! @brief Supported serialization mime types by this Web service */
   public static $supportedSerializations =
-    array ("application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*",
-      "*/*");
+    array ("application/json", "application/rdf+xml", "application/rdf+n3", "application/iron+json", 
+           "application/iron+csv", "application/*", "text/xml", "text/*", "*/*");
 
 /*!   @brief Constructor
      @details   Initialize the Auth Web Service
@@ -240,141 +231,9 @@ class AuthLister extends WebService
     
       \n\n\n
   */
-  public function pipeline_getResultset()
-  {
-    $xml = new ProcessorXML();
-
-    // Creation of the RESULTSET
-    $resultset = $xml->createResultset();
-
-    // Creation of the prefixes elements.
-    $void = $xml->createPrefix("owl", "http://www.w3.org/2002/07/owl#");
-    $resultset->appendChild($void);
-    $rdf = $xml->createPrefix("rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#");
-    $resultset->appendChild($rdf);
-    $dcterms = $xml->createPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
-    $resultset->appendChild($dcterms);
-    $dcterms = $xml->createPrefix("wsf", "http://purl.org/ontology/wsf#");
-    $resultset->appendChild($dcterms);
-
-    if(strtolower($this->mode) != "access_dataset" && strtolower($this->mode) != "access_user")
-    {
-      // Creation of the SUBJECT of the RESULTSET
-      $subject = $xml->createSubject("rdf:Bag", "");
-
-      if(strtolower($this->mode) == "ws")
-      {
-        foreach($this->webservices as $ws)
-        {
-          // Creation of the RDF:LI predicate
-          $pred = $xml->createPredicate("rdf:li");
-
-          // Creation of the OBJECT of the predicate
-          $object = $xml->createObject("wsf:WebService", "$ws");
-
-          $pred->appendChild($object);
-          $subject->appendChild($pred);
-        }
-      }
-      elseif(strtolower($this->mode) == "dataset")
-      {
-        foreach($this->datasets as $dataset)
-        {
-          // Creation of the RDF:LI predicate
-          $pred = $xml->createPredicate("rdf:li");
-
-          // Creation of the OBJECT of the predicate
-          $object = $xml->createObject("void:Dataset", "$dataset");
-
-          $pred->appendChild($object);
-          $subject->appendChild($pred);
-        }
-      }
-
-      $resultset->appendChild($subject);
-    }
-    else
-    {
-      /*
-        Array
-        (
-          [0] => Array
-            (
-              [0] => Access URI
-              [1] => Dataset URI [access_user] / registered-ip [access_dataset]
-              [2] => Create
-              [3] => Read
-              [4] => Update
-              [5] => Delete
-              [6] => registered-ip [access_user] / empty [access_dataset]
-              [7] => Web services URI
-              [7+N] => More web services URI
-            )
-        
-        )
-      */
-
-      // Creation of the SUBJECT of the RESULTSET
-
-      foreach($this->accesses as $access)
-      {
-        $subject = $xml->createSubject("wsf:Access", $access[0]);
-
-        if(strtolower($this->mode) == "access_user")
-        {
-          $pred = $xml->createPredicate("wsf:datasetAccess");
-          $object = $xml->createObject("void:Dataset", $access[1]);
-          $pred->appendChild($object);
-          $subject->appendChild($pred);
-
-          $pred = $xml->createPredicate("wsf:registeredIP");
-          $object = $xml->createObjectContent($access[6]);
-          $pred->appendChild($object);
-          $subject->appendChild($pred);
-        }
-        else // access_dataset
-        {
-          $pred = $xml->createPredicate("wsf:registeredIP");
-          $object = $xml->createObjectContent($access[1]);
-          $pred->appendChild($object);
-          $subject->appendChild($pred);
-        }
-
-        $pred = $xml->createPredicate("wsf:create");
-        $object = $xml->createObjectContent($access[2]);
-        $pred->appendChild($object);
-        $subject->appendChild($pred);
-
-        $pred = $xml->createPredicate("wsf:read");
-        $object = $xml->createObjectContent($access[3]);
-        $pred->appendChild($object);
-        $subject->appendChild($pred);
-
-        $pred = $xml->createPredicate("wsf:update");
-        $object = $xml->createObjectContent($access[4]);
-        $pred->appendChild($object);
-        $subject->appendChild($pred);
-
-        $pred = $xml->createPredicate("wsf:delete");
-        $object = $xml->createObjectContent($access[5]);
-        $pred->appendChild($object);
-        $subject->appendChild($pred);
-
-        $nbWS = count($access) - 7;
-
-        for($i = 0; $i < $nbWS; $i++)
-        {
-          $pred = $xml->createPredicate("wsf:webServiceAccess");
-          $object = $xml->createObject("wsf:WebService", $access[(7 + $i)]);
-          $pred->appendChild($object);
-          $subject->appendChild($pred);
-        }
-
-        $resultset->appendChild($subject);
-      }
-    }
-
-    return ($this->injectDoctype($xml->saveXML($resultset)));
+  public function pipeline_getResultset() 
+  { 
+    return($this->injectDoctype($this->rset->getResultsetXML()));
   }
 
   /*!   @brief Inject the DOCType in a XML document
@@ -517,364 +376,9 @@ class AuthLister extends WebService
     
       \n\n\n
   */
-  public function pipeline_serialize()
-  {
-
-    $rdf_part = "";
-
-    switch($this->conneg->getMime())
-    {
-      case "application/json":
-        $json_part = "";
-        $xml = new ProcessorXML();
-        $xml->loadXML($this->pipeline_getResultset());
-
-        $subjects = $xml->getSubjects();
-
-        foreach($subjects as $subject)
-        {
-          $subjectURI = $xml->getURI($subject);
-          $subjectType = $xml->getType($subject);
-
-          $json_part .= "      { \n";
-          $json_part .= "        \"uri\": \"" . parent::jsonEncode($subjectURI) . "\", \n";
-          $json_part .= "        \"type\": \"" . parent::jsonEncode($subjectType) . "\", \n";
-
-          $predicates = $xml->getPredicates($subject);
-
-          $nbPredicates = 0;
-
-          foreach($predicates as $predicate)
-          {
-            $objects = $xml->getObjects($predicate);
-
-            foreach($objects as $object)
-            {
-              $nbPredicates++;
-
-              if($nbPredicates == 1)
-              {
-                $json_part .= "        \"predicate\": [ \n";
-              }
-
-              $objectType = $xml->getType($object);
-              $predicateType = $xml->getType($predicate);
-
-              if($objectType == "rdfs:Literal")
-              {
-                $objectValue = $xml->getContent($object);
-
-                $json_part .= "          { \n";
-                $json_part .= "            \"" . parent::jsonEncode($predicateType) . "\": \""
-                  . parent::jsonEncode($objectValue) . "\" \n";
-                $json_part .= "          },\n";
-              }
-              else
-              {
-                $objectURI = $xml->getURI($object);
-                $rdf_part .= "          <$predicateType> <$objectURI> ;\n";
-
-                $json_part .= "          { \n";
-                $json_part .= "            \"" . parent::jsonEncode($predicateType) . "\": { \n";
-                $json_part .= "                \"uri\": \"" . parent::jsonEncode($objectURI) . "\" \n";
-                $json_part .= "                } \n";
-                $json_part .= "          },\n";
-              }
-            }
-          }
-
-          if(strlen($json_part) > 0)
-          {
-            $json_part = substr($json_part, 0, strlen($json_part) - 2) . "\n";
-          }
-
-          if($nbPredicates > 0)
-          {
-            $json_part .= "        ]\n";
-          }
-
-          $json_part .= "      },\n";
-        }
-
-        if(strlen($json_part) > 0)
-        {
-          $json_part = substr($json_part, 0, strlen($json_part) - 2) . "\n";
-        }
-
-        return ($json_part);
-      break;
-
-      case "application/rdf+n3":
-
-        $xml = new ProcessorXML();
-        $xml->loadXML($this->pipeline_getResultset());
-
-        if(strtolower($this->mode) != "access_dataset" && strtolower($this->mode) != "access_user")
-        {
-          $subjects = $xml->getSubjectsByType("rdf:Bag");
-
-          foreach($subjects as $subject)
-          {
-            $predicates = $xml->getPredicatesByType($subject, "rdf:li");
-
-            foreach($predicates as $predicate)
-            {
-              if(strtolower($this->mode) == "dataset")
-              {
-                $objects = $xml->getObjectsByType($predicate, "void:Dataset");
-              }
-              else
-              {
-                $objects = $xml->getObjectsByType($predicate, "wsf:WebService");
-              }
-
-              foreach($objects as $object)
-              {
-                $rdf_part .= "    rdf:li <" . $xml->getURI($object) . "> ;\n";
-              }
-            }
-          }
-
-          if(strlen($rdf_part) > 0)
-          {
-            $rdf_part = substr($rdf_part, 0, strlen($rdf_part) - 2) . ".\n";
-          }
-        }
-        else
-        {
-          $xml = new ProcessorXML();
-          $xml->loadXML($this->pipeline_getResultset());
-
-          $accesses = $xml->getSubjectsByType("wsf:Access");
-
-          foreach($accesses as $access)
-          {
-            $access_uri = $xml->getURI($access);
-
-            $rdf_part .= "<$access_uri> a wsf:Access ;\n";
-
-            // Get webServiceAccess
-            $predicates = $xml->getPredicatesByType($access, "wsf:datasetAccess");
-            $objects = $xml->getObjectsByType($predicates->item(0), "void:Dataset");
-
-            $rdf_part .= "wsf:datasetAccess <" . $xml->getURI($objects->item(0)) . "> ;\n";
-
-
-            // Get crud
-            $predicates = $xml->getPredicatesByType($access, "wsf:create");
-            $objects = $xml->getObjectsByType($predicates->item(0), "rdfs:Literal");
-            $rdf_part .= "wsf:create \"" . $xml->getContent($objects->item(0)) . "\" ;\n";
-
-            $predicates = $xml->getPredicatesByType($access, "wsf:read");
-            $objects = $xml->getObjectsByType($predicates->item(0), "rdfs:Literal");
-            $rdf_part .= "wsf:read \"" . $xml->getContent($objects->item(0)) . "\" ;\n";
-
-            $predicates = $xml->getPredicatesByType($access, "wsf:update");
-            $objects = $xml->getObjectsByType($predicates->item(0), "rdfs:Literal");
-            $rdf_part .= "wsf:update \"" . $xml->getContent($objects->item(0)) . "\" ;\n";
-
-            $predicates = $xml->getPredicatesByType($access, "wsf:delete");
-            $objects = $xml->getObjectsByType($predicates->item(0), "rdfs:Literal");
-            $rdf_part .= "wsf:delete \"" . $xml->getContent($objects->item(0)) . "\" ;\n";
-
-            // Get webServiceAccess(es)
-            $webservices = $xml->getPredicatesByType($access, "wsf:webServiceAccess");
-            
-            foreach($webservices as $element)
-            {
-              $objects = $xml->getObjectsByType($element, "wsf:WebService");
-              $rdf_part .= "wsf:webServiceAccess <" . $xml->getURI($objects->item(0)) . "> ;\n";
-            }
-
-            if(strlen($rdf_part) > 0)
-            {
-              $rdf_part = substr($rdf_part, 0, strlen($rdf_part) - 2) . ".\n";
-            }
-          }
-        }
-
-        return ($rdf_part);
-      break;
-
-      case "application/rdf+xml":
-
-        $xml = new ProcessorXML();
-        $xml->loadXML($this->pipeline_getResultset());
-
-        if(strtolower($this->mode) != "access_dataset" && strtolower($this->mode) != "access_user")
-        {
-          $subjects = $xml->getSubjectsByType("rdf:Bag");
-
-          foreach($subjects as $subject)
-          {
-            $predicates = $xml->getPredicatesByType($subject, "rdf:li");
-
-            foreach($predicates as $predicate)
-            {
-              if(strtolower($this->mode) == "dataset")
-              {
-                $objects = $xml->getObjectsByType($predicate, "void:Dataset");
-              }
-              else
-              {
-                $objects = $xml->getObjectsByType($predicate, "wsf:WebService");
-              }
-
-              foreach($objects as $object)
-              {
-                $rdf_part .= "    <rdf:li rdf:resource=\"" . $this->xmlEncode($xml->getURI($object)) . "\" />\n";
-              }
-            }
-          }
-        }
-        else
-        {
-          $xml = new ProcessorXML();
-          $xml->loadXML($this->pipeline_getResultset());
-
-          $accesses = $xml->getSubjectsByType("wsf:Access");
-
-          foreach($accesses as $access)
-          {
-            $access_uri = $xml->getURI($access);
-
-            $rdf_part .= "<wsf:Access rdf:about=\"$access_uri\">\n";
-
-            // Get webServiceAccess
-            $predicates = $xml->getPredicatesByType($access, "wsf:datasetAccess");
-            $objects = $xml->getObjectsByType($predicates->item(0), "void:Dataset");
-
-            $rdf_part .= "<wsf:datasetAccess rdf:resource=\"" . $this->xmlEncode($xml->getURI($objects->item(0))) . "\" />\n";
-
-
-            // Get crud
-            $predicates = $xml->getPredicatesByType($access, "wsf:create");
-            $objects = $xml->getObjectsByType($predicates->item(0), "rdfs:Literal");
-            $rdf_part .= "<wsf:create>" . $xml->getContent($objects->item(0)) . "</wsf:create>\n";
-
-            $predicates = $xml->getPredicatesByType($access, "wsf:read");
-            $objects = $xml->getObjectsByType($predicates->item(0), "rdfs:Literal");
-            $rdf_part .= "<wsf:read>" . $xml->getContent($objects->item(0)) . "</wsf:read>\n";
-
-            $predicates = $xml->getPredicatesByType($access, "wsf:update");
-            $objects = $xml->getObjectsByType($predicates->item(0), "rdfs:Literal");
-            $rdf_part .= "<wsf:update>" . $xml->getContent($objects->item(0)) . "</wsf:update>\n";
-
-            $predicates = $xml->getPredicatesByType($access, "wsf:delete");
-            $objects = $xml->getObjectsByType($predicates->item(0), "rdfs:Literal");
-            $rdf_part .= "<wsf:delete>" . $xml->getContent($objects->item(0)) . "</wsf:delete>\n";
-
-            // Get webServiceAccess(es)
-            $webservices = $xml->getPredicatesByType($access, "wsf:webServiceAccess");
-            
-            foreach($webservices as $element)
-            {
-              $objects = $xml->getObjectsByType($element, "wsf:WebService");
-              $rdf_part .= "<wsf:webServiceAccess rdf:resource=\"" . $xml->getURI($objects->item(0)) . "\" />\n";
-            }
-
-            $rdf_part .= "</wsf:Access>\n";
-          }
-        }
-
-        return ($rdf_part);
-      break;
-    }
-  }
-
-  /*!   @brief Non implemented method (only defined)
-              
-      \n
-      
-      @author Frederick Giasson, Structured Dynamics LLC.
-    
-      \n\n\n
-  */
-  public function pipeline_serialize_reification() { return ""; }
-
-  /*!   @brief Serialize the web service answer.
-              
-      \n
-      
-      @return returns the serialized content
-    
-      @author Frederick Giasson, Structured Dynamics LLC.
-    
-      \n\n\n
-  */
   public function ws_serialize()
   {
-    switch($this->conneg->getMime())
-    {
-      case "application/rdf+n3":
-        $rdf_document = "";
-        $rdf_document .= "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n";
-        $rdf_document .= "@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n";
-        $rdf_document .= "@prefix owl: <http://www.w3.org/2002/07/owl#> .\n";
-        $rdf_document .= "@prefix void: <http://rdfs.org/ns/void#> .\n";
-        $rdf_document .= "@prefix wsf: <http://purl.org/ontology/wsf#> .\n";
-
-        if(strtolower($this->mode) != "access_dataset" && strtolower($this->mode) != "access_user")
-        {
-          $rdf_document .= "_:bnode0 rdf:type rdf:Bag ;\n";
-        }
-
-        $rdf_document .= $this->pipeline_serialize();
-
-        $rdf_document = substr($rdf_document, 0, strlen($rdf_document) - 2) . ".\n";
-
-        return $rdf_document;
-      break;
-
-      case "application/rdf+xml":
-        $rdf_document = "";
-        $rdf_document .= "<?xml version=\"1.0\"?>\n";
-        $rdf_document
-          .= "<rdf:RDF xmlns:bibo=\"http://purl.org/ontology/bibo/\" xmlns:void=\"http://rdfs.org/ns/void#\" xmlns:wsf=\"http://purl.org/ontology/wsf#\" xmlns:owl=\"http://www.w3.org/2002/07/owl#\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema#\" xmlns:rdfs=\"http://www.w3.org/2000/01/rdf-schema#\" xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n\n";
-
-        if(strtolower($this->mode) != "access_dataset" && strtolower($this->mode) != "access_user")
-        {
-          $rdf_document .= "<rdf:Bag>\n";
-        }
-
-        $rdf_document .= $this->pipeline_serialize();
-
-        if(strtolower($this->mode) != "access_dataset" && strtolower($this->mode) != "access_user")
-        {
-          $rdf_document .= "</rdf:Bag>\n\n";
-        }
-
-        $rdf_document .= "</rdf:RDF>";
-
-        return $rdf_document;
-      break;
-
-      case "application/json":
-        $json_document = "";
-        $json_document .= "{\n";
-
-        $json_document .= "  \"prefixes\": \n";
-        $json_document .= "    {\n";
-        $json_document .= "      \"rdf\": \"http://www.w3.org/1999/02/22-rdf-syntax-ns#\",\n";
-        $json_document .= "      \"owl\": \"http://www.w3.org/2002/07/owl#\",\n";
-        $json_document .= "      \"rdfs\": \"http://www.w3.org/2000/01/rdf-schema#\",\n";
-        $json_document .= "      \"wsf\": \"http://purl.org/ontology/wsf#\"\n";
-        $json_document .= "    },\n";
-
-        $json_document .= "  \"resultset\": {\n";
-        $json_document .= "    \"subject\": [\n";
-        $json_document .= $this->pipeline_serialize();
-        $json_document .= "    ]\n";
-        $json_document .= "  }\n";
-        $json_document .= "}";
-
-        return ($json_document);
-      break;
-
-      case "text/xml":
-        return $this->pipeline_getResultset();
-      break;
-    }
+    return($this->serializations());
   }
 
   /*!   @brief Aggregates information about the Accesses available to the requester.
@@ -936,12 +440,17 @@ class AuthLister extends WebService
             return;
           }
 
+          $subject = new Subject("bnode:".md5(microtime()));
+          $subject->setType("rdf:Bag");
+          
           while(odbc_fetch_row($resultset))
           {
             $dataset = odbc_result($resultset, 1);
-
-            array_push($this->datasets, $dataset);
+            
+            $subject->setObjectAttribute("rdf:li", $dataset, null, "void:Dataset");
           }
+          
+          $this->rset->addSubject($subject);            
         }
         elseif(strtolower($this->mode) == "ws")
         {
@@ -968,13 +477,18 @@ class AuthLister extends WebService
               $this->errorMessenger->_301->level);
             return;
           }
+          
+          $subject = new Subject("bnode:".md5(microtime()));
+          $subject->setType("rdf:Bag");          
 
           while(odbc_fetch_row($resultset))
           {
             $ws = odbc_result($resultset, 1);
-
-            array_push($this->webservices, $ws);
+      
+            $subject->setObjectAttribute("rdf:li", $ws, null, "wsf:Webservice");
           }
+          
+          $this->rset->addSubject($subject);    
         }
         else
         { 
@@ -1061,6 +575,8 @@ class AuthLister extends WebService
           }
           
           $accessPreviousId = "";
+          
+          $subject = null;
 
           while(odbc_fetch_row($resultset))
           {
@@ -1068,38 +584,44 @@ class AuthLister extends WebService
             
             if($accessPreviousId != $accessId)
             {
+              if($subject != null)
+              {
+                $this->rset->addSubject($subject);
+              }
+              
+              $subject = new Subject($accessId);
+              $subject->setType("wsf:Access"); 
+              
               $accessPreviousId = $accessId;
             
               $lastElement = "";
 
               if(strtolower($this->mode) == "access_user")
               {                
-                $this->accesses[$accessId] = array (odbc_result($resultset, 1),   // Access URI
-                                                    odbc_result($resultset, 2),   // Dataset URI
-                                                    odbc_result($resultset, 3),   // Create
-                                                    odbc_result($resultset, 4),   // Read
-                                                    odbc_result($resultset, 5),   // Update
-                                                    odbc_result($resultset, 6),   // Delete
-                                                    odbc_result($resultset, 7));  // Registered IP
+                $subject->setObjectAttribute("wsf:datasetAccess", odbc_result($resultset, 2), null, "void:Dataset");  
+                $subject->setDataAttribute("wsf:create", odbc_result($resultset, 3));
+                $subject->setDataAttribute("wsf:read", odbc_result($resultset, 4));
+                $subject->setDataAttribute("wsf:update", odbc_result($resultset, 5));
+                $subject->setDataAttribute("wsf:delete", odbc_result($resultset, 6));
+                  $subject->setDataAttribute("wsf:registeredIP", odbc_result($resultset, 7));
                                                     
                 if($this->targetWebservice == "all")
                 {                                                    
-                  array_push($this->accesses[$accessId], odbc_result($resultset, 8)); // Web service access URI
+                  $subject->setObjectAttribute("wsf:webServiceAccess", odbc_result($resultset, 8), null, "wsf:WebService");  
                 }
               }
               else // access_dataset
               {
-                $this->accesses[$accessId] = array (odbc_result($resultset, 1),   // Access URI
-                                                    odbc_result($resultset, 2),   // Registered IP
-                                                    odbc_result($resultset, 3),   // Create
-                                                    odbc_result($resultset, 4),   // Read
-                                                    odbc_result($resultset, 5),   // Update
-                                                    odbc_result($resultset, 6),   // Delete
-                                                    "");                          // Empty (padding)
+                $subject->setDataAttribute("wsf:registeredIP", odbc_result($resultset, 2));
+                $subject->setDataAttribute("wsf:create", odbc_result($resultset, 3));
+                $subject->setDataAttribute("wsf:read", odbc_result($resultset, 4));
+                $subject->setDataAttribute("wsf:update", odbc_result($resultset, 5));
+                $subject->setDataAttribute("wsf:delete", odbc_result($resultset, 6));
+                                                                                                        
                                                     
                 if($this->targetWebservice == "all")
                 {                                                    
-                  array_push($this->accesses[$accessId], odbc_result($resultset, 7)); // Web service access URI
+                  $subject->setObjectAttribute("wsf:webServiceAccess", odbc_result($resultset, 7), null, "wsf:WebService");                    
                 }
               }            
             }
@@ -1107,14 +629,17 @@ class AuthLister extends WebService
             {
               if(strtolower($this->mode) == "access_user")
               {              
-                array_push($this->accesses[$accessId], odbc_result($resultset, 8));
+                $subject->setObjectAttribute("wsf:webServiceAccess", odbc_result($resultset, 8), null, "wsf:WebService");  
               }
               else // access_dataset
               {
-                array_push($this->accesses[$accessId], odbc_result($resultset, 7));
+                $subject->setObjectAttribute("wsf:webServiceAccess", odbc_result($resultset, 7), null, "wsf:WebService");  
               }
             }
           }
+          
+          // Add the last subject
+          $this->rset->addSubject($subject);
         }
       }
     }

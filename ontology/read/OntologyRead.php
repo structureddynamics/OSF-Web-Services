@@ -60,14 +60,11 @@ class OntologyRead extends WebService
       "http://www.w3.org/2000/01/rdf-schema#" => "rdfs", "http://purl.org/ontology/wsf#" => "wsf", 
       "http://purl.org/ontology/aggregate#" => "aggr");
 
-  /*! @brief Array of triples where the current resource(s) is a subject. */
-  public $subjectTriples = array();
-
   private $getSerialized = "";
 
   /*! @brief Supported serialization mime types by this Web service */
   public static $supportedSerializations =
-    array ("application/bib+json", "application/iron+json", "application/json", "application/rdf+xml",
+    array ("application/iron+csv", "application/iron+json", "application/json", "application/rdf+xml",
       "application/rdf+n3", "application/*", "text/csv", "text/xml", "text/*", "*/*");
 
   /*! @brief Error messages of this web service */
@@ -292,144 +289,7 @@ class OntologyRead extends WebService
   */
   public function pipeline_getResultset()
   {    
-    $xml = new ProcessorXML();
-
-    // Creation of the RESULTSET
-    $resultset = $xml->createResultset();
-
-    $subject;
-    $nsId = 0;
-    
-    foreach($this->subjectTriples as $u => $sts)
-    {
-      if(isset($sts[Namespaces::$rdf."type"]) && count($sts[Namespaces::$rdf."type"]) > 0)
-      {
-        foreach($sts[Namespaces::$rdf."type"] as $key => $type)
-        {     
-          if($key == 0)
-          {
-            $subject = $xml->createSubject($type["value"], $u);            
-          }
-          
-          if($key > 0 || isset($type["rei"]))
-          {
-            // Here we automatically create a rdf:type property as a "predicate" if there is a reification
-            // statement attached to it. This means that even if it is the first type, we do "duplicate"
-            // that type statement such that the user of this information can get the reified information
-            // for this type as well.
-
-            $pred = $xml->createPredicate(Namespaces::$rdf."type");
-            $object = $xml->createObject("", $type["value"]);
-            $pred->appendChild($object);
-            
-            if(isset($type["rei"]))
-            {
-              foreach($type["rei"] as $rStatement)
-              {
-                $reify = $xml->createReificationStatement($rStatement["type"], $rStatement["value"]);
-                $object->appendChild($reify);
-              }
-            }                
-            
-            $subject->appendChild($pred);
-          }
-        }
-      }
-      else
-      {
-        $subject = $xml->createSubject("owl:Thing", $u);
-      }
-
-      foreach($sts as $property => $values)
-      {
-        if($property != Namespaces::$rdf."type")
-        {
-          foreach($values as $value)
-          {
-            if($value["datatype"] != "rdf:Resource")
-            {
-              /*
-                @TODO The internal XML structure of structWSF should be enhanced with datatypes such as xsd:double, int, 
-                      literal, etc.
-              */
-              
-              $ns = $this->getNamespace($property);
-
-              if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
-              {
-                // Make sure the ID is not already existing. Increase the counter if it is the case.
-                while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
-                {
-                  $nsId++;
-                }
-                                  
-                $this->namespaces[$ns[0]] = "ns" . $nsId;
-                $nsId++;
-              } 
-              
-              $pred = $xml->createPredicate($this->namespaces[$ns[0]] . ":" . $ns[1]);              
-              
-              $pred = $xml->createPredicate($this->namespaces[$ns[0]] . ":" . $ns[1]);
-              $object = $xml->createObjectContent($value["value"]);
-              $pred->appendChild($object);
-
-              if(isset($value["rei"]) && is_array($value["rei"]))
-              {
-                foreach($value["rei"] as $rStatement)
-                {
-                  $reify = $xml->createReificationStatement($rStatement["type"], $rStatement["value"]);
-                  $object->appendChild($reify);
-                }
-              }              
-              
-              $subject->appendChild($pred);
-            }
-            else
-            {
-              $ns = $this->getNamespace($property);
-
-              if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
-              {
-                // Make sure the ID is not already existing. Increase the counter if it is the case.
-                while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
-                {
-                  $nsId++;
-                }
-                                  
-                $this->namespaces[$ns[0]] = "ns" . $nsId;
-                $nsId++;
-              } 
-              
-              $pred = $xml->createPredicate($this->namespaces[$ns[0]] . ":" . $ns[1]);
-              $object = $xml->createObject("", $value["value"]);
-              $pred->appendChild($object);
-
-              if(isset($value["rei"]))
-              {
-                foreach($value["rei"] as $rStatement)
-                {
-                  $reify = $xml->createReificationStatement($rStatement["type"], $rStatement["value"]);
-                  $object->appendChild($reify);
-                }
-              }                
-              
-              $subject->appendChild($pred);
-            }
-          }
-        }
-      }
-
-      $resultset->appendChild($subject);
-    }
-
-    // Creation of the prefixes elements.
-    foreach($this->namespaces as $uri => $prefix)
-    {
-      $ns = $xml->createPrefix($prefix, $uri);
-      $resultset->appendChild($ns);
-    }          
-    
-    return ($this->injectDoctype($xml->saveXML($resultset)));
+    return($this->injectDoctype($this->rset->getResultsetXML()));
   }
 
   /*!   @brief Inject the DOCType in a XML document
@@ -557,438 +417,14 @@ class OntologyRead extends WebService
     
       \n\n\n
   */
-  public function pipeline_serialize()
-  {
+  public function pipeline_serialize() 
+  { 
     if($this->getSerialized != "")
     {
       return($this->getSerialized);
-    }    
+    }     
     
-    $rdf_part = "";
-
-    switch($this->conneg->getMime())
-    {
-      case "text/csv":
-
-        $csv = "";
-      
-        foreach($this->subjectTriples as $u => $sts)
-        {
-          if(isset($sts[Namespaces::$rdf."type"]))
-          {
-            foreach($sts[Namespaces::$rdf."type"] as $key => $type)
-            {     
-              $csv .= Namespaces::getPrefixedUri($u).",rdf:type,".Namespaces::getPrefixedUri($type["value"])."\n";     
-            }
-          }
-          else
-          {
-            $csv .= Namespaces::getPrefixedUri($u).",rdf:type,"."owl:Thing\n";     
-          }
-
-          foreach($sts as $property => $values)
-          {
-            if($property != Namespaces::$rdf."type")
-            {
-              foreach($values as $value)
-              {
-                if($value["datatype"] == "rdf:Resource")
-                {
-                  $csv .= Namespaces::getPrefixedUri($u).",".
-                          Namespaces::getPrefixedUri($property).",".
-                          Namespaces::getPrefixedUri($value["value"])."\n";     
-                }
-              }
-            }
-          }
-        }
-        
-        return($csv);        
-      break;
-      
-      case "application/bib+json":
-      case "application/iron+json":
-        include_once($this->wsf_base_path."converter/irjson/ConverterIrJSON.php");
-        include_once($this->wsf_base_path."converter/irjson/Dataset.php");
-        include_once($this->wsf_base_path."converter/irjson/InstanceRecord.php");
-        include_once($this->wsf_base_path."converter/irjson/LinkageSchema.php");
-        include_once($this->wsf_base_path."converter/irjson/StructureSchema.php");
-        include_once($this->wsf_base_path."converter/irjson/irJSONParser.php");
-
-        // Include more information about the dataset (at least the ID)
-        $documentToConvert = $this->pipeline_getResultset();
-
-        $datasets = explode(";", $this->dataset);
-
-        $datasets = array_unique($datasets);
-
-        // Note: this is temporary. A more consistent dataset-URI/resource-URIs has to be implemented in conStruct
-        ///////////////
-        $d = $datasets[0];
-
-        $d = str_replace("/wsf/datasets/", "/conStruct/datasets/", $d) . "resource/";
-        ///////////////
-
-
-        /*
-          @TODO In the future, we will have to include the dataset's meta-data information in the data to convert.
-                This meta-data include: its name, description, creator, maintainer, owner, schema and linkage.
-                
-                This will be done by querying the DatasetRead web service endpoint for the "$d" dataset
-        */
-
-        $ws_irv =
-          new ConverterIrJSON($documentToConvert, "text/xml", "true", $this->registered_ip, $this->requester_ip);
-
-        $ws_irv->pipeline_conneg("application/iron+json", $this->conneg->getAcceptCharset(),
-          $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
-
-        $ws_irv->process();
-
-        if($ws_irv->pipeline_getResponseHeaderStatus() != 200)
-        {
-          $this->conneg->setStatus($ws_irv->pipeline_getResponseHeaderStatus());
-          $this->conneg->setStatusMsg($ws_irv->pipeline_getResponseHeaderStatusMsg());
-          $this->conneg->setStatusMsgExt($ws_irv->pipeline_getResponseHeaderStatusMsgExt());
-          $this->conneg->setError($ws_irv->pipeline_getError()->id, $ws_irv->pipeline_getError()->webservice,
-            $ws_irv->pipeline_getError()->name, $ws_irv->pipeline_getError()->description,
-            $ws_irv->pipeline_getError()->debugInfo, $ws_irv->pipeline_getError()->level);
-          return;
-        }
-
-        return ($ws_irv->pipeline_serialize());
-
-      break;
-
-      case "application/json":                    
-        $json_part = "";
-        $xml = new ProcessorXML();
-        $xml->loadXML($this->pipeline_getResultset());
-
-        $subjects = $xml->getSubjects();
-
-        $nsId = 0;
-
-        foreach($subjects as $subject)
-        {
-          $subjectURI = $xml->getURI($subject);
-          $subjectType = $xml->getType($subject);
-
-          $ns = $this->getNamespace($subjectType);
-
-          if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
-          {
-            // Make sure the ID is not already existing. Increase the counter if it is the case.
-            while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
-            {
-              $nsId++;
-            }
-                  
-            $this->namespaces[$ns[0]] = "ns" . $nsId;
-            $nsId++;
-          }
-
-          $json_part .= "      { \n";
-          $json_part .= "        \"uri\": \"" . parent::jsonEncode($subjectURI) . "\", \n";
-          $json_part .= "        \"type\": \"" . parent::jsonEncode($this->namespaces[$ns[0]] . ":" . $ns[1])
-            . "\",\n";
-
-          $predicates = $xml->getPredicates($subject);
-
-          $nbPredicates = 0;
-
-          foreach($predicates as $predicate)
-          {
-            $objects = $xml->getObjects($predicate);
-
-            foreach($objects as $object)
-            {
-              $nbPredicates++;
-
-              if($nbPredicates == 1)
-              {
-                $json_part .= "        \"predicate\": [ \n";
-              }
-
-              $objectType = $xml->getType($object);
-              $predicateType = $xml->getType($predicate);
-
-              if($objectType == "rdfs:Literal")
-              {
-                $objectValue = $xml->getContent($object);
-
-                $ns = $this->getNamespace($predicateType);
-
-                if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
-                {
-                  // Make sure the ID is not already existing. Increase the counter if it is the case.
-                  while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
-                  {
-                    $nsId++;
-                  }
-                  
-                  $this->namespaces[$ns[0]] = "ns" . $nsId;
-                  $nsId++;
-                }
-
-                $json_part .= "          { \n";
-                $json_part .= "            \"" . parent::jsonEncode($this->namespaces[$ns[0]] . ":" . $ns[1]) . "\": \""
-                  . parent::jsonEncode($objectValue) . "\" \n";
-                $json_part .= "          },\n";
-              }
-              else
-              {
-                $objectURI = $xml->getURI($object);
-
-                $ns = $this->getNamespace($predicateType);
-
-                if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
-                {
-                  // Make sure the ID is not already existing. Increase the counter if it is the case.
-                  while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
-                  {
-                    $nsId++;
-                  }
-                  
-                  $this->namespaces[$ns[0]] = "ns" . $nsId;
-                  $nsId++;
-                }
-
-                $json_part .= "          { \n";
-                $json_part .= "            \"" . parent::jsonEncode($this->namespaces[$ns[0]] . ":" . $ns[1])
-                  . "\": { \n";
-                $json_part .= "                \"uri\": \"" . parent::jsonEncode($objectURI) . "\",\n";
-
-                // Check if there is a reification statement for this object.
-                $reifies = $xml->getReificationStatements($object, "wsf:objectLabel");
-
-                $nbReification = 0;
-
-                foreach($reifies as $reify)
-                {
-                  $nbReification++;
-
-                  if($nbReification > 0)
-                  {
-                    $json_part .= "                 \"reify\": [\n";
-                  }
-
-                  $json_part .= "                   { \n";
-                  $json_part .= "                       \"type\": \"wsf:objectLabel\", \n";
-                  $json_part .= "                       \"value\": \"" . parent::jsonEncode($xml->getValue($reify))
-                    . "\" \n";
-                  $json_part .= "                   },\n";
-                }
-
-                if($nbReification > 0)
-                {
-                  $json_part = substr($json_part, 0, strlen($json_part) - 2) . "\n";
-
-                  $json_part .= "                 ]\n";
-                }
-                else
-                {
-                  $json_part = substr($json_part, 0, strlen($json_part) - 2) . "\n";
-                }
-
-                $json_part .= "                } \n";
-                $json_part .= "          },\n";
-              }
-            }
-          }
-
-          if(strlen($json_part) > 0)
-          {
-            $json_part = substr($json_part, 0, strlen($json_part) - 2) . "\n";
-          }
-
-          if($nbPredicates > 0)
-          {
-            $json_part .= "        ]\n";
-          }
-
-          $json_part .= "      },\n";
-        }
-
-        if(strlen($json_part) > 0)
-        {
-          $json_part = substr($json_part, 0, strlen($json_part) - 2) . "\n";
-        }
-
-        $json_header = "  \"prefixes\": \n";
-        $json_header .= "    {\n";
-
-        foreach($this->namespaces as $ns => $prefix)
-        {
-          $json_header .= "      \"$prefix\": \"$ns\",\n";
-        }
-
-        if(strlen($json_header) > 0)
-        {
-          $json_header = substr($json_header, 0, strlen($json_header) - 2) . "\n";
-        }
-
-        $json_header .= "    }, \n";
-        $json_header .= "  \"resultset\": {\n";
-        $json_header .= "    \"subject\": [\n";
-        $json_header .= $json_part;
-        $json_header .= "    ]\n";
-        $json_header .= "  }\n";
-
-        return ($json_header);
-      break;
-
-      case "application/rdf+n3":
-
-        $xml = new ProcessorXML();
-        $xml->loadXML($this->pipeline_getResultset());
-
-        $subjects = $xml->getSubjects();
-
-        foreach($subjects as $subject)
-        {
-          $subjectURI = $xml->getURI($subject);
-          $subjectType = $xml->getType($subject, FALSE);
-
-          $rdf_part .= "\n    <$subjectURI> a <$subjectType> ;\n";
-
-          $predicates = $xml->getPredicates($subject);
-
-          foreach($predicates as $predicate)
-          {
-            $objects = $xml->getObjects($predicate);
-
-            foreach($objects as $object)
-            {
-              $objectType = $xml->getType($object);
-              $predicateType = $xml->getType($predicate, FALSE);
-
-              if($objectType == "rdfs:Literal")
-              {
-                $objectValue = $xml->getContent($object);
-                $rdf_part .= "        <$predicateType> \"\"\"" . str_replace(array( "\\" ), "\\\\", $objectValue)
-                  . "\"\"\" ;\n";
-              }
-              else
-              {
-                $objectURI = $xml->getURI($object);
-                $rdf_part .= "        <$predicateType> <$objectURI> ;\n";
-              }
-            }
-          }
-
-          if(strlen($rdf_part) > 0)
-          {
-            $rdf_part = substr($rdf_part, 0, strlen($rdf_part) - 2) . ". \n";
-          }
-        }
-
-        return ($rdf_part);
-      break;
-
-      case "application/rdf+xml":
-        $xml = new ProcessorXML();
-        $xml->loadXML($this->pipeline_getResultset());
-
-        $subjects = $xml->getSubjects();
-
-        $nsId = 0;
-
-        foreach($subjects as $subject)
-        {
-          $subjectURI = $xml->getURI($subject);
-          $subjectType = $xml->getType($subject);
-
-          $ns1 = $this->getNamespace($subjectType);
-
-          if($ns !== FALSE && !isset($this->namespaces[$ns1[0]]))
-          {
-            // Make sure the ID is not already existing. Increase the counter if it is the case.
-            while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
-            {
-              $nsId++;
-            }
-                              
-            $this->namespaces[$ns1[0]] = "ns" . $nsId;
-            $nsId++;
-          }
-
-          $rdf_part .= "\n    <" . $this->namespaces[$ns1[0]] . ":" . $ns1[1] . " rdf:about=\"".
-                                                                            $this->xmlEncode($subjectURI)."\">\n";
-
-          $predicates = $xml->getPredicates($subject);
-
-          foreach($predicates as $predicate)
-          {
-            $objects = $xml->getObjects($predicate);
-
-            foreach($objects as $object)
-            {
-              $objectType = $xml->getType($object);
-              $predicateType = $xml->getType($predicate);
-
-              if($objectType == "rdfs:Literal")
-              {
-                $objectValue = $xml->getContent($object);
-
-                $ns = $this->getNamespace($predicateType);
-
-                if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
-                {
-                  // Make sure the ID is not already existing. Increase the counter if it is the case.
-                  while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
-                  {
-                    $nsId++;
-                  }
-                                    
-                  $this->namespaces[$ns[0]] = "ns" . $nsId;
-                  $nsId++;
-                }
-
-                $rdf_part .= "        <" . $this->namespaces[$ns[0]] . ":" . $ns[1] . ">"
-                  . $this->xmlEncode($objectValue) . "</" . $this->namespaces[$ns[0]] . ":" . $ns[1] . ">\n";
-              }
-              else
-              {
-                $objectURI = $xml->getURI($object);
-
-                $ns = $this->getNamespace($predicateType);
-
-                if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
-                {
-                  // Make sure the ID is not already existing. Increase the counter if it is the case.
-                  while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
-                  {
-                    $nsId++;
-                  }
-                                    
-                  $this->namespaces[$ns[0]] = "ns" . $nsId;
-                  $nsId++;
-                }
-
-                $rdf_part .= "        <" . $this->namespaces[$ns[0]] . ":" . $ns[1]
-                  . " rdf:resource=\"".$this->xmlEncode($objectURI)."\" />\n";
-              }
-            }
-          }
-
-          $rdf_part .= "    </" . $this->namespaces[$ns1[0]] . ":" . $ns1[1] . ">\n";
-        }
-
-        $rdf_header = "<rdf:RDF ";
-
-        foreach($this->namespaces as $ns => $prefix)
-        {
-          $rdf_header .= " xmlns:$prefix=\"$ns\"";
-        }
-
-        $rdf_header .= ">\n\n";
-
-        $rdf_part = $rdf_header . $rdf_part;
-
-        return ($rdf_part);
-      break;
-    }
+    return($this->serializations());    
   }
 
   /*!   @brief Get the namespace of a URI
@@ -1045,17 +481,6 @@ class OntologyRead extends WebService
     return (FALSE);
   }
 
-  /*!   @brief Non implemented method (only defined)
-              
-      \n
-      
-      @author Frederick Giasson, Structured Dynamics LLC.
-    
-      \n\n\n
-  */
-  public function pipeline_serialize_reification()
-  {}
-
   /*!   @brief Serialize the web service answer.
               
       \n
@@ -1071,70 +496,9 @@ class OntologyRead extends WebService
     if($this->getSerialized != "")
     {
       return($this->getSerialized);
-    }
+    }     
     
-    switch($this->conneg->getMime())
-    {
-      case "application/rdf+n3":
-        $rdf_document = "";
-        $rdf_document .= "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n";
-
-        $rdf_document .= $this->pipeline_serialize();
-
-        $rdf_document .= $this->pipeline_serialize_reification();
-
-        return $rdf_document;
-      break;
-
-      case "application/rdf+xml":
-        $rdf_document = "";
-        $rdf_document .= "<?xml version=\"1.0\"?>\n";
-
-        $rdf_document .= $this->pipeline_serialize();
-
-        $rdf_document .= $this->pipeline_serialize_reification();
-
-        $rdf_document .= "</rdf:RDF>";
-
-        return $rdf_document;
-      break;
-
-      case "text/xml":
-        return $this->pipeline_getResultset();
-      break;
-
-      case "text/csv":
-        $csv_document .= $this->pipeline_serialize();   
-        
-        return $csv_document;
-      break;
-
-      case "application/json":
-        /*
-                $json_document = "";
-                $json_document .= "{\n";
-                $json_document .= "  \"resultset\": {\n";
-                $json_document .= "    \"subject\": [\n";
-                $json_document .= $this->pipeline_serialize();
-                $json_document .= "    ]\n";
-                $json_document .= "  }\n";
-                $json_document .= "}";
-                
-                return($json_document);
-        */
-        $json_document = "";
-        $json_document .= "{\n";
-        $json_document .= $this->pipeline_serialize();
-        $json_document .= "}";
-
-        return ($json_document);
-      break;
-
-      case "application/bib+json":
-      case "application/iron+json":
-        return ($this->pipeline_serialize());
-      break;
-    }
+    return($this->serializations());
   }
   
   private function returnError($statusCode, $statusMsg, $wsErrorCode, $debugInfo = "")
@@ -1242,7 +606,9 @@ class OntologyRead extends WebService
           }
           else
           {
-            $this->subjectTriples[$this->parameters["uri"]] = $ontology->_getClassDescription($class);
+            $subject = new Subject($this->parameters["uri"]);
+            $subject->setSubject($ontology->_getClassDescription($class));
+            $this->rset->addSubject($subject);
           }          
         break;
         
@@ -1269,17 +635,14 @@ class OntologyRead extends WebService
              
               foreach($classes as $class)
               {
-                if(!isset($this->subjectTriples[$class]))
-                {
-                  $this->subjectTriples[$class] = array(Namespaces::$rdf."type" => array(array("value" => "owl:Class",
-                                                                            "datatype" => "rdf:Resource",
-                                                                            "lang" => "")));
-                }  
+                $subject = new Subject($class);
+                $subject->setType("owl:Class");
+                $this->rset->addSubject($subject);                  
               }
             break;
             
             case "descriptions":
-              $this->subjectTriples = $ontology->getClassesDescription($limit, $offset);
+              $this->rset->setResultset($ontology->getClassesDescription($limit, $offset));
             break;
             
             default:
@@ -1305,7 +668,9 @@ class OntologyRead extends WebService
           }
           else
           {          
-            $this->subjectTriples[$this->parameters["uri"]] = $ontology->_getNamedIndividualDescription($namedIndividual);
+            $subject = new Subject($this->parameters["uri"]);
+            $subject->setSubject($ontology->_getNamedIndividualDescription($namedIndividual));
+            $this->rset->addSubject($subject);
           }
         break;        
         
@@ -1353,21 +718,18 @@ class OntologyRead extends WebService
              
               foreach($namedindividuals as $ni)
               {
-                if(!isset($this->subjectTriples[$ni]))
-                {
-                  $this->subjectTriples[$ni] = array(Namespaces::$rdf."type" => array(array("value" => "owl:NamedIndividual",
-                                                                                            "datatype" => "rdf:Resource",
-                                                                                            "lang" => "")));
-                }  
+                $subject = new Subject($ni);
+                $subject->setType("owl:NamedIndividual");
+                $this->rset->addSubject($subject);                  
               }
             break;
             
             case "descriptions":
-              $this->subjectTriples = $ontology->getNamedIndividualsDescription($classUri, $direct, $limit, $offset);
+              $this->rset->setResultset($ontology->getNamedIndividualsDescription($classUri, $direct, $limit, $offset));            
             break;
             
             case "list":
-              $this->subjectTriples = $ontology->getNamedIndividualsDescription($classUri, $direct, $limit, $offset, TRUE);
+              $this->rset->setResultset($ontology->getNamedIndividualsDescription($classUri, $direct, $limit, $offset, TRUE));            
             break;
             
             default:
@@ -1393,21 +755,18 @@ class OntologyRead extends WebService
               
               foreach($classes as $class)
               {
-                if(!isset($this->subjectTriples[$class]))
-                {
-                  $this->subjectTriples[$class] = array(Namespaces::$rdf."type" => array(array("value" => "owl:Class",
-                                                                                               "datatype" => "rdf:Resource",
-                                                                                               "lang" => "")));
-                }  
+                $subject = new Subject($class);
+                $subject->setType("owl:Class");
+                $this->rset->addSubject($subject);                  
               }
             break;
             
             case "descriptions":
-              $this->subjectTriples = $ontology->getSubClassesDescription($this->parameters["uri"], $this->parameters["direct"]);
+              $this->rset->setResultset($ontology->getSubClassesDescription($this->parameters["uri"], $this->parameters["direct"]));            
             break;
 
             case "hierarchy":
-              $this->subjectTriples = $ontology->getSubClassesDescription($this->parameters["uri"], TRUE, TRUE);
+              $this->rset->setResultset($ontology->getSubClassesDescription($this->parameters["uri"], TRUE, TRUE));
             break;
             
             default:
@@ -1433,17 +792,14 @@ class OntologyRead extends WebService
               
               foreach($classes as $class)
               {
-                if(!isset($this->subjectTriples[$class]))
-                {
-                  $this->subjectTriples[$class] = array(Namespaces::$rdf."type" => array(array("value" => "owl:Class",
-                                                                                               "datatype" => "rdf:Resource",
-                                                                                               "lang" => "")));
-                }  
+                $subject = new Subject($class);
+                $subject->setType("owl:Class");
+                $this->rset->addSubject($subject);                  
               }
             break;
             
             case "descriptions":
-              $this->subjectTriples = $ontology->getSuperClassesDescription($this->parameters["uri"], $this->parameters["direct"]);
+              $this->rset->setResultset($ontology->getSuperClassesDescription($this->parameters["uri"], $this->parameters["direct"]));
             break;
             
             default:
@@ -1469,17 +825,14 @@ class OntologyRead extends WebService
               
               foreach($classes as $class)
               {
-                if(!isset($this->subjectTriples[$class]))
-                {
-                  $this->subjectTriples[$class] = array(Namespaces::$rdf."type" => array(array("value" => "owl:Class",
-                                                                                               "datatype" => "rdf:Resource",
-                                                                                               "lang" => "")));
-                }  
+                $subject = new Subject($class);
+                $subject->setType("owl:Class");
+                $this->rset->addSubject($subject);                  
               }
             break;
             
             case "descriptions":
-              $this->subjectTriples = $ontology->getEquivalentClassesDescription($this->parameters["uri"]);
+              $this->rset->setResultset($ontology->getEquivalentClassesDescription($this->parameters["uri"]));
             break;
             
             default:
@@ -1505,17 +858,14 @@ class OntologyRead extends WebService
               
               foreach($classes as $class)
               {
-                if(!isset($this->subjectTriples[$class]))
-                {
-                  $this->subjectTriples[$class] = array(Namespaces::$rdf."type" => array(array("value" => "owl:Class",
-                                                                                               "datatype" => "rdf:Resource",
-                                                                                               "lang" => "")));
-                }  
+                $subject = new Subject($class);
+                $subject->setType("owl:Class");
+                $this->rset->addSubject($subject);                  
               }
             break;
             
             case "descriptions":
-              $this->subjectTriples = $ontology->getDisjointClassesDescription($this->parameters["uri"]);
+              $this->rset->setResultset($ontology->getDisjointClassesDescription($this->parameters["uri"]));
             break;
             
             default:
@@ -1535,12 +885,9 @@ class OntologyRead extends WebService
               
               foreach($ontologies as $ontology)
               {
-                if(!isset($this->subjectTriples[$ontology]))
-                {
-                  $this->subjectTriples[$ontology] = array(Namespaces::$rdf."type" => array(array("value" => "owl:Ontology",
-                                                                                               "datatype" => "rdf:Resource",
-                                                                                               "lang" => "")));
-                }  
+                $subject = new Subject($ontology);
+                $subject->setType("owl:Ontology");
+                $this->rset->addSubject($subject);                  
               }
             break;
             
@@ -1561,17 +908,14 @@ class OntologyRead extends WebService
               
               foreach($ontologies as $ontology)
               {
-                if(!isset($this->subjectTriples[$ontology]))
-                {
-                  $this->subjectTriples[$ontology] = array(Namespaces::$rdf."type" => array(array("value" => "owl:Ontology",
-                                                                                                  "datatype" => "rdf:Resource",
-                                                                                                  "lang" => "")));
-                }  
+                $subject = new Subject($ontology);
+                $subject->setType("owl:Ontology");
+                $this->rset->addSubject($subject);                  
               }
             break;
             
             case "descriptions":
-              $this->subjectTriples = OWLOntology::getLoadedOntologiesDescription($this->OwlApiSession); 
+              $this->rset->setResultset(OWLOntology::getLoadedOntologiesDescription($this->OwlApiSession));            
             break;
             
             default:
@@ -1590,37 +934,31 @@ class OntologyRead extends WebService
         case "getserializedclasshierarchy":
           $sch = $this->generationSerializedClassHierarchy($this->OwlApiSession);
 
-          $this->subjectTriples[$this->ontologyUri] = array(Namespaces::$rdf."type" => array(array("value" => "owl:Ontology",
-                                                                                          "datatype" => "rdf:Resource",
-                                                                                          "lang" => "")),
-                                                   "http://purl.org/ontology/wsf#serializedClassHierarchy" => array(array("value" => $sch,
-                                                                                          "datatype" => "rdf:Literal",
-                                                                                          "lang" => "")));
+          $subject = new Subject($this->ontologyUri);
+          $subject->setType("owl:Ontology");
+          $subject->setDataAttribute(Namespaces::$wsf."serializedClassHierarchy", $sch);
+          $this->rset->addSubject($subject);
           
-                      
         break;
         
         case "getserializedpropertyhierarchy":
           $sch = $this->generationSerializedPropertyHierarchy($this->OwlApiSession);
 
-          $this->subjectTriples[$this->ontologyUri] = array(Namespaces::$rdf."type" => array(array("value" => "owl:Ontology",
-                                                                                          "datatype" => "rdf:Resource",
-                                                                                          "lang" => "")),
-                                                   "http://purl.org/ontology/wsf#serializedPropertyHierarchy" => array(array("value" => $sch,
-                                                                                          "datatype" => "rdf:Literal",
-                                                                                          "lang" => "")));
-          
+          $subject = new Subject($this->ontologyUri);
+          $subject->setType("owl:Ontology");
+          $subject->setDataAttribute(Namespaces::$wsf."serializedPropertyHierarchy", $sch);
+          $this->rset->addSubject($subject);          
                       
         break;
         
         case "getironxmlschema":
-          $this->subjectTriples = $ontology->getClassesDescription($limit, $offset);
+          $subjectTriples = $ontology->getClassesDescription($limit, $offset);
           
           $schema = '<schema><version>0.1</version><typeList>';
           
           $prefixes = array();
           
-          foreach($this->subjectTriples as $uri => $subject)
+          foreach($subjectTriples as $uri => $subject)
           {
             $this->manageIronPrefixes($uri, $prefixes);
             
@@ -1643,9 +981,9 @@ class OntologyRead extends WebService
                   
                   case Namespaces::$sco."displayControl":
                     
-                    if(strtolower($value["datatype"]) == "rdf:Resource")
+                    if(strtolower($value["type"]) == "xsd:anyURI")
                     {
-                      $displayControl = substr($value["value"], strripos($value["value"], "#") + 1);
+                      $displayControl = substr($value["uri"], strripos($value["uri"], "#") + 1);
                     }
                     else
                     {
@@ -1658,9 +996,9 @@ class OntologyRead extends WebService
                   
                   case Namespaces::$sco."ignoredBy":
                     
-                    if(strtolower($value["datatype"]) == "rdf:Resource")
+                    if(strtolower($value["type"]) == "xsd:anyURI")
                     {
-                      $ignoredBy = substr($value["value"], strripos($value["value"], "#") + 1);
+                      $ignoredBy = substr($value["uri"], strripos($value["uri"], "#") + 1);
                     }
                     else
                     {
@@ -1693,9 +1031,9 @@ class OntologyRead extends WebService
           $schema .= "</typeList>";
           $schema .= "<attributeList>";
 
-          $this->subjectTriples = $ontology->getPropertiesDescription(TRUE);
+          $subjectTriples = $ontology->getPropertiesDescription(TRUE);
 
-          foreach($this->subjectTriples as $uri => $subject)
+          foreach($subjectTriples as $uri => $subject)
           {
             $this->manageIronPrefixes($uri, $prefixes);
             
@@ -1720,9 +1058,9 @@ class OntologyRead extends WebService
                   
                   case Namespaces::$sco."displayControl":
                   
-                    if(strtolower($value["datatype"]) == "rdf:Resource")
+                    if(strtolower($value["type"]) == "xsd:anyURI")
                     {
-                      $displayControl = substr($value["value"], strripos($value["value"], "#") + 1);
+                      $displayControl = substr($value["uri"], strripos($value["uri"], "#") + 1);
                     }
                     else
                     {
@@ -1734,9 +1072,9 @@ class OntologyRead extends WebService
 
                   case Namespaces::$sco."ignoredBy":
                   
-                    if(strtolower($value["datatype"]) == "rdf:Resource")
+                    if(strtolower($value["type"]) == "xsd:anyURI")
                     {
-                      $ignoredBy = substr($value["value"], strripos($value["value"], "#") + 1);
+                      $ignoredBy = substr($value["uri"], strripos($value["uri"], "#") + 1);
                     }
                     else
                     {
@@ -1778,9 +1116,9 @@ class OntologyRead extends WebService
             $schema .= "</".$this->ironPrefixize($uri, $prefixes).">";
           }
           
-          $this->subjectTriples = $ontology->getPropertiesDescription(FALSE, TRUE);
+          $subjectTriples = $ontology->getPropertiesDescription(FALSE, TRUE);
 
-          foreach($this->subjectTriples as $uri => $subject)
+          foreach($subjectTriples as $uri => $subject)
           {
             $this->manageIronPrefixes($uri, $prefixes);
             
@@ -1809,9 +1147,9 @@ class OntologyRead extends WebService
                   
                   case Namespaces::$sco."displayControl":
                   
-                    if(strtolower($value["datatype"]) == "rdf:Resource")
+                    if(strtolower($value["type"]) == "xsd:anyURI")
                     {
-                      $displayControl = substr($value["value"], strripos($value["value"], "#") + 1);
+                      $displayControl = substr($value["uri"], strripos($value["uri"], "#") + 1);
                     }
                     else
                     {
@@ -1823,9 +1161,9 @@ class OntologyRead extends WebService
                   
                   case Namespaces::$sco."ignoredBy":
                   
-                    if(strtolower($value["datatype"]) == "rdf:Resource")
+                    if(strtolower($value["type"]) == "xsd:anyURI")
                     {
-                      $ignoredBy = substr($value["value"], strripos($value["value"], "#") + 1);
+                      $ignoredBy = substr($value["uri"], strripos($value["uri"], "#") + 1);
                     }
                     else
                     {
@@ -1872,14 +1210,12 @@ class OntologyRead extends WebService
           $schema .= "</prefixList>";          
           $schema .= "</schema>";    
           
-          $this->subjectTriples = null;
+          $subjectTriples = "";
           
-          $this->subjectTriples[$this->ontologyUri] = array(Namespaces::$rdf."type" => array(array("value" => "owl:Ontology",
-                                                                                          "datatype" => "rdf:Resource",
-                                                                                          "lang" => "")),
-                                                   "http://purl.org/ontology/wsf#serializedIronXMLSchema" => array(array("value" => $schema,
-                                                                                          "datatype" => "rdf:Literal",
-                                                                                          "lang" => "")));                
+          $subject = new Subject($this->ontologyUri);
+          $subject->setType("owl:Ontology");
+          $subject->setDataAttribute(Namespaces::$wsf."serializedIronXMLSchema", $schema);
+          $this->rset->addSubject($subject);          
           
 /*
           <schema>
@@ -1917,13 +1253,13 @@ class OntologyRead extends WebService
         
         
         case "getironjsonschema":
-          $this->subjectTriples = $ontology->getClassesDescription($limit, $offset);
+          $subjectTriples = $ontology->getClassesDescription($limit, $offset);
           
           $schema = '{ "schema": { "version": "0.1", "typeList": {';
           
           $prefixes = array();
           
-          foreach($this->subjectTriples as $uri => $subject)
+          foreach($subjectTriples as $uri => $subject)
           {
             $this->manageIronPrefixes($uri, $prefixes);
             
@@ -1973,9 +1309,9 @@ class OntologyRead extends WebService
                   
                   case Namespaces::$sco."displayControl":
                     
-                    if(strtolower($value["datatype"]) == "rdf:Resource")
+                    if(strtolower($value["type"]) == "xsd:anyURI")
                     {
-                      $displayControl = substr($value["value"], strripos($value["value"], "#") + 1);
+                      $displayControl = substr($value["uri"], strripos($value["uri"], "#") + 1);
                     }
                     else
                     {
@@ -1987,9 +1323,9 @@ class OntologyRead extends WebService
                   
                   case Namespaces::$sco."ignoredBy":
                     
-                    if(strtolower($value["datatype"]) == "rdf:Resource")
+                    if(strtolower($value["type"]) == "xsd:anyURI")
                     {
-                      $ignoredBy = substr($value["value"], strripos($value["value"], "#") + 1);
+                      $ignoredBy = substr($value["uri"], strripos($value["uri"], "#") + 1);
                     }
                     else
                     {
@@ -2040,9 +1376,9 @@ class OntologyRead extends WebService
           
           $schema .= '"attributeList": {';
 
-          $this->subjectTriples = $ontology->getPropertiesDescription(TRUE);
+          $subjectTriples = $ontology->getPropertiesDescription(TRUE);
 
-          foreach($this->subjectTriples as $uri => $subject)
+          foreach($subjectTriples as $uri => $subject)
           {
             $this->manageIronPrefixes($uri, $prefixes);
             
@@ -2101,9 +1437,9 @@ class OntologyRead extends WebService
                   break;
                   
                   case Namespaces::$sco."displayControl":
-                    if(strtolower($value["datatype"]) == "rdf:Resource")
+                    if(strtolower($value["type"]) == "xsd:anyURI")
                     {
-                      $displayControl = substr($value["value"], strripos($value["value"], "#") + 1);
+                      $displayControl = substr($value["uri"], strripos($value["uri"], "#") + 1);
                     }
                     else
                     {
@@ -2114,9 +1450,9 @@ class OntologyRead extends WebService
                   break;
                   
                   case Namespaces::$sco."ignoredBy":
-                    if(strtolower($value["datatype"]) == "rdf:Resource")
+                    if(strtolower($value["type"]) == "xsd:anyURI")
                     {
-                      $ignoredBy = substr($value["value"], strripos($value["value"], "#") + 1);
+                      $ignoredBy = substr($value["uri"], strripos($value["uri"], "#") + 1);
                     }
                     else
                     {
@@ -2175,9 +1511,9 @@ class OntologyRead extends WebService
             $schema .= "},";                 
           }
           
-          $this->subjectTriples = $ontology->getPropertiesDescription(FALSE, TRUE);
+          $subjectTriples = $ontology->getPropertiesDescription(FALSE, TRUE);
 
-          foreach($this->subjectTriples as $uri => $subject)
+          foreach($subjectTriples as $uri => $subject)
           {
             $this->manageIronPrefixes($uri, $prefixes);
             
@@ -2244,9 +1580,9 @@ class OntologyRead extends WebService
                   break;
                   
                   case Namespaces::$sco."displayControl":
-                    if(strtolower($value["datatype"]) == "rdf:Resource")
+                    if(strtolower($value["type"]) == "xsd:anyURI")
                     {
-                      $displayControl = substr($value["value"], strripos($value["value"], "#") + 1);
+                      $displayControl = substr($value["uri"], strripos($value["uri"], "#") + 1);
                     }
                     else
                     {
@@ -2257,9 +1593,9 @@ class OntologyRead extends WebService
                   break;
                   
                   case Namespaces::$sco."ignoredBy":
-                    if(strtolower($value["datatype"]) == "rdf:Resource")
+                    if(strtolower($value["type"]) == "xsd:anyURI")
                     {
-                      $ignoredBy = substr($value["value"], strripos($value["value"], "#") + 1);
+                      $ignoredBy = substr($value["uri"], strripos($value["uri"], "#") + 1);
                     }
                     else
                     {
@@ -2335,14 +1671,12 @@ class OntologyRead extends WebService
           $schema .= "}";    
           $schema .= "}";    
           
-          $this->subjectTriples = null;
+          $subjectTriples = "";
           
-          $this->subjectTriples[$this->ontologyUri] = array(Namespaces::$rdf."type" => array(array("value" => "owl:Ontology",
-                                                                                          "datatype" => "rdf:Resource",
-                                                                                          "lang" => "")),
-                                                   "http://purl.org/ontology/wsf#serializedIronJSONSchema" => array(array("value" => $schema,
-                                                                                          "datatype" => "rdf:Literal",
-                                                                                          "lang" => "")));                
+          $subject = new Subject($this->ontologyUri);
+          $subject->setType("owl:Ontology");
+          $subject->setDataAttribute(Namespaces::$wsf."serializedIronJSONSchema", $schema);
+          $this->rset->addSubject($subject);                     
           
 /*
     
@@ -2433,7 +1767,9 @@ class OntologyRead extends WebService
           }
           else
           {
-            $this->subjectTriples[$this->parameters["uri"]] = $ontology->_getPropertyDescription($property);  
+            $subject = new Subject($this->parameters["uri"]);
+            $subject->setSubject($ontology->_getPropertyDescription($property));
+            $this->rset->addSubject($subject);
           }
         break;
         
@@ -2462,12 +1798,9 @@ class OntologyRead extends WebService
                   
                   foreach($properties as $property)
                   {
-                    if(!isset($this->subjectTriples[$property]))
-                    {
-                      $this->subjectTriples[$property] = array(Namespaces::$rdf."type" => array(array("value" => "owl:DatatypeProperty",
-                                                                                "datatype" => "rdf:Resource",
-                                                                                "lang" => "")));
-                    }  
+                    $subject = new Subject($property);
+                    $subject->setType("owl:DatatypeProperty");
+                    $this->rset->addSubject($subject);
                   }
                 break;
                 
@@ -2476,12 +1809,9 @@ class OntologyRead extends WebService
                   
                   foreach($properties as $property)
                   {
-                    if(!isset($this->subjectTriples[$property]))
-                    {
-                      $this->subjectTriples[$property] = array(Namespaces::$rdf."type" => array(array("value" => "owl:DatatypeProperty",
-                                                                                "datatype" => "rdf:Resource",
-                                                                                "lang" => "")));
-                    }  
+                    $subject = new Subject($property);
+                    $subject->setType("owl:ObjectProperty");
+                    $this->rset->addSubject($subject);
                   }
                 break;
                 
@@ -2490,12 +1820,9 @@ class OntologyRead extends WebService
                   
                   foreach($properties as $property)
                   {
-                    if(!isset($this->subjectTriples[$property]))
-                    {
-                      $this->subjectTriples[$property] = array(Namespaces::$rdf."type" => array(array("value" => "owl:AnnotationProperty",
-                                                                                "datatype" => "rdf:Resource",
-                                                                                "lang" => "")));
-                    }  
+                    $subject = new Subject($property);
+                    $subject->setType("owl:AnnotationProperty");
+                    $this->rset->addSubject($subject);
                   }
                 break;
                 
@@ -2510,21 +1837,22 @@ class OntologyRead extends WebService
               switch(strtolower($this->parameters["type"]))
               {
                 case "dataproperty":
-                  $this->subjectTriples = $ontology->getPropertiesDescription(TRUE, FALSE, FALSE, $limit, $offset);
+                  $this->rset->setResultset($ontology->getPropertiesDescription(TRUE, FALSE, FALSE, $limit, $offset));
                 break;
                 
                 case "objectproperty":
-                  $this->subjectTriples = $ontology->getPropertiesDescription(FALSE, TRUE, FALSE, $limit, $offset);
+                  $this->rset->setResultset($ontology->getPropertiesDescription(FALSE, TRUE, FALSE, $limit, $offset));
                 break;
                 
                 case "annotationproperty":
-                  $this->subjectTriples = $ontology->getPropertiesDescription(FALSE, FALSE, TRUE, $limit, $offset);
+                  $this->rset->setResultset($ontology->getPropertiesDescription(FALSE, FALSE, TRUE, $limit, $offset));
                 break;
 
                 case "all":
-                  $this->subjectTriples = array_merge($this->subjectTriples, $ontology->getPropertiesDescription(TRUE, FALSE, FALSE, $limit, $offset));
-                  $this->subjectTriples = array_merge($this->subjectTriples, $ontology->getPropertiesDescription(FALSE, TRUE, FALSE, $limit, $offset));
-                  $this->subjectTriples = array_merge($this->subjectTriples, $ontology->getPropertiesDescription(FALSE, FALSE, TRUE, $limit, $offset));
+                  $subjectTriples = array_merge($subjectTriples, $ontology->getPropertiesDescription(TRUE, FALSE, FALSE, $limit, $offset));
+                  $subjectTriples = array_merge($subjectTriples, $ontology->getPropertiesDescription(FALSE, TRUE, FALSE, $limit, $offset));
+                  $subjectTriples = array_merge($subjectTriples, $ontology->getPropertiesDescription(FALSE, FALSE, TRUE, $limit, $offset));
+                  $this->rset->setResultset($subjectTriples);
                 break;
                 
                 default:
@@ -2559,12 +1887,9 @@ class OntologyRead extends WebService
                   
                   foreach($properties as $property)
                   {
-                    if(!isset($this->subjectTriples[$property]))
-                    {
-                      $this->subjectTriples[$property] = array(Namespaces::$rdf."type" => array(array("value" => "owl:DatatypeProperty",
-                                                                                "datatype" => "rdf:Resource",
-                                                                                "lang" => "")));
-                    }  
+                    $subject = new Subject($property);
+                    $subject->setType("owl:DatatypeProperty");
+                    $this->rset->addSubject($subject);
                   }
                 break;
                 
@@ -2573,12 +1898,9 @@ class OntologyRead extends WebService
                   
                   foreach($properties as $property)
                   {
-                    if(!isset($this->subjectTriples[$property]))
-                    {
-                      $this->subjectTriples[$property] = array(Namespaces::$rdf."type" => array(array("value" => "owl:ObjectProperty",
-                                                                                "datatype" => "rdf:Resource",
-                                                                                "lang" => "")));
-                    }  
+                    $subject = new Subject($property);
+                    $subject->setType("owl:ObjectProperty");
+                    $this->rset->addSubject($subject);
                   }
                 break;
                 
@@ -2593,11 +1915,11 @@ class OntologyRead extends WebService
               switch(strtolower($this->parameters["type"]))
               {
                 case "dataproperty":
-                  $this->subjectTriples = $ontology->getSubPropertiesDescription((string)$this->parameters["uri"], $this->parameters["direct"], TRUE);
+                  $this->rset->setResultset($ontology->getSubPropertiesDescription((string)$this->parameters["uri"], $this->parameters["direct"], TRUE));
                 break;
                 
                 case "objectproperty":
-                  $this->subjectTriples = $ontology->getSubPropertiesDescription((string)$this->parameters["uri"], $this->parameters["direct"], FALSE);
+                  $this->rset->setResultset($ontology->getSubPropertiesDescription((string)$this->parameters["uri"], $this->parameters["direct"], FALSE));
                 break;
                 
                 default:
@@ -2632,12 +1954,9 @@ class OntologyRead extends WebService
                   
                   foreach($properties as $property)
                   {
-                    if(!isset($this->subjectTriples[$property]))
-                    {
-                      $this->subjectTriples[$property] = array(Namespaces::$rdf."type" => array(array("value" => "owl:DatatypeProperty",
-                                                                                "datatype" => "rdf:Resource",
-                                                                                "lang" => "")));
-                    }  
+                    $subject = new Subject($property);
+                    $subject->setType("owl:DatatypeProperty");
+                    $this->rset->addSubject($subject);
                   }
                 break;
                 
@@ -2646,12 +1965,9 @@ class OntologyRead extends WebService
                   
                   foreach($properties as $property)
                   {
-                    if(!isset($this->subjectTriples[$property]))
-                    {
-                      $this->subjectTriples[$property] = array(Namespaces::$rdf."type" => array(array("value" => "owl:DatatypeProperty",
-                                                                                "datatype" => "rdf:Resource",
-                                                                                "lang" => "")));
-                    }  
+                    $subject = new Subject($property);
+                    $subject->setType("owl:ObjectProperty");
+                    $this->rset->addSubject($subject);
                   }
                 break;
                 
@@ -2667,11 +1983,11 @@ class OntologyRead extends WebService
               switch(strtolower($this->parameters["type"]))
               {
                 case "dataproperty":
-                  $this->subjectTriples = $ontology->getSuperPropertiesDescription((string)$this->parameters["uri"], $this->parameters["direct"], TRUE);
+                  $this->rset->setResultset($ontology->getSuperPropertiesDescription((string)$this->parameters["uri"], $this->parameters["direct"], TRUE));
                 break;
                 
                 case "objectproperty":
-                  $this->subjectTriples = $ontology->getSuperPropertiesDescription((string)$this->parameters["uri"], $this->parameters["direct"], FALSE);
+                  $this->rset->setResultset($ontology->getSuperPropertiesDescription((string)$this->parameters["uri"], $this->parameters["direct"], FALSE));
                 break;
                 
                 default:
@@ -2706,12 +2022,9 @@ class OntologyRead extends WebService
                   
                   foreach($properties as $property)
                   {
-                    if(!isset($this->subjectTriples[$property]))
-                    {
-                      $this->subjectTriples[$property] = array(Namespaces::$rdf."type" => array(array("value" => "owl:DatatypeProperty",
-                                                                                "datatype" => "rdf:Resource",
-                                                                                "lang" => "")));
-                    }  
+                    $subject = new Subject($property);
+                    $subject->setType("owl:DatatypeProperty");
+                    $this->rset->addSubject($subject);
                   }
                 break;
                 
@@ -2720,12 +2033,9 @@ class OntologyRead extends WebService
                   
                   foreach($properties as $property)
                   {
-                    if(!isset($this->subjectTriples[$property]))
-                    {
-                      $this->subjectTriples[$property] = array(Namespaces::$rdf."type" => array(array("value" => "owl:DatatypeProperty",
-                                                                                "datatype" => "rdf:Resource",
-                                                                                "lang" => "")));
-                    }  
+                    $subject = new Subject($property);
+                    $subject->setType("owl:ObjectProperty");
+                    $this->rset->addSubject($subject);
                   }
                 break;
                 
@@ -2740,11 +2050,11 @@ class OntologyRead extends WebService
               switch(strtolower($this->parameters["type"]))
               {
                 case "dataproperty":
-                  $this->subjectTriples = $ontology->getEquivalentPropertiesDescription((string)$this->parameters["uri"], TRUE);
+                  $this->rset->setResultset($ontology->getEquivalentPropertiesDescription((string)$this->parameters["uri"], TRUE));
                 break;
                 
                 case "objectproperty":
-                  $this->subjectTriples = $ontology->getEquivalentPropertiesDescription((string)$this->parameters["uri"], FALSE);
+                  $this->rset->setResultset($ontology->getEquivalentPropertiesDescription((string)$this->parameters["uri"], FALSE));
                 break;
                 
                 default:
@@ -2779,12 +2089,9 @@ class OntologyRead extends WebService
                   
                   foreach($properties as $property)
                   {
-                    if(!isset($this->subjectTriples[$property]))
-                    {
-                      $this->subjectTriples[$property] = array(Namespaces::$rdf."type" => array(array("value" => "owl:DatatypeProperty",
-                                                                                "datatype" => "rdf:Resource",
-                                                                                "lang" => "")));
-                    }  
+                    $subject = new Subject($property);
+                    $subject->setType("owl:DatatypeProperty");
+                    $this->rset->addSubject($subject);
                   }
                 break;
                 
@@ -2793,12 +2100,9 @@ class OntologyRead extends WebService
                   
                   foreach($properties as $property)
                   {
-                    if(!isset($this->subjectTriples[$property]))
-                    {
-                      $this->subjectTriples[$property] = array(Namespaces::$rdf."type" => array(array("value" => "owl:DatatypeProperty",
-                                                                                "datatype" => "rdf:Resource",
-                                                                                "lang" => "")));
-                    }  
+                    $subject = new Subject($property);
+                    $subject->setType("owl:ObjectProperty");
+                    $this->rset->addSubject($subject);
                   }
                 break;
                 
@@ -2813,11 +2117,11 @@ class OntologyRead extends WebService
               switch(strtolower($this->parameters["type"]))
               {
                 case "dataproperty":
-                  $this->subjectTriples = $ontology->getDisjointPropertiesDescription((string)$this->parameters["uri"], TRUE);
+                  $this->rset->setResultset($ontology->getDisjointPropertiesDescription((string)$this->parameters["uri"], TRUE));
                 break;
                 
                 case "objectproperty":
-                  $this->subjectTriples = $ontology->getDisjointPropertiesDescription((string)$this->parameters["uri"], FALSE);
+                  $this->rset->setResultset($ontology->getDisjointPropertiesDescription((string)$this->parameters["uri"], FALSE));
                 break;
                 
                 default:

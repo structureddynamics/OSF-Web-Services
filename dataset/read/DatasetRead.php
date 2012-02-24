@@ -40,9 +40,6 @@ class DatasetRead extends WebService
   /*! @brief URI of the target dataset(s). "all" means all datasets visible to thatuser. */
   private $datasetUri = "";
 
-  /*! @brief Description of one or multiple datasets */
-  private $datasetsDescription = array();
-
   /*! @brief Add meta information to the resultset */
   private $addMeta = "false";
 
@@ -57,8 +54,9 @@ class DatasetRead extends WebService
 
   /*! @brief Supported serialization mime types by this Web service */
   public static $supportedSerializations =
-    array ("application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*",
-      "*/*");
+    array ("application/json", "application/rdf+xml", "application/rdf+n3", 
+           "application/iron+json", "application/iron+csv", "application/*", 
+           "text/xml", "text/*", "*/*");
 
   /*! @brief Error messages of this web service */
   private $errorMessenger =
@@ -371,154 +369,7 @@ class DatasetRead extends WebService
   */
   public function pipeline_getResultset()
   {
-    $xml = new ProcessorXML();
-
-    // Creation of the RESULTSET
-    $resultset = $xml->createResultset();
-
-    // Creation of the prefixes elements.
-    foreach($this->namespaces as $uri => $prefix)
-    {
-      $ns = $xml->createPrefix($prefix, $uri);
-      $resultset->appendChild($ns);
-    }
-
-    // Creation of the SUBJECT of the RESULTSET
-    foreach($this->datasetsDescription as $dd)
-    {
-      if($dd->uri != "")
-      {
-        $subject = $xml->createSubject("void:Dataset", $dd->uri);
-
-        if($dd->title != "")
-        {
-          $pred = $xml->createPredicate("dcterms:title");
-          $object = $xml->createObjectContent($dd->title);
-          $pred->appendChild($object);
-          $subject->appendChild($pred);
-        }
-
-        if($dd->description != "")
-        {
-          $pred = $xml->createPredicate("dcterms:description");
-          $object = $xml->createObjectContent($dd->description);
-          $pred->appendChild($object);
-          $subject->appendChild($pred);
-        }
-
-        $pred = $xml->createPredicate("dcterms:created");
-        $object = $xml->createObjectContent($dd->created);
-        $pred->appendChild($object);
-        $subject->appendChild($pred);
-
-        if($dd->modified != "")
-        {
-          $pred = $xml->createPredicate("dcterms:modified");
-          $object = $xml->createObjectContent($dd->modified);
-          $pred->appendChild($object);
-          $subject->appendChild($pred);
-        }
-
-        if($dd->creator != "")
-        {
-          $pred = $xml->createPredicate("dcterms:creator");
-          $object = $xml->createObject("sioc:User", $dd->creator);
-          $pred->appendChild($object);
-          $subject->appendChild($pred);
-        }
-
-        if($dd->meta != "" && $this->addMeta == "true")
-        {
-          $pred = $xml->createPredicate("wsf:meta");
-          $object = $xml->createObject("", $dd->meta);
-          $pred->appendChild($object);
-          $subject->appendChild($pred);
-        }
-
-        if(count($dd->metaDescription) > 0 && $this->addMeta == "true")
-        {
-          $subjectMeta = $xml->createSubject("void:Dataset", $dd->meta);
-
-          foreach($dd->metaDescription as $predicate => $values)
-          {
-            foreach($values as $key => $value)
-            {
-              if(gettype($key) == "integer" && $value != "")
-              {
-                if($dd->metaDescription[$predicate]["type"] != NULL)
-                {
-/*
-  @TODO The internal XML structure of structWSF should be enhanced with datatypes such as xsd:double, int, 
-        literal, etc.
-*/
-                  $pred = $xml->createPredicate($predicate);
-                  $object = $xml->createObjectContent($value);
-                  $pred->appendChild($object);
-                  $subjectMeta->appendChild($pred);
-                }
-                else
-                {
-                  $pred = $xml->createPredicate($predicate);
-                  $object = $xml->createObject("", $value);
-
-                  // Check if we have to reify statements to this object
-                  $query = "  select  ?s ?p ?o
-                          from <" . $this->datasetUri . "reification/>
-                          where
-                          {
-                            ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#subject> <" . $dd->meta . ">.
-                            ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate> <" . $predicate . ">.
-                            ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#object> <" . $value . ">.
-                            ?s ?p ?o.
-                          }";
-
-                  $rset =
-                    @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
-                      array ("s", "p", "o"), FALSE));
-
-                  if(!odbc_error())
-                  {
-                    while(odbc_fetch_row($rset))
-                    {
-                      $s = odbc_result($rset, 1);
-                      $p = odbc_result($rset, 2);
-                      $o = $this->db->odbc_getPossibleLongResult($rset, 3);
-
-                      if($p == "http://purl.org/ontology/bibo/uri"
-                        || $p == "http://www.w3.org/2000/01/rdf-schema#label")
-                      {
-                        $reify = $xml->createReificationStatement($p, $o);
-                        $object->appendChild($reify);
-                      }
-                    }
-                  }
-
-                  $pred->appendChild($object);
-                  $subjectMeta->appendChild($pred);
-                }
-              }
-            }
-          }
-
-          $resultset->appendChild($subjectMeta);
-        }
-
-        foreach($dd->contributors as $contributor)
-        {
-          if($contributor != "")
-          {
-            $pred = $xml->createPredicate("dcterms:contributor");
-            $object = $xml->createObject("sioc:User", $contributor);
-            $pred->appendChild($object);
-            $subject->appendChild($pred);
-          }
-        }
-
-        $resultset->appendChild($subject);
-      }
-    }
-
-    return ($this->injectDoctype($xml->saveXML($resultset)));
+    return($this->injectDoctype($this->rset->getResultsetXML()));
   }
 
   /*!   @brief Inject the DOCType in a XML document
@@ -682,264 +533,6 @@ class DatasetRead extends WebService
 
     return (FALSE);
   }
-  /*!   @brief Serialize the web service answer.
-              
-      \n
-      
-      @return returns the serialized content
-    
-      @author Frederick Giasson, Structured Dynamics LLC.
-    
-      \n\n\n
-  */
-  public function pipeline_serialize()
-  {
-    $rdf_part = "";
-
-    switch($this->conneg->getMime())
-    {
-      case "application/json":
-        $json_part = "";
-        $xml = new ProcessorXML();
-        $xml->loadXML($this->pipeline_getResultset());
-
-        $subjects = $xml->getSubjects();
-
-        foreach($subjects as $subject)
-        {
-          $subjectURI = $xml->getURI($subject);
-          $subjectType = $xml->getType($subject);
-
-          $json_part .= "      { \n";
-          $json_part .= "        \"uri\": \"" . parent::jsonEncode($subjectURI) . "\", \n";
-          $json_part .= "        \"type\": \"" . parent::jsonEncode($subjectType) . "\",\n";
-
-          $predicates = $xml->getPredicates($subject);
-
-          $nbPredicates = 0;
-
-          foreach($predicates as $predicate)
-          {
-            $objects = $xml->getObjects($predicate);
-
-            foreach($objects as $object)
-            {
-              $nbPredicates++;
-
-              if($nbPredicates == 1)
-              {
-                $json_part .= "        \"predicate\": [ \n";
-              }
-
-              $objectType = $xml->getType($object);
-              $predicateType = $xml->getType($predicate);
-
-              if($objectType == "rdfs:Literal")
-              {
-                $objectValue = $xml->getContent($object);
-
-                $json_part .= "          { \n";
-                $json_part .= "            \"" . parent::jsonEncode($predicateType) . "\": \""
-                  . parent::jsonEncode($objectValue) . "\" \n";
-                $json_part .= "          },\n";
-              }
-              else
-              {
-                $objectURI = $xml->getURI($object);
-                $rdf_part .= "          <$predicateType> <$objectURI> ;\n";
-
-                $json_part .= "          { \n";
-                $json_part .= "            \"" . parent::jsonEncode($predicateType) . "\": { \n";
-                $json_part .= "                \"uri\": \"" . parent::jsonEncode($objectURI) . "\" \n";
-                $json_part .= "                } \n";
-                $json_part .= "          },\n";
-              }
-            }
-          }
-
-          if(strlen($json_part) > 0)
-          {
-            $json_part = substr($json_part, 0, strlen($json_part) - 2) . "\n";
-          }
-
-          if($nbPredicates > 0)
-          {
-            $json_part .= "        ]\n";
-          }
-
-          $json_part .= "      },\n";
-        }
-
-        if(strlen($json_part) > 0)
-        {
-          $json_part = substr($json_part, 0, strlen($json_part) - 2) . "\n";
-        }
-
-        return ($json_part);
-      break;
-
-      case "application/rdf+n3":
-        $xml = new ProcessorXML();
-        $xml->loadXML($this->pipeline_getResultset());
-
-        $dataset = $xml->getSubjectsByType("void:Dataset");
-
-        $dataset_uri = $xml->getURI($dataset->item(0));
-
-        $rdf_part .= "<$dataset_uri> a void:Dataset ;\n";
-
-        // Get title
-        $predicates = $xml->getPredicatesByType($dataset->item(0), "dcterms:title");
-
-        if($predicates->item(0))
-        {
-          $objects = $xml->getObjectsByType($predicates->item(0), "rdfs:Literal");
-          $rdf_part .= "dcterms:title \"\"\"" . $xml->getContent($objects->item(0)) . "\"\"\" ;\n";
-        }
-
-        // Get description
-        $predicates = $xml->getPredicatesByType($dataset->item(0), "dcterms:description");
-
-        if($predicates->item(0))
-        {
-          $objects = $xml->getObjectsByType($predicates->item(0), "rdfs:Literal");
-          $rdf_part .= "dcterms:description \"\"\"" . $xml->getContent($objects->item(0)) . "\"\"\" ;\n";
-        }
-
-        // Get created
-        $predicates = $xml->getPredicatesByType($dataset->item(0), "dcterms:created");
-
-        if($predicates->item(0))
-        {
-          $objects = $xml->getObjectsByType($predicates->item(0), "rdfs:Literal");
-          $rdf_part .= "dcterms:created \"\"\"" . $xml->getContent($objects->item(0)) . "\"\"\" ;\n";
-        }
-
-        // Get modified
-        $predicates = $xml->getPredicatesByType($dataset->item(0), "dcterms:modified");
-
-        if($predicates->item(0))
-        {
-          $objects = $xml->getObjectsByType($predicates->item(0), "rdfs:Literal");
-          $rdf_part .= "dcterms:modified \"\"\"" . $xml->getContent($objects->item(0)) . "\"\"\" ;\n";
-        }
-
-        // Get creator
-        $predicates = $xml->getPredicatesByType($dataset->item(0), "dcterms:creator");
-
-        foreach($predicates as $predicate)
-        {
-          $objects = $xml->getObjectsByType($predicate, "sioc:User");
-          $rdf_part .= "dcterms:creator <" . $xml->getURI($objects->item(0)) . "> ;\n";
-        }
-
-        // Get contributors
-        $predicates = $xml->getPredicatesByType($dataset->item(0), "dcterms:contributor");
-
-        foreach($predicates as $predicate)
-        {
-          $objects = $xml->getObjectsByType($predicate, "sioc:User");
-          $rdf_part .= "dcterms:contributor <" . $xml->getURI($objects->item(0)) . "> ;\n";
-        }
-
-        return ($rdf_part);
-
-      break;
-
-      case "application/rdf+xml":
-
-        $xml = new ProcessorXML();
-        $xml->loadXML($this->pipeline_getResultset());
-
-
-        /*! @todo Implementing the "nsX" generation for the RDF output of dataset read. This is needed otherwise
-         *          the generated document wont be valid if meta data values are added.
-         */
-        /*
-                $nsId = 0;
-        */
-
-        $dataset = $xml->getSubjectsByType("void:Dataset");
-
-        $dataset_uri = $xml->getURI($dataset->item(0));
-
-        $rdf_part .= "<void:Dataset rdf:about=\"".$this->xmlEncode($dataset_uri)."\">\n";
-
-        // Get title
-        $predicates = $xml->getPredicatesByType($dataset->item(0), "dcterms:title");
-
-        if($predicates->item(0))
-        {
-          $objects = $xml->getObjectsByType($predicates->item(0), "rdfs:Literal");
-          $rdf_part .= "<dcterms:title>" . $this->xmlEncode($xml->getContent($objects->item(0))) . "</dcterms:title>\n";
-        }
-
-        // Get description
-        $predicates = $xml->getPredicatesByType($dataset->item(0), "dcterms:description");
-
-        if($predicates->item(0))
-        {
-          $objects = $xml->getObjectsByType($predicates->item(0), "rdfs:Literal");
-          $rdf_part .= "<dcterms:description>" . $this->xmlEncode($xml->getContent($objects->item(0))) . 
-                                                                                            "</dcterms:description>\n";
-        }
-
-        // Get created
-        $predicates = $xml->getPredicatesByType($dataset->item(0), "dcterms:created");
-
-        if($predicates->item(0))
-        {
-          $objects = $xml->getObjectsByType($predicates->item(0), "rdfs:Literal");
-          $rdf_part .= "<dcterms:created>" . $this->xmlEncode($xml->getContent($objects->item(0))) . 
-                                                                                                "</dcterms:created>\n";
-        }
-
-        // Get modified
-        $predicates = $xml->getPredicatesByType($dataset->item(0), "dcterms:modified");
-
-        if($predicates->item(0))
-        {
-          $objects = $xml->getObjectsByType($predicates->item(0), "rdfs:Literal");
-          $rdf_part .= "<dcterms:modified>" . $this->xmlEncode($xml->getContent($objects->item(0))) . 
-                                                                                                "</dcterms:modified>\n";
-        }
-
-        // Get creator
-        $predicates = $xml->getPredicatesByType($dataset->item(0), "dcterms:creator");
-
-        foreach($predicates as $predicate)
-        {
-          $objects = $xml->getObjectsByType($predicate, "sioc:User");
-          $rdf_part .= "<dcterms:creator rdf:resource=\"" . $this->xmlEncode($xml->getURI($objects->item(0))) . 
-                                                                                                              "\" />\n";
-        }
-
-        // Get contributors
-        $predicates = $xml->getPredicatesByType($dataset->item(0), "dcterms:contributor");
-
-        foreach($predicates as $predicate)
-        {
-          $objects = $xml->getObjectsByType($predicate, "sioc:User");
-          $rdf_part .= "<dcterms:contributor rdf:resource=\"" . $this->xmlEncode($xml->getURI($objects->item(0))) . 
-                                                                                                              "\" />\n";
-        }
-
-        $rdf_part .= "</void:Dataset>\n";
-
-        return ($rdf_part);
-      break;
-    }
-  }
-
-  /*!   @brief Non implemented method (only defined)
-              
-      \n
-      
-      @author Frederick Giasson, Structured Dynamics LLC.
-    
-      \n\n\n
-  */
-  public function pipeline_serialize_reification() { return ""; }
 
   /*!   @brief Serialize the web service answer.
               
@@ -953,60 +546,7 @@ class DatasetRead extends WebService
   */
   public function ws_serialize()
   {
-    switch($this->conneg->getMime())
-    {
-      case "application/rdf+n3":
-        $rdf_document = "";
-        $rdf_document .= "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n";
-        $rdf_document .= "@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n";
-        $rdf_document .= "@prefix void: <http://rdfs.org/ns/void#> .\n";
-        $rdf_document .= "@prefix dcterms: <http://purl.org/dc/terms/> .\n";
-        $rdf_document .= "@prefix wsf: <http://purl.org/ontology/wsf#> .\n";
-
-        $rdf_document .= $this->pipeline_serialize();
-
-        $rdf_document = substr($rdf_document, 0, strlen($rdf_document) - 2) . ".\n";
-
-        return $rdf_document;
-      break;
-
-      case "application/rdf+xml":
-        $rdf_document = "";
-        $rdf_document .= "<?xml version=\"1.0\"?>\n";
-        $rdf_document
-          .= "<rdf:RDF xmlns:wsf=\"http://purl.org/ontology/wsf#\" xmlns:void=\"http://rdfs.org/ns/void#\" xmlns:dcterms=\"http://purl.org/dc/terms/\" xmlns:rdfs=\"http://www.w3.org/2000/01/rdf-schema#\" xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n\n";
-
-        $rdf_document .= $this->pipeline_serialize();
-
-        $rdf_document .= "</rdf:RDF>";
-
-        return $rdf_document;
-      break;
-
-      case "text/xml":
-        return $this->pipeline_getResultset();
-      break;
-
-      case "application/json":
-        $json_document = "";
-        $json_document .= "{\n";
-        $json_document .= "  \"prefixes\": \n";
-        $json_document .= "    {\n";
-        $json_document .= "      \"rdf\": \"http:\/\/www.w3.org\/1999\/02\/22-rdf-syntax-ns#\",\n";
-        $json_document .= "      \"rdfs\": \"http://www.w3.org/2000/01/rdf-schema#\",\n";
-        $json_document .= "      \"void\": \"http://rdfs.org/ns/void#\",\n";
-        $json_document .= "      \"dcterms\": \"http://purl.org/dc/terms/\"\n";
-        $json_document .= "    },\n";
-        $json_document .= "  \"resultset\": {\n";
-        $json_document .= "    \"subject\": [\n";
-        $json_document .= $this->pipeline_serialize();
-        $json_document .= "    ]\n";
-        $json_document .= "  }\n";
-        $json_document .= "}";
-
-        return ($json_document);
-      break;
-    }
+    return($this->serializations());
   }
 
   /*!   @brief Read informationa about a target dataset
@@ -1054,8 +594,8 @@ class DatasetRead extends WebService
       */
 
       $query = "";
-      $datasets = array();
-
+      $nbDatasets = 0;
+      
       if($this->datasetUri == "all")
       {
         $query = "  select distinct ?dataset ?title ?description ?creator ?created ?modified ?contributor ?meta
@@ -1113,13 +653,31 @@ class DatasetRead extends WebService
           $meta = "";
 
           while(odbc_fetch_row($resultset))
-          {
+          {            
             $dataset2 = odbc_result($resultset, 1);
 
             if($dataset2 != $dataset && $dataset != "")
             {
-              array_push($this->datasetsDescription,
-                new DatasetDescription($dataset, $title, $description, $creator, $created, $modified, $contributors));
+              $subject = new Subject($dataset);
+              $subject->setType(Namespaces::$void."Dataset");
+              
+              if($title != ""){$subject->setDataAttribute(Namespaces::$dcterms."title", $title);}
+              if($description != ""){$subject->setDataAttribute(Namespaces::$dcterms."description", $description);}
+              if($creator != ""){$subject->setObjectAttribute(Namespaces::$dcterms."creator", $creator, null, "sioc:User");}
+              if($created != ""){$subject->setDataAttribute(Namespaces::$dcterms."created", $created);}
+              if($modified != ""){$subject->setDataAttribute(Namespaces::$dcterms."modified", $modified);}
+              
+              foreach($contributors as $contributor)
+              {
+                if($contributor != "")
+                {
+                  $subject->setObjectAttribute(Namespaces::$dcterms."contributor", $contributor, null, "sioc:User");
+                }
+              }  
+                
+              $this->rset->addSubject($subject);  
+              $nbDatasets++;
+              
               $contributors = array();
             }
 
@@ -1138,6 +696,7 @@ class DatasetRead extends WebService
           $metaDescription = array();
 
           // We have to add the meta information if available
+          /*
           if($meta != "" && $this->addMeta == "true")
           {
             $query = "select ?p ?o (str(DATATYPE(?o))) as ?otype (LANG(?o)) as ?olang
@@ -1183,7 +742,7 @@ class DatasetRead extends WebService
 
                   if($olang && $olang != "")
                   {
-                    /* If a language is defined for an object, we force its type to be xsd:string */
+                    // If a language is defined for an object, we force its type to be xsd:string
                     $metaDescription[$predicate]["type"] = "http://www.w3.org/2001/XMLSchema#string";
                   }
                   else
@@ -1195,58 +754,33 @@ class DatasetRead extends WebService
             }
 
             unset($resultset);
-          }
+          }*/
 
           if($dataset != "")
           {
-            array_push($this->datasetsDescription,
-              new DatasetDescription($dataset, $title, $description, $creator, $created, $modified, $contributors,
-                $meta, $metaDescription));
+            $subject = new Subject($dataset);
+            $subject->setType(Namespaces::$void."Dataset");
+            
+            if($title != ""){$subject->setDataAttribute(Namespaces::$dcterms."title", $title);}
+            if($description != ""){$subject->setDataAttribute(Namespaces::$dcterms."description", $description);}
+            if($creator != ""){$subject->setObjectAttribute(Namespaces::$dcterms."creator", $creator, null, "sioc:User");}
+            if($created != ""){$subject->setDataAttribute(Namespaces::$dcterms."created", $created);}
+            if($modified != ""){$subject->setDataAttribute(Namespaces::$dcterms."modified", $modified);}
+            
+            foreach($contributors as $contributor)
+            {
+              if($contributor != "")
+              {
+                $subject->setObjectAttribute(Namespaces::$dcterms."contributor", $contributor, null, "sioc:User");
+              }
+            }  
+              
+            $this->rset->addSubject($subject);  
+            $nbDatasets++;
           }
 
           unset($resultset);
         }
-
-      /*      
-              // Get all datasets this user has access to
-              $query = "select ?dataset 
-                      from named <".$this->wsf_graph."datasets/>
-                      from named <".$this->wsf_graph.">
-                      where
-                      {
-                        graph <".$this->wsf_graph."datasets/>
-                        {
-                          ?dataset a <http://rdfs.org/ns/void#Dataset> .
-                        }
-                      
-                        graph <".$this->wsf_graph.">
-                        {
-                          ?access <http://purl.org/ontology/wsf#registeredIP> \"$this->registered_ip\" ;
-                                  <http://purl.org/ontology/wsf#read> \"True\" ;
-                                  <http://purl.org/ontology/wsf#datasetAccess> ?dataset .
-                        }
-                      }";                
-      
-              $resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array("\n", "\r", "\t"), " ", $query), array("dataset"), FALSE));
-                          
-              if (odbc_error())
-              {
-                $this->conneg->setStatus(500);
-                $this->conneg->setStatusMsg("Internal Error");
-                $this->conneg->setStatusMsgExt("Error #dataset-read-100");  
-                return;
-              }  
-              else
-              {
-                while(odbc_fetch_row($resultset))
-                {
-                  array_push($datasets, odbc_result($resultset, 1));
-                }
-                
-                unset($resultset);
-              }
-      */
-
       }
       else
       {
@@ -1298,6 +832,7 @@ class DatasetRead extends WebService
 
             unset($resultset);
 
+            /*
             $metaDescription = array();
 
             // We have to add the meta information if available
@@ -1346,7 +881,7 @@ class DatasetRead extends WebService
 
                     if($olang && $olang != "")
                     {
-                      /* If a language is defined for an object, we force its type to be xsd:string */
+                      // If a language is defined for an object, we force its type to be xsd:string 
                       $metaDescription[$predicate]["type"] = "http://www.w3.org/2001/XMLSchema#string";
                     }
                     else
@@ -1358,7 +893,7 @@ class DatasetRead extends WebService
               }
 
               unset($resultset);
-            }
+            }*/
 
 
             // Get all contributors (users that have CUD perissions over the dataset)
@@ -1393,15 +928,31 @@ class DatasetRead extends WebService
             {
               array_push($contributors, odbc_result($resultset, 1));
             }
-
-            array_push($this->datasetsDescription,
-              new DatasetDescription($dataset, $title, $description, $creator, $created, $modified, $contributors,
-                $meta, $metaDescription));
+            
+            $subject = new Subject($dataset);
+            $subject->setType(Namespaces::$void."Dataset");
+            
+            if($title != ""){$subject->setDataAttribute(Namespaces::$dcterms."title", $title);}
+            if($description != ""){$subject->setDataAttribute(Namespaces::$dcterms."description", $description);}
+            if($creator != ""){$subject->setObjectAttribute(Namespaces::$dcterms."creator", $creator, null, "sioc:User");}
+            if($created != ""){$subject->setDataAttribute(Namespaces::$dcterms."created", $created);}
+            if($modified != ""){$subject->setDataAttribute(Namespaces::$dcterms."modified", $modified);}
+            
+            foreach($contributors as $contributor)
+            {
+              if($contributor != "")
+              {
+                $subject->setObjectAttribute(Namespaces::$dcterms."contributor", $contributor, null, "sioc:User");
+              }
+            }  
+              
+            $this->rset->addSubject($subject);  
+            $nbDatasets++;
           }
         }
       }
       
-      if(count($this->datasetsDescription) == 0 && $this->datasetUri != "all")
+      if($nbDatasets == 0 && $this->datasetUri != "all")
       {
         $this->conneg->setStatus(400);
         $this->conneg->setStatusMsg("Bad Request");
@@ -1414,60 +965,7 @@ class DatasetRead extends WebService
     }
   }
 }
-
-/*!   @brief Description of a dataset described in a WSF network
-            
-    \n
-    
-    @author Frederick Giasson, Structured Dynamics LLC.
-  
-    \n\n\n
-*/
-
-class DatasetDescription
-{
-  /*! @brief URI of the dataset  */
-  public $uri = "";
-
-  /*! @brief Title of the dataset */
-  public $title = "";
-
-  /*! @brief Description of the dataset */
-  public $description = "";
-
-  /*! @brief Creator of the dataset */
-  public $creator = "";
-
-  /*! @brief Creation date of the dataset */
-  public $created = "";
-
-  /*! @brief Last modification date of the dataset */
-  public $modified = "";
-
-  /*! @brief Contributors of the dataset */
-  public $contributors = array();
-
-  /*! @brief Meta resource URI about the dataset */
-  public $meta = "";
-
-  /*! @brief Meta description about the dataset */
-  public $metaDescription = "";
-
-  function __construct($uri, $title, $description, $creator, $created, $modified, $contributors, $meta = "",
-    $metaDescription = array())
-  {
-    $this->uri = $uri;
-    $this->title = $title;
-    $this->description = $description;
-    $this->creator = $creator;
-    $this->created = $created;
-    $this->modified = $modified;
-    $this->contributors = $contributors;
-    $this->meta = $meta;
-    $this->metaDescription = $metaDescription;
-  }
-}
-
+              
 //@}
 
 ?>

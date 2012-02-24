@@ -52,12 +52,6 @@ class Sparql extends WebService
   /*! @brief SPARQL query content resultset */
   private $sparqlContent = "";
 
-  /*! @brief Instance records from the query where the object of the triple is a literal */
-  private $instanceRecordsObjectLiteral = array();
-
-  /*! @brief Instance records from the query where the object of the triple is a resource */
-  private $instanceRecordsObjectResource = array();
-
   /*! @brief Namespaces/Prefixes binding */
   private $namespaces =
     array ("http://www.w3.org/2002/07/owl#" => "owl", "http://www.w3.org/1999/02/22-rdf-syntax-ns#" => "rdf",
@@ -72,8 +66,9 @@ class Sparql extends WebService
 
   /*! @brief Supported MIME serializations by this web service */
   public static $supportedSerializations =
-    array ("application/rdf+json", "text/rdf+n3", "application/json", "text/xml", "application/sparql-results+xml", "application/sparql-results+json",
-      "text/html", "application/rdf+xml", "application/rdf+n3", "application/*", "text/plain", "text/*", "*/*");
+    array ("application/rdf+json", "text/rdf+n3", "application/json", "text/xml", "application/sparql-results+xml", 
+           "application/sparql-results+json", "text/html", "application/rdf+xml", "application/rdf+n3", 
+           "application/iron+json", "application/iron+csv", "application/*", "text/plain", "text/*", "*/*");
 
   /*! @brief Error messages of this web service */
   private $errorMessenger =
@@ -274,141 +269,7 @@ class Sparql extends WebService
   */
   public function pipeline_getResultset()
   {
-    $labelProperties =
-      array (Namespaces::$dcterms . "title", Namespaces::$foaf . "name", Namespaces::$foaf . "givenName",
-        Namespaces::$foaf . "family_name", Namespaces::$rdfs . "label", Namespaces::$skos_2004 . "prefLabel",
-        Namespaces::$skos_2004 . "altLabel", Namespaces::$skos_2008 . "prefLabel",
-        Namespaces::$skos_2008 . "altLabel");
-
-    $xml = new ProcessorXML();
-
-    // Creation of the RESULTSET
-    $resultset = $xml->createResultset();
-
-    $subject;
-
-    foreach($this->instanceRecordsObjectResource as $uri => $result)
-    {
-      // Assigning types
-      if(isset($result["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"]))
-      {
-        foreach($result["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"] as $key => $type)
-        {
-          if($key > 0)
-          {
-            $pred = $xml->createPredicate("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
-            $object = $xml->createObject("", $type);
-            $pred->appendChild($object);
-            $subject->appendChild($pred);
-          }
-          else
-          {
-            $subject = $xml->createSubject($type, $uri);
-          }
-        }
-      }
-      else
-      {
-        $subject = $xml->createSubject("http://www.w3.org/2002/07/owl#Thing", $uri);
-      }
-
-      // Assigning object resource properties
-      foreach($result as $property => $values)
-      {
-        if($property != "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
-        {
-          foreach($values as $value)
-          {
-            $label = "";
-
-            foreach($labelProperties as $labelProperty)
-            {
-              if($this->instanceRecordsObjectLiteral[$value])
-              {
-                // The object resource is part of the resultset
-                // This mainly occurs when we export complete datasets
-
-                if(isset($this->instanceRecordsObjectLiteral[$value][$labelProperty]))
-                {
-                  $label = $this->instanceRecordsObjectLiteral[$value][$labelProperty][0];
-                  break;
-                }
-              }
-              else
-              {
-              // The object resource is not part of the resultset
-              // In the future, we can send another sparql query to get its label.
-              }
-            }
-
-            $ns = $this->getNamespace($property);
-
-            if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
-            {
-              // Make sure the ID is not already existing. Increase the counter if it is the case.
-              while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
-              {
-                $nsId++;
-              }
-                                
-              $this->namespaces[$ns[0]] = "ns" . $nsId;
-              $nsId++;
-            }            
-            
-            $pred = $xml->createPredicate($this->namespaces[$ns[0]] . ":" . $ns[1]);
-            $object = $xml->createObject("", $value, ($label != "" ? $label : ""));
-            $pred->appendChild($object);
-
-            $subject->appendChild($pred);
-          }
-        }
-      }
-
-      // Assigning object literal properties
-      if(isset($this->instanceRecordsObjectLiteral[$uri]))
-      {
-        foreach($this->instanceRecordsObjectLiteral[$uri] as $property => $values)
-        {
-          if($property != "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
-          {
-            foreach($values as $value)
-            {
-              $ns = $this->getNamespace($property);
-
-              if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
-              {
-                // Make sure the ID is not already existing. Increase the counter if it is the case.
-                while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
-                {
-                  $nsId++;
-                }
-                  
-                $this->namespaces[$ns[0]] = "ns" . $nsId;
-                $nsId++;
-              }              
-              
-              $pred = $xml->createPredicate($this->namespaces[$ns[0]] . ":" . $ns[1]);
-              $object = $xml->createObjectContent($value);
-              $pred->appendChild($object);
-              $subject->appendChild($pred);
-            }
-          }
-        }
-      }
-      
-      $resultset->appendChild($subject);
-    }
-    
-    // Creation of the prefixes elements.
-    foreach($this->namespaces as $uri => $prefix)
-    {
-      $ns = $xml->createPrefix($prefix, $uri);
-      $resultset->appendChild($ns);
-    }
-    
-
-    return ($this->injectDoctype($xml->saveXML($resultset)));
-
+    return($this->rset->getResultsetXML());
   }
 
   /*!   @brief Inject the DOCType in a XML document
@@ -602,371 +463,6 @@ class Sparql extends WebService
     return (FALSE);
   }
 
-
-  /*!   @brief Serialize the web service answer.
-              
-      \n
-      
-      @return returns the serialized content
-    
-      @author Frederick Giasson, Structured Dynamics LLC.
-    
-      \n\n\n
-  */
-  public function pipeline_serialize()
-  {
-    $rdf_part = "";
-
-    switch($this->conneg->getMime())
-    {
-      case "application/json":
-        $json_part = "";
-        $xml = new ProcessorXML();
-        $xml->loadXML($this->pipeline_getResultset());
-
-        $subjects = $xml->getSubjects();
-
-        $nsId = 0;
-
-        foreach($subjects as $subject)
-        {
-          $subjectURI = $xml->getURI($subject);
-          $subjectType = $xml->getType($subject);
-
-          $ns = $this->getNamespace($subjectType);
-
-          if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
-          {
-            // Make sure the ID is not already existing. Increase the counter if it is the case.
-            while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
-            {
-              $nsId++;
-            }
-                  
-            $this->namespaces[$ns[0]] = "ns" . $nsId;
-            $nsId++;
-          }
-
-          $json_part .= "      { \n";
-          $json_part .= "        \"uri\": \"" . parent::jsonEncode($subjectURI) . "\", \n";
-          $json_part .= "        \"type\": \"" . parent::jsonEncode($this->namespaces[$ns[0]] . ":" . $ns[1])
-            . "\",\n";
-
-          $predicates = $xml->getPredicates($subject);
-
-          $nbPredicates = 0;
-
-          foreach($predicates as $predicate)
-          {
-            $objects = $xml->getObjects($predicate);
-
-            foreach($objects as $object)
-            {
-              $nbPredicates++;
-
-              if($nbPredicates == 1)
-              {
-                $json_part .= "        \"predicate\": [ \n";
-              }
-
-              $objectType = $xml->getType($object);
-              $predicateType = $xml->getType($predicate);
-
-              if($objectType == "rdfs:Literal")
-              {
-                $objectValue = $xml->getContent($object);
-
-                $ns = $this->getNamespace($predicateType);
-
-                if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
-                {
-                  // Make sure the ID is not already existing. Increase the counter if it is the case.
-                  while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
-                  {
-                    $nsId++;
-                  }
-                  
-                  $this->namespaces[$ns[0]] = "ns" . $nsId;
-                  $nsId++;
-                }
-
-                $json_part .= "          { \n";
-                $json_part .= "            \"" . parent::jsonEncode($this->namespaces[$ns[0]] . ":" . $ns[1]) . "\": \""
-                  . parent::jsonEncode($objectValue) . "\" \n";
-                $json_part .= "          },\n";
-              }
-              else
-              {
-                $objectURI = $xml->getURI($object);
-
-                $ns = $this->getNamespace($predicateType);
-
-                if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
-                {
-                  // Make sure the ID is not already existing. Increase the counter if it is the case.
-                  while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
-                  {
-                    $nsId++;
-                  }
-                  
-                  $this->namespaces[$ns[0]] = "ns" . $nsId;
-                  $nsId++;
-                }
-
-                $json_part .= "          { \n";
-                $json_part .= "            \"" . parent::jsonEncode($this->namespaces[$ns[0]] . ":" . $ns[1])
-                  . "\": { \n";
-                $json_part .= "                \"uri\": \"" . parent::jsonEncode($objectURI) . "\",\n";
-
-                // Check if there is a reification statement for this object.
-                $reifies = $xml->getReificationStatementsByType($object, "wsf:objectLabel");
-
-                $nbReification = 0;
-
-                foreach($reifies as $reify)
-                {
-                  $nbReification++;
-
-                  if($nbReification > 0)
-                  {
-                    $json_part .= "               \"reifies\": [\n";
-                  }
-
-                  $json_part .= "                 { \n";
-                  $json_part .= "                     \"type\": \"wsf:objectLabel\", \n";
-                  $json_part .= "                     \"value\": \"" . parent::jsonEncode($xml->getValue($reify))
-                    . "\" \n";
-                  $json_part .= "                 },\n";
-                }
-
-                if($nbReification > 0)
-                {
-                  $json_part = substr($json_part, 0, strlen($json_part) - 2) . "\n";
-
-                  $json_part .= "               ]\n";
-                }
-                else
-                {
-                  $json_part = substr($json_part, 0, strlen($json_part) - 2) . "\n";
-                }
-
-                $json_part .= "              } \n";
-                $json_part .= "          },\n";
-              }
-            }
-          }
-
-          if(strlen($json_part) > 0)
-          {
-            $json_part = substr($json_part, 0, strlen($json_part) - 2) . "\n";
-          }
-
-          if($nbPredicates > 0)
-          {
-            $json_part .= "        ]\n";
-          }
-
-          $json_part .= "      },\n";
-        }
-
-        if(strlen($json_part) > 0)
-        {
-          $json_part = substr($json_part, 0, strlen($json_part) - 2) . "\n";
-        }
-
-        $json_header .= "  \"prefixes\": \n";
-        $json_header .= "    {\n";
-
-        foreach($this->namespaces as $ns => $prefix)
-        {
-          $json_header .= "      \"$prefix\": \"$ns\",\n";
-        }
-
-        if(strlen($json_header) > 0)
-        {
-          $json_header = substr($json_header, 0, strlen($json_header) - 2) . "\n";
-        }
-
-        $json_header .= "    }, \n";
-        $json_header .= "  \"resultset\": {\n";
-        $json_header .= "    \"subject\": [\n";
-        $json_header .= $json_part;
-        $json_header .= "    ]\n";
-        $json_header .= "  }\n";
-
-        return ($json_header);
-      break;
-
-      case "application/rdf+n3":
-
-        $xml = new ProcessorXML();
-        $xml->loadXML($this->pipeline_getResultset());
-
-        $subjects = $xml->getSubjects();
-
-        foreach($subjects as $subject)
-        {
-          $subjectURI = $xml->getURI($subject);
-          $subjectType = $xml->getType($subject, FALSE);
-
-          $rdf_part .= "\n    <$subjectURI> a <$subjectType> ;\n";
-
-          $predicates = $xml->getPredicates($subject);
-
-          foreach($predicates as $predicate)
-          {
-            $objects = $xml->getObjects($predicate);
-
-            foreach($objects as $object)
-            {
-              $objectType = $xml->getType($object);
-              $predicateType = $xml->getType($predicate, FALSE);
-              $objectContent = $xml->getContent($object);
-
-              if($objectType == "rdfs:Literal")
-              {
-                $objectValue = $xml->getContent($object);
-                $rdf_part .= "        <$predicateType> \"\"\"" . str_replace(array( "\\" ), "\\\\", $objectValue)
-                  . "\"\"\" ;\n";
-              }
-              else
-              {
-                $objectURI = $xml->getURI($object);
-                $rdf_part .= "        <$predicateType> <$objectURI> ;\n";
-              }
-            }
-          }
-
-          if(strlen($rdf_part) > 0)
-          {
-            $rdf_part = substr($rdf_part, 0, strlen($rdf_part) - 2) . ".\n";
-          }
-        }
-
-        return ($rdf_part);
-      break;
-
-      case "application/rdf+xml":
-        $xml = new ProcessorXML();
-        $xml->loadXML($this->pipeline_getResultset());
-
-        $subjects = $xml->getSubjects();
-
-        $nsId = 0;
-
-        foreach($subjects as $subject)
-        {
-          $subjectURI = $xml->getURI($subject);
-          $subjectType = $xml->getType($subject);
-
-          $ns1 = $this->getNamespace($subjectType);
-
-          if($ns !== FALSE && !isset($this->namespaces[$ns1[0]]))
-          {
-            // Make sure the ID is not already existing. Increase the counter if it is the case.
-            while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
-            {
-              $nsId++;
-            }
-                  
-            $this->namespaces[$ns1[0]] = "ns" . $nsId;
-            $nsId++;
-          }
-
-          $rdf_part .= "\n    <" . $this->namespaces[$ns1[0]] . ":" . $ns1[1] . " rdf:about=\"".
-                                                                                  $this->xmlEncode($subjectURI)."\">\n";
-
-          $predicates = $xml->getPredicates($subject);
-
-          foreach($predicates as $predicate)
-          {
-            $objects = $xml->getObjects($predicate);
-
-            foreach($objects as $object)
-            {
-              $objectType = $xml->getType($object);
-              $predicateType = $xml->getType($predicate);
-
-              if($objectType == "rdfs:Literal")
-              {
-                $objectValue = $xml->getContent($object);
-
-                $ns = $this->getNamespace($predicateType);
-
-                if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
-                {
-                  // Make sure the ID is not already existing. Increase the counter if it is the case.
-                  while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
-                  {
-                    $nsId++;
-                  }
-                  
-                  $this->namespaces[$ns[0]] = "ns" . $nsId;
-                  $nsId++;
-                }
-
-                $rdf_part .= "        <" . $this->namespaces[$ns[0]] . ":" . $ns[1] . ">"
-                  . $this->xmlEncode($objectValue) . "</" . $this->namespaces[$ns[0]] . ":" . $ns[1] . ">\n";
-              }
-              else
-              {
-                $objectURI = $xml->getURI($object);
-
-                $ns = $this->getNamespace($predicateType);
-
-                if($ns !== FALSE && !isset($this->namespaces[$ns[0]]))
-                {
-                  // Make sure the ID is not already existing. Increase the counter if it is the case.
-                  while(array_search("ns".$nsId, $this->namespaces) !== FALSE)
-                  {
-                    $nsId++;
-                  }
-                  
-                  $this->namespaces[$ns[0]] = "ns" . $nsId;
-                  $nsId++;
-                }
-
-                $rdf_part .= "        <" . $this->namespaces[$ns[0]] . ":" . $ns[1]
-                  . " rdf:resource=\"".$this->xmlEncode($objectURI)."\" />\n";
-              }
-            }
-          }
-
-          $rdf_part .= "    </" . $this->namespaces[$ns1[0]] . ":" . $ns1[1] . ">\n";
-        }
-
-        $rdf_header = "<rdf:RDF ";
-
-        foreach($this->namespaces as $ns => $prefix)
-        {
-          $rdf_header .= " xmlns:$prefix=\"$ns\"";
-        }
-
-        $rdf_header .= ">\n\n";
-
-        $rdf_part = $rdf_header . $rdf_part;
-
-        return ($rdf_part);
-      break;
-
-      case "text/xml":
-      case "application/sparql-results+xml":
-      case "application/sparql-results+json":
-        return $this->pipeline_getResultset();
-      break;
-    }
-  }
-
-  /*!   @brief Non implemented method (only defined)
-              
-      \n
-      
-      @author Frederick Giasson, Structured Dynamics LLC.
-    
-      \n\n\n
-  */
-  public function pipeline_serialize_reification() { }
-
   /*!   @brief Serialize the web service answer.
               
       \n
@@ -979,56 +475,15 @@ class Sparql extends WebService
   */
   public function ws_serialize()
   {
-    if($this->conneg->getMime() == "application/sparql-results+xml"
-      || $this->conneg->getMime() == "application/sparql-results+json"
-      || $this->isDescribeQuery === TRUE
-      || $this->isConstructQuery === TRUE)
+    if($this->conneg->getMime() == "application/sparql-results+xml" ||
+       $this->conneg->getMime() == "application/sparql-results+json" ||
+       $this->isDescribeQuery === TRUE ||
+       $this->isConstructQuery === TRUE)
     {
       return $this->sparqlContent;
     }
-    else
-    {    
-      switch($this->conneg->getMime())
-      {
-        case "application/rdf+n3":
-          $rdf_document = "";
-          $rdf_document .= "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n";
-          $rdf_document .= "@prefix wsf: <http://purl.org/ontology/wsf#> .\n";
-
-          $rdf_document .= $this->pipeline_serialize();
-
-          $rdf_document .= $this->pipeline_serialize_reification();
-
-          return $rdf_document;
-        break;
-
-        case "application/rdf+xml":
-          $rdf_document = "";
-          $rdf_document .= "<?xml version=\"1.0\"?>\n";
-
-          $rdf_document .= $this->pipeline_serialize();
-
-          $rdf_document .= $this->pipeline_serialize_reification();
-
-          $rdf_document .= "</rdf:RDF>";
-
-          return $rdf_document;
-        break;
-
-        case "application/json":
-          $json_document = "";
-          $json_document .= "{\n";
-          $json_document .= $this->pipeline_serialize();
-          $json_document .= "}";
-
-          return ($json_document);
-        break;
-
-        default:
-          return $this->pipeline_getResultset();
-        break;
-      }
-    }
+    
+    return($this->serializations());
   }    
 
   /*!   @brief Send the SPARQL query to the triple store of this WSF
@@ -1325,8 +780,12 @@ class Sparql extends WebService
       {
         $queryFormat = $this->conneg->getMime();
       }
-      elseif($this->conneg->getMime() == "text/xml" || $this->conneg->getMime() == "application/json"
-        || $this->conneg->getMime() == "application/rdf+xml" || $this->conneg->getMime() == "application/rdf+n3")
+      elseif($this->conneg->getMime() == "text/xml" || 
+             $this->conneg->getMime() == "application/json" || 
+             $this->conneg->getMime() == "application/rdf+xml" || 
+             $this->conneg->getMime() == "application/rdf+n3" ||
+             $this->conneg->getMime() == "application/iron+json" ||
+             $this->conneg->getMime() == "application/iron+csv")
       {
         $queryFormat = "application/sparql-results+xml";
       }      
@@ -1390,15 +849,22 @@ class Sparql extends WebService
          return;
       }
       
-      if($this->conneg->getMime() == "text/xml" || $this->conneg->getMime() == "application/rdf+n3"
-        || $this->conneg->getMime() == "application/rdf+xml" || $this->conneg->getMime() == "application/json")
+      if($this->conneg->getMime() == "text/xml" || 
+         $this->conneg->getMime() == "application/rdf+n3" || 
+         $this->conneg->getMime() == "application/rdf+xml" || 
+         $this->conneg->getMime() == "application/json" ||
+         $this->conneg->getMime() == "application/iron+json" ||
+         $this->conneg->getMime() == "application/iron+csv")
       {
         // Read the XML file and populate the recordInstances variables
 
         $xml = $this->xml2ary($this->sparqlContent);
-
+     
         if(isset($xml["sparql"]["_c"]["results"]["_c"]["result"]))
         {
+          $currentSubjectUri = "";
+          $subject = null;
+
           foreach($xml["sparql"]["_c"]["results"]["_c"]["result"] as $result)
           {
             $s = "";
@@ -1437,57 +903,48 @@ class Sparql extends WebService
                 break;
               }
             }
-
-            if($g != "")
+            
+            if($currentSubject != $s)
             {
-              if(!isset($this->instanceRecordsObjectResource[$s][Namespaces::$dcterms."isPartOf"]))
+              if($subject != null)
               {
-                $this->instanceRecordsObjectResource[$s][Namespaces::$dcterms."isPartOf"] = array( $g );
+                $this->rset->addSubject($subject);
               }
+              
+              $subject = new Subject($s);
+              
+              if($g != "")
+              {
+                $subject->setObjectAttribute(Namespaces::$dcterms."isPartOf", $g);
+              }
+              
+              $currentSubject = $s;
             }
+
             
             // process URI
-            if($valueBoundType == "uri")
+            if($valueBoundType == "uri" ||
+               $valueBoundType == "bnode")
             {
-              if(!isset($this->instanceRecordsObjectResource[$s][$p]))
+              if($p == Namespaces::$rdf."type")
               {
-                $this->instanceRecordsObjectResource[$s][$p] = array( $o );
+                $subject->setType($o);
               }
               else
               {
-                array_push($this->instanceRecordsObjectResource[$s][$p], $o);
+                $subject->setObjectAttribute($p, $o);
               }
             }
 
             // Process Literal
             if($valueBoundType == "literal")
             {
-              if(!isset($this->instanceRecordsObjectLiteral[$s][$p]))
-              {
-                $this->instanceRecordsObjectLiteral[$s][$p] = array( $o );
-              }
-              else
-              {
-                array_push($this->instanceRecordsObjectLiteral[$s][$p], $o);
-              }
-            }
-            
-            // Process BNode
-            if($valueBoundType == "bnode")
-            {
-              if(!isset($this->instanceRecordsObjectResource[$s][$p]))
-              {
-                $this->instanceRecordsObjectResource[$s][$p] = array( $o );
-              }
-              else
-              {
-                array_push($this->instanceRecordsObjectResource[$s][$p], $o);
-              }
-            }
+              $subject->setDataAttribute($p, $o);
+            }            
           }
         }
 
-        if(count($this->instanceRecordsObjectResource) <= 0)
+        if(count($this->rset->getResultset()) <= 0)
         {
           $this->conneg->setStatus(400);
           $this->conneg->setStatusMsg("Bad Request");

@@ -48,8 +48,8 @@ class AuthValidator extends WebService
 
   /*! @brief Supported serialization mime types by this Web service */
   public static $supportedSerializations =
-    array ("application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*",
-      "*/*");
+    array ("application/json", "application/rdf+xml", "application/rdf+n3", "application/iron+json", 
+           "application/iron+csv", "application/*", "text/xml", "text/*", "*/*");
 
   /*! @brief Error messages of this web service */
   private $errorMessenger =
@@ -395,28 +395,6 @@ class AuthValidator extends WebService
       \n\n\n
   */
   public function pipeline_getResponseHeaderStatusMsgExt() { return $this->conneg->getStatusMsgExt(); }
-
-  /*!   @brief Serialize the web service answer.
-              
-      \n
-      
-      @return returns the serialized content
-    
-      @author Frederick Giasson, Structured Dynamics LLC.
-    
-      \n\n\n
-  */
-  public function pipeline_serialize() { return ""; }
-
-  /*!   @brief Non implemented method (only defined)
-              
-      \n
-      
-      @author Frederick Giasson, Structured Dynamics LLC.
-    
-      \n\n\n
-  */
-  public function pipeline_serialize_reification() { return ""; }
 
   /*!   @brief Serialize the web service answer.
               

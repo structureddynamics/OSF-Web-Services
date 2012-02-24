@@ -650,16 +650,6 @@ class ConverterTsv extends WebService
     }
   }
 
-  /*!   @brief Non implemented method (only defined)
-              
-      \n
-      
-      @author Frederick Giasson, Structured Dynamics LLC.
-    
-      \n\n\n
-  */
-  public function pipeline_serialize_reification() { return ""; }
-
   /*!   @brief Serialize the converted UCB Memorial Data content into different serialization formats
               
       \n
@@ -700,8 +690,6 @@ class ConverterTsv extends WebService
 
           $rdf_document .= $this->pipeline_serialize();
 
-          $rdf_document .= $this->pipeline_serialize_reification();
-
           return $rdf_document;
         break;
 
@@ -710,8 +698,6 @@ class ConverterTsv extends WebService
           $rdf_document .= "<?xml version=\"1.0\"?>\n";
 
           $rdf_document .= $this->pipeline_serialize();
-
-          $rdf_document .= $this->pipeline_serialize_reification();
 
           $rdf_document .= "</rdf:RDF>";
 

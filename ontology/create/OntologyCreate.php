@@ -366,28 +366,6 @@ class OntologyCreate extends WebService
     
       \n\n\n
   */
-  public function pipeline_serialize() { return ""; }
-
-  /*!   @brief Non implemented method (only defined)
-              
-      \n
-      
-      @author Frederick Giasson, Structured Dynamics LLC.
-    
-      \n\n\n
-  */
-  public function pipeline_serialize_reification() { return ""; }
-
-  /*!   @brief Serialize the web service answer.
-              
-      \n
-      
-      @return returns the serialized content
-    
-      @author Frederick Giasson, Structured Dynamics LLC.
-    
-      \n\n\n
-  */
   public function ws_serialize() { return ""; }
 
   private function returnError($statusCode, $statusMsg, $wsErrorCode, $debugInfo = "")
@@ -1053,7 +1031,7 @@ class OntologyCreate extends WebService
                                  "predicate-uri" => array(
                                                           array(
                                                                   "value" => "the value of the predicate",
-                                                                  "datatype" => "the type of the value",
+                                                                  "type" => "the type of the value",
                                                                   "lang" => "language reference of the value (if literal)"
                                                                ),
                                                           array(...)
@@ -1132,7 +1110,7 @@ class OntologyCreate extends WebService
                                  "predicate-uri" => array(
                                                           array(
                                                                   "value" => "the value of the predicate",
-                                                                  "datatype" => "the type of the value",
+                                                                  "type" => "the type of the value",
                                                                   "lang" => "language reference of the value (if literal)"
                                                                ),
                                                           array(...)

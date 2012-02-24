@@ -67,6 +67,10 @@ class Namespaces
   public static $muni = "http://purl.org/ontology/muni#";
   public static $dbpedia_ont = "http://dbpedia.org/ontology/";
   public static $sco = "http://purl.org/ontology/sco#";
+  public static $void = "http://rdfs.org/ns/void#";
+  public static $wsf = "http://purl.org/ontology/wsf#";
+  public static $aggr = "http://purl.org/ontology/aggregate#";
+  public static $xsd = "http://www.w3.org/2001/XMLSchema#";
   
   public static function getLabelProperties()
   {

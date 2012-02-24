@@ -257,7 +257,7 @@ class OWLOntology
   *                              "predicate-uri" => array(
   *                                                       array(
   *                                                               "value" => "the value of the predicate",
-  *                                                               "datatype" => "the type of the value",
+  *                                                               "type" => "the type of the value",
   *                                                               "lang" => "language reference of the value (if literal)"
   *                                                            ),
   *                                                       array(...)
@@ -291,10 +291,17 @@ class OWLOntology
         $niDescription[$info["property"]] = array(); 
       }
 
-      array_push($niDescription[$info["property"]], array("value" => $info["value"],
-                                                          "datatype" => $info["datatype"],
-                                                          "lang" => $info["lang"],
-                                                          "rei" => $info["rei"]));       
+      if($info["type"] == "xsd:anyURI")
+      {
+        array_push($niDescription[$info["property"]], array("uri" => $info["uri"],
+                                                            "reify" => $info["reify"]));       
+      }
+      else
+      {
+        array_push($niDescription[$info["property"]], array("value" => $info["value"],
+                                                            "type" => $info["type"],
+                                                            "lang" => $info["lang"]));       
+      }
     }
     
     // Get all types of this named individual
@@ -304,13 +311,10 @@ class OWLOntology
     {
       $typeUri = (string)java_values($type->toStringID());
       
-      array_push($niDescription[Namespaces::$rdf."type"], array("value" => $typeUri,
-                                                          "datatype" => "rdf:Resource",
-                                                          "lang" => "",
-                                                          "rei" => array(array(
-                                                            "type" => "rdfs:Label",
-                                                            "value" => $this->getPrefLabel($type)
-                                                           )))); 
+      array_push($niDescription[Namespaces::$rdf."type"], array("uri" => $typeUri,
+                                                                "reify" => array(
+                                                                  "wsf:objectLabel" => array($this->getPrefLabel($type))
+                                                                 ))); 
     }
     
     // Get all dataproperty/values defining this named individual
@@ -334,7 +338,7 @@ class OWLOntology
       foreach($valuesOWLLiteral as $valueOWLLiteral)
       {
         array_push($niDescription[$propertyUri], array("value" => (string)$valueOWLLiteral->getLiteral(),
-                                                       "datatype" => "rdf:Literal",
+                                                       "type" => "rdfs:Literal",
                                                        "lang" => (string)$valueOWLLiteral->getLang()));       
       }
     }
@@ -359,13 +363,10 @@ class OWLOntology
       
       foreach($valuesOWLIndividual as $valueOWLIndividual)
       {
-        array_push($niDescription[$propertyUri], array("value" => (string)$valueOWLIndividual->toStringID(),
-                                                       "datatype" => "rdf:Resource",
-                                                       "lang" => "",
-                                                       "rei" => array(array(
-                                                        "type" => "rdfs:Label",
-                                                        "value" => $this->getPrefLabel($valueOWLIndividual)
-                                                       ))));       
+        array_push($niDescription[$propertyUri], array("uri" => (string)$valueOWLIndividual->toStringID(),
+                                                       "reify" => array(
+                                                        "wsf:objectLabel" => array($this->getPrefLabel($valueOWLIndividual))
+                                                       )));       
       }
     }
     
@@ -388,7 +389,7 @@ class OWLOntology
   *                              "predicate-uri" => array(
   *                                                       array(
   *                                                               "value" => "the value of the predicate",
-  *                                                               "datatype" => "the type of the value",
+  *                                                               "type" => "the type of the value",
   *                                                               "lang" => "language reference of the value (if literal)"
   *                                                            ),
   *                                                       array(...)
@@ -416,9 +417,7 @@ class OWLOntology
     {
       $typeUri = (string)java_values($type->toStringID());
       
-      array_push($niDescription[Namespaces::$rdf."type"], array("value" => $typeUri,
-                                                          "datatype" => "rdf:Resource",
-                                                          "lang" => "")); 
+      array_push($niDescription[Namespaces::$rdf."type"], array("uri" => $typeUri)); 
     }
     
     // Get all the annotations
@@ -436,10 +435,17 @@ class OWLOntology
           $niDescription[$info["property"]] = array(); 
         }
 
-        array_push($niDescription[$info["property"]], array("value" => $info["value"],
-                                                            "datatype" => $info["datatype"],
-                                                            "lang" => $info["lang"],
-                                                            "rei" => $info["rei"]));
+        if($info["type"] == "xsd:anyURI")
+        {
+          array_push($niDescription[$info["property"]], array("uri" => $info["uri"],
+                                                              "reify" => $info["reify"]));
+        }
+        else
+        {
+          array_push($niDescription[$info["property"]], array("value" => $info["value"],
+                                                              "type" => $info["type"],
+                                                              "lang" => $info["lang"]));
+        }
       }       
     }
     
@@ -466,7 +472,7 @@ class OWLOntology
         foreach($valuesOWLLiteral as $valueOWLLiteral)
         {
           array_push($niDescription[$propertyUri], array("value" => (string)$valueOWLLiteral->getLiteral(),
-                                                         "datatype" => "rdf:Literal",
+                                                         "type" => "rdfs:Literal",
                                                          "lang" => (string)$valueOWLLiteral->getLang()));       
         }
       }
@@ -709,7 +715,7 @@ class OWLOntology
   *                              "predicate-uri" => array(
   *                                                       array(
   *                                                               "value" => "the value of the predicate",
-  *                                                               "datatype" => "the type of the value",
+  *                                                               "type" => "the type of the value",
   *                                                               "lang" => "language reference of the value (if literal)"
   *                                                            ),
   *                                                       array(...)
@@ -771,7 +777,7 @@ class OWLOntology
   *                              "predicate-uri" => array(
   *                                                       array(
   *                                                               "value" => "the value of the predicate",
-  *                                                               "datatype" => "the type of the value",
+  *                                                               "type" => "the type of the value",
   *                                                               "lang" => "language reference of the value (if literal)"
   *                                                            ),
   *                                                       array(...)
@@ -844,7 +850,7 @@ class OWLOntology
   *                              "predicate-uri" => array(
   *                                                       array(
   *                                                               "value" => "the value of the predicate",
-  *                                                               "datatype" => "the type of the value",
+  *                                                               "type" => "the type of the value",
   *                                                               "lang" => "language reference of the value (if literal)"
   *                                                            ),
   *                                                       array(...)
@@ -890,7 +896,7 @@ class OWLOntology
   *                              "predicate-uri" => array(
   *                                                       array(
   *                                                               "value" => "the value of the predicate",
-  *                                                               "datatype" => "the type of the value",
+  *                                                               "type" => "the type of the value",
   *                                                               "lang" => "language reference of the value (if literal)"
   *                                                            ),
   *                                                       array(...)
@@ -936,7 +942,7 @@ class OWLOntology
   *                              "predicate-uri" => array(
   *                                                       array(
   *                                                               "value" => "the value of the predicate",
-  *                                                               "datatype" => "the type of the value",
+  *                                                               "type" => "the type of the value",
   *                                                               "lang" => "language reference of the value (if literal)"
   *                                                            ),
   *                                                       array(...)
@@ -1061,7 +1067,7 @@ class OWLOntology
   *                              "predicate-uri" => array(
   *                                                       array(
   *                                                               "value" => "the value of the predicate",
-  *                                                               "datatype" => "the type of the value",
+  *                                                               "type" => "the type of the value",
   *                                                               "lang" => "language reference of the value (if literal)"
   *                                                            ),
   *                                                       array(...)
@@ -1213,7 +1219,7 @@ class OWLOntology
   *                              "predicate-uri" => array(
   *                                                       array(
   *                                                               "value" => "the value of the predicate",
-  *                                                               "datatype" => "the type of the value",
+  *                                                               "type" => "the type of the value",
   *                                                               "lang" => "language reference of the value (if literal)"
   *                                                            ),
   *                                                       array(...)
@@ -1385,7 +1391,7 @@ class OWLOntology
   *                              "predicate-uri" => array(
   *                                                       array(
   *                                                               "value" => "the value of the predicate",
-  *                                                               "datatype" => "the type of the value",
+  *                                                               "type" => "the type of the value",
   *                                                               "lang" => "language reference of the value (if literal)"
   *                                                            ),
   *                                                       array(...)
@@ -1555,7 +1561,7 @@ class OWLOntology
   *                              "predicate-uri" => array(
   *                                                       array(
   *                                                               "value" => "the value of the predicate",
-  *                                                               "datatype" => "the type of the value",
+  *                                                               "type" => "the type of the value",
   *                                                               "lang" => "language reference of the value (if literal)"
   *                                                            ),
   *                                                       array(...)
@@ -1697,7 +1703,7 @@ class OWLOntology
   *                              "predicate-uri" => array(
   *                                                       array(
   *                                                               "value" => "the value of the predicate",
-  *                                                               "datatype" => "the type of the value",
+  *                                                               "type" => "the type of the value",
   *                                                               "lang" => "language reference of the value (if literal)"
   *                                                            ),
   *                                                       array(...)
@@ -1811,7 +1817,7 @@ class OWLOntology
   *                              "predicate-uri" => array(
   *                                                       array(
   *                                                               "value" => "the value of the predicate",
-  *                                                               "datatype" => "the type of the value",
+  *                                                               "type" => "the type of the value",
   *                                                               "lang" => "language reference of the value (if literal)"
   *                                                            ),
   *                                                       array(...)
@@ -1851,9 +1857,7 @@ class OWLOntology
       break;
     }
     
-    $propertyDescription[Namespaces::$rdf."type"] = array(array("value" => $pType,
-                                                                "datatype" => "rdf:Resource",
-                                                                "lang" => ""));       
+    $propertyDescription["type"] = array($pType);       
                        
     // Get all the annotations
     $annotations = $property->getAnnotations($this->ontology);
@@ -1868,10 +1872,18 @@ class OWLOntology
         $propertyDescription[$info["property"]] = array(); 
       }
 
-      array_push($propertyDescription[$info["property"]], array("value" => $info["value"],
-                                                                "datatype" => $info["datatype"],
-                                                                "lang" => $info["lang"],
-                                                                "rei" => $info["rei"])); 
+      
+      if($info["type"] == "xsd:anyURI")
+      {      
+        array_push($propertyDescription[$info["property"]], array("uri" => $info["uri"],
+                                                                  "reify" => $info["reify"])); 
+      }
+      else
+      {
+        array_push($propertyDescription[$info["property"]], array("value" => $info["value"],
+                                                                  "type" => $info["type"],
+                                                                  "lang" => $info["lang"])); 
+      }
     }
      
      
@@ -1890,13 +1902,10 @@ class OWLOntology
           $propertyDescription[Namespaces::$rdfs."subPropertyOf"] = array(); 
         }
 
-        array_push($propertyDescription[Namespaces::$rdfs."subPropertyOf"], array("value" => $spUri,
-                                                                                  "datatype" => "rdf:Resource",
-                                                                                  "lang" => "",
-                                                                                  "rei" => array(array(
-                                                                                    "type" => "rdfs:Label",
-                                                                                    "value" => $this->getPrefLabel($superProperty)
-                                                                                  )))); 
+        array_push($propertyDescription[Namespaces::$rdfs."subPropertyOf"], array("uri" => $spUri,
+                                                                                  "reify" => array(
+                                                                                    "wsf:objectLabel" => array($this->getPrefLabel($superProperty))
+                                                                                  ))); 
       }
       
       // Ensure that if it has no subPropertyOf relationship, that it at least has
@@ -1906,13 +1915,10 @@ class OWLOntology
           (string)java_values($property->toStringID()) != Namespaces::$owl."topDataProperty" && (string)java_values($property->toStringID()) != Namespaces::$owl."topObjectProperty")))
       {
         $propertyDescription[Namespaces::$rdfs."subPropertyOf"] = array(); 
-        array_push($propertyDescription[Namespaces::$rdfs."subPropertyOf"], array("value" => (java_values($property->isOWLObjectProperty()) ? Namespaces::$owl."topObjectProperty" : Namespaces::$owl."topDataProperty"),
-                                                                                  "datatype" => "rdf:Resource",
-                                                                                  "lang" => "",
-                                                                                  "rei" => array(array(
-                                                                                    "type" => "rdfs:Label",
-                                                                                    "value" => (java_values($property->isOWLObjectProperty()) ? "top Object Property" : "top Data Property")
-                                                                                  ))));         
+        array_push($propertyDescription[Namespaces::$rdfs."subPropertyOf"], array("uri" => (java_values($property->isOWLObjectProperty()) ? Namespaces::$owl."topObjectProperty" : Namespaces::$owl."topDataProperty"),
+                                                                                  "reify" => array(
+                                                                                    "wsf:objectLabel" => array((java_values($property->isOWLObjectProperty()) ? "top Object Property" : "top Data Property"))
+                                                                                  )));         
       }    
       
       // Specify Super Properties Of properties
@@ -1950,13 +1956,10 @@ class OWLOntology
               $propertyDescription[Namespaces::$umbel."superPropertyOf"] = array(); 
             }
 
-            array_push($propertyDescription[Namespaces::$umbel."superPropertyOf"], array("value" => $spUri,
-                                                                                   "datatype" => "rdf:Resource",
-                                                                                   "lang" => "",
-                                                                                   "rei" => array(array(
-                                                                                    "type" => "rdfs:Label",
-                                                                                    "value" => $this->getPrefLabel($subProperty)
-                                                                                   )))); 
+            array_push($propertyDescription[Namespaces::$umbel."superPropertyOf"], array("uri" => $spUri,
+                                                                                   "reify" => array(
+                                                                                    "wsf:objectLabel" => array($this->getPrefLabel($subProperty))
+                                                                                   ))); 
           }
         }
       }
@@ -1992,13 +1995,10 @@ class OWLOntology
               $propertyDescription[Namespaces::$umbel."superPropertyOf"] = array(); 
             }
 
-            array_push($propertyDescription[Namespaces::$umbel."superPropertyOf"], array("value" => $spUri,
-                                                                                   "datatype" => "rdf:Resource",
-                                                                                   "lang" => "",
-                                                                                   "rei" => array(array(
-                                                                                    "type" => "rdfs:Label",
-                                                                                    "value" => $this->getPrefLabel($subProperty)
-                                                                                   )))); 
+            array_push($propertyDescription[Namespaces::$umbel."superPropertyOf"], array("uri" => $spUri,
+                                                                                   "reify" => array(
+                                                                                    "wsf:objectLabel" => array($this->getPrefLabel($subProperty))
+                                                                                   ))); 
           }
         }  
       }
@@ -2016,13 +2016,10 @@ class OWLOntology
           $propertyDescription[Namespaces::$owl."equivalentProperty"] = array(); 
         }
         
-        array_push($propertyDescription[Namespaces::$owl."equivalentProperty"], array("value" => $epUri,
-                                                                                      "datatype" => "rdf:Resource",
-                                                                                      "lang" => "",
-                                                                                      "rei" => array(array(
-                                                                                        "type" => "rdfs:Label",
-                                                                                        "value" => $this->getPrefLabel($equivalentProperty)
-                                                                                      )))); 
+        array_push($propertyDescription[Namespaces::$owl."equivalentProperty"], array("uri" => $epUri,
+                                                                                      "reify" => array(
+                                                                                        "wsf:objectLabel" => array($this->getPrefLabel($equivalentProperty))
+                                                                                      ))); 
       }                                                                   
       
       // Get disjoint properties    
@@ -2038,13 +2035,10 @@ class OWLOntology
           $propertyDescription[Namespaces::$owl."propertyDisjointWith"] = array(); 
         }
         
-        array_push($propertyDescription[Namespaces::$owl."propertyDisjointWith"], array("value" => $dpUri,
-                                                                                        "datatype" => "rdf:Resource",
-                                                                                        "lang" => "",
-                                                                                        "rei" => array(array(
-                                                                                          "type" => "rdfs:Label",
-                                                                                          "value" => $this->getPrefLabel($disjointProperty)
-                                                                                        )))); 
+        array_push($propertyDescription[Namespaces::$owl."propertyDisjointWith"], array("uri" => $dpUri,
+                                                                                        "wsf:objectLabel" => array(
+                                                                                          "wsf:objectLabel" => $this->getPrefLabel($disjointProperty)
+                                                                                        ))); 
       }  
       
       // Get inverse property
@@ -2062,13 +2056,10 @@ class OWLOntology
             $propertyDescription[Namespaces::$owl."inverseOf"] = array(); 
           }
           
-          array_push($propertyDescription[Namespaces::$owl."inverseOf"], array("value" => $ipUri,
-                                                                               "datatype" => "rdf:Resource",
-                                                                               "lang" => "",
-                                                                               "rei" => array(array(
-                                                                               "type" => "rdfs:Label",
-                                                                                 "value" => $this->getPrefLabel($inverseProperty)
-                                                                               ))));  
+          array_push($propertyDescription[Namespaces::$owl."inverseOf"], array("uri" > $ipUri,
+                                                                               "reify" => array(
+                                                                               "wsf:objectLabel" => array($this->getPrefLabel($inverseProperty))
+                                                                               )));  
         }       
       }
       
@@ -2089,13 +2080,10 @@ class OWLOntology
               $propertyDescription[Namespaces::$rdfs."domain"] = array(); 
             }
             
-            array_push($propertyDescription[Namespaces::$rdfs."domain"], array("value" => $domainClassUri,
-                                                                               "datatype" => "rdf:Resource",
-                                                                               "lang" => "",
-                                                                               "rei" => array(array(
-                                                                                "type" => "rdfs:Label",
-                                                                                "value" => $this->getPrefLabel($domain)
-                                                                               )))); 
+            array_push($propertyDescription[Namespaces::$rdfs."domain"], array("uri" => $domainClassUri,
+                                                                               "reify" => array(
+                                                                                "wsf:objectLabel" => array($this->getPrefLabel($domain))
+                                                                               ))); 
           }
         }
       }
@@ -2117,13 +2105,10 @@ class OWLOntology
               $propertyDescription[Namespaces::$rdfs."range"] = array(); 
             }
             
-            array_push($propertyDescription[Namespaces::$rdfs."range"], array("value" => $rangeClassUri,
-                                                                              "datatype" => "rdf:Resource",
-                                                                              "lang" => "",
-                                                                              "rei" => array(array(
-                                                                                "type" => "rdfs:Label",
-                                                                                "value" => $this->getPrefLabel($range)
-                                                                              )))); 
+            array_push($propertyDescription[Namespaces::$rdfs."range"], array("uri" => $rangeClassUri,
+                                                                              "reify" => array(
+                                                                                "wsf:objectLabel" => array($this->getPrefLabel($range))
+                                                                              ))); 
           }
         }
       }
@@ -2267,7 +2252,7 @@ class OWLOntology
   *                              "predicate-uri" => array(
   *                                                       array(
   *                                                               "value" => "the value of the predicate",
-  *                                                               "datatype" => "the type of the value",
+  *                                                               "type" => "the type of the value",
   *                                                               "lang" => "language reference of the value (if literal)"
   *                                                            ),
   *                                                       array(...)
@@ -2286,9 +2271,8 @@ class OWLOntology
     $classDescription = array();
     
     // Get the types of the entity
-    $classDescription[Namespaces::$rdf."type"] = array(array("value" => "owl:".$class->getEntityType()->getName(),
-                                                             "datatype" => "rdf:Resource",
-                                                             "lang" => ""));       
+    $classDescription["type"] = array("owl:".$class->getEntityType()->getName());       
+    
     // Get all the annotations
     $annotations = $class->getAnnotations($this->ontology);
 
@@ -2302,10 +2286,17 @@ class OWLOntology
         $classDescription[$info["property"]] = array(); 
       }
 
-      array_push($classDescription[$info["property"]], array("value" => $info["value"],
-                                                             "datatype" => $info["datatype"],
-                                                             "lang" => $info["lang"],
-                                                             "rei" => $info["rei"]));     
+      if($info["type"] == "xsd:anyURI")
+      {      
+        array_push($classDescription[$info["property"]], array("uri" => $info["uri"],
+                                                           "reify" => $info["reify"]));     
+      }
+      else
+      {
+        array_push($classDescription[$info["property"]], array("value" => $info["value"],
+                                                           "type" => $info["type"],
+                                                           "lang" => $info["lang"]));     
+      }
     } 
     
     // Specify Super Classes Of properties   
@@ -2331,9 +2322,8 @@ class OWLOntology
         }
 
         $classDescription[Namespaces::$sco."hasSubClasses"] = array(array("value" => "true",
-                                                                          "datatype" => "rdf:Literal",
-                                                                          "lang" => "",
-                                                                          "rei" => ""));   
+                                                                          "type" => "rdfs:Literal",
+                                                                          "lang" => ""));   
         break;
       }  
     }    
@@ -2352,7 +2342,7 @@ class OWLOntology
   *                              "predicate-uri" => array(
   *                                                       array(
   *                                                               "value" => "the value of the predicate",
-  *                                                               "datatype" => "the type of the value",
+  *                                                               "type" => "the type of the value",
   *                                                               "lang" => "language reference of the value (if literal)"
   *                                                            ),
   *                                                       array(...)
@@ -2370,10 +2360,9 @@ class OWLOntology
   {
     $classDescription = array();
     
-    // Get the types of the entity
-    $classDescription[Namespaces::$rdf."type"] = array(array("value" => "owl:".$class->getEntityType()->getName(),
-                                                             "datatype" => "rdf:Resource",
-                                                             "lang" => ""));       
+    // Get the types of the entity    
+    $classDescription["type"] = array("owl:".$class->getEntityType()->getName());                                                             
+    
     // Get all the annotations
     $annotations = $class->getAnnotations($this->ontology);
 
@@ -2387,10 +2376,17 @@ class OWLOntology
         $classDescription[$info["property"]] = array(); 
       }
 
-      array_push($classDescription[$info["property"]], array("value" => $info["value"],
-                                                             "datatype" => $info["datatype"],
-                                                             "lang" => $info["lang"],
-                                                             "rei" => $info["rei"]));       
+      if($info["type"] == "xsd:anyURI")
+      {      
+        array_push($classDescription[$info["property"]], array("uri" => $info["uri"],
+                                                               "reify" => $info["reify"]));       
+      }
+      else
+      {
+        array_push($classDescription[$info["property"]], array("value" => $info["value"],
+                                                               "type" => $info["type"],
+                                                               "lang" => $info["lang"]));       
+      }
     }
     
     // Get Sub Classes Of properties 
@@ -2423,13 +2419,10 @@ class OWLOntology
           $classDescription[Namespaces::$rdfs."subClassOf"] = array(); 
         }
 
-        array_push($classDescription[Namespaces::$rdfs."subClassOf"], array("value" => $scUri,
-                                                                           "datatype" => "rdf:Resource",
-                                                                           "lang" => "",
-                                                                           "rei" => array(array(
-                                                                            "type" => "rdfs:Label",
-                                                                            "value" => $this->getPrefLabel($superClass)
-                                                                           )))); 
+        array_push($classDescription[Namespaces::$rdfs."subClassOf"], array("uri" => $scUri,
+                                                                           "reify" => array(
+                                                                            "wsf:objectLabel" => array($this->getPrefLabel($superClass))
+                                                                           ))); 
       }
     } 
     
@@ -2461,13 +2454,10 @@ class OWLOntology
           $classDescription[Namespaces::$umbel."superClassOf"] = array(); 
         }
 
-        array_push($classDescription[Namespaces::$umbel."superClassOf"], array("value" => $scUri,
-                                                                               "datatype" => "rdf:Resource",
-                                                                               "lang" => "",
-                                                                               "rei" => array(array(
-                                                                                "type" => "rdfs:Label",
-                                                                                "value" => $this->getPrefLabel($subClass)
-                                                                               )))); 
+        array_push($classDescription[Namespaces::$umbel."superClassOf"], array("uri" => $scUri,
+                                                                               "reify" => array(
+                                                                                "wsf:objectLabel" => array($this->getPrefLabel($subClass))
+                                                                               ))); 
       }
     }    
     
@@ -2484,13 +2474,10 @@ class OWLOntology
         $classDescription[Namespaces::$owl."equivalentClass"] = array(); 
       }
       
-      array_push($classDescription[Namespaces::$owl."equivalentClass"], array("value" => $ecUri,
-                                                                              "datatype" => "rdf:Resource",
-                                                                              "lang" => "",
-                                                                              "rei" => array(array(
-                                                                               "type" => "rdfs:Label",
-                                                                               "value" => $this->getPrefLabel($equivalentClass)
-                                                                              )))); 
+      array_push($classDescription[Namespaces::$owl."equivalentClass"], array("uri" => $ecUri,
+                                                                              "reify" => array(
+                                                                               "wsf:objectLabel" => array($this->getPrefLabel($equivalentClass))
+                                                                              ))); 
     }  
     
     // Get disjoint classes    
@@ -2506,13 +2493,10 @@ class OWLOntology
         $classDescription[Namespaces::$owl."disjointWith"] = array(); 
       }
       
-      array_push($classDescription[Namespaces::$owl."disjointWith"], array("value" => $dcUri,
-                                                                           "datatype" => "rdf:Resource",
-                                                                           "lang" => "",
-                                                                           "rei" => array(array(
-                                                                            "type" => "rdfs:Label",
-                                                                            "value" => $this->getPrefLabel($disjointClass)
-                                                                           )))); 
+      array_push($classDescription[Namespaces::$owl."disjointWith"], array("uri" => $dcUri,
+                                                                           "reify" => array(
+                                                                            "wsf:objectLabel" => array($this->getPrefLabel($disjointClass))
+                                                                           ))); 
     }  
     
     return($classDescription);  
@@ -2528,7 +2512,7 @@ class OWLOntology
   *                              "predicate-uri" => array(
   *                                                       array(
   *                                                               "value" => "the value of the predicate",
-  *                                                               "datatype" => "the type of the value",
+  *                                                               "type" => "the type of the value",
   *                                                               "lang" => "language reference of the value (if literal)"
   *                                                            ),
   *                                                       array(...)
@@ -2544,9 +2528,7 @@ class OWLOntology
   {
     $ontologyDescription = array();
     
-    $ontologyDescription[Namespaces::$rdf."type"] = array(array("value" => "owl:Ontology",
-                                                                "datatype" => "rdf:Resource",
-                                                                "lang" => ""));       
+    $ontologyDescription["type"] = array("owl:Ontology");       
     
     // Get all the annotations
     $annotations = $this->ontology->getAnnotations();
@@ -2561,10 +2543,17 @@ class OWLOntology
         $ontologyDescription[$info["property"]] = array(); 
       }
 
-      array_push($ontologyDescription[$info["property"]], array("value" => $info["value"],
-                                                                "datatype" => $info["datatype"],
-                                                                "lang" => $info["lang"],
-                                                                "rei" => $info["rei"]));       
+      if($info["type"] == "xsd:anyURI")
+      {      
+        array_push($ontologyDescription[$info["property"]], array("uri" => $info["uri"],
+                                                                  "reify" => $info["reify"]));       
+      }
+      else
+      {
+        array_push($ontologyDescription[$info["property"]], array("value" => $info["value"],
+                                                                  "type" => $info["type"],
+                                                                  "lang" => $info["lang"]));       
+      }
     }
     
     return($ontologyDescription);  
@@ -2727,7 +2716,7 @@ class OWLOntology
   *                              "predicate-uri" => array(
   *                                                       array(
   *                                                               "value" => "the value of the predicate",
-  *                                                               "datatype" => "the type of the value",
+  *                                                               "type" => "the type of the value",
   *                                                               "lang" => "language reference of the value (if literal)"
   *                                                            ),
   *                                                       array(...)
@@ -2908,7 +2897,7 @@ class OWLOntology
   *                              "predicate-uri" => array(
   *                                                         array(
   *                                                                 "value" => "the value of the predicate",
-  *                                                                 "datatype" => "the type of the value",
+  *                                                                 "type" => "the type of the value",
   *                                                                 "lang" => "language reference of the value (if literal)"
   *                                                              ),
   *                                                         array(...)
@@ -3748,7 +3737,7 @@ class OWLOntology
   *                                 reification statements. This should always be TRUE. This is mainly
   *                                 used to stop possible infinite loops between getAnnotationInfo and
   *                                 getPrefLabel.
-  * @return mixed Array("property" => "", "value" => "", "datatype" => "", "lang" => "")
+  * @return mixed Array("property" => "", "value" => "", "type" => "", "lang" => "")
   *  
   * @author Frederick Giasson, Structured Dynamics LLC.
   */
@@ -3756,13 +3745,13 @@ class OWLOntology
   {
     $property = "";
     $value = "";
-    $datatype = "";
+    $type = "";
     $lang = "";
     $rei = array();
     
     if(!java_instanceof($annotation, java("org.semanticweb.owlapi.model.OWLAnnotation")))
     {
-      return(array("property" => "", "value" => "", "datatype" => "", "lang" => "", "rei" => ""));
+      return(array("property" => "", "uri" => "", "value" => "", "type" => "", "lang" => "", "reify" => ""));
     }
    
     // Check if the value is an OWLLiteral
@@ -3772,7 +3761,7 @@ class OWLOntology
       
       $value = (string)java_values($annotation->getValue()->getLiteral());
       $lang = (string)java_values($annotation->getValue()->getLang());
-      $datatype = (string)java_values($annotation->getValue()->getDatatype()->toStringID());
+      $type = (string)java_values($annotation->getValue()->getDatatype()->toStringID());
     }
     
     // Check if the value is a IRI
@@ -3787,17 +3776,12 @@ class OWLOntology
       {
         foreach($entities as $entity)
         {
-          $rei = array(
-                  array(
-                    "type" => "rdfs:Label",
-                    "value" => $this->getPrefLabel($entity)
-                    )
-                  );
+          $rei = array("wsf:objectLabel" => array($this->getPrefLabel($entity)));
           break;
         }
       }
       
-      $datatype = "rdf:Resource";
+      $type = "xsd:anyURI";
     }
     
     // Check if the value is a OWLAnonymousIndividual
@@ -3806,10 +3790,17 @@ class OWLOntology
       $property = (string)java_values($annotation->getProperty()->toStringID());
       $value = (string)java_values($annotation->getValue()->toStringID());
 
-      $datatype = "rdf:Resource";
+      $type = "xsd:anyURI";
     }    
     
-    return(array("property" => $property, "value" => $value, "datatype" => $datatype, "lang" => $lang, "rei" => $rei));
+    if($type == "xsd:anyURI")
+    {
+      return(array("property" => $property, "uri" => $value, "reify" => $rei));
+    }
+    else
+    {
+      return(array("property" => $property, "value" => $value, "type" => $type, "lang" => $lang));
+    }
   }  
   
   /**

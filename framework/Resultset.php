@@ -441,27 +441,45 @@ class Resultset
               {
                 // It is a literal value, or a literal value of some type (int, bool, etc)
                 if($value["value"] != "")
-                {
-                  $json .= '          { '."\n";            
-                  $json .= '            "'.$this->jsonEncode($this->prefixize($attributeURI)).'": "'.$this->jsonEncode($value["value"]).'" '."\n";            
-                  
-                  /*                  
-                  
-                  @TODO Find a way to properly model the types and lang of a literal in structJSON...
-                  
-                  if(isset($value["type"]) && $value["type"] != "")
+                {  
+                  // We simply return the literal value                
+                  if((isset($value["lang"]) && $value["lang"] != "") ||
+                     (isset($value["type"]) && ($value["type"] != "" && $value["type"] != "rdfs:Literal" && $value["type"] != Namespaces::$rdfs."Literal")))
                   {
-                    $json .= '            "type": "'.$this->jsonEncode($this->prefixize($value["type"])).'" '."\n";            
+                    /*
+                      If we have a type, or a lang defined for this literal value, we return and object of the kind:
+                      {
+                        "value": "the literal value",
+                        "type": "xsd:string",
+                        "lang": "en"
+                      }
+                    */
+                    
+                    $json .= '          { '."\n";            
+                    $json .= '            "'.$this->jsonEncode($this->prefixize($attributeURI)).'": {'."\n";
+                    $json .= '              "value": "'.$this->jsonEncode($value["value"]).'", '."\n";            
+                    
+                    if(isset($value["type"]) && ($value["type"] != "" && $value["type"] != "rdfs:Literal" && $value["type"] != Namespaces::$rdfs."Literal"))
+                    {
+                      $json .= '              "type": "'.$this->jsonEncode($this->prefixize($value["type"])).'", '."\n";            
+                    }
+                    
+                    if(isset($value["lang"]) && $value["lang"] != "")
+                    {
+                      $json .= '              "lang": "'.$this->jsonEncode($value["lang"]).'", '."\n";            
+                    }
+                    
+                    $json = substr($json, 0, strlen($json) - 3)." \n";
+                    
+                    $json .= "            }\n";
+                    $json .= '          }, '."\n";                      
                   }
-                  
-                  if(isset($value["lang"]) && $value["lang"] != "")
+                  else
                   {
-                    $json .= '            "lang": "'.$this->jsonEncode($value["type"]).'" '."\n";            
+                    $json .= '          { '."\n";            
+                    $json .= '            "'.$this->jsonEncode($this->prefixize($attributeURI)).'": "'.$this->jsonEncode($value["value"]).'" '."\n";            
+                    $json .= '          }, '."\n";            
                   }
-                  
-                  */
-                  
-                  $json .= '          }, '."\n";            
                 }
               }
               elseif(isset($value["uri"]))

@@ -485,7 +485,7 @@ class AuthLister extends WebService
           {
             $ws = odbc_result($resultset, 1);
       
-            $subject->setObjectAttribute("rdf:li", $ws, null, "wsf:Webservice");
+            $subject->setObjectAttribute("rdf:li", $ws, null, "wsf:WebService");
           }
           
           $this->rset->addSubject($subject);    

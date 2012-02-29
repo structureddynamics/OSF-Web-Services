@@ -15,8 +15,4 @@ To install Scones, you have to install a few other softwares as well. Briefly, w
 
 The goal is to create a Gate application using the Gate Developer application. Then to use that Gate application to run on the Tomcat instance. It is that instance that will be used by the Scones web service endpoint. The Gate application will use the OWL ontology with some named entities dictionaries to tag documents.
 
-Here are the manuals to install and configure Scones:
-
-# Installing and using Gate on your desktop: http://techwiki.openstructs.org/index.php/Installing_GATE
-# Install and configure Tomcat6, Php/Java Bridge, Gate and Scones: http://techwiki.openstructs.org/index.php/Scones_and_structScones_Installation_Instructions
-# Scones webservice endpoint documentation: http://techwiki.openstructs.org/index.php/Scones
+To make this structWSF endpoint operational, you will have to deploy the Scones backend application on Tomcat6. You can download the <code>Scones.war</code> application directly on the [https://github.com/structureddynamics/Scones Scones GitHub project here]. Then take the time to read the README file on that project page to know how to deploy the application, and how to configure everything.

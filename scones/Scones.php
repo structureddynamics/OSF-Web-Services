@@ -28,7 +28,7 @@ class Scones extends WebService
   /*! @brief URL where the DTD of the XML document can be located on the Web */
   private $dtdURL;
 
-  /*! @brief List of ";" seperated document URL(s). This is the list of documents to process */
+  /*! @brief Document content to process; or URL of a document accessible on the web to extract/process */
   private $document = "";
 
   /*! @brief Document content's MIME type  */
@@ -103,7 +103,7 @@ class Scones extends WebService
   /*!   @brief Constructor
        @details   Initialize the SCONES Web Service
         
-      @param[in] $document Document content (in non-binary form)    
+      @param[in] $document Document content (in non-binary form). It can be a valid URL where the document is located on the web.    
       @param[in] $docmime Document content's MIME type
       @param[in] $application Name of the GATE application used to perform the tagging. This name is 
                               pre-defined by the administrator of the node.
@@ -195,6 +195,7 @@ class Scones extends WebService
 
       return;
     }
+    
     if($this->document == "")
     {
       $this->conneg->setStatus(400);
@@ -438,60 +439,60 @@ class Scones extends WebService
       {
         for($i = 1; $i <= $this->config_ini["gate"]["nbSessions"]; $i++)
         {
-          // Make sure the issued is not currently used by another user/process
-          //if(java_values($this->SconesSession->get("session".$i."_used")) === FALSE)
-          //{
+          $this->SconesSession->put("session".$i."_used", TRUE);
+          
+          // Process the incoming article
+          $corpus = $this->SconesSession->get("session".$i."_instance")->getCorpus();
 
-            $this->SconesSession->put("session".$i."_used", TRUE);
-            
-            // Process the incoming article
-            $corpus = $this->SconesSession->get("session".$i."_instance")->getCorpus();
-            
-            // Create the content of a document
-            $documentContent = new java("gate.corpora.DocumentContentImpl", $this->document);
-            
-            // Create the document to process
-            $document = new java("gate.corpora.DocumentImpl");
-            
-            // Add the document content to the document
-            $document->setContent($documentContent);
-            
-            // Create the corpus
-            $corpus = new java("gate.corpora.CorpusImpl");
-            
-            // Add the document to the corpus
-            $corpus->add($document);
-            
-            // Add the corpus to the corpus controler (the application)
-            $this->SconesSession->get("session".$i."_instance")->setCorpus($corpus);
-            
-            // Execute the pipeline
-            try 
-            {
-              $this->SconesSession->get("session".$i."_instance")->execute();        
-            } 
-            catch (Exception $e) 
-            {
-              $this->SconesSession->put("session".$i."_used", FALSE);
-            }            
-            
-            // output the XML document
-            $this->annotatedDocument =  $document->toXML();
-            
-            // Empty the corpus
-            $corpus->clear();
-            
-            // Stop the thread seeking process
-            $processed = TRUE;
-            
-            // Liberate the thread for others to use
+          $document;
+          $gateFactory = java("gate.Factory");
+          
+          if($this->isValidIRI($this->document))            
+          {
+            // Create the Gate document from the URL
+            $document = $gateFactory->newDocument(new java("java.net.URL", $this->document));
+          }
+          else
+          {
+            // Create the Gate document from the text document
+            $document = $gateFactory->newDocument(new java("java.lang.String", $this->document));
+          }
+          
+          // Create the corpus
+          $corpus = $gateFactory->newCorpus(new java("java.lang.String", "Scones Corpus"));
+          
+          // Add the document to the corpus
+          $corpus->add($document);
+          
+          // Add the corpus to the corpus controler (the application)
+          $this->SconesSession->get("session".$i."_instance")->setCorpus($corpus);
+          
+          // Execute the pipeline
+          try 
+          {
+            $this->SconesSession->get("session".$i."_instance")->execute();        
+          } 
+          catch (Exception $e) 
+          {
             $this->SconesSession->put("session".$i."_used", FALSE);
-            
-            // Fix namespaces of the type of the tagged named entities
-            //$this->fixNamedEntitiesNamespaces();
-            
-            break;
-          //}
+          }            
+          
+          // output the XML document
+          $this->annotatedDocument =  $document->toXML();
+          
+          // Empty the corpus
+          $corpus->clear();
+          
+          // Stop the thread seeking process
+          $processed = TRUE;
+          
+          // Liberate the thread for others to use
+          $this->SconesSession->put("session".$i."_used", FALSE);
+          
+          // Fix namespaces of the type of the tagged named entities
+          //$this->fixNamedEntitiesNamespaces();
+          
+          break;
         }
         
         sleep(1);

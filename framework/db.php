@@ -69,8 +69,10 @@ class DB_Virtuoso
   {
     include_once("WebService.php");
     
-    $this->virtuoso_main_version = WebService::$virtuoso_main_version;    
-    $this->enable_lrl = WebService::$enable_lrl;    
+    $data_ini = parse_ini_file(WebService::$data_ini . "data.ini", TRUE);
+
+    $this->virtuoso_main_version = $data_ini["triplestore"]["virtuoso_main_version"];    
+    $this->enable_lrl = $data_ini["triplestore"]["enable_lrl"];
     
     // Connection Database informations
     $this->db_host = $host;

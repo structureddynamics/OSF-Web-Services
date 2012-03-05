@@ -35,10 +35,10 @@ abstract class WebService
   public static $network_ini = "/usr/share/structwsf/";
 
   /*! @brief Main version of the Virtuoso server used by this structWSF instance (4, 5 or 6) */
-  public static $virtuoso_main_version = "6";
+  protected $virtuoso_main_version = "6";
 
   /*! @brief Enable the Long Read Len feature of Virtuoso. */  
-  public static $enable_lrl = FALSE;
+  protected $enable_lrl = FALSE;
     
   /*! @brief Conneg object that manage the content negotiation capabilities of the web service */
   protected $conneg;	

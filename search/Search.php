@@ -1154,6 +1154,7 @@ class Search extends WebService
       
       // Remove possible left-over introduced by the procedure above for some rare usecases.
       $solrQuery = str_replace("fq= OR ", "fq=", $solrQuery);      
+      $solrQuery = str_replace("fq= AND ", "fq=", $solrQuery);      
       
       $resultset = $solr->select($solrQuery);
 

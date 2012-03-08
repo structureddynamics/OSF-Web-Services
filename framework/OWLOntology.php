@@ -291,7 +291,7 @@ class OWLOntology
         $niDescription[$info["property"]] = array(); 
       }
 
-      if($info["type"] == "xsd:anyURI")
+      if(isset($info["uri"]))
       {
         array_push($niDescription[$info["property"]], array("uri" => $info["uri"],
                                                             "reify" => $info["reify"]));       
@@ -435,7 +435,7 @@ class OWLOntology
           $niDescription[$info["property"]] = array(); 
         }
 
-        if($info["type"] == "xsd:anyURI")
+        if(isset($info["uri"]))
         {
           array_push($niDescription[$info["property"]], array("uri" => $info["uri"],
                                                               "reify" => $info["reify"]));
@@ -1873,7 +1873,7 @@ class OWLOntology
       }
 
       
-      if($info["type"] == "xsd:anyURI")
+      if(isset($info["uri"]))
       {      
         array_push($propertyDescription[$info["property"]], array("uri" => $info["uri"],
                                                                   "reify" => $info["reify"])); 
@@ -2286,7 +2286,7 @@ class OWLOntology
         $classDescription[$info["property"]] = array(); 
       }
 
-      if($info["type"] == "xsd:anyURI")
+      if(isset($info["uri"]))
       {      
         array_push($classDescription[$info["property"]], array("uri" => $info["uri"],
                                                            "reify" => $info["reify"]));     
@@ -2376,7 +2376,7 @@ class OWLOntology
         $classDescription[$info["property"]] = array(); 
       }
 
-      if($info["type"] == "xsd:anyURI")
+      if(isset($info["uri"]))
       {      
         array_push($classDescription[$info["property"]], array("uri" => $info["uri"],
                                                                "reify" => $info["reify"]));       
@@ -2543,7 +2543,7 @@ class OWLOntology
         $ontologyDescription[$info["property"]] = array(); 
       }
 
-      if($info["type"] == "xsd:anyURI")
+      if(isset($info["uri"]))
       {      
         array_push($ontologyDescription[$info["property"]], array("uri" => $info["uri"],
                                                                   "reify" => $info["reify"]));       

@@ -942,8 +942,11 @@ class Sparql extends WebService
               $subject->setDataAttribute($p, $o);
             }            
           }
+          
+          // Add the last subject to the resultset.
+          $this->rset->addSubject($subject);          
         }
-
+        
         if(count($this->rset->getResultset()) <= 0)
         {
           $this->conneg->setStatus(400);

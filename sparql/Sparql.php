@@ -864,6 +864,9 @@ class Sparql extends WebService
         {
           $currentSubjectUri = "";
           $subject = null;
+          $sourceDataset = "";
+          $isPartOfFound = FALSE;
+          $g;
 
           foreach($xml["sparql"]["_c"]["results"]["_c"]["result"] as $result)
           {
@@ -891,6 +894,11 @@ class Sparql extends WebService
 
                 case "p":
                   $p = $boundValue;
+                  
+                  if($p == Namespaces::$dcterms."isPartOf")
+                  {
+                    $isPartOfFound = TRUE;
+                  }
                 break;
 
                 case "o":
@@ -908,15 +916,16 @@ class Sparql extends WebService
             {
               if($subject != null)
               {
+                if($g != "" && $isPartOfFound === FALSE)
+                {
+                  $subject->setObjectAttribute(Namespaces::$dcterms."isPartOf", $g);
+                  $isPartOfFound = FALSE;
+                }
+                
                 $this->rset->addSubject($subject);
               }
               
               $subject = new Subject($s);
-              
-              if($g != "")
-              {
-                $subject->setObjectAttribute(Namespaces::$dcterms."isPartOf", $g);
-              }
               
               $currentSubject = $s;
             }
@@ -942,9 +951,18 @@ class Sparql extends WebService
               $subject->setDataAttribute($p, $o);
             }            
           }
-          
+            
           // Add the last subject to the resultset.
-          $this->rset->addSubject($subject);          
+          if($subject != null)
+          {
+            if($g != "" && $isPartOfFound === FALSE)
+            {
+              $subject->setObjectAttribute(Namespaces::$dcterms."isPartOf", $g);
+              $isPartOfFound = FALSE;
+            }          
+            
+            $this->rset->addSubject($subject);          
+          }
         }
         
         if(count($this->rset->getResultset()) <= 0)

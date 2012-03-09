@@ -837,7 +837,7 @@ class CrudUpdate extends WebService
 
         // Index in Solr
 
-        $solr = new Solr($this->wsf_solr_core, $this->solr_host, $this->solr_port);
+        $solr = new Solr($this->wsf_solr_core, $this->solr_host, $this->solr_port, $this->fields_index_folder);
 
         // Used to detect if we will be creating a new field. If we are, then we will
         // update the fields index once the new document will be indexed.

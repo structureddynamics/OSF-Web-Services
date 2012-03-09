@@ -439,60 +439,64 @@ class Scones extends WebService
       {
         for($i = 1; $i <= $this->config_ini["gate"]["nbSessions"]; $i++)
         {
-          $this->SconesSession->put("session".$i."_used", TRUE);
-          
-          // Process the incoming article
-          $corpus = $this->SconesSession->get("session".$i."_instance")->getCorpus();
+          // Make sure the issued is not currently used by another user/process
+          if(java_values($this->SconesSession->get("session".$i."_used")) === FALSE)
+          {
+            $this->SconesSession->put("session".$i."_used", TRUE);
+            
+            // Process the incoming article
+            $corpus = $this->SconesSession->get("session".$i."_instance")->getCorpus();
 
-          $document;
-          $gateFactory = java("gate.Factory");
-          
-          if($this->isValidIRI($this->document))            
-          {
-            // Create the Gate document from the URL
-            $document = $gateFactory->newDocument(new java("java.net.URL", $this->document));
-          }
-          else
-          {
-            // Create the Gate document from the text document
-            $document = $gateFactory->newDocument(new java("java.lang.String", $this->document));
-          }
-          
-          // Create the corpus
-          $corpus = $gateFactory->newCorpus(new java("java.lang.String", "Scones Corpus"));
-          
-          // Add the document to the corpus
-          $corpus->add($document);
-          
-          // Add the corpus to the corpus controler (the application)
-          $this->SconesSession->get("session".$i."_instance")->setCorpus($corpus);
-          
-          // Execute the pipeline
-          try 
-          {
-            $this->SconesSession->get("session".$i."_instance")->execute();        
-          } 
-          catch (Exception $e) 
-          {
+            $document;
+            $gateFactory = java("gate.Factory");
+            
+            if($this->isValidIRI($this->document))            
+            {
+              // Create the Gate document from the URL
+              $document = $gateFactory->newDocument(new java("java.net.URL", $this->document));
+            }
+            else
+            {
+              // Create the Gate document from the text document
+              $document = $gateFactory->newDocument(new java("java.lang.String", $this->document));
+            }
+            
+            // Create the corpus
+            $corpus = $gateFactory->newCorpus(new java("java.lang.String", "Scones Corpus"));
+            
+            // Add the document to the corpus
+            $corpus->add($document);
+            
+            // Add the corpus to the corpus controler (the application)
+            $this->SconesSession->get("session".$i."_instance")->setCorpus($corpus);
+            
+            // Execute the pipeline
+            try 
+            {
+              $this->SconesSession->get("session".$i."_instance")->execute();        
+            } 
+            catch (Exception $e) 
+            {
+              $this->SconesSession->put("session".$i."_used", FALSE);
+            }            
+            
+            // output the XML document
+            $this->annotatedDocument =  $document->toXML();
+            
+            // Empty the corpus
+            $corpus->clear();
+            
+            // Stop the thread seeking process
+            $processed = TRUE;
+            
+            // Liberate the thread for others to use
             $this->SconesSession->put("session".$i."_used", FALSE);
-          }            
-          
-          // output the XML document
-          $this->annotatedDocument =  $document->toXML();
-          
-          // Empty the corpus
-          $corpus->clear();
-          
-          // Stop the thread seeking process
-          $processed = TRUE;
-          
-          // Liberate the thread for others to use
-          $this->SconesSession->put("session".$i."_used", FALSE);
-          
-          // Fix namespaces of the type of the tagged named entities
-          //$this->fixNamedEntitiesNamespaces();
-          
-          break;
+            
+            // Fix namespaces of the type of the tagged named entities
+            $this->fixNamedEntitiesNamespaces();
+            
+            break;
+          }
         }
         
         sleep(1);

@@ -545,7 +545,7 @@ class Search extends WebService
     // Make sure there was no conneg error prior to this process call
     if($this->conneg->getStatus() == 200)
     {
-      $solr = new Solr($this->wsf_solr_core, $this->solr_host, $this->solr_port);
+      $solr = new Solr($this->wsf_solr_core, $this->solr_host, $this->solr_port, $this->fields_index_folder);
 
       $solrQuery = "";
 
@@ -751,7 +751,6 @@ class Search extends WebService
       if($this->attributes != "all")
       {
         // Lets include the information to facet per type.
-
         $attributes = explode(";", $this->attributes);
 
         $nbProcessed = 0;
@@ -1155,7 +1154,7 @@ class Search extends WebService
       // Remove possible left-over introduced by the procedure above for some rare usecases.
       $solrQuery = str_replace("fq= OR ", "fq=", $solrQuery);      
       $solrQuery = str_replace("fq= AND ", "fq=", $solrQuery);      
-      
+
       $resultset = $solr->select($solrQuery);
 
       

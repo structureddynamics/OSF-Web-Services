@@ -595,7 +595,7 @@ class DatasetDelete extends WebService
 
 
       // Remove all documents from the solr index for this Dataset
-      $solr = new Solr($this->wsf_solr_core, $this->solr_host, $this->solr_port);
+      $solr = new Solr($this->wsf_solr_core, $this->solr_host, $this->solr_port, $this->fields_index_folder);
 
       if(!$solr->flushDataset($this->datasetUri))
       {

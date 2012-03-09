@@ -1266,16 +1266,26 @@ class CrudCreate extends WebService
               }
 
               // Get all types by inference
+              $inferredTypes = array();
+              
               foreach($types as $type)
               {
                 $superClasses = $classHierarchy->getSuperClasses($type);
 
                 foreach($superClasses as $sc)
                 {
-                  $add .= "<field name=\"inferred_type\">" . $this->xmlEncode($sc->name) . "</field>";
-                }
+                  if(array_search($sc->name, $inferredTypes) === FALSE)
+                  {
+                    array_push($inferredTypes, $sc->name);
+                  }
+                }                 
               }
-
+              
+              foreach($inferredTypes as $sc)
+              {
+                $add .= "<field name=\"inferred_type\">" . $this->xmlEncode($sc) . "</field>";
+              }              
+              
               $add .= "</doc></add>";
 
               if(!$solr->update($add))

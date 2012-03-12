@@ -1849,6 +1849,7 @@ class OntologyRead extends WebService
                 break;
 
                 case "all":
+                  $subjectTriples = array();
                   $subjectTriples = array_merge($subjectTriples, $ontology->getPropertiesDescription(TRUE, FALSE, FALSE, $limit, $offset));
                   $subjectTriples = array_merge($subjectTriples, $ontology->getPropertiesDescription(FALSE, TRUE, FALSE, $limit, $offset));
                   $subjectTriples = array_merge($subjectTriples, $ontology->getPropertiesDescription(FALSE, FALSE, TRUE, $limit, $offset));

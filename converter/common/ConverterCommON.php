@@ -826,7 +826,7 @@ class ConverterCommON extends WebService
                   if($xml->getURI($object) == "")
                   {
                     $objectValue = $xml->getContent($object);
-                    $commON .= str_replace('"', '\"', $objectValue).'||';
+                    $commON .= $this->escapeCSV($objectValue).'||';
                   }
                   else
                   {
@@ -866,11 +866,11 @@ class ConverterCommON extends WebService
                     {
                       $prefixes[$baseUri] = $prefix;
                       
-                      $commON .= str_replace('"', '\"', "@@".str_replace($baseUri, $prefix.":", $objectURI)).'||';
+                      $commON .= $this->escapeCSV("@@".str_replace($baseUri, $prefix.":", $objectURI)).'||';
                     }
                     else
                     {
-                      $commON .= str_replace('"', '\"', "@@".$objectURI).'||';
+                      $commON .= $this->escapeCSV("@@".$objectURI).'||';
                     }                                        
                   }
                 }              
@@ -1012,6 +1012,11 @@ class ConverterCommON extends WebService
     $uri = str_replace(" ", "_", $uri);
 
     return ($uri);
+  }
+  
+  private function escapeCSV($str)
+  {
+    return(str_replace(array("\r", "\n", "||", '"'), array("", "", "", '""'), $str));
   }
 
   /*!   @brief Convert the target document

@@ -1353,6 +1353,16 @@ class Search extends WebService
             $subject->setDataAttribute(Namespaces::$geo."long", $resultDescriptionLong->item(0)->nodeValue);
           }
         }
+        
+        // get possible locatedIn URI(s)
+        $resultLocatedIn = $xpath->query("arr[@name='located_in']/str", $result);
+
+        $datasetUri = "";
+
+        if($resultLocatedIn->length > 0)
+        {
+          $subject->setObjectAttribute(Namespaces::$geonames."locatedIn", $resultLocatedIn->item(0)->nodeValue);
+        }           
 
         // get records description
         $resultDescriptionURI = $xpath->query("arr[@name='description']/str", $result);

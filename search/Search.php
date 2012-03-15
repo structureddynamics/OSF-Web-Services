@@ -1418,7 +1418,7 @@ class Search extends WebService
                   $objectPropertyLabels[$attributeURI] = array();
                 }
                 
-                array_push($objectPropertyLabels, $value->nodeValue);
+                array_push($objectPropertyLabels[$attributeURI], $value->nodeValue);
               }
             break;
 
@@ -1432,7 +1432,7 @@ class Search extends WebService
                   $objectPropertyUris[$attributeURI] = array();
                 }
                 
-                array_push($objectPropertyUris, $value->nodeValue);
+                array_push($objectPropertyUris[$attributeURI], $value->nodeValue);
               }
             break;
 
@@ -1442,10 +1442,10 @@ class Search extends WebService
             case "_reify_value": break;
           }
         }
-        
+      
         foreach($objectPropertyUris as $attributeUri => $objectUris)
         {
-          foreach($objectUris as $key => $objectUris)
+          foreach($objectUris as $key => $objectUri)
           {
             if(isset($objectPropertyLabels[$attributeUri][$key]))
             {

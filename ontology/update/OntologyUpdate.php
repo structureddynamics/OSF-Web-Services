@@ -654,7 +654,14 @@ class OntologyUpdate extends WebService
         }
  
         // Call different API calls depending what we are manipulating
-        if($this->in_array_r(Namespaces::$owl."Class", $description[Namespaces::$rdf."type"]))
+        if($this->in_array_r(Namespaces::$owl."Ontology", $description[Namespaces::$rdf."type"]))
+        {
+          $this->ontology->updateOntology($literalValues, $objectValues); 
+          
+          // Make sure advanced indexation is off when updating an ontology's description
+          $advancedIndexation = FALSE;
+        }
+        elseif($this->in_array_r(Namespaces::$owl."Class", $description[Namespaces::$rdf."type"]))
         {
           $this->ontology->updateClass($uri, $literalValues, $objectValues); 
         }
@@ -889,7 +896,7 @@ class OntologyUpdate extends WebService
       // Update the name of the file of the ontology to mark it as "changed"
       $this->ontology->addOntologyAnnotation("http://purl.org/ontology/wsf#ontologyModified", "true");    
     }
-  }
+  }     
   
   /**
   * Tag an ontology as being saved. This simply removes the "ontologyModified" annotation property.

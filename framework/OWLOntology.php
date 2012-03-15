@@ -3447,6 +3447,48 @@ class OWLOntology
   }  
   
   /**
+  * Update the description (annotations) of the current ontology. 
+  * This class will perform the folowing steps in order to update the ontology's description:
+  * 
+  *   (1) Remove all the annotations from the ontology's description
+  *   (2) Add the new annotation properties and their values
+  * 
+  * @param mixed $literalValues Array of DataProperty/Values. Array of type: array("uri" => array(values), ...)
+  * @param mixed $objectValues Array of ObjectProperty/Values. Array of type: array("uri" => array(values), ...)
+  *  
+  * @author Frederick Giasson, Structured Dynamics LLC.
+  */
+  public function updateOntology($literalValues = array(), $objectValues = array())
+  {
+    // Remove all the annotation axioms describing the ontology
+    $ontologyAnnotations = $this->ontology->getAnnotations();
+    
+    foreach($ontologyAnnotations as $annotation)
+    {    
+      $removeAxiom = new java("org.semanticweb.owlapi.model.RemoveOntologyAnnotation", $this->ontology, $annotation);  
+      
+      $this->manager->applyChange($removeAxiom);       
+    }
+    
+    // Add all the new ontology annotation axioms 
+    foreach($literalValues as $predicate => $values)
+    {
+      foreach($values as $value)
+      {
+        $this->addOntologyAnnotation($predicate, $value, null);
+      }
+    }    
+        
+    foreach($objectValues as $predicate => $values)
+    {
+      foreach($values as $value)
+      {
+        $this->addOntologyAnnotation($predicate, null, $value);
+      }
+    }  
+  }  
+  
+  /**
   * Update an existing property in the ontology. This class will perform the folowing steps in order to update the property's
   * definition:
   * 

@@ -3581,14 +3581,18 @@ class OWLOntology
       {
         $syntaxedAxiom = (string)$ra->toString();
         
-        // Match:        
+        // Match (assertions we want to drop):        
         // ClassAssertion(<http://purl.org/ontology/peg#CrossCuttingIssue> <http://purl.org/ontology/peg/framework#Poverty>)
         // ClassAssertion(<http://purl.org/ontology/peg#CrossCuttingIssue> <http://purl.org/ontology/peg/framework#Poverty> <http://purl.org/ontology/peg/framework#Test>)
         // ClassAssertion(rdf:test <http://purl.org/ontology/peg/framework#Poverty> <http://purl.org/ontology/peg/framework#Test>)
         // ClassAssertion(rdf:test <http://purl.org/ontology/peg/framework#Poverty>)
         // DataPropertyAssertion(rdfs:label <http://purl.org/ontology/peg/framework#Energy> "energy"^^xsd:string)
+        // DataPropertyAssertion(skos:note <http://purl.org/ontology/peg/framework#Energy> "Energy
+        // more text here...
+        // more text here...
+        // "^^xsd:string)
         
-        // Make sure it doesn't match:
+        // Make sure it doesn't match (assertions we want to keep and re-introduce):
         // ClassAssertion(<http://purl.org/ontology/peg#CrossCuttingIssue> <http://purl.org/ontology/peg/framework#Test>)       
         // ClassAssertion(rdf:test <http://purl.org/ontology/peg/framework#Test>)       
         // ClassAssertion(<http://purl.org/ontology/peg#CrossCuttingIssue> <http://purl.org/ontology/peg/framework#test> <http://purl.org/ontology/peg/framework#Poverty>)
@@ -3599,6 +3603,7 @@ class OWLOntology
            preg_match("/^[A-Za-z0-9_\\-]+\\([A-Za-z0-9_\\-]+:[A-Za-z0-9_\\-]+\\s<".str_replace("/", "\\/", $uri).">\\s<([^\\s]*)>\\)$/", $syntaxedAxiom) > 0 ||
            preg_match("/^[A-Za-z0-9_\\-]+\\([A-Za-z0-9_\\-]+:[A-Za-z0-9_\\-]+\\s<".str_replace("/", "\\/", $uri).">\\)$/", $syntaxedAxiom) > 0 ||
            preg_match("/^[A-Za-z0-9_\\-]+\\([A-Za-z0-9_\\-]+:[A-Za-z0-9_\\-]+\\s<".str_replace("/", "\\/", $uri).">\\s\"(.+)\".*\\)$/", $syntaxedAxiom) ||
+           preg_match("/^[A-Za-z0-9_\\-]+\\([A-Za-z0-9_\\-]+:[A-Za-z0-9_\\-]+\\s<".str_replace("/", "\\/", $uri).">\\s\".*/", $syntaxedAxiom) ||
            preg_match("/^[A-Za-z0-9_\\-]+\\(<([^\\s]*)>\\s<".str_replace("/", "\\/", $uri).">\\s\"(.+)\".*\\)$/", $syntaxedAxiom) > 0)
         {
           continue;         

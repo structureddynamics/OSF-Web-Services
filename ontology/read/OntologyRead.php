@@ -642,7 +642,7 @@ class OntologyRead extends WebService
             break;
             
             case "descriptions":
-              $this->rset->setResultset($ontology->getClassesDescription($limit, $offset));
+              $this->rset->setResultset(Array($this->ontologyUri => $ontology->getClassesDescription($limit, $offset)));
             break;
             
             default:
@@ -725,11 +725,11 @@ class OntologyRead extends WebService
             break;
             
             case "descriptions":
-              $this->rset->setResultset($ontology->getNamedIndividualsDescription($classUri, $direct, $limit, $offset));            
+              $this->rset->setResultset(Array($this->ontologyUri => $ontology->getNamedIndividualsDescription($classUri, $direct, $limit, $offset)));            
             break;
             
             case "list":
-              $this->rset->setResultset($ontology->getNamedIndividualsDescription($classUri, $direct, $limit, $offset, TRUE));            
+              $this->rset->setResultset(Array($this->ontologyUri => $ontology->getNamedIndividualsDescription($classUri, $direct, $limit, $offset, TRUE)));            
             break;
             
             default:
@@ -762,11 +762,11 @@ class OntologyRead extends WebService
             break;
             
             case "descriptions":
-              $this->rset->setResultset($ontology->getSubClassesDescription($this->parameters["uri"], $this->parameters["direct"]));            
+              $this->rset->setResultset(Array($this->ontologyUri => $ontology->getSubClassesDescription($this->parameters["uri"], $this->parameters["direct"])));            
             break;
 
             case "hierarchy":
-              $this->rset->setResultset($ontology->getSubClassesDescription($this->parameters["uri"], TRUE, TRUE));
+              $this->rset->setResultset(Array($this->ontologyUri => $ontology->getSubClassesDescription($this->parameters["uri"], TRUE, TRUE)));
             break;
             
             default:
@@ -799,7 +799,7 @@ class OntologyRead extends WebService
             break;
             
             case "descriptions":
-              $this->rset->setResultset($ontology->getSuperClassesDescription($this->parameters["uri"], $this->parameters["direct"]));
+              $this->rset->setResultset(Array($this->ontologyUri => $ontology->getSuperClassesDescription($this->parameters["uri"], $this->parameters["direct"])));
             break;
             
             default:
@@ -832,7 +832,7 @@ class OntologyRead extends WebService
             break;
             
             case "descriptions":
-              $this->rset->setResultset($ontology->getEquivalentClassesDescription($this->parameters["uri"]));
+              $this->rset->setResultset(Array($this->ontologyUri => $ontology->getEquivalentClassesDescription($this->parameters["uri"])));
             break;
             
             default:
@@ -865,7 +865,7 @@ class OntologyRead extends WebService
             break;
             
             case "descriptions":
-              $this->rset->setResultset($ontology->getDisjointClassesDescription($this->parameters["uri"]));
+              $this->rset->setResultset(Array($this->ontologyUri => $ontology->getDisjointClassesDescription($this->parameters["uri"])));
             break;
             
             default:
@@ -915,7 +915,7 @@ class OntologyRead extends WebService
             break;
             
             case "descriptions":
-              $this->rset->setResultset(OWLOntology::getLoadedOntologiesDescription($this->OwlApiSession));            
+              $this->rset->setResultset(Array($this->ontologyUri => OWLOntology::getLoadedOntologiesDescription($this->OwlApiSession)));            
             break;
             
             default:
@@ -1853,15 +1853,15 @@ class OntologyRead extends WebService
               switch(strtolower($this->parameters["type"]))
               {
                 case "dataproperty":
-                  $this->rset->setResultset($ontology->getPropertiesDescription(TRUE, FALSE, FALSE, $limit, $offset));
+                  $this->rset->setResultset(Array($this->ontologyUri => $ontology->getPropertiesDescription(TRUE, FALSE, FALSE, $limit, $offset)));
                 break;
                 
                 case "objectproperty":
-                  $this->rset->setResultset($ontology->getPropertiesDescription(FALSE, TRUE, FALSE, $limit, $offset));
+                  $this->rset->setResultset(Array($this->ontologyUri => $ontology->getPropertiesDescription(FALSE, TRUE, FALSE, $limit, $offset)));
                 break;
                 
                 case "annotationproperty":
-                  $this->rset->setResultset($ontology->getPropertiesDescription(FALSE, FALSE, TRUE, $limit, $offset));
+                  $this->rset->setResultset(Array($this->ontologyUri => $ontology->getPropertiesDescription(FALSE, FALSE, TRUE, $limit, $offset)));
                 break;
 
                 case "all":
@@ -1869,7 +1869,7 @@ class OntologyRead extends WebService
                   $subjectTriples = array_merge($subjectTriples, $ontology->getPropertiesDescription(TRUE, FALSE, FALSE, $limit, $offset));
                   $subjectTriples = array_merge($subjectTriples, $ontology->getPropertiesDescription(FALSE, TRUE, FALSE, $limit, $offset));
                   $subjectTriples = array_merge($subjectTriples, $ontology->getPropertiesDescription(FALSE, FALSE, TRUE, $limit, $offset));
-                  $this->rset->setResultset($subjectTriples);
+                  $this->rset->setResultset(Array($this->ontologyUri => $subjectTriples));
                 break;
                 
                 default:
@@ -1932,11 +1932,11 @@ class OntologyRead extends WebService
               switch(strtolower($this->parameters["type"]))
               {
                 case "dataproperty":
-                  $this->rset->setResultset($ontology->getSubPropertiesDescription((string)$this->parameters["uri"], $this->parameters["direct"], TRUE));
+                  $this->rset->setResultset(Array($this->ontologyUri => $ontology->getSubPropertiesDescription((string)$this->parameters["uri"], $this->parameters["direct"], TRUE)));
                 break;
                 
                 case "objectproperty":
-                  $this->rset->setResultset($ontology->getSubPropertiesDescription((string)$this->parameters["uri"], $this->parameters["direct"], FALSE));
+                  $this->rset->setResultset(Array($this->ontologyUri => $ontology->getSubPropertiesDescription((string)$this->parameters["uri"], $this->parameters["direct"], FALSE)));
                 break;
                 
                 default:
@@ -2000,11 +2000,11 @@ class OntologyRead extends WebService
               switch(strtolower($this->parameters["type"]))
               {
                 case "dataproperty":
-                  $this->rset->setResultset($ontology->getSuperPropertiesDescription((string)$this->parameters["uri"], $this->parameters["direct"], TRUE));
+                  $this->rset->setResultset(Array($this->ontologyUri => $ontology->getSuperPropertiesDescription((string)$this->parameters["uri"], $this->parameters["direct"], TRUE)));
                 break;
                 
                 case "objectproperty":
-                  $this->rset->setResultset($ontology->getSuperPropertiesDescription((string)$this->parameters["uri"], $this->parameters["direct"], FALSE));
+                  $this->rset->setResultset(Array($this->ontologyUri => $ontology->getSuperPropertiesDescription((string)$this->parameters["uri"], $this->parameters["direct"], FALSE)));
                 break;
                 
                 default:
@@ -2067,11 +2067,11 @@ class OntologyRead extends WebService
               switch(strtolower($this->parameters["type"]))
               {
                 case "dataproperty":
-                  $this->rset->setResultset($ontology->getEquivalentPropertiesDescription((string)$this->parameters["uri"], TRUE));
+                  $this->rset->setResultset(Array($this->ontologyUri => $ontology->getEquivalentPropertiesDescription((string)$this->parameters["uri"], TRUE)));
                 break;
                 
                 case "objectproperty":
-                  $this->rset->setResultset($ontology->getEquivalentPropertiesDescription((string)$this->parameters["uri"], FALSE));
+                  $this->rset->setResultset(Array($this->ontologyUri => $ontology->getEquivalentPropertiesDescription((string)$this->parameters["uri"], FALSE)));
                 break;
                 
                 default:
@@ -2134,11 +2134,11 @@ class OntologyRead extends WebService
               switch(strtolower($this->parameters["type"]))
               {
                 case "dataproperty":
-                  $this->rset->setResultset($ontology->getDisjointPropertiesDescription((string)$this->parameters["uri"], TRUE));
+                  $this->rset->setResultset(Array($this->ontologyUri => $ontology->getDisjointPropertiesDescription((string)$this->parameters["uri"], TRUE)));
                 break;
                 
                 case "objectproperty":
-                  $this->rset->setResultset($ontology->getDisjointPropertiesDescription((string)$this->parameters["uri"], FALSE));
+                  $this->rset->setResultset(Array($this->ontologyUri => $ontology->getDisjointPropertiesDescription((string)$this->parameters["uri"], FALSE)));
                 break;
                 
                 default:

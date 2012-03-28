@@ -48,43 +48,45 @@ class Resultset
 
       @verbatim
 
-      $resultset =   Array("record-uri" =>
-                      Array(
-                        "type" => Array(URIs...),
-                        "prefLabel" => "preferred label",
-                        "altLabel" => Array(alternative label literals...),
-                        "prefURL" => "http://preferred-url.com",
-                        "description" => "some description of the record",
-                        
-                        "other-data-attribute-uri" => Array(
-                          Array(
-                            "value" => "some value",
-                            "lang" => "language string of the value",
-                            "type" => "type of the value"
-                          ),
-                          Array(
-                            ...
-                          )
-                        ),
-                        "more-data-attribute-uri": ...,
-                        
-                        "other-object-attribute-uri" => Array(
-                          Array(
-                            "uri" => "some uri",
-                            "type" => "optional type of the referenced URI",
-                            "reify" => Array(
-                              "reification-attribute-uri" => Array("value of the reification statement"),
-                              "more-reification-attribute-uri" => ...
+      $resultset =   Array("dataset-uri" => 
+                       Array("record-uri" =>
+                        Array(
+                          "type" => Array(URIs...),
+                          "prefLabel" => "preferred label",
+                          "altLabel" => Array(alternative label literals...),
+                          "prefURL" => "http://preferred-url.com",
+                          "description" => "some description of the record",
+                          
+                          "other-data-attribute-uri" => Array(
+                            Array(
+                              "value" => "some value",
+                              "lang" => "language string of the value",
+                              "type" => "type of the value"
+                            ),
+                            Array(
+                              ...
                             )
                           ),
-                          Array(
-                            ...
+                          "more-data-attribute-uri": ...,
+                          
+                          "other-object-attribute-uri" => Array(
+                            Array(
+                              "uri" => "some uri",
+                              "type" => "optional type of the referenced URI",
+                              "reify" => Array(
+                                "reification-attribute-uri" => Array("value of the reification statement"),
+                                "more-reification-attribute-uri" => ...
+                              )
+                            ),
+                            Array(
+                              ...
+                            )
                           )
-                        )
-                        "more-object-attribute-uri": ...
-                      ),
-                      
-                      "more-record-uri": ...
+                          "more-object-attribute-uri": ...
+                        ),
+                        
+                        "more-record-uri": ...
+                      )
                     )
           
       @endverbatim
@@ -125,13 +127,18 @@ class Resultset
   * 
   * @param mixed $subject Subject object to add to the resultset
   */
-  public function addSubject($subject)
+  public function addSubject($subject, $dataset = "")
   {
+    if($dataset == "")
+    {
+      $dataset = "unspecified";
+    }
+    
     $uri = $subject->getUri();
     
-    if(!isset($this->resultset[$uri]))
+    if(!isset($this->resultset[$dataset][$uri]))
     {
-      $this->resultset[$uri] = $subject->getSubject();
+      $this->resultset[$dataset][$uri] = $subject->getSubject();
       
       return(TRUE);
     }
@@ -216,123 +223,126 @@ class Resultset
   {   
     $xml = '';
     
-    foreach($this->resultset as $recordURI => $record)
+    foreach($this->resultset as $datasetURI => $records)
     {
-      // Determine the first (main) type of the record
-      $firstType = "http://www.w3.org/2002/07/owl#Thing";
-      
-      if(isset($record["type"][0]))
+      foreach($records as $recordURI => $record)
       {
-        $firstType = $record["type"][0];
-      }
-      
-      $xml .= '  <subject type="'.$this->xmlEncode($this->prefixize($firstType)).'" uri="'.$this->xmlEncode($recordURI).'">'."\n";
-      
-      foreach($record as $attributeURI => $attributeValues)
-      {
-        switch($attributeURI)
+        // Determine the first (main) type of the record
+        $firstType = "http://www.w3.org/2002/07/owl#Thing";
+        
+        if(isset($record["type"][0]))
         {
-          case "type":
-            foreach($attributeValues as $key => $type)
-            {
-              if($key > 0 && $type != "")
-              {      
-                $xml .= '    <predicate type="rdf:type">'."\n";
-                $xml .= '      <object uri="'.$this->xmlEncode($type).'" />'."\n";
-                $xml .= '    </predicate>'."\n";
-              }              
-            }
-          break;
-          case "prefLabel":
-            if($attributeValues != "")
-            {
-              $xml .= '    <predicate type="iron:prefLabel">'."\n";
-              $xml .= '      <object type="rdfs:Literal">'.$this->xmlEncode($attributeValues).'</object>'."\n";
-              $xml .= '    </predicate>'."\n";
-            }
-          break;
-          case "altLabel":     
-            foreach($attributeValues as $altLabel)
-            {
-              if($altLabel != "")
-              {
-                $xml .= '    <predicate type="iron:altLabel">'."\n";
-                $xml .= '      <object type="rdfs:Literal">'.$this->xmlEncode($altLabel).'</object>'."\n";
-                $xml .= '    </predicate>'."\n";
-              }
-            }          
-          break;
-          case "description":   
-            if($attributeValues != "")
-            {
-              $xml .= '    <predicate type="iron:description">'."\n";
-              $xml .= '      <object type="rdfs:Literal">'.$this->xmlEncode($attributeValues).'</object>'."\n";
-              $xml .= '    </predicate>'."\n";
-            }
-          break;
-          case "prefURL":
-            if($attributeValues != "")
-            {
-              $xml .= '    <predicate type="iron:prefURL">'."\n";
-              $xml .= '      <object type="rdfs:Literal">'.$this->xmlEncode($attributeValues).'</object>'."\n";
-              $xml .= '    </predicate>'."\n";
-            }            
-          break;
-          
-          // Any other attribute describing this record
-          default:
-            foreach($attributeValues as $value)
-            {             
-              $xml .= '    <predicate type="'.$this->xmlEncode($this->prefixize($attributeURI)).'">'."\n";
-              
-              if(isset($value["value"]))
-              {
-                // It is a literal value, or a literal value of some type (int, bool, etc)
-                if($value["value"] != "")
-                {
-                  $xml .= '      <object type="'.$this->xmlEncode($this->prefixize($value["type"])).'"'.(isset($value["lang"]) && $value["lang"] != "" ? ' lang="'.$this->xmlEncode($value["lang"]).'"' : "").'>'.$this->xmlEncode($value["value"]).'</object>'."\n";
-                }
-              }
-              elseif(isset($value["uri"]))
-              {
-                // It is a resource URI
-                if(!isset($value["reify"]))
-                {
-                  if($value["uri"] != "")
-                  {
-                    $xml .= '      <object uri="'.$this->xmlEncode($value["uri"]).'" '.(isset($value["type"]) && $value["type"] != ""  ? 'type="'.$value["type"].'"' : '').' />'."\n";
-                  }
-                }
-                else
-                {
-                  if($value["uri"] != "")
-                  {
-                    $xml .= '      <object uri="'.$this->xmlEncode($value["uri"]).'" '.(isset($value["type"]) && $value["type"] != "" ? 'type="'.$value["type"].'"' : '').'>'."\n";
-                    
-                    foreach($value["reify"] as $reifyAttributeUri => $reifiedValues)
-                    {
-                      foreach($reifiedValues as $reifiedValue)
-                      {
-                        if($reifiedValue != "")
-                        {
-                          $xml .= '        <reify type="'.$this->xmlEncode($this->prefixize($reifyAttributeUri)).'" value="'.$this->xmlEncode($reifiedValue).'" />'."\n";
-                        }
-                      }
-                    }                  
-                    
-                    $xml .= '      </object>'."\n";                                    
-                  }
-                }
-              }
-              
-              
-              $xml .= '    </predicate>'."\n";
-            }            
-          break;          
+          $firstType = $record["type"][0];
         }
+        
+        $xml .= '  <subject type="'.$this->xmlEncode($this->prefixize($firstType)).'" uri="'.$this->xmlEncode($recordURI).'">'."\n";
+        
+        foreach($record as $attributeURI => $attributeValues)
+        {
+          switch($attributeURI)
+          {
+            case "type":
+              foreach($attributeValues as $key => $type)
+              {
+                if($key > 0 && $type != "")
+                {      
+                  $xml .= '    <predicate type="rdf:type">'."\n";
+                  $xml .= '      <object uri="'.$this->xmlEncode($type).'" />'."\n";
+                  $xml .= '    </predicate>'."\n";
+                }              
+              }
+            break;
+            case "prefLabel":
+              if($attributeValues != "")
+              {
+                $xml .= '    <predicate type="iron:prefLabel">'."\n";
+                $xml .= '      <object type="rdfs:Literal">'.$this->xmlEncode($attributeValues).'</object>'."\n";
+                $xml .= '    </predicate>'."\n";
+              }
+            break;
+            case "altLabel":     
+              foreach($attributeValues as $altLabel)
+              {
+                if($altLabel != "")
+                {
+                  $xml .= '    <predicate type="iron:altLabel">'."\n";
+                  $xml .= '      <object type="rdfs:Literal">'.$this->xmlEncode($altLabel).'</object>'."\n";
+                  $xml .= '    </predicate>'."\n";
+                }
+              }          
+            break;
+            case "description":   
+              if($attributeValues != "")
+              {
+                $xml .= '    <predicate type="iron:description">'."\n";
+                $xml .= '      <object type="rdfs:Literal">'.$this->xmlEncode($attributeValues).'</object>'."\n";
+                $xml .= '    </predicate>'."\n";
+              }
+            break;
+            case "prefURL":
+              if($attributeValues != "")
+              {
+                $xml .= '    <predicate type="iron:prefURL">'."\n";
+                $xml .= '      <object type="rdfs:Literal">'.$this->xmlEncode($attributeValues).'</object>'."\n";
+                $xml .= '    </predicate>'."\n";
+              }            
+            break;
+            
+            // Any other attribute describing this record
+            default:
+              foreach($attributeValues as $value)
+              {             
+                $xml .= '    <predicate type="'.$this->xmlEncode($this->prefixize($attributeURI)).'">'."\n";
+                
+                if(isset($value["value"]))
+                {
+                  // It is a literal value, or a literal value of some type (int, bool, etc)
+                  if($value["value"] != "")
+                  {
+                    $xml .= '      <object type="'.$this->xmlEncode($this->prefixize($value["type"])).'"'.(isset($value["lang"]) && $value["lang"] != "" ? ' lang="'.$this->xmlEncode($value["lang"]).'"' : "").'>'.$this->xmlEncode($value["value"]).'</object>'."\n";
+                  }
+                }
+                elseif(isset($value["uri"]))
+                {
+                  // It is a resource URI
+                  if(!isset($value["reify"]))
+                  {
+                    if($value["uri"] != "")
+                    {
+                      $xml .= '      <object uri="'.$this->xmlEncode($value["uri"]).'" '.(isset($value["type"]) && $value["type"] != ""  ? 'type="'.$value["type"].'"' : '').' />'."\n";
+                    }
+                  }
+                  else
+                  {
+                    if($value["uri"] != "")
+                    {
+                      $xml .= '      <object uri="'.$this->xmlEncode($value["uri"]).'" '.(isset($value["type"]) && $value["type"] != "" ? 'type="'.$value["type"].'"' : '').'>'."\n";
+                      
+                      foreach($value["reify"] as $reifyAttributeUri => $reifiedValues)
+                      {
+                        foreach($reifiedValues as $reifiedValue)
+                        {
+                          if($reifiedValue != "")
+                          {
+                            $xml .= '        <reify type="'.$this->xmlEncode($this->prefixize($reifyAttributeUri)).'" value="'.$this->xmlEncode($reifiedValue).'" />'."\n";
+                          }
+                        }
+                      }                  
+                      
+                      $xml .= '      </object>'."\n";                                    
+                    }
+                  }
+                }
+                
+                
+                $xml .= '    </predicate>'."\n";
+              }            
+            break;          
+          }
+        }
+        
+        $xml .= "  </subject>\n";
       }
-      
-      $xml .= "  </subject>\n";
     }
     
     $xmlHeader = '<?xml version="1.0" encoding="utf-8"?>'."\n";
@@ -366,192 +376,195 @@ class Resultset
   {
     $json = "";
       
-    foreach($this->resultset as $recordURI => $record)
+    foreach($this->resultset as $datasetURI => $records)
     {
-      // Determine the first (main) type of the record
-      $firstType = "http://www.w3.org/2002/07/owl#Thing";
-      
-      if(isset($record["type"][0]))
+      foreach($records as $recordURI => $record)
       {
-        $firstType = $record["type"][0];
-      }
-      
-      $json .= '      {'."\n";
-      $json .= '        "uri": "'.$this->jsonEncode($recordURI).'", '."\n";
-      $json .= '        "type": "'.$this->jsonEncode($this->prefixize($firstType)).'", '."\n";
-      
-      $json .= '        "predicate": [  '."\n";
-         
-      foreach($record as $attributeURI => $attributeValues)
-      {
-        switch($attributeURI)
+        // Determine the first (main) type of the record
+        $firstType = "http://www.w3.org/2002/07/owl#Thing";
+        
+        if(isset($record["type"][0]))
         {
-          case "type":
-            foreach($attributeValues as $key => $type)
-            {
-              if($key > 0 && $type != "")
-              {               
-                $json .= '          { '."\n";            
-                $json .= '            "rdfs:type": "'.$this->jsonEncode($type).'" '."\n";            
-                $json .= '          }, '."\n";            
-              }
-            }
-          break;
-          case "prefLabel":
-            if($attributeValues != "")
-            {
-              $json .= '          { '."\n";            
-              $json .= '            "iron:prefLabel": "'.$this->jsonEncode($attributeValues).'" '."\n";            
-              $json .= '          }, '."\n";            
-            }
-          break;
-          case "altLabel":
-            foreach($attributeValues as $altLabel)
-            {
-              if($altLabel != "")
+          $firstType = $record["type"][0];
+        }
+        
+        $json .= '      {'."\n";
+        $json .= '        "uri": "'.$this->jsonEncode($recordURI).'", '."\n";
+        $json .= '        "type": "'.$this->jsonEncode($this->prefixize($firstType)).'", '."\n";
+        
+        $json .= '        "predicate": [  '."\n";
+           
+        foreach($record as $attributeURI => $attributeValues)
+        {
+          switch($attributeURI)
+          {
+            case "type":
+              foreach($attributeValues as $key => $type)
               {
-                $json .= '          { '."\n";            
-                $json .= '            "iron:altLabel": "'.$this->jsonEncode($altLabel).'" '."\n";            
-                $json .= '          }, '."\n";            
-              }
-            }          
-          break;
-          case "description":
-            if($attributeValues != "")
-            {
-              $json .= '          { '."\n";            
-              $json .= '            "iron:description": "'.$this->jsonEncode($attributeValues).'" '."\n";            
-              $json .= '          }, '."\n";            
-            }
-          break;
-          case "prefURL":
-            if($attributeValues != "")
-            {
-              $json .= '          { '."\n";            
-              $json .= '            "iron:prefURL": "'.$this->jsonEncode($attributeValues).'" '."\n";            
-              $json .= '          }, '."\n";            
-            }
-          break;
-          
-          // Any other attribute describing this record
-          default:
-            foreach($attributeValues as $value)
-            {             
-              if(isset($value["value"]))
-              {
-                // It is a literal value, or a literal value of some type (int, bool, etc)
-                if($value["value"] != "")
-                {  
-                  // We simply return the literal value                
-                  if((isset($value["lang"]) && $value["lang"] != "") ||
-                     (isset($value["type"]) && ($value["type"] != "" && $value["type"] != "rdfs:Literal" && $value["type"] != Namespaces::$rdfs."Literal")))
-                  {
-                    /*
-                      If we have a type, or a lang defined for this literal value, we return and object of the kind:
-                      {
-                        "value": "the literal value",
-                        "type": "xsd:string",
-                        "lang": "en"
-                      }
-                    */
-                    
-                    $json .= '          { '."\n";            
-                    $json .= '            "'.$this->jsonEncode($this->prefixize($attributeURI)).'": {'."\n";
-                    $json .= '              "value": "'.$this->jsonEncode($value["value"]).'", '."\n";            
-                    
-                    if(isset($value["type"]) && ($value["type"] != "" && $value["type"] != "rdfs:Literal" && $value["type"] != Namespaces::$rdfs."Literal"))
-                    {
-                      $json .= '              "type": "'.$this->jsonEncode($this->prefixize($value["type"])).'", '."\n";            
-                    }
-                    
-                    if(isset($value["lang"]) && $value["lang"] != "")
-                    {
-                      $json .= '              "lang": "'.$this->jsonEncode($value["lang"]).'", '."\n";            
-                    }
-                    
-                    $json = substr($json, 0, strlen($json) - 3)." \n";
-                    
-                    $json .= "            }\n";
-                    $json .= '          }, '."\n";                      
-                  }
-                  else
-                  {
-                    $json .= '          { '."\n";            
-                    $json .= '            "'.$this->jsonEncode($this->prefixize($attributeURI)).'": "'.$this->jsonEncode($value["value"]).'" '."\n";            
-                    $json .= '          }, '."\n";            
-                  }
+                if($key > 0 && $type != "")
+                {               
+                  $json .= '          { '."\n";            
+                  $json .= '            "rdfs:type": "'.$this->jsonEncode($type).'" '."\n";            
+                  $json .= '          }, '."\n";            
                 }
               }
-              elseif(isset($value["uri"]))
+            break;
+            case "prefLabel":
+              if($attributeValues != "")
               {
-                // It is a resource URI
-                if($value["uri"] != "")
+                $json .= '          { '."\n";            
+                $json .= '            "iron:prefLabel": "'.$this->jsonEncode($attributeValues).'" '."\n";            
+                $json .= '          }, '."\n";            
+              }
+            break;
+            case "altLabel":
+              foreach($attributeValues as $altLabel)
+              {
+                if($altLabel != "")
                 {
                   $json .= '          { '."\n";            
-                  $json .= '            "'.$this->jsonEncode($this->prefixize($attributeURI)).'": { '."\n";            
-                  $json .= '              "uri": "'.$this->jsonEncode($value["uri"]).'"';
-                  
-                  if(isset($value["type"]) && $value["type"] != "")
-                  {
-                    $json .= ", \n";
-                    $json .= '              "type": "'.$this->jsonEncode($this->prefixize($value["type"])).'"';
-                  }
-                  
-                  if(isset($value["reify"]))
-                  {
-                    $jsonReifyData = '';
-                    
-                    foreach($value["reify"] as $reifyAttributeUri => $reifiedValues)
+                  $json .= '            "iron:altLabel": "'.$this->jsonEncode($altLabel).'" '."\n";            
+                  $json .= '          }, '."\n";            
+                }
+              }          
+            break;
+            case "description":
+              if($attributeValues != "")
+              {
+                $json .= '          { '."\n";            
+                $json .= '            "iron:description": "'.$this->jsonEncode($attributeValues).'" '."\n";            
+                $json .= '          }, '."\n";            
+              }
+            break;
+            case "prefURL":
+              if($attributeValues != "")
+              {
+                $json .= '          { '."\n";            
+                $json .= '            "iron:prefURL": "'.$this->jsonEncode($attributeValues).'" '."\n";            
+                $json .= '          }, '."\n";            
+              }
+            break;
+            
+            // Any other attribute describing this record
+            default:
+              foreach($attributeValues as $value)
+              {             
+                if(isset($value["value"]))
+                {
+                  // It is a literal value, or a literal value of some type (int, bool, etc)
+                  if($value["value"] != "")
+                  {  
+                    // We simply return the literal value                
+                    if((isset($value["lang"]) && $value["lang"] != "") ||
+                       (isset($value["type"]) && ($value["type"] != "" && $value["type"] != "rdfs:Literal" && $value["type"] != Namespaces::$rdfs."Literal")))
                     {
-                      foreach($reifiedValues as $reifiedValue)
-                      {
-                        if($reifiedValue != "")
+                      /*
+                        If we have a type, or a lang defined for this literal value, we return and object of the kind:
                         {
-                          $jsonReifyData .= '                { '."\n";
-                          $jsonReifyData .= '                  "type": "'.$this->jsonEncode($this->prefixize($reifyAttributeUri)).'", '."\n";
-                          $jsonReifyData .= '                  "value": "'.$this->jsonEncode($this->prefixize($reifiedValue)).'" '."\n";
-                          $jsonReifyData .= '                }, '."\n";
+                          "value": "the literal value",
+                          "type": "xsd:string",
+                          "lang": "en"
                         }
+                      */
+                      
+                      $json .= '          { '."\n";            
+                      $json .= '            "'.$this->jsonEncode($this->prefixize($attributeURI)).'": {'."\n";
+                      $json .= '              "value": "'.$this->jsonEncode($value["value"]).'", '."\n";            
+                      
+                      if(isset($value["type"]) && ($value["type"] != "" && $value["type"] != "rdfs:Literal" && $value["type"] != Namespaces::$rdfs."Literal"))
+                      {
+                        $json .= '              "type": "'.$this->jsonEncode($this->prefixize($value["type"])).'", '."\n";            
                       }
-                    }                    
-
-                    if($jsonReifyData != "")
+                      
+                      if(isset($value["lang"]) && $value["lang"] != "")
+                      {
+                        $json .= '              "lang": "'.$this->jsonEncode($value["lang"]).'", '."\n";            
+                      }
+                      
+                      $json = substr($json, 0, strlen($json) - 3)." \n";
+                      
+                      $json .= "            }\n";
+                      $json .= '          }, '."\n";                      
+                    }
+                    else
                     {
-                      $json .= ", \n";                      
-                      
-                      $json .= '              "reify": [ '."\n";
-
-                      
-                      $jsonReifyData = substr($jsonReifyData, 0, strlen($jsonReifyData) - 3);
-                      
-                      $json .= $jsonReifyData;
-                      
-                      $json .= "\n";
-                      
-                      $json .= '              ] '."\n";
+                      $json .= '          { '."\n";            
+                      $json .= '            "'.$this->jsonEncode($this->prefixize($attributeURI)).'": "'.$this->jsonEncode($value["value"]).'" '."\n";            
+                      $json .= '          }, '."\n";            
                     }
                   }
-                  else
-                  {
-                    $json .= " \n";
-                  }
-                  
-                  $json .= '            } '."\n";            
-                  $json .= '          }, '."\n";                              
                 }
-              }
-            }          
-          break;          
-        }
-      }
+                elseif(isset($value["uri"]))
+                {
+                  // It is a resource URI
+                  if($value["uri"] != "")
+                  {
+                    $json .= '          { '."\n";            
+                    $json .= '            "'.$this->jsonEncode($this->prefixize($attributeURI)).'": { '."\n";            
+                    $json .= '              "uri": "'.$this->jsonEncode($value["uri"]).'"';
+                    
+                    if(isset($value["type"]) && $value["type"] != "")
+                    {
+                      $json .= ", \n";
+                      $json .= '              "type": "'.$this->jsonEncode($this->prefixize($value["type"])).'"';
+                    }
+                    
+                    if(isset($value["reify"]))
+                    {
+                      $jsonReifyData = '';
+                      
+                      foreach($value["reify"] as $reifyAttributeUri => $reifiedValues)
+                      {
+                        foreach($reifiedValues as $reifiedValue)
+                        {
+                          if($reifiedValue != "")
+                          {
+                            $jsonReifyData .= '                { '."\n";
+                            $jsonReifyData .= '                  "type": "'.$this->jsonEncode($this->prefixize($reifyAttributeUri)).'", '."\n";
+                            $jsonReifyData .= '                  "value": "'.$this->jsonEncode($this->prefixize($reifiedValue)).'" '."\n";
+                            $jsonReifyData .= '                }, '."\n";
+                          }
+                        }
+                      }                    
 
-      $json = substr($json, 0, strlen($json) - 3);
-      
-      $json .= "\n";
-      
-      $json .= '        ] '."\n";
-      
-      $json .= "      }, \n";    
+                      if($jsonReifyData != "")
+                      {
+                        $json .= ", \n";                      
+                        
+                        $json .= '              "reify": [ '."\n";
+
+                        
+                        $jsonReifyData = substr($jsonReifyData, 0, strlen($jsonReifyData) - 3);
+                        
+                        $json .= $jsonReifyData;
+                        
+                        $json .= "\n";
+                        
+                        $json .= '              ] '."\n";
+                      }
+                    }
+                    else
+                    {
+                      $json .= " \n";
+                    }
+                    
+                    $json .= '            } '."\n";            
+                    $json .= '          }, '."\n";                              
+                  }
+                }
+              }          
+            break;          
+          }
+        }
+
+        $json = substr($json, 0, strlen($json) - 3);
+        
+        $json .= "\n";
+        
+        $json .= '        ] '."\n";
+        
+        $json .= "      }, \n";    
+      }
     }
     
     $json = substr($json, 0, strlen($json) - 3);
@@ -704,104 +717,107 @@ class Resultset
   {   
     $xml = '';
     
-    foreach($this->resultset as $recordURI => $record)
+    foreach($this->resultset as $datasetURI => $records)
     {
-      $xmlRei = '';
-      
-      // Determine the first (main) type of the record
-      $firstType = "http://www.w3.org/2002/07/owl#Thing";
-      
-      if(isset($record["type"][0]))
+      foreach($records as $recordURI => $record)
       {
-        $firstType = $record["type"][0];
-      }
-      
-      $xml .= '  <'.$this->xmlEncode($this->prefixize($firstType)).' rdf:about="'.$this->xmlEncode($recordURI).'">'."\n";
-      
-      foreach($record as $attributeURI => $attributeValues)
-      {        
-        switch($attributeURI)
+        $xmlRei = '';
+        
+        // Determine the first (main) type of the record
+        $firstType = "http://www.w3.org/2002/07/owl#Thing";
+        
+        if(isset($record["type"][0]))
         {
-          case "type":
-            foreach($attributeValues as $key => $type)
-            {
-              if($key > 0 && $type != "")
-              {      
-                $xml .= '    <rdf:type rdf:resource="'.$this->xmlEncode($type).'" />'."\n";
-              }              
-            }
-          break;
-          case "prefLabel":
-            if($attributeValues != "")
-            {
-              $xml .= '    <iron:prefLabel>'.$this->xmlEncode($attributeValues).'</iron:prefLabel>'."\n";              
-            }
-          break;
-          case "altLabel":     
-            foreach($attributeValues as $altLabel)
-            {
-              if($altLabel != "")
-              {
-                $xml .= '    <iron:altLabel>'.$this->xmlEncode($altLabel).'</iron:altLabel>'."\n";              
-              }
-            }          
-          break;
-          case "description":   
-            if($attributeValues != "")
-            {
-              $xml .= '    <iron:description>'.$this->xmlEncode($attributeValues).'</iron:description>'."\n";              
-            }
-          break;
-          case "prefURL":
-            if($attributeValues != "")
-            {
-              $xml .= '    <iron:prefURL>'.$this->xmlEncode($attributeValues).'</iron:prefURL>'."\n";              
-            }            
-          break;
-          
-          // Any other attribute describing this record
-          default:
-            foreach($attributeValues as $value)
-            {             
-              if(isset($value["value"]))
-              {
-                // It is a literal value, or a literal value of some type (int, bool, etc)
-                if($value["value"] != "")
-                {
-                  $xml .= '    <'.$this->xmlEncode($this->prefixize($attributeURI)).''.(isset($value["lang"]) && $value["lang"] != "" ? ' xml:lang="'.$this->xmlEncode($value["lang"]).'"' : "").''.(isset($value["type"]) && $value["type"] != "" && $value["type"] != "rdfs:Literal" && $value["type"] != Namespaces::$rdfs."Literal" ? ' xml:datatype="'.$this->xmlEncode($this->prefixize($value["type"])).'"' : "").'>'.$this->xmlEncode($value["value"]).'</'.$this->xmlEncode($this->prefixize($attributeURI)).'>'."\n";              
-                }
-              }
-              elseif(isset($value["uri"]))
-              {
-                // It is a resource URI
-                if($value["uri"] != "")
-                {
-                  $xml .= '    <'.$this->xmlEncode($this->prefixize($attributeURI)).' rdf:resource="'.$this->xmlEncode($value["uri"]).'" />'."\n";              
-                  
-                  foreach($value["reify"] as $reifyAttributeUri => $reifiedValues)
-                  {
-                    foreach($reifiedValues as $reifiedValue)
-                    {
-                      if($reifiedValue != "")
-                      {
-                        $xmlRei .= "  <rdf:Statement rdf:about=\"". $this->xmlEncode("bnode:".md5($recordURI . $attributeURI . $value["uri"])) . "\">\n";
-                        $xmlRei .= "    <rdf:subject rdf:resource=\"" . $recordURI . "\" />\n";
-                        $xmlRei .= "    <rdf:predicate rdf:resource=\"" . $this->xmlEncode($attributeURI) . "\" />\n";
-                        $xmlRei .= "    <rdf:object rdf:resource=\"" . $this->xmlEncode($value["uri"]) . "\" />\n";
-                        $xmlRei .= "    <".$this->prefixize($reifyAttributeUri).">". $this->xmlEncode($reifiedValue) . "</".$this->prefixize($reifyAttributeUri).">\n";
-                        $xmlRei .= "  </rdf:Statement>  \n\n";
-                      }
-                    }
-                  }                  
-                }
-              }
-            }            
-          break;          
+          $firstType = $record["type"][0];
         }
-      }
+        
+        $xml .= '  <'.$this->xmlEncode($this->prefixize($firstType)).' rdf:about="'.$this->xmlEncode($recordURI).'">'."\n";
+        
+        foreach($record as $attributeURI => $attributeValues)
+        {        
+          switch($attributeURI)
+          {
+            case "type":
+              foreach($attributeValues as $key => $type)
+              {
+                if($key > 0 && $type != "")
+                {      
+                  $xml .= '    <rdf:type rdf:resource="'.$this->xmlEncode($type).'" />'."\n";
+                }              
+              }
+            break;
+            case "prefLabel":
+              if($attributeValues != "")
+              {
+                $xml .= '    <iron:prefLabel>'.$this->xmlEncode($attributeValues).'</iron:prefLabel>'."\n";              
+              }
+            break;
+            case "altLabel":     
+              foreach($attributeValues as $altLabel)
+              {
+                if($altLabel != "")
+                {
+                  $xml .= '    <iron:altLabel>'.$this->xmlEncode($altLabel).'</iron:altLabel>'."\n";              
+                }
+              }          
+            break;
+            case "description":   
+              if($attributeValues != "")
+              {
+                $xml .= '    <iron:description>'.$this->xmlEncode($attributeValues).'</iron:description>'."\n";              
+              }
+            break;
+            case "prefURL":
+              if($attributeValues != "")
+              {
+                $xml .= '    <iron:prefURL>'.$this->xmlEncode($attributeValues).'</iron:prefURL>'."\n";              
+              }            
+            break;
             
-      $xml .= '  </'.$this->xmlEncode($this->prefixize($firstType)).'>'."\n";
-      $xml .= $xmlRei;
+            // Any other attribute describing this record
+            default:
+              foreach($attributeValues as $value)
+              {             
+                if(isset($value["value"]))
+                {
+                  // It is a literal value, or a literal value of some type (int, bool, etc)
+                  if($value["value"] != "")
+                  {
+                    $xml .= '    <'.$this->xmlEncode($this->prefixize($attributeURI)).''.(isset($value["lang"]) && $value["lang"] != "" ? ' xml:lang="'.$this->xmlEncode($value["lang"]).'"' : "").''.(isset($value["type"]) && $value["type"] != "" && $value["type"] != "rdfs:Literal" && $value["type"] != Namespaces::$rdfs."Literal" ? ' xml:datatype="'.$this->xmlEncode($this->prefixize($value["type"])).'"' : "").'>'.$this->xmlEncode($value["value"]).'</'.$this->xmlEncode($this->prefixize($attributeURI)).'>'."\n";              
+                  }
+                }
+                elseif(isset($value["uri"]))
+                {
+                  // It is a resource URI
+                  if($value["uri"] != "")
+                  {
+                    $xml .= '    <'.$this->xmlEncode($this->prefixize($attributeURI)).' rdf:resource="'.$this->xmlEncode($value["uri"]).'" />'."\n";              
+                    
+                    foreach($value["reify"] as $reifyAttributeUri => $reifiedValues)
+                    {
+                      foreach($reifiedValues as $reifiedValue)
+                      {
+                        if($reifiedValue != "")
+                        {
+                          $xmlRei .= "  <rdf:Statement rdf:about=\"". $this->xmlEncode("bnode:".md5($recordURI . $attributeURI . $value["uri"])) . "\">\n";
+                          $xmlRei .= "    <rdf:subject rdf:resource=\"" . $recordURI . "\" />\n";
+                          $xmlRei .= "    <rdf:predicate rdf:resource=\"" . $this->xmlEncode($attributeURI) . "\" />\n";
+                          $xmlRei .= "    <rdf:object rdf:resource=\"" . $this->xmlEncode($value["uri"]) . "\" />\n";
+                          $xmlRei .= "    <".$this->prefixize($reifyAttributeUri).">". $this->xmlEncode($reifiedValue) . "</".$this->prefixize($reifyAttributeUri).">\n";
+                          $xmlRei .= "  </rdf:Statement>  \n\n";
+                        }
+                      }
+                    }                  
+                  }
+                }
+              }            
+            break;          
+          }
+        }
+              
+        $xml .= '  </'.$this->xmlEncode($this->prefixize($firstType)).'>'."\n";
+        $xml .= $xmlRei;
+      }
     }
     
 
@@ -853,126 +869,129 @@ class Resultset
   {   
     $json = '';
     
-    foreach($this->resultset as $recordURI => $record)
+    foreach($this->resultset as $datasetURI => $records)
     {
-      $jsonRei = '';
-      
-      // Determine the first (main) type of the record
-      $firstType = "http://www.w3.org/2002/07/owl#Thing";
-      
-      if(isset($record["type"][0]))
+      foreach($records as $recordURI => $record)
       {
-        $firstType = $record["type"][0];
-      }
-      
-      $json .= '<'.$recordURI.'> a '.$this->prefixize($firstType).' ;'."\n";
-      
-      $jsonPaddingSize = "";
-      
-      for($i = 0; $i < strlen('<'.$recordURI.'> '); $i++)
-      {
-        $jsonPaddingSize .= " ";
-      }
-      
-      foreach($record as $attributeURI => $attributeValues)
-      {        
-        switch($attributeURI)
+        $jsonRei = '';
+        
+        // Determine the first (main) type of the record
+        $firstType = "http://www.w3.org/2002/07/owl#Thing";
+        
+        if(isset($record["type"][0]))
         {
-          case "type":
-            foreach($attributeValues as $key => $type)
-            {
-              if($key > 0 && $type != "")
-              {      
-                $json .= $jsonPaddingSize.'a'.' '.$this->prefixize($type)." ;\n";
-              }              
-            }
-          break;
-          case "prefLabel":
-            if($attributeValues != "")
-            {
-              $json .= $jsonPaddingSize.'iron:prefLabel """'.$this->jsonEncode($attributeValues).'"""'." ;\n";              
-            }
-          break;
-          case "altLabel":     
-            foreach($attributeValues as $altLabel)
-            {
-              if($altLabel != "")
-              {
-                $json .= $jsonPaddingSize.'iron:prefLabel """'.$this->jsonEncode($altLabel).'"""'." ;\n";              
-              }
-            }          
-          break;
-          case "description":   
-            if($attributeValues != "")
-            {
-              $json .= $jsonPaddingSize.'iron:description """'.$this->jsonEncode($attributeValues).'"""'." ;\n";              
-            }
-          break;
-          case "prefURL":
-            if($attributeValues != "")
-            {
-              $json .= $jsonPaddingSize.'iron:prefURL """'.$this->jsonEncode($attributeValues).'"""'." ;\n";              
-            }            
-          break;
-          
-          // Any other attribute describing this record
-          default:
-            foreach($attributeValues as $value)
-            {             
-              if(isset($value["value"]))
-              {
-                // It is a literal value, or a literal value of some type (int, bool, etc)
-                if($value["value"] != "")
-                {
-                  if($value["type"] != "" && $value["type"] != "rdfs:Literal" && $value["type"] != Namespaces::$rdfs."Literal")
-                  {
-                    $json .= $jsonPaddingSize.$this->prefixize($attributeURI).' """'.$this->jsonEncode($value["value"]).'"""^^'.$this->prefixize($value["type"])." ;\n";                
-                  }
-                  elseif($value["lang"] != "")
-                  {
-                    $json .= $jsonPaddingSize.$this->prefixize($attributeURI).' """'.$this->jsonEncode($value["value"]).'"""@'.$value["lang"]." ;\n";                
-                  }
-                  else
-                  {
-                    $json .= $jsonPaddingSize.$this->prefixize($attributeURI).' """'.$this->jsonEncode($value["value"]).'"""'." ;\n";                
-                  }
-                }
-              }
-              elseif(isset($value["uri"]))
-              {
-                // It is a resource URI
-                if($value["uri"] != "")
-                {
-                  $json .= $jsonPaddingSize.$this->prefixize($attributeURI).' <'.$this->jsonEncode($value["uri"]).'>'." ;\n";                
-                  
-                  foreach($value["reify"] as $reifyAttributeUri => $reifiedValues)
-                  {
-                    foreach($reifiedValues as $reifiedValue)
-                    {
-                      if($reifiedValue != "")
-                      {
-                        $jsonRei .= "_:" . md5($recordURI . $attributeURI . $value["uri"]). " a rdf:Statement ;\n";
-                        $jsonRei .= "    rdf:subject <" . $recordURI . "> ;\n";
-                        $jsonRei .= "    rdf:predicate <" . $attributeURI . "> ;\n";
-                        $jsonRei .= "    rdf:object <" . $value["uri"] . "> ;\n";
-                        $jsonRei .= "    " . $this->prefixize($reifyAttributeUri) . " \"\"\"" . $this->jsonEncode($reifiedValue). "\"\"\" .\n\n";
-                      }
-                    }
-                  }                  
-                }
-              }
-            }            
-          break;          
+          $firstType = $record["type"][0];
         }
-      }
-      
-      if(substr($json, strlen($json) - 2) == ";\n")
-      {
-        // Set the proper terminason for the N3 record.
-        $json = substr($json, 0, strlen($json) - 2).".\n\n";
-      }
+        
+        $json .= '<'.$recordURI.'> a '.$this->prefixize($firstType).' ;'."\n";
+        
+        $jsonPaddingSize = "";
+        
+        for($i = 0; $i < strlen('<'.$recordURI.'> '); $i++)
+        {
+          $jsonPaddingSize .= " ";
+        }
+        
+        foreach($record as $attributeURI => $attributeValues)
+        {        
+          switch($attributeURI)
+          {
+            case "type":
+              foreach($attributeValues as $key => $type)
+              {
+                if($key > 0 && $type != "")
+                {      
+                  $json .= $jsonPaddingSize.'a'.' '.$this->prefixize($type)." ;\n";
+                }              
+              }
+            break;
+            case "prefLabel":
+              if($attributeValues != "")
+              {
+                $json .= $jsonPaddingSize.'iron:prefLabel """'.$this->jsonEncode($attributeValues).'"""'." ;\n";              
+              }
+            break;
+            case "altLabel":     
+              foreach($attributeValues as $altLabel)
+              {
+                if($altLabel != "")
+                {
+                  $json .= $jsonPaddingSize.'iron:prefLabel """'.$this->jsonEncode($altLabel).'"""'." ;\n";              
+                }
+              }          
+            break;
+            case "description":   
+              if($attributeValues != "")
+              {
+                $json .= $jsonPaddingSize.'iron:description """'.$this->jsonEncode($attributeValues).'"""'." ;\n";              
+              }
+            break;
+            case "prefURL":
+              if($attributeValues != "")
+              {
+                $json .= $jsonPaddingSize.'iron:prefURL """'.$this->jsonEncode($attributeValues).'"""'." ;\n";              
+              }            
+            break;
             
-      $json .= $jsonRei;
+            // Any other attribute describing this record
+            default:
+              foreach($attributeValues as $value)
+              {             
+                if(isset($value["value"]))
+                {
+                  // It is a literal value, or a literal value of some type (int, bool, etc)
+                  if($value["value"] != "")
+                  {
+                    if($value["type"] != "" && $value["type"] != "rdfs:Literal" && $value["type"] != Namespaces::$rdfs."Literal")
+                    {
+                      $json .= $jsonPaddingSize.$this->prefixize($attributeURI).' """'.$this->jsonEncode($value["value"]).'"""^^'.$this->prefixize($value["type"])." ;\n";                
+                    }
+                    elseif($value["lang"] != "")
+                    {
+                      $json .= $jsonPaddingSize.$this->prefixize($attributeURI).' """'.$this->jsonEncode($value["value"]).'"""@'.$value["lang"]." ;\n";                
+                    }
+                    else
+                    {
+                      $json .= $jsonPaddingSize.$this->prefixize($attributeURI).' """'.$this->jsonEncode($value["value"]).'"""'." ;\n";                
+                    }
+                  }
+                }
+                elseif(isset($value["uri"]))
+                {
+                  // It is a resource URI
+                  if($value["uri"] != "")
+                  {
+                    $json .= $jsonPaddingSize.$this->prefixize($attributeURI).' <'.$this->jsonEncode($value["uri"]).'>'." ;\n";                
+                    
+                    foreach($value["reify"] as $reifyAttributeUri => $reifiedValues)
+                    {
+                      foreach($reifiedValues as $reifiedValue)
+                      {
+                        if($reifiedValue != "")
+                        {
+                          $jsonRei .= "_:" . md5($recordURI . $attributeURI . $value["uri"]). " a rdf:Statement ;\n";
+                          $jsonRei .= "    rdf:subject <" . $recordURI . "> ;\n";
+                          $jsonRei .= "    rdf:predicate <" . $attributeURI . "> ;\n";
+                          $jsonRei .= "    rdf:object <" . $value["uri"] . "> ;\n";
+                          $jsonRei .= "    " . $this->prefixize($reifyAttributeUri) . " \"\"\"" . $this->jsonEncode($reifiedValue). "\"\"\" .\n\n";
+                        }
+                      }
+                    }                  
+                  }
+                }
+              }            
+            break;          
+          }
+        }
+        
+        if(substr($json, strlen($json) - 2) == ";\n")
+        {
+          // Set the proper terminason for the N3 record.
+          $json = substr($json, 0, strlen($json) - 2).".\n\n";
+        }
+              
+        $json .= $jsonRei;
+      }
     }
     
 

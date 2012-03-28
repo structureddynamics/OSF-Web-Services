@@ -1031,7 +1031,7 @@ class CrudRead extends WebService
         }
       }
       
-      $this->rset->setResultset($subjects);
+      $this->rset->setResultset(Array("unspecified" => $subjects));
     }
   }
 }

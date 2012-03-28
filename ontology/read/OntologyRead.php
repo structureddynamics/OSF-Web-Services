@@ -974,14 +974,14 @@ class OntologyRead extends WebService
                 switch($predicate)
                 {
                   case Namespaces::$rdfs."subClassOf":
-                    $this->manageIronPrefixes($value["value"], $prefixes);
+                    $this->manageIronPrefixes($value["uri"], $prefixes);
                     
-                    $schema .= "<subTypeOf>".$this->xmlEncode($this->ironPrefixize($value["value"], $prefixes))."</subTypeOf>";
+                    $schema .= "<subTypeOf>".$this->xmlEncode($this->ironPrefixize($value["uri"], $prefixes))."</subTypeOf>";
                   break;
                   
                   case Namespaces::$sco."displayControl":
                     
-                    if(strtolower($value["type"]) == "xsd:anyURI")
+                    if(isset($value["uri"]))
                     {
                       $displayControl = substr($value["uri"], strripos($value["uri"], "#") + 1);
                     }
@@ -996,7 +996,7 @@ class OntologyRead extends WebService
                   
                   case Namespaces::$sco."ignoredBy":
                     
-                    if(strtolower($value["type"]) == "xsd:anyURI")
+                    if(isset($value["uri"]))
                     {
                       $ignoredBy = substr($value["uri"], strripos($value["uri"], "#") + 1);
                     }
@@ -1017,9 +1017,9 @@ class OntologyRead extends WebService
                   break;
                   
                   case Namespaces::$sco."relationBrowserNodeType":
-                    $this->manageIronPrefixes($value["value"], $prefixes);
+                    $this->manageIronPrefixes($value["uri"], $prefixes);
                     
-                    $schema .= "<relationBrowserNodeType>".$this->xmlEncode($this->ironPrefixize($value["value"], $prefixes))."</relationBrowserNodeType>";
+                    $schema .= "<relationBrowserNodeType>".$this->xmlEncode($this->ironPrefixize($value["uri"], $prefixes))."</relationBrowserNodeType>";
                   break;
                 }              
               }
@@ -1042,8 +1042,6 @@ class OntologyRead extends WebService
             $schema .= "<description>".$this->xmlEncode($this->getDescription($subject))."</description>";
             $schema .= "<prefLabel>".$this->xmlEncode($this->getLabel($uri, $subject))."</prefLabel>";
             
-            $schema .= "<allowedValue><primitive>String</primitive></allowedValue>";
-            
             foreach($subject as $predicate => $values)
             {
               foreach($values as $value)
@@ -1051,14 +1049,14 @@ class OntologyRead extends WebService
                 switch($predicate)
                 {
                   case Namespaces::$rdfs."domain":
-                    $this->manageIronPrefixes($value["value"], $prefixes);
+                    $this->manageIronPrefixes($value["uri"], $prefixes);
                     
-                    $schema .= "<allowedType>".$this->xmlEncode($this->ironPrefixize($value["value"], $prefixes))."</allowedType>";
+                    $schema .= "<allowedType>".$this->xmlEncode($this->ironPrefixize($value["uri"], $prefixes))."</allowedType>";
                   break;
                   
                   case Namespaces::$sco."displayControl":
                   
-                    if(strtolower($value["type"]) == "xsd:anyURI")
+                    if(isset($value["uri"]))
                     {
                       $displayControl = substr($value["uri"], strripos($value["uri"], "#") + 1);
                     }
@@ -1072,7 +1070,7 @@ class OntologyRead extends WebService
 
                   case Namespaces::$sco."ignoredBy":
                   
-                    if(strtolower($value["type"]) == "xsd:anyURI")
+                    if(isset($value["uri"]))
                     {
                       $ignoredBy = substr($value["uri"], strripos($value["uri"], "#") + 1);
                     }
@@ -1085,15 +1083,15 @@ class OntologyRead extends WebService
                   break;
 
                   case Namespaces::$sco."comparableWith":
-                    $this->manageIronPrefixes($value["value"], $prefixes);
+                    $this->manageIronPrefixes($value["uri"], $prefixes);
                     
-                    $schema .= "<comparableWith>".$this->xmlEncode($this->ironPrefixize($value["value"], $prefixes))."</comparableWith>";
+                    $schema .= "<comparableWith>".$this->xmlEncode($this->ironPrefixize($value["uri"], $prefixes))."</comparableWith>";
                   break;
 
                   case Namespaces::$sco."unitType":
-                    $this->manageIronPrefixes($value["value"], $prefixes);
+                    $this->manageIronPrefixes($value["uri"], $prefixes);
                     
-                    $schema .= "<unitType>".$this->xmlEncode($this->ironPrefixize($value["value"], $prefixes))."</unitType>";
+                    $schema .= "<unitType>".$this->xmlEncode($this->ironPrefixize($value["uri"], $prefixes))."</unitType>";
                   break;
                   
                   case Namespaces::$sco."shortLabel":
@@ -1105,10 +1103,14 @@ class OntologyRead extends WebService
                   break;  
                   
                   case Namespaces::$rdfs."subPropertyOf":
-                    $this->manageIronPrefixes($value["value"], $prefixes);
+                    $this->manageIronPrefixes($value["uri"], $prefixes);
                     
-                    $schema .= "<subPropertyOf>".$this->xmlEncode($this->ironPrefixize($value["value"], $prefixes))."</subPropertyOf>";
+                    $schema .= "<subPropertyOf>".$this->xmlEncode($this->ironPrefixize($value["uri"], $prefixes))."</subPropertyOf>";
                   break;
+                  
+                  case Namespaces::$iron."allowedValue":
+                    $schema .= "<allowedValue><primitive>".$this->xmlEncode($value["value"])."</primitive></allowedValue>";
+                  break;                  
                 }
               }
             }
@@ -1134,20 +1136,20 @@ class OntologyRead extends WebService
                 switch($predicate)
                 {
                   case Namespaces::$rdfs."domain":
-                    $this->manageIronPrefixes($value["value"], $prefixes);
+                    $this->manageIronPrefixes($value["uri"], $prefixes);
                     
-                    $schema .= "<allowedType>".$this->xmlEncode($this->ironPrefixize($value["value"], $prefixes))."</allowedType>";
+                    $schema .= "<allowedType>".$this->xmlEncode($this->ironPrefixize($value["uri"], $prefixes))."</allowedType>";
                   break;
                   
                   case Namespaces::$rdfs."range":
-                    $this->manageIronPrefixes($value["value"], $prefixes);
+                    $this->manageIronPrefixes($value["uri"], $prefixes);
                     
-                    $schema .= "<allowedValue><type>".$this->xmlEncode($this->ironPrefixize($value["value"], $prefixes))."</type></allowedValue>";
+                    $schema .= "<allowedValue><type>".$this->xmlEncode($this->ironPrefixize($value["uri"], $prefixes))."</type></allowedValue>";
                   break;
                   
                   case Namespaces::$sco."displayControl":
                   
-                    if(strtolower($value["type"]) == "xsd:anyURI")
+                    if(isset($value["uri"]))
                     {
                       $displayControl = substr($value["uri"], strripos($value["uri"], "#") + 1);
                     }
@@ -1161,7 +1163,7 @@ class OntologyRead extends WebService
                   
                   case Namespaces::$sco."ignoredBy":
                   
-                    if(strtolower($value["type"]) == "xsd:anyURI")
+                    if(isset($value["uri"]))
                     {
                       $ignoredBy = substr($value["uri"], strripos($value["uri"], "#") + 1);
                     }
@@ -1174,9 +1176,9 @@ class OntologyRead extends WebService
                   break;
 
                   case Namespaces::$sco."comparableWith":
-                    $this->manageIronPrefixes($value["value"], $prefixes);
+                    $this->manageIronPrefixes($value["uri"], $prefixes);
                     
-                    $schema .= "<comparableWith>".$this->xmlEncode($this->ironPrefixize($value["value"], $prefixes))."</comparableWith>";
+                    $schema .= "<comparableWith>".$this->xmlEncode($this->ironPrefixize($value["uri"], $prefixes))."</comparableWith>";
                   break;
                   
                   case Namespaces::$sco."shortLabel":
@@ -1184,14 +1186,18 @@ class OntologyRead extends WebService
                   break;
                   
                   case Namespaces::$sco."unitType":
-                    $this->manageIronPrefixes($value["value"], $prefixes);
+                    $this->manageIronPrefixes($value["uri"], $prefixes);
                     
-                    $schema .= "<unitType>".$this->xmlEncode($this->ironPrefixize($value["value"], $prefixes))."</unitType>";
+                    $schema .= "<unitType>".$this->xmlEncode($this->ironPrefixize($value["uri"], $prefixes))."</unitType>";
                   break;                  
                   
                   case Namespaces::$sco."orderingValue":
                     $schema .= "<orderingValue>".$this->xmlEncode($value["value"])."</orderingValue>";
-                  break;                  
+                  break;          
+                  
+                  case Namespaces::$iron."allowedValue":
+                    $schema .= "<allowedValue><primitive>".$this->xmlEncode($value["value"])."</primitive></allowedValue>";
+                  break;    
                 }
               }
             }
@@ -1214,7 +1220,7 @@ class OntologyRead extends WebService
           
           $subject = new Subject($this->ontologyUri);
           $subject->setType("owl:Ontology");
-          $subject->setDataAttribute(Namespaces::$wsf."serializedIronXMLSchema", $schema);
+          $subject->setDataAttribute(Namespaces::$wsf."serializedIronXMLSchema", str_replace(array ("\\", "&", "<", ">"), array ("%5C", "&amp;", "&lt;", "&gt;"), $schema));
           $this->rset->addSubject($subject);          
           
 /*
@@ -1302,14 +1308,14 @@ class OntologyRead extends WebService
                 switch($predicate)
                 {
                   case Namespaces::$rdfs."subClassOf":
-                    $this->manageIronPrefixes($value["value"], $prefixes);
+                    $this->manageIronPrefixes($value["uri"], $prefixes);
                     
-                    $schema .= '"'.parent::jsonEncode($this->ironPrefixize($value["value"], $prefixes)).'",';
+                    $schema .= '"'.parent::jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
                   break;
                   
                   case Namespaces::$sco."displayControl":
                     
-                    if(strtolower($value["type"]) == "xsd:anyURI")
+                    if(isset($value["uri"]))
                     {
                       $displayControl = substr($value["uri"], strripos($value["uri"], "#") + 1);
                     }
@@ -1323,7 +1329,7 @@ class OntologyRead extends WebService
                   
                   case Namespaces::$sco."ignoredBy":
                     
-                    if(strtolower($value["type"]) == "xsd:anyURI")
+                    if(isset($value["uri"]))
                     {
                       $ignoredBy = substr($value["uri"], strripos($value["uri"], "#") + 1);
                     }
@@ -1344,9 +1350,9 @@ class OntologyRead extends WebService
                   break;
                   
                   case Namespaces::$sco."relationBrowserNodeType":
-                    $this->manageIronPrefixes($value["value"], $prefixes);
+                    $this->manageIronPrefixes($value["uri"], $prefixes);
                     
-                    $schema .= '"'.parent::jsonEncode($this->ironPrefixize($value["value"], $prefixes)).'",';
+                    $schema .= '"'.parent::jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
                   break;
                 }              
               }
@@ -1387,12 +1393,18 @@ class OntologyRead extends WebService
             $schema .= '"description": "'.parent::jsonEncode($this->getDescription($subject)).'",';
             $schema .= '"prefLabel": "'.parent::jsonEncode($this->getLabel($uri, $subject)).'",';
             
-            $schema .= '"allowedValue": {"primitive": "String"},';
-            
             foreach($subject as $predicate => $values)
-            {
+            {             
               switch($predicate)
               {
+                case Namespaces::$iron."allowedValue":
+                  $schema .= '"allowedValue": {"primitive": "'.parent::jsonEncode($value["value"]).'"},';
+                break;                
+                
+                case Namespaces::$rdfs."subPropertyOf":
+                  $schema .= '"subPropertyOf": [';
+                break;                
+                
                 case Namespaces::$rdfs."domain":
                   $schema .= '"allowedType": [';
                 break;
@@ -1431,13 +1443,13 @@ class OntologyRead extends WebService
                 switch($predicate)
                 {
                   case Namespaces::$rdfs."domain":
-                    $this->manageIronPrefixes($value["value"], $prefixes);
+                    $this->manageIronPrefixes($value["uri"], $prefixes);
                     
-                    $schema .= '"'.parent::jsonEncode($this->ironPrefixize($value["value"], $prefixes)).'",';
+                    $schema .= '"'.parent::jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
                   break;
                   
                   case Namespaces::$sco."displayControl":
-                    if(strtolower($value["type"]) == "xsd:anyURI")
+                    if(isset($value["uri"]))
                     {
                       $displayControl = substr($value["uri"], strripos($value["uri"], "#") + 1);
                     }
@@ -1450,7 +1462,7 @@ class OntologyRead extends WebService
                   break;
                   
                   case Namespaces::$sco."ignoredBy":
-                    if(strtolower($value["type"]) == "xsd:anyURI")
+                    if(isset($value["uri"]))
                     {
                       $ignoredBy = substr($value["uri"], strripos($value["uri"], "#") + 1);
                     }
@@ -1463,15 +1475,15 @@ class OntologyRead extends WebService
                   break;
 
                   case Namespaces::$sco."comparableWith":
-                    $this->manageIronPrefixes($value["value"], $prefixes);
+                    $this->manageIronPrefixes($value["uri"], $prefixes);
                     
-                    $schema .= '"'.parent::jsonEncode($this->ironPrefixize($value["value"], $prefixes)).'",';
+                    $schema .= '"'.parent::jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
                   break;
 
                   case Namespaces::$sco."unitType":
-                    $this->manageIronPrefixes($value["value"], $prefixes);
+                    $this->manageIronPrefixes($value["uri"], $prefixes);
                     
-                    $schema .= '"'.parent::jsonEncode($this->ironPrefixize($value["value"], $prefixes)).'",';
+                    $schema .= '"'.parent::jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
                   break;
                   
                   case Namespaces::$sco."shortLabel":
@@ -1483,9 +1495,9 @@ class OntologyRead extends WebService
                   break;  
                   
                   case Namespaces::$rdfs."subPropertyOf":
-                    $this->manageIronPrefixes($value["value"], $prefixes);
+                    $this->manageIronPrefixes($value["uri"], $prefixes);
                     
-                    $schema .= '"'.parent::jsonEncode($this->ironPrefixize($value["value"], $prefixes)).'",';
+                    $schema .= '"'.parent::jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
                   break;
                 }
               }
@@ -1567,20 +1579,24 @@ class OntologyRead extends WebService
               {
                 switch($predicate)
                 {
+                  case Namespaces::$iron."allowedValue":
+                    $schema .= '{"primitive": "'.parent::jsonEncode($value["value"]).'"},';
+                  break;                
+                  
                   case Namespaces::$rdfs."domain":
-                    $this->manageIronPrefixes($value["value"], $prefixes);
+                    $this->manageIronPrefixes($value["uri"], $prefixes);
                     
-                    $schema .= '"'.parent::jsonEncode($this->ironPrefixize($value["value"], $prefixes)).'",';
+                    $schema .= '"'.parent::jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
                   break;
                   
                   case Namespaces::$rdfs."range":
-                    $this->manageIronPrefixes($value["value"], $prefixes);
+                    $this->manageIronPrefixes($value["uri"], $prefixes);
                     
-                    $schema .= '{ "type": "'.parent::jsonEncode($this->ironPrefixize($value["value"], $prefixes)).'"},';
+                    $schema .= '{ "type": "'.parent::jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'"},';
                   break;
                   
                   case Namespaces::$sco."displayControl":
-                    if(strtolower($value["type"]) == "xsd:anyURI")
+                    if(isset($value["uri"]))
                     {
                       $displayControl = substr($value["uri"], strripos($value["uri"], "#") + 1);
                     }
@@ -1593,7 +1609,7 @@ class OntologyRead extends WebService
                   break;
                   
                   case Namespaces::$sco."ignoredBy":
-                    if(strtolower($value["type"]) == "xsd:anyURI")
+                    if(isset($value["uri"]))
                     {
                       $ignoredBy = substr($value["uri"], strripos($value["uri"], "#") + 1);
                     }
@@ -1606,9 +1622,9 @@ class OntologyRead extends WebService
                   break;
 
                   case Namespaces::$sco."comparableWith":
-                    $this->manageIronPrefixes($value["value"], $prefixes);
+                    $this->manageIronPrefixes($value["uri"], $prefixes);
                     
-                    $schema .= '"'.parent::jsonEncode($this->ironPrefixize($value["value"], $prefixes)).'",';
+                    $schema .= '"'.parent::jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
                   break;
                   
                   case Namespaces::$sco."shortLabel":
@@ -1616,9 +1632,9 @@ class OntologyRead extends WebService
                   break;
                   
                   case Namespaces::$sco."unitType":
-                    $this->manageIronPrefixes($value["value"], $prefixes);
+                    $this->manageIronPrefixes($value["uri"], $prefixes);
                     
-                    $schema .= '"'.parent::jsonEncode($this->ironPrefixize($value["value"], $prefixes)).'",';
+                    $schema .= '"'.parent::jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
                   break;                  
                   
                   case Namespaces::$sco."orderingValue":
@@ -1626,9 +1642,9 @@ class OntologyRead extends WebService
                   break;     
                                                                    
                   case Namespaces::$rdfs."subPropertyOf":
-                    $this->manageIronPrefixes($value["value"], $prefixes);
+                    $this->manageIronPrefixes($value["uri"], $prefixes);
                     
-                    $schema .= '"'.parent::jsonEncode($this->ironPrefixize($value["value"], $prefixes)).'",';
+                    $schema .= '"'.parent::jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
                   break;
                 }
               }
@@ -2190,7 +2206,7 @@ class OntologyRead extends WebService
       {
         foreach($description[Namespaces::$rdfs."domain"] as $domain)
         {
-          array_push($domainClasses, $ontology->getSubClassesUri($domain["value"], FALSE));
+          array_push($domainClasses, $ontology->getSubClassesUri($domain["uri"], FALSE));
         }
       }
       
@@ -2204,7 +2220,7 @@ class OntologyRead extends WebService
       {
         foreach($description[Namespaces::$rdfs."range"] as $range)
         {
-          array_push($rangeClasses, $ontology->getSubClassesUri($range["value"], FALSE));
+          array_push($rangeClasses, $ontology->getSubClassesUri($range["uri"], FALSE));
         }
       }
            

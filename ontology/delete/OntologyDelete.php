@@ -582,9 +582,12 @@ class OntologyDelete extends WebService
       $this->initiateOwlBridgeSession();
 
       $this->getOntologyReference();
-      
+
       // Delete the OWLAPI instance
-      $this->ontology->delete();
+      if($this->ontology)
+      {
+        $this->ontology->delete();
+      }
       
       // Remove the holdOntology tag before deleting the ontology
       $query = "delete data from <" . $this->wsf_graph . "datasets/>

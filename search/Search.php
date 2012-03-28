@@ -574,8 +574,8 @@ class Search extends WebService
         $objects = $xml->getObjects($predicates->item(0));
         $read = $xml->getContent($objects->item(0));
 
-        if(strtolower($read) == "true")
-        {
+        if(strtolower($read) == "true" && array_search($datasetUri, $accessibleDatasets) === FALSE)
+        {          
           array_push($accessibleDatasets, $datasetUri);
         }
       }

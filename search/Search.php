@@ -1283,8 +1283,6 @@ class Search extends WebService
         // get Dataset URI
         $resultDatasetURI = $xpath->query("arr[@name='dataset']/str", $result);
 
-        $datasetUri = "";
-
         if($resultDatasetURI->length > 0)
         {
           $subject->setObjectAttribute(Namespaces::$dcterms."isPartOf", $resultDatasetURI->item(0)->nodeValue);
@@ -1356,8 +1354,6 @@ class Search extends WebService
         
         // get possible locatedIn URI(s)
         $resultLocatedIn = $xpath->query("arr[@name='located_in']/str", $result);
-
-        $datasetUri = "";
 
         if($resultLocatedIn->length > 0)
         {
@@ -1472,7 +1468,7 @@ class Search extends WebService
           }
         }
         
-        $this->rset->addSubject($subject);
+        $this->rset->addSubject($subject, $resultDatasetURI->item(0)->nodeValue);
       }
     }
   }

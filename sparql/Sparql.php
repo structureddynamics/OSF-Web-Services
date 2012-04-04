@@ -704,8 +704,10 @@ class Sparql extends WebService
         return;
       }      
 
-      // Validate all graphs of the query. If one of the graph is not accessible to the user, we just return
-      // and error for this SPARQL query.
+      
+      // Validate all graphs of the query for the IP of the requester of this query. 
+      // If one of the graph is not accessible to the user, we just return
+      // an error for this SPARQL query.
       foreach($graphs as $graph)
       {
         if(substr($graph, strlen($graph) - 12, 12) == "reification/")
@@ -713,7 +715,7 @@ class Sparql extends WebService
           $graph = substr($graph, 0, strlen($graph) - 12);
         }
 
-        $ws_av = new AuthValidator($this->registered_ip, $graph, $this->uri);
+        $ws_av = new AuthValidator($this->requester_ip, $graph, $this->uri);
 
         $ws_av->pipeline_conneg("*/*", $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(),
           $this->conneg->getAcceptLanguage());
@@ -739,33 +741,36 @@ class Sparql extends WebService
         (the one that send the actual query) has access to the same datasets. Otherwise, it means that
         it tries to personificate that registered_ip user.
         
-        Validate all graphs of the query. If one of the graph is not accessible to the syste, we just return
+        Validate all graphs of the query. If one of the graph is not accessible to the system, we just return
         and error for this SPARQL query.  
       */
-      foreach($graphs as $graph)
+      if(registered_ip != requester_ip)
       {
-        if(substr($graph, strlen($graph) - 12, 12) == "reification/")
+        foreach($graphs as $graph)
         {
-          $graph = substr($graph, 0, strlen($graph) - 12);
-        }
+          if(substr($graph, strlen($graph) - 12, 12) == "reification/")
+          {
+            $graph = substr($graph, 0, strlen($graph) - 12);
+          }
 
-        $ws_av = new AuthValidator($this->requester_ip, $graph, $this->uri);
+          $ws_av = new AuthValidator($this->registered_ip, $graph, $this->uri);
 
-        $ws_av->pipeline_conneg("*/*", $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(),
-          $this->conneg->getAcceptLanguage());
+          $ws_av->pipeline_conneg("*/*", $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(),
+            $this->conneg->getAcceptLanguage());
 
-        $ws_av->process();
+          $ws_av->process();
 
-        if($ws_av->pipeline_getResponseHeaderStatus() != 200)
-        {
-          $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
-          $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
-          $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-          $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
-            $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
-            $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
+          if($ws_av->pipeline_getResponseHeaderStatus() != 200)
+          {
+            $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
+            $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
+            $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
+            $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
+              $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
+              $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
 
-          return;
+            return;
+          }
         }
       }
 

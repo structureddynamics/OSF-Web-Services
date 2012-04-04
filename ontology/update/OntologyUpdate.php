@@ -583,9 +583,9 @@ class OntologyUpdate extends WebService
       // and structWSF if the advancedIndexation is enabled.
       include_once($this->wsf_base_path."framework/arc2/ARC2.php");  
       include_once($this->wsf_base_path."framework/Namespaces.php");  
-       
+   
       $parser = ARC2::getRDFParser();
-      $parser->parse($this->ontologyUri, $document);
+      $parser->parse($this->ontology->getBaseUri(), $document);
       $rdfxmlSerializer = ARC2::getRDFXMLSerializer();
       
       $resourceIndex = $parser->getSimpleIndex(0);

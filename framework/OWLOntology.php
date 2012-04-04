@@ -2556,6 +2556,12 @@ class OWLOntology
       }
     }
     
+    // Add a rdfs:isDefinedBy triple to make sure the requester has a reference to the Ontology URI 
+    // This over-write anything that could be defined within the ontology.
+    $ontologyDescription[Namespaces::$rdfs."isDefinedBy"] = array(); 
+    
+    array_push($ontologyDescription[Namespaces::$rdfs."isDefinedBy"], array("uri" => $this->getBaseUri()));     
+    
     return($ontologyDescription);  
   }  
 

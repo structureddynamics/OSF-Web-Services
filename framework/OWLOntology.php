@@ -3988,6 +3988,20 @@ class OWLOntology
   {
     $this->useReasoner = FALSE;
   }
+  
+  public function getBaseUri()
+  {
+    $uri = (string)java_values($this->ontology->getOntologyID()->getDefaultDocumentIRI()->toString()); 
+    
+    if(substr($uri, (strlen($uri) - 1), 1) == "/")
+    {
+      return($uri);      
+    }
+    else
+    {
+      return($uri."#");
+    }    
+  }
 }  
 
 //@}

@@ -598,8 +598,14 @@ class OWLOntology
     
     if($this->useReasoner)
     {
-      $subClasses = $this->reasoner->getSubClasses($class, $direct); 
-      $subClasses = $subClasses->getFlattened();
+      try
+      {
+        $subClasses = $this->reasoner->getSubClasses($class, $direct); 
+        $subClasses = $subClasses->getFlattened();
+      }
+      catch(Exception $e)
+      {
+      }
     } 
     else
     {
@@ -802,8 +808,14 @@ class OWLOntology
 
     if($this->useReasoner)
     {
-      $subClasses = $this->reasoner->getSubClasses($class, $direct); 
-      $subClasses = $subClasses->getFlattened();
+      try
+      {
+        $subClasses = $this->reasoner->getSubClasses($class, $direct); 
+        $subClasses = $subClasses->getFlattened();
+      }
+      catch(Exception $e)
+      {
+      }
     } 
     else
     {
@@ -875,11 +887,14 @@ class OWLOntology
     $classDescription = array();
 
     foreach($disjointClasses as $disjointClass)
-    {
-      $disjointClassUri = (string)java_values($disjointClass->toStringID());
-      $classDescription[$disjointClassUri] = array();
-      
-      $classDescription[$disjointClassUri] = $this->_getClassDescription($disjointClass);
+    {                                                         
+      if(java_instanceof($range, java("uk.ac.manchester.cs.owl.owlapi.OWLClassImpl")))       
+      {      
+        $disjointClassUri = (string)java_values($disjointClass->toStringID());
+        $classDescription[$disjointClassUri] = array();
+        
+        $classDescription[$disjointClassUri] = $this->_getClassDescription($disjointClass);
+      }
     }
     
     return($classDescription);
@@ -922,10 +937,13 @@ class OWLOntology
 
     foreach($disjointClasses as $disjointClass)
     {
-      $disjointClassUri = (string)java_values($disjointClass->toStringID());
-      $classDescription[$disjointClassUri] = array();
-      
-      $classDescription[$disjointClassUri] = $this->_getClassDescription($disjointClass);
+      if(java_instanceof($disjointClass, java("uk.ac.manchester.cs.owl.owlapi.OWLClassImpl")))       
+      {      
+        $disjointClassUri = (string)java_values($disjointClass->toStringID());
+        $classDescription[$disjointClassUri] = array();
+        
+        $classDescription[$disjointClassUri] = $this->_getClassDescription($disjointClass);
+      }
     }
     
     return($classDescription);
@@ -2466,37 +2484,43 @@ class OWLOntology
     
     foreach($equivalentClasses as $equivalentClass)
     {
-      $ecUri = (string)java_values($equivalentClass->toStringID());
-            
-      if(!isset($classDescription[Namespaces::$owl."equivalentClass"]) ||
-         is_array($classDescription[Namespaces::$owl."equivalentClass"]) === FALSE)
-      {
-        $classDescription[Namespaces::$owl."equivalentClass"] = array(); 
+      if(java_instanceof($equivalentClass, java("uk.ac.manchester.cs.owl.owlapi.OWLClassImpl")))       
+      {      
+        $ecUri = (string)java_values($equivalentClass->toStringID());
+              
+        if(!isset($classDescription[Namespaces::$owl."equivalentClass"]) ||
+           is_array($classDescription[Namespaces::$owl."equivalentClass"]) === FALSE)
+        {
+          $classDescription[Namespaces::$owl."equivalentClass"] = array(); 
+        }
+        
+        array_push($classDescription[Namespaces::$owl."equivalentClass"], array("uri" => $ecUri,
+                                                                                "reify" => array(
+                                                                                 "wsf:objectLabel" => array($this->getPrefLabel($equivalentClass))
+                                                                                ))); 
       }
-      
-      array_push($classDescription[Namespaces::$owl."equivalentClass"], array("uri" => $ecUri,
-                                                                              "reify" => array(
-                                                                               "wsf:objectLabel" => array($this->getPrefLabel($equivalentClass))
-                                                                              ))); 
     }  
     
     // Get disjoint classes    
     $disjointClasses = $class->getDisjointClasses($this->ontology);
     
     foreach($disjointClasses as $disjointClass)
-    {
-      $dcUri = (string)java_values($disjointClass->toStringID());
-            
-      if(!isset($classDescription[Namespaces::$owl."disjointWith"]) ||
-         is_array($classDescription[Namespaces::$owl."disjointWith"]) === FALSE)
-      {
-        $classDescription[Namespaces::$owl."disjointWith"] = array(); 
+    {         
+      if(java_instanceof($disjointClass, java("uk.ac.manchester.cs.owl.owlapi.OWLClassImpl")))       
+      {                                         
+        $dcUri = (string)java_values($disjointClass->toStringID());
+              
+        if(!isset($classDescription[Namespaces::$owl."disjointWith"]) ||
+           is_array($classDescription[Namespaces::$owl."disjointWith"]) === FALSE)
+        {
+          $classDescription[Namespaces::$owl."disjointWith"] = array(); 
+        }
+        
+        array_push($classDescription[Namespaces::$owl."disjointWith"], array("uri" => $dcUri,
+                                                                             "reify" => array(
+                                                                              "wsf:objectLabel" => array($this->getPrefLabel($disjointClass))
+                                                                             ))); 
       }
-      
-      array_push($classDescription[Namespaces::$owl."disjointWith"], array("uri" => $dcUri,
-                                                                           "reify" => array(
-                                                                            "wsf:objectLabel" => array($this->getPrefLabel($disjointClass))
-                                                                           ))); 
     }  
     
     return($classDescription);  

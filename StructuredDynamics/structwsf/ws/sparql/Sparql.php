@@ -13,7 +13,6 @@ use \StructuredDynamics\structwsf\ws\framework\DBVirtuoso;
 use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
 use \StructuredDynamics\structwsf\ws\auth\validator\AuthValidator;
 use \StructuredDynamics\structwsf\ws\framework\Conneg;
-use \StructuredDynamics\structwsf\framework\Subject;
 use \StructuredDynamics\structwsf\framework\Namespaces;
 
 /** SPARQL Web Service. It sends SPARQL queries to datasets indexed in the structWSF instance.
@@ -48,7 +47,7 @@ class Sparql extends \StructuredDynamics\structwsf\ws\framework\WebService
   private $registered_ip = "";
 
   /** SPARQL query content resultset */
-  private $sparqlContent = "";
+  public $sparqlContent = "";
 
   /** Namespaces/Prefixes binding */
   private $namespaces =
@@ -56,12 +55,6 @@ class Sparql extends \StructuredDynamics\structwsf\ws\framework\WebService
       "http://www.w3.org/2000/01/rdf-schema#" => "rdfs", "http://purl.org/ontology/wsf#" => "wsf", 
       "http://purl.org/ontology/aggregate#" => "aggr");
       
-  /** Determine if this is a CONSTRUCT SPARQL query */
-  private $isConstructQuery = FALSE;
-  
-  /** Determine if this is a CONSTRUCT SPARQL query */
-  private $isDescribeQuery = FALSE;
-
   /** Supported MIME serializations by this web service */
   public static $supportedSerializations =
     array ("application/rdf+json", "text/rdf+n3", "application/json", "text/xml", "application/sparql-results+xml", 
@@ -125,9 +118,45 @@ class Sparql extends \StructuredDynamics\structwsf\ws\framework\WebService
                           "level": "Notice",
                           "name": "No instance records found",
                           "description": "No instance records found for this query"
-                        }  
+                        },
+                        "_302": {
+                          "id": "WS-SPARQL-302",
+                          "level": "Fatal",
+                          "name": "Requested source interface not existing",
+                          "description": "The source interface you requested is not existing for this web service endpoint."
+                        }    
                       }';
 
+  /**
+  * Implementation of the __get() magic method. We do implement it to create getter functions
+  * for all the protected and private variables of this class, and to all protected variables
+  * of the parent class.
+  * 
+  * This implementation is needed by the interfaces layer since we want the SourceInterface
+  * class to access the variables of the web service class for which it is used as a 
+  * source interface.
+  * 
+  * This means that all the privated and propected variables of these web service objects
+  * are available to users; but they won't be able to set values for them.
+  * 
+  * Also note that This method is about 4 times slower than having the varaible as public instead 
+  * of protected and private. However, these variables are only accessed about 10 to 200 times 
+  * per script call. This means that for accessing these undefined variable using the __get magic 
+  * method call, then it adds about 0.00022 seconds to the call or, about 0.22 milli-second 
+  * (one fifth of a millisecond) For the gain of keeping the variables protected and private, 
+  * we can spend this one fifth of a milli-second. This is a good compromize.  
+  * 
+  * @param mixed $name Name of the variable that is currently not defined for this object
+  */
+  public function __get($name)
+  {
+    // Check if the variable exists (so, if it is private or protected). If it is, then
+    // we return the value. Otherwise a fatal error will be returned by PHP.
+    if(isset($this->{$name}))
+    {
+      return($this->{$name});
+    }
+  }                      
 
   /** Constructor
         
@@ -137,12 +166,14 @@ class Sparql extends \StructuredDynamics\structwsf\ws\framework\WebService
       @param $offset Offset of the "sub-resultset" from the total resultset of the query
       @param $registered_ip Target IP address registered in the WSF
       @param $requester_ip IP address of the requester
+      @param $interface Name of the source interface to use for this web service query. Default value: 'default'                                 
 
       @return returns NULL
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($query, $dataset, $limit, $offset, $registered_ip, $requester_ip)
+  function __construct($query, $dataset, $limit, $offset, $registered_ip, $requester_ip,
+                       $interface='default')
   {
     parent::__construct();
 
@@ -153,6 +184,15 @@ class Sparql extends \StructuredDynamics\structwsf\ws\framework\WebService
     $this->offset = $offset;
     $this->dataset = $dataset;
     $this->requester_ip = $requester_ip;
+    
+    if(strtolower($interface) == "default")
+    {
+      $this->interface = "DefaultSourceInterface";
+    }
+    else
+    {
+      $this->interface = $interface;
+    }
 
     if($registered_ip == "")
     {
@@ -207,7 +247,7 @@ class Sparql extends \StructuredDynamics\structwsf\ws\framework\WebService
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  protected function validateQuery()
+  public function validateQuery()
   {
     // Validating the access of the dataset specified as input parameter if defined.
     if($this->dataset != "")
@@ -366,56 +406,6 @@ class Sparql extends \StructuredDynamics\structwsf\ws\framework\WebService
   */
   public function pipeline_getResponseHeaderStatusMsgExt() { return $this->conneg->getStatusMsgExt(); }
 
-  /** Get the namespace of a URI
-              
-      @param $uri Uri of the resource from which we want the namespace
-
-      @return returns the extracted namespace      
-      
-      @author Frederick Giasson, Structured Dynamics LLC.
-  */
-  private function getNamespace($uri)
-  {
-    $pos = strrpos($uri, "#");
-
-    if($pos !== FALSE)
-    {
-      return array (substr($uri, 0, $pos) . "#", substr($uri, $pos + 1, strlen($uri) - ($pos + 1)));
-    }
-    else
-    {
-      $pos = strrpos($uri, "/");
-
-      if($pos !== FALSE)
-      {
-        return array (substr($uri, 0, $pos) . "/", substr($uri, $pos + 1, strlen($uri) - ($pos + 1)));
-      }
-      else
-      {
-        $pos = strpos($uri, ":");
-
-        if($pos !== FALSE)
-        {
-          $nsUri = explode(":", $uri, 2);
-
-          foreach($this->namespaces as $uri2 => $prefix2)
-          {
-            $uri2 = urldecode($uri2);
-
-            if($prefix2 == $nsUri[0])
-            {
-              return (array ($uri2, $nsUri[1]));
-            }
-          }
-
-          return explode(":", $uri, 2);
-        }
-      }
-    }
-
-    return (FALSE);
-  }
-
   /** Serialize the web service answer.
 
       @return returns the serialized content
@@ -441,610 +431,29 @@ class Sparql extends \StructuredDynamics\structwsf\ws\framework\WebService
   */
   public function process()
   {           
-    // Make sure there was no conneg error prior to this process call
-    if($this->conneg->getStatus() == 200)
-    {
-      $ch = curl_init();
+    // Check if the interface called by the user is existing
+    $class = $this->sourceinterface_exists(rtrim($this->wsf_base_path, "/")."/sparql/interfaces/");
+    
+    if($class != "")
+    {    
+      $class = 'StructuredDynamics\structwsf\ws\sparql\interfaces\\'.$class;
       
-      // Normalize the query to remove the return carriers and line feeds
-      // This is performed to help matching the regular expressions patterns.
-      $this->query = str_replace(array("\r", "\n"), " ", $this->query);
+      $interface = new $class($this);
       
-      // remove the possible starting "sparql"
-      $this->query = preg_replace("/^[\s\t]*sparql[\s\t]*/Uim", "", $this->query);
-      
-      // Check if there is a prolog to this SPARQL query.
-      
-      // First check if there is a "base" declaration
-      
-      preg_match("/^[\s\t]*base[\s\t]*<.*>/Uim", $this->query, $matches, PREG_OFFSET_CAPTURE);
-      
-      $baseOffset = -1;
-      if(count($matches) > 0)
-      {
-        $baseOffset = $matches[0][1] + strlen($matches[0][0]);
-      }
-      
-      // Second check for all possible "prefix" clauses
-      preg_match_all("/[\s\t]*prefix[\s\t]*.*:.*<.*>/Uim", $this->query, $matches, PREG_OFFSET_CAPTURE);       
-
-      $lastPrefixOffset = -1;
-      
-      if(count($matches) > 0)
-      {
-        $lastPrefixOffset = $matches[0][count($matches[0]) - 1][1] + strlen($matches[0][count($matches[0]) - 1][0]);
-      }
-      
-      $prologEndOffset = -1;
-      
-      if($lastPrefixOffset > -1)
-      {
-        $prologEndOffset = $lastPrefixOffset;
-      }
-      elseif($baseOffset > -1)
-      {
-        $prologEndOffset = $baseOffset;
-      }
-
-      $noPrologQuery = $this->query;
-      if($prologEndOffset != -1)
-      {
-        $noPrologQuery = substr($this->query, $prologEndOffset);
-      }
-      
-      // Now extract prefixes references
-      $prefixes = array();
-      preg_match_all("/[\s\t]*prefix[\s\t]*(.*):(.*)<(.*)>/Uim", $this->query, $matches, PREG_OFFSET_CAPTURE);       
-      
-      if(count($matches[0]) > 0)
-      {
-        for($i = 0; $i < count($matches[1]); $i++)
-        {
-          $p = str_replace(array(" ", " "), "", $matches[1][$i][0]).":".str_replace(array(" ", " "), "", $matches[2][$i][0]);
-          $iri = $matches[3][$i][0];
-          
-          $prefixes[$p] = $iri;
-        }
-      }
-      
-      // Drop any SPARUL queries
-      // Reference: http://www.w3.org/Submission/SPARQL-Update/
-      if(preg_match_all("/^[\s\t]*modify[\s\t]*/Uim",$noPrologQuery , $matches) > 0 ||
-         preg_match_all("/^[\s\t]*delete[\s\t]*/Uim", $noPrologQuery, $matches) > 0 ||
-         preg_match_all("/^[\s\t]*insert[\s\t]*/Uim", $noPrologQuery, $matches) > 0 ||
-         preg_match_all("/^[\s\t]*load[\s\t]*/Uim", $noPrologQuery, $matches) > 0 ||
-         preg_match_all("/^[\s\t]*clear[\s\t]*/Uim", $noPrologQuery, $matches) > 0 ||
-         preg_match_all("/^[\s\t]*create[\s\t]*/Uim", $noPrologQuery, $matches) > 0 ||
-         preg_match_all("/^[\s\t]*drop[\s\t]*/Uim", $noPrologQuery, $matches) > 0)
-      {
-        $this->conneg->setStatus(400);
-        $this->conneg->setStatusMsg("Bad Request");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_203->name);
-        $this->conneg->setError($this->errorMessenger->_203->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_203->name, $this->errorMessenger->_203->description, "",
-          $this->errorMessenger->_203->level);
-
-        return;               
-      }
-
-      // Detect any CONSTRUCT clause
-      $this->isConstructQuery = FALSE;
-      if(preg_match_all("/^[\s\t]*construct[\s\t]*/Uim", $noPrologQuery, $matches) > 0)
-      {
-        $this->isConstructQuery = TRUE;
-        /*
-        $this->conneg->setStatus(400);
-        $this->conneg->setStatusMsg("Bad Request");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_204->name);
-        $this->conneg->setError($this->errorMessenger->_204->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_204->name, $this->errorMessenger->_204->description, "",
-          $this->errorMessenger->_204->level);
-
-        return;               
-        */
-      }
-      
-      // Drop any SPARQL query with a GRAPH clause which are not bound by one, or a series, of FROM NAMED clauses
-
-      if((preg_match_all("/[\s\t]*graph[\s\t]*</Uim", $noPrologQuery, $matches) > 0 ||
-          preg_match_all("/[\s\t]*graph[\s\t]*\?/Uim", $noPrologQuery, $matches) > 0 ||
-          preg_match_all("/[\s\t]*graph[\s\t]*\$/Uim", $noPrologQuery, $matches) > 0 ||
-          preg_match_all("/[\s\t]*graph[\s\t]*[a-zA-Z0-9\-_]*:/Uim", $noPrologQuery, $matches) > 0) &&
-         (preg_match_all("/([\s\t]*from[\s\t]*named[\s\t]*<(.*)>[\s\t]*)/Uim", $noPrologQuery, $matches) <= 0 &&
-          preg_match_all("/[\s\t]*(from[\s\t]*named)[\s\t]*([^\s\t<]*):(.*)[\s\t]*/Uim", $noPrologQuery, $matches) <= 0))
-      {
-        $this->conneg->setStatus(400);
-        $this->conneg->setStatusMsg("Bad Request");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_205->name);
-        $this->conneg->setError($this->errorMessenger->_205->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_205->name, $this->errorMessenger->_205->description, "",
-          $this->errorMessenger->_205->level);
-
-        return;               
-      }
-      
-      $graphs = array();   
-      
-      // Validate DESCRIBE query.
-      // The only thing we have to check here, is to get the graph IRI if the DESCRIBE is immediately using
-      // IRIRef clause. Possibilities are:
-      // "DESCRIBE <test>" -- IRI_REF
-      // "DESCRIBE a:" -- PrefixedName
-      
-      $this->isDescribeQuery = FALSE;
-      if(preg_match("/^[\s\t]*describe[\s\t]*/Uim", $noPrologQuery, $matches) > 0)
-      {
-        $this->isDescribeQuery = TRUE;
-      }    
-      
-      preg_match_all("/^[\s\t]*describe[\s\t]*<(.*)>/Uim", $noPrologQuery, $matches);  
-      
-      if(count($matches[0]) > 0)
-      {
-        array_push($graphs, $matches[1][0]);    
-      }
-      
-      preg_match_all("/^[\s\t]*describe[\s\t]*([^<\s\t]*):(.*)[\s\t]*/Uim", $noPrologQuery, $matches);
-      
-      if(count($matches[0]) > 0)
-      {
-        for($i = 0; $i < count($matches[0]); $i++)
-        {
-          $p = $matches[1][$i].":";
-          
-          if(isset($prefixes[$p]))
-          {
-            $d = $prefixes[$p].$matches[2][$i];
-            array_push($graphs, $d);
-          }
-        }
-      }       
-      
-      
-      // Get all the "from" and "from named" clauses so that we validate if the user has access to them.
-
-      // Check for the clauses that uses direct IRI_REF
-      preg_match_all("/([\s\t]*from[\s\t]*<(.*)>[\s\t]*)/Uim", $noPrologQuery, $matches);
-
-      foreach($matches[2] as $match)
-      {
-        array_push($graphs, $match);
-      }
-
-      preg_match_all("/([\s\t]*from[\s\t]*named[\s\t]*<(.*)>[\s\t]*)/Uim", $noPrologQuery, $matches);
-
-      foreach($matches[2] as $match)
-      {
-        array_push($graphs, $match);
-      }
-      
-      // Check for the clauses that uses PrefixedName
-      
-      preg_match_all("/[\s\t]*(from|from[\s\t]*named)[\s\t]*([^\s\t<]*):(.*)[\s\t]*/Uim", $noPrologQuery, $matches);
-
-      if(count($matches[0]) > 0)
-      {
-        for($i = 0; $i < count($matches[0]); $i++)
-        {
-          $p = $matches[2][$i].":";
-          
-          if(isset($prefixes[$p]))
-          {
-            $d = $prefixes[$p].$matches[3][$i];
-            array_push($graphs, $d);
-          }
-        }
-      }   
-      
-      
-      if($this->dataset == "" && count($graphs) <= 0)
-      {
-        $this->conneg->setStatus(400);
-        $this->conneg->setStatusMsg("Bad Request");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
-        $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, "",
-          $this->errorMessenger->_201->level);
-
-        return;
-      }      
-
-      
-      // Validate all graphs of the query for the IP of the requester of this query. 
-      // If one of the graph is not accessible to the user, we just return
-      // an error for this SPARQL query.
-      foreach($graphs as $graph)
-      {
-        if(substr($graph, strlen($graph) - 12, 12) == "reification/")
-        {
-          $graph = substr($graph, 0, strlen($graph) - 12);
-        }
-
-        $ws_av = new AuthValidator($this->requester_ip, $graph, $this->uri);
-
-        $ws_av->pipeline_conneg("*/*", $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(),
-          $this->conneg->getAcceptLanguage());
-
-        $ws_av->process();
-
-        if($ws_av->pipeline_getResponseHeaderStatus() != 200)
-        {
-          $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
-          $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
-          $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-          $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
-            $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
-            $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
-
-          return;
-        }
-      }        
-      
-      /*
-        if registered_ip != requester_ip, this means that the query is sent by a registered system
-        on the behalf of someone else. In this case, we want to make sure that that system 
-        (the one that send the actual query) has access to the same datasets. Otherwise, it means that
-        it tries to personificate that registered_ip user.
-        
-        Validate all graphs of the query. If one of the graph is not accessible to the system, we just return
-        and error for this SPARQL query.  
-      */
-      if(registered_ip != requester_ip)
-      {
-        foreach($graphs as $graph)
-        {
-          if(substr($graph, strlen($graph) - 12, 12) == "reification/")
-          {
-            $graph = substr($graph, 0, strlen($graph) - 12);
-          }
-
-          $ws_av = new AuthValidator($this->registered_ip, $graph, $this->uri);
-
-          $ws_av->pipeline_conneg("*/*", $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(),
-            $this->conneg->getAcceptLanguage());
-
-          $ws_av->process();
-
-          if($ws_av->pipeline_getResponseHeaderStatus() != 200)
-          {
-            $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
-            $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
-            $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-            $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
-              $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
-              $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
-
-            return;
-          }
-        }
-      }
-
-      // Determine the query format
-      $queryFormat = "";
-
-      if($this->conneg->getMime() == "application/sparql-results+json" || 
-         $this->conneg->getMime() == "application/sparql-results+xml" || 
-         $this->conneg->getMime() == "text/html" ||
-         $this->isDescribeQuery === TRUE ||
-         $this->isConstructQuery === TRUE)
-      {
-        $queryFormat = $this->conneg->getMime();
-      }
-      elseif($this->conneg->getMime() == "text/xml" || 
-             $this->conneg->getMime() == "application/json" || 
-             $this->conneg->getMime() == "application/rdf+xml" || 
-             $this->conneg->getMime() == "application/rdf+n3" ||
-             $this->conneg->getMime() == "application/iron+json" ||
-             $this->conneg->getMime() == "application/iron+csv")
-      {
-        $queryFormat = "application/sparql-results+xml";
-      }      
-      
-      // Add a limit to the query
-
-      // Disable limits and offset for now until we figure out what to do (not limit on triples, but resources)
-      //      $this->query .= " limit ".$this->limit." offset ".$this->offset;
-
-      curl_setopt($ch, CURLOPT_URL,
-        $this->db_host . ":" . $this->triplestore_port . "/sparql?default-graph-uri=" . urlencode($this->dataset) . "&query="
-        . urlencode($this->query) . "&format=" . urlencode($queryFormat));
-
-      //curl_setopt($ch, CURLOPT_HTTPHEADER, array( "Accept: " . $queryFormat ));
-      curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
-      curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-      curl_setopt($ch, CURLOPT_HEADER, TRUE);
-
-      $xml_data = curl_exec($ch);
-
-      $header = substr($xml_data, 0, strpos($xml_data, "\r\n\r\n"));
-
-      $data =
-        substr($xml_data, strpos($xml_data, "\r\n\r\n") + 4, strlen($xml_data) - (strpos($xml_data, "\r\n\r\n") - 4));
-
-      curl_close($ch);
-
-      // check returned message
-
-      $httpMsgNum = substr($header, 9, 3);
-      $httpMsg = substr($header, 13, strpos($header, "\r\n") - 13);
-
-      if($httpMsgNum == "200")
-      {
-        $this->sparqlContent = $data;
-      }
-      else
-      {
-        $this->conneg->setStatus($httpMsgNum);
-        $this->conneg->setStatusMsg($httpMsg);
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_300->name);
-        $this->conneg->setError($this->errorMessenger->_300->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_300 > name, $this->errorMessenger->_300->description, $data,
-          $this->errorMessenger->_300->level);
-
-        $this->sparqlContent = "";
-        return;
-      }
-
-      // If a DESCRIBE query as been requested by the user, then we simply returns what is returned by
-      // the triple store. We don't have any convertion to do here.
-      if($this->isDescribeQuery === TRUE)
-      {
-         return;
-      }
-
-      // If a CONSTRUCT query as been requested by the user, then we simply returns what is returned by
-      // the triple store. We don't have any convertion to do here.
-      if($this->isConstructQuery === TRUE)
-      {
-         return;
-      }
-      
-      if($this->conneg->getMime() == "text/xml" || 
-         $this->conneg->getMime() == "application/rdf+n3" || 
-         $this->conneg->getMime() == "application/rdf+xml" || 
-         $this->conneg->getMime() == "application/json" ||
-         $this->conneg->getMime() == "application/iron+json" ||
-         $this->conneg->getMime() == "application/iron+csv")
-      {
-        // Read the XML file and populate the recordInstances variables
-
-        $xml = $this->xml2ary($this->sparqlContent);
-     
-        if(isset($xml["sparql"]["_c"]["results"]["_c"]["result"]))
-        {
-          $currentSubjectUri = "";
-          $subject = null;
-          $sourceDataset = "";
-          $isPartOfFound = FALSE;
-          $g;
-
-          foreach($xml["sparql"]["_c"]["results"]["_c"]["result"] as $result)
-          {
-            $s = "";
-            $p = "";
-            $o = "";
-            $g = "";
-            
-            $valueBoundType = "";
-
-            foreach($result["_c"]["binding"] as $binding)
-            {
-              $boundVariable = $binding["_a"]["name"];
-
-              $keys = array_keys($binding["_c"]);
-
-              $boundType = $keys[0];
-              $boundValue = $binding["_c"][$boundType]["_v"];
-              
-              switch($boundVariable)
-              {
-                case "s":
-                  $s = $boundValue;
-                break;
-
-                case "p":
-                  $p = $boundValue;
-                  
-                  if($p == Namespaces::$dcterms."isPartOf")
-                  {
-                    $isPartOfFound = TRUE;
-                  }
-                break;
-
-                case "o":
-                  $o = $boundValue;
-                  $valueBoundType = $boundType;
-                break;
-
-                case "g":
-                  $g = $boundValue;
-                break;
-              }
-            }
-            
-            if($currentSubject != $s)
-            {
-              if($subject != null)
-              {
-                if($g != "" && $isPartOfFound === FALSE)
-                {
-                  $subject->setObjectAttribute(Namespaces::$dcterms."isPartOf", $g);
-                  $isPartOfFound = FALSE;
-                }
-                
-                $this->rset->addSubject($subject);
-              }
-              
-              $subject = new Subject($s);
-              
-              $currentSubject = $s;
-            }
-
-            
-            // process URI
-            if($valueBoundType == "uri" ||
-               $valueBoundType == "bnode")
-            {
-              if($p == Namespaces::$rdf."type")
-              {
-                $subject->setType($o);
-              }
-              else
-              {
-                $subject->setObjectAttribute($p, $o);
-              }
-            }
-
-            // Process Literal
-            if($valueBoundType == "literal")
-            {
-              $subject->setDataAttribute($p, $o);
-            }            
-          }
-            
-          // Add the last subject to the resultset.
-          if($subject != null)
-          {
-            if($g != "" && $isPartOfFound === FALSE)
-            {
-              $subject->setObjectAttribute(Namespaces::$dcterms."isPartOf", $g);
-              $isPartOfFound = FALSE;
-            }          
-            
-            $this->rset->addSubject($subject);          
-          }
-        }
-        
-        if(count($this->rset->getResultset()) <= 0)
-        {
-          $this->conneg->setStatus(400);
-          $this->conneg->setStatusMsg("Bad Request");
-          $this->conneg->setStatusMsgExt($this->errorMessenger->_301->name);
-          $this->conneg->setError($this->errorMessenger->_301->id, $this->errorMessenger->ws,
-            $this->errorMessenger->_301->name, $this->errorMessenger->_301->description, "",
-            $this->errorMessenger->_301->level);
-        }
-      }
+      // Process the code defined in the source interface
+      $interface->processInterface();
     }
-  }
-
-  /*
-      Working with XML. Usage: 
-      $xml=xml2ary(file_get_contents('1.xml'));
-      $link=&$xml['ddd']['_c'];
-      $link['twomore']=$link['onemore'];
-      // ins2ary(); // dot not insert a link, and arrays with links inside!
-      echo ary2xml($xml);
-      
-      from: http://mysrc.blogspot.com/2007/02/php-xml-to-array-and-backwards.html
-  */
-
-  // XML to Array
-  private function xml2ary(&$string)
-  {
-    $parser = xml_parser_create();
-    xml_parser_set_option($parser, XML_OPTION_CASE_FOLDING, 0);
-    xml_parse_into_struct($parser, $string, $vals, $index);
-    xml_parser_free($parser);
-
-    $mnary = array();
-    $ary = &$mnary;
-
-    foreach($vals as $r)
-    {
-      $t = $r['tag'];
-
-      if($r['type'] == 'open')
-      {
-        if(isset($ary[$t]))
-        {
-          if(isset($ary[$t][0]))$ary[$t][] = array();
-          else $ary[$t] = array ($ary[$t], array());
-          $cv = &$ary[$t][count($ary[$t]) - 1];
-        }
-        else $cv = &$ary[$t];
-
-        if(isset($r['attributes']))
-        {
-          foreach($r['attributes'] as $k => $v)$cv['_a'][$k] = $v;
-        }
-        $cv['_c'] = array();
-        $cv['_c']['_p'] = &$ary;
-        $ary = &$cv['_c'];
-      }
-      elseif($r['type'] == 'complete')
-      {
-        if(isset($ary[$t]))
-        { // same as open
-          if(isset($ary[$t][0]))$ary[$t][] = array();
-          else $ary[$t] = array ($ary[$t], array());
-          $cv = &$ary[$t][count($ary[$t]) - 1];
-        }
-        else $cv = &$ary[$t];
-
-        if(isset($r['attributes']))
-        {
-          foreach($r['attributes'] as $k => $v)$cv['_a'][$k] = $v;
-        }
-        $cv['_v'] = (isset($r['value']) ? $r['value'] : '');
-      }
-      elseif($r['type'] == 'close')
-      {
-        $ary = &$ary['_p'];
-      }
+    else
+    { 
+      // Interface not existing
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_302->name);
+      $this->conneg->setError($this->errorMessenger->_302->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_302->name, $this->errorMessenger->_302->description, 
+        "Requested Source Interface: ".$this->interface,
+        $this->errorMessenger->_302->level);
     }
-
-    $this->_del_p($mnary);
-    return $mnary;
-  }
-
-  // _Internal: Remove recursion in result array
-  private function _del_p(&$ary)
-  {
-    foreach($ary as $k => $v)
-    {
-      if($k === '_p')unset($ary[$k]);
-      elseif(is_array($ary[$k]))$this->_del_p($ary[$k]);
-    }
-  }
-
-  // Array to XML
-  private function ary2xml($cary, $d = 0, $forcetag = '')
-  {
-    $res = array();
-
-    foreach($cary as $tag => $r)
-    {
-      if(isset($r[0]))
-      {
-        $res[] = ary2xml($r, $d, $tag);
-      }
-      else
-      {
-        if($forcetag)$tag = $forcetag;
-        $sp = str_repeat("\t", $d);
-        $res[] = "$sp<$tag";
-
-        if(isset($r['_a']))
-        {
-          foreach($r['_a'] as $at => $av)$res[] = " $at=\"$av\"";
-        }
-        $res[] = ">" . ((isset($r['_c'])) ? "\n" : '');
-
-        if(isset($r['_c']))$res[] = ary2xml($r['_c'], $d + 1);
-        elseif(isset($r['_v']))$res[] = $r['_v'];
-        $res[] = (isset($r['_c']) ? $sp : '') . "</$tag>\n";
-      }
-    }
-    return implode('', $res);
-  }
-
-  // Insert element into array
-  private function ins2ary(&$ary, $element, $pos)
-  {
-    $ar1 = array_slice($ary, 0, $pos);
-    $ar1[] = $element;
-    $ary = array_merge($ar1, array_slice($ary, $pos));
   }
 }
 

@@ -172,7 +172,7 @@ class ConverterTsv extends \StructuredDynamics\structwsf\ws\framework\WebService
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  protected function validateQuery() { return; }
+  public function validateQuery() { return; }
 
   /** Returns the error structure
 

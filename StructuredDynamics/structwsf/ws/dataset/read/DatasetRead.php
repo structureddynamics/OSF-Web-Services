@@ -13,7 +13,6 @@ use \StructuredDynamics\structwsf\ws\framework\DBVirtuoso;
 use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
 use \StructuredDynamics\structwsf\ws\auth\validator\AuthValidator;
 use \StructuredDynamics\structwsf\ws\framework\Conneg;
-use \StructuredDynamics\structwsf\framework\Subject;
 use \StructuredDynamics\structwsf\framework\Namespaces;
 
 /** Dataset Read Web Service. It reads description of datasets of a structWSF instance
@@ -107,9 +106,46 @@ class DatasetRead extends \StructuredDynamics\structwsf\ws\framework\WebService
                           "level": "Fatal",
                           "name": "Can\'t get meta-information about the dataset(s)",
                           "description": "An error occured when we tried to get meta-information about the dataset(s)"
-                        }    
+                        },
+                        "_306": {
+                          "id": "WS-DATASET-READ-306",
+                          "level": "Fatal",
+                          "name": "Requested source interface not existing",
+                          "description": "The source interface you requested is not existing for this web service endpoint."
+                        }      
                       }';
 
+                      
+  /**
+  * Implementation of the __get() magic method. We do implement it to create getter functions
+  * for all the protected and private variables of this class, and to all protected variables
+  * of the parent class.
+  * 
+  * This implementation is needed by the interfaces layer since we want the SourceInterface
+  * class to access the variables of the web service class for which it is used as a 
+  * source interface.
+  * 
+  * This means that all the privated and propected variables of these web service objects
+  * are available to users; but they won't be able to set values for them.
+  * 
+  * Also note that This method is about 4 times slower than having the varaible as public instead 
+  * of protected and private. However, these variables are only accessed about 10 to 200 times 
+  * per script call. This means that for accessing these undefined variable using the __get magic 
+  * method call, then it adds about 0.00022 seconds to the call or, about 0.22 milli-second 
+  * (one fifth of a millisecond) For the gain of keeping the variables protected and private, 
+  * we can spend this one fifth of a milli-second. This is a good compromize.  
+  * 
+  * @param mixed $name Name of the variable that is currently not defined for this object
+  */
+  public function __get($name)
+  {
+    // Check if the variable exists (so, if it is private or protected). If it is, then
+    // we return the value. Otherwise a fatal error will be returned by PHP.
+    if(isset($this->{$name}))
+    {
+      return($this->{$name});
+    }
+  }                      
 
   /** Constructor
               
@@ -117,12 +153,13 @@ class DatasetRead extends \StructuredDynamics\structwsf\ws\framework\WebService
       @param $meta Add meta information with the resultset
       @param $registered_ip Target IP address registered in the WSF
       @param $requester_ip IP address of the requester
+      @param $interface Name of the source interface to use for this web service query. Default value: 'default'                            
 
       @return returns NULL
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($uri, $meta, $registered_ip, $requester_ip)
+  function __construct($uri, $meta, $registered_ip, $requester_ip, $interface='default')
   {
     parent::__construct();
 
@@ -139,6 +176,15 @@ class DatasetRead extends \StructuredDynamics\structwsf\ws\framework\WebService
     else
     {
       $this->registered_ip = $registered_ip;
+    }
+    
+    if(strtolower($interface) == "default")
+    {
+      $this->interface = "DefaultSourceInterface";
+    }
+    else
+    {
+      $this->interface = $interface;
     }
 
     if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
@@ -194,7 +240,7 @@ class DatasetRead extends \StructuredDynamics\structwsf\ws\framework\WebService
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  protected function validateQuery()
+  public function validateQuery()
   {
     // Check if the requester has access to the main "http://.../wsf/datasets/" graph.
     $ws_av = new AuthValidator($this->requester_ip, $this->wsf_graph . "datasets/", $this->uri);
@@ -312,23 +358,6 @@ class DatasetRead extends \StructuredDynamics\structwsf\ws\framework\WebService
     } 
   }
 
-  /** Normalize the remaining of a URI
-
-      @param $uri The remaining of a URI to normalize
-      
-      @return a Normalized remaining URI
-      
-      @author Frederick Giasson, Structured Dynamics LLC.
-  */
-  private function uriEncode($uri)
-  {
-    $uri = preg_replace("|[^a-zA-z0-9]|", " ", $uri);
-    $uri = preg_replace("/\s+/", " ", $uri);
-    $uri = str_replace(" ", "_", $uri);
-
-    return ($uri);
-  }
-
   /** Returns the error structure
 
       @return returns the error structure
@@ -432,57 +461,7 @@ class DatasetRead extends \StructuredDynamics\structwsf\ws\framework\WebService
       @author Frederick Giasson, Structured Dynamics LLC.
   */
   public function pipeline_getResponseHeaderStatusMsgExt() { return $this->conneg->getStatusMsgExt(); }
-
-  /** Get the namespace of a URI
-              
-      @param $uri Uri of the resource from which we want the namespace
-
-      @return returns the extracted namespace      
-      
-      @author Frederick Giasson, Structured Dynamics LLC.
-  */
-  private function getNamespace($uri)
-  {
-    $pos = strrpos($uri, "#");
-
-    if($pos !== FALSE)
-    {
-      return array (substr($uri, 0, $pos) . "#", substr($uri, $pos + 1, strlen($uri) - ($pos + 1)));
-    }
-    else
-    {
-      $pos = strrpos($uri, "/");
-
-      if($pos !== FALSE)
-      {
-        return array (substr($uri, 0, $pos) . "/", substr($uri, $pos + 1, strlen($uri) - ($pos + 1)));
-      }
-      else
-      {
-        $pos = strpos($uri, ":");
-
-        if($pos !== FALSE)
-        {
-          $nsUri = explode(":", $uri, 2);
-
-          foreach($this->namespaces as $uri2 => $prefix2)
-          {
-            $uri2 = urldecode($uri2);
-
-            if($prefix2 == $nsUri[0])
-            {
-              return (array ($uri2, $nsUri[1]));
-            }
-          }
-
-          return explode(":", $uri, 2);
-        }
-      }
-    }
-
-    return (FALSE);
-  }
-
+  
   /** Serialize the web service answer.
 
       @return returns the serialized content
@@ -500,409 +479,28 @@ class DatasetRead extends \StructuredDynamics\structwsf\ws\framework\WebService
   */
   public function process()
   {
-    // Make sure there was no conneg error prior to this process call
-    if($this->conneg->getStatus() == 200)
-    {
-      /*
-        In the future, this single query should be used for that ALL purpose.
-        There is currently a bug in virtuoso that doesnt return anything in the resultset (virtuoso v5.0.10)
-        if one of the OPTIONAL pattern is not existing in the triple store (so, OPTIONAL doesn't work)
-        
-        sparql
-        select * 
-        from named </wsf/datasets/>
-        from named </wsf/>
-        where
-        {
-          graph </wsf/>
-          {
-            ?access <http://purl.org/ontology/wsf#registeredIP> "174.129.251.47::1" ;
-            <http://purl.org/ontology/wsf#read> "True" ;
-            <http://purl.org/ontology/wsf#datasetAccess> ?dataset .
-          }
-          
-          graph </wsf/datasets/> 
-          {
-            ?dataset a <http://rdfs.org/ns/void#Dataset> ;
-            <http://purl.org/dc/terms/created> ?created.
-        
-            OPTIONAL{?dataset <http://purl.org/dc/terms/title> ?title.}
-            OPTIONAL{?dataset <http://purl.org/dc/terms/description> ?description.}
-            OPTIONAL{?dataset <http://purl.org/dc/terms/creator> ?creator.}
-            OPTIONAL{?dataset <http://purl.org/dc/terms/modified> ?modified.}
-          }    
-        };
-      */
-
-      $query = "";
-      $nbDatasets = 0;
+     // Check if the interface called by the user is existing
+    $class = $this->sourceinterface_exists(rtrim($this->wsf_base_path, "/")."/dataset/read/interfaces/");
+    
+    if($class != "")
+    {    
+      $class = 'StructuredDynamics\structwsf\ws\dataset\read\interfaces\\'.$class;
       
-      if($this->datasetUri == "all")
-      {
-        $query = "  select distinct ?dataset ?title ?description ?creator ?created ?modified ?contributor ?meta
-                  from named <" . $this->wsf_graph . ">
-                  from named <" . $this->wsf_graph . "datasets/>
-                  where
-                  {
-                    graph <" . $this->wsf_graph . ">
-                    {
-                      ?access <http://purl.org/ontology/wsf#registeredIP> ?ip ;
-                            <http://purl.org/ontology/wsf#read> \"True\" ;
-                      <http://purl.org/ontology/wsf#datasetAccess> ?dataset .
-                      filter( str(?ip) = \"$this->registered_ip\" or str(?ip) = \"0.0.0.0\") .
-                    }
-                    
-                    graph <"
-          . $this->wsf_graph
-          . "datasets/>
-                    {
-                      ?dataset a <http://rdfs.org/ns/void#Dataset> ;
-                      <http://purl.org/dc/terms/created> ?created.
-                  
-                      OPTIONAL{?dataset <http://purl.org/ontology/wsf#meta> ?meta.}
-                      OPTIONAL{?dataset <http://purl.org/dc/terms/title> ?title.}
-                      OPTIONAL{?dataset <http://purl.org/dc/terms/description> ?description.}
-                      OPTIONAL{?dataset <http://purl.org/dc/terms/modified> ?modified.}
-                      OPTIONAL{?dataset <http://purl.org/dc/terms/contributor> ?contributor.}
-                      OPTIONAL{?dataset <http://purl.org/dc/terms/creator> ?creator.}
-                    }    
-                  } ORDER BY ?title";
-
-        $resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
-          array ("dataset", "title", "description", "creator", "created", "modified", "contributor", "meta"), FALSE));
-
-        if(odbc_error())
-        {
-          $this->conneg->setStatus(500);
-          $this->conneg->setStatusMsg("Internal Error");
-          $this->conneg->setStatusMsgExt($this->errorMessenger->_300->name);
-          $this->conneg->setError($this->errorMessenger->_300->id, $this->errorMessenger->ws,
-            $this->errorMessenger->_300->name, $this->errorMessenger->_300->description, odbc_errormsg(),
-            $this->errorMessenger->_300->level);
-
-          return;
-        }
-        else
-        {
-          $dataset = "";
-          $title = "";
-          $description = "";
-          $creator = "";
-          $created = "";
-          $modified = "";
-          $contributors = array();
-          $meta = "";
-
-          while(odbc_fetch_row($resultset))
-          {            
-            $dataset2 = odbc_result($resultset, 1);
-
-            if($dataset2 != $dataset && $dataset != "")
-            {
-              $subject = new Subject($dataset);
-              $subject->setType(Namespaces::$void."Dataset");
-              
-              if($title != ""){$subject->setDataAttribute(Namespaces::$dcterms."title", $title);}
-              if($description != ""){$subject->setDataAttribute(Namespaces::$dcterms."description", $description);}
-              if($creator != ""){$subject->setObjectAttribute(Namespaces::$dcterms."creator", $creator, null, "sioc:User");}
-              if($created != ""){$subject->setDataAttribute(Namespaces::$dcterms."created", $created);}
-              if($modified != ""){$subject->setDataAttribute(Namespaces::$dcterms."modified", $modified);}
-              
-              foreach($contributors as $contributor)
-              {
-                if($contributor != "")
-                {
-                  $subject->setObjectAttribute(Namespaces::$dcterms."contributor", $contributor, null, "sioc:User");
-                }
-              }  
-                
-              $this->rset->addSubject($subject);  
-              $nbDatasets++;
-              
-              $contributors = array();
-            }
-
-            $dataset = $dataset2;
-
-            $title = odbc_result($resultset, 2);
-            $description = $this->db->odbc_getPossibleLongResult($resultset, 3);
-
-            $creator = odbc_result($resultset, 4);
-            $created = odbc_result($resultset, 5);
-            $modified = odbc_result($resultset, 6);
-            array_push($contributors, odbc_result($resultset, 7));
-            $meta = odbc_result($resultset, 8);
-          }
-
-          $metaDescription = array();
-
-          // We have to add the meta information if available
-          /*
-          if($meta != "" && $this->addMeta == "true")
-          {
-            $query = "select ?p ?o (str(DATATYPE(?o))) as ?otype (LANG(?o)) as ?olang
-                    from <" . $this->wsf_graph . "datasets/>
-                    where
-                    {
-                      <$meta> ?p ?o.
-                    }";
-
-            $resultset =
-              @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
-                array ('p', 'o', 'otype', 'olang'), FALSE));
-
-            $contributors = array();
-
-            if(odbc_error())
-            {
-              $this->conneg->setStatus(500);
-              $this->conneg->setStatusMsg("Internal Error");
-              $this->conneg->setStatusMsgExt($this->errorMessenger->_305->name);
-              $this->conneg->setError($this->errorMessenger->_305->id, $this->errorMessenger->ws,
-                $this->errorMessenger->_305->name, $this->errorMessenger->_305->description, odbc_errormsg(),
-                $this->errorMessenger->_305->level);
-
-              return;
-            }
-            else
-            {
-              while(odbc_fetch_row($resultset))
-              {
-                $predicate = odbc_result($resultset, 1);
-                $object = $this->db->odbc_getPossibleLongResult($resultset, 2);
-                $otype = odbc_result($resultset, 3);
-                $olang = odbc_result($resultset, 4);
-
-                if(isset($metaDescription[$predicate]))
-                {
-                  array_push($metaDescription[$predicate], $object);
-                }
-                else
-                {
-                  $metaDescription[$predicate] = array( $object );
-
-                  if($olang && $olang != "")
-                  {
-                    // If a language is defined for an object, we force its type to be xsd:string
-                    $metaDescription[$predicate]["type"] = "http://www.w3.org/2001/XMLSchema#string";
-                  }
-                  else
-                  {
-                    $metaDescription[$predicate]["type"] = $otype;
-                  }
-                }
-              }
-            }
-
-            unset($resultset);
-          }*/
-
-          if($dataset != "")
-          {
-            $subject = new Subject($dataset);
-            $subject->setType(Namespaces::$void."Dataset");
-            
-            if($title != ""){$subject->setDataAttribute(Namespaces::$dcterms."title", $title);}
-            if($description != ""){$subject->setDataAttribute(Namespaces::$dcterms."description", $description);}
-            if($creator != ""){$subject->setObjectAttribute(Namespaces::$dcterms."creator", $creator, null, "sioc:User");}
-            if($created != ""){$subject->setDataAttribute(Namespaces::$dcterms."created", $created);}
-            if($modified != ""){$subject->setDataAttribute(Namespaces::$dcterms."modified", $modified);}
-            
-            foreach($contributors as $contributor)
-            {
-              if($contributor != "")
-              {
-                $subject->setObjectAttribute(Namespaces::$dcterms."contributor", $contributor, null, "sioc:User");
-              }
-            }  
-              
-            $this->rset->addSubject($subject);  
-            $nbDatasets++;
-          }
-
-          unset($resultset);
-        }
-      }
-      else
-      {
-        $dataset = $this->datasetUri;
-
-        $query =
-          "select ?title ?description ?creator ?created ?modified ?meta
-                from named <" . $this->wsf_graph . "datasets/>
-                where
-                {
-                  graph <" . $this->wsf_graph
-          . "datasets/>
-                  {
-                    <$dataset> a <http://rdfs.org/ns/void#Dataset> ;
-                    <http://purl.org/dc/terms/created> ?created.
-                    
-                    OPTIONAL{<$dataset> <http://purl.org/dc/terms/title> ?title.} .
-                    OPTIONAL{<$dataset> <http://purl.org/dc/terms/description> ?description.} .
-                    OPTIONAL{<$dataset> <http://purl.org/dc/terms/creator> ?creator.} .
-                    OPTIONAL{<$dataset> <http://purl.org/dc/terms/modified> ?modified.} .
-                    OPTIONAL{<$dataset> <http://purl.org/ontology/wsf#meta> ?meta.} .
-                  }
-                } ORDER BY ?title";
-
-        $resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
-          array ('title', 'description', 'creator', 'created', 'modified', 'meta'), FALSE));
-
-        if(odbc_error())
-        {
-          $this->conneg->setStatus(500);
-          $this->conneg->setStatusMsg("Internal Error");
-          $this->conneg->setStatusMsgExt($this->errorMessenger->_301->name);
-          $this->conneg->setError($this->errorMessenger->_301->id, $this->errorMessenger->ws,
-            $this->errorMessenger->_301->name, $this->errorMessenger->_301->description, odbc_errormsg(),
-            $this->errorMessenger->_301->level);
-
-          return;
-        }
-        else
-        {
-          if(odbc_fetch_row($resultset))
-          {
-            $title = odbc_result($resultset, 1);
-            $description = $this->db->odbc_getPossibleLongResult($resultset, 2);
-            $creator = odbc_result($resultset, 3);
-            $created = odbc_result($resultset, 4);
-            $modified = odbc_result($resultset, 5);
-            $meta = odbc_result($resultset, 6);
-
-            unset($resultset);
-
-            /*
-            $metaDescription = array();
-
-            // We have to add the meta information if available
-            if($meta != "" && $this->addMeta == "true")
-            {
-              $query = "select ?p ?o (str(DATATYPE(?o))) as ?otype (LANG(?o)) as ?olang
-                      from <" . $this->wsf_graph . "datasets/>
-                      where
-                      {
-                        <$meta> ?p ?o.
-                      }";
-
-              $resultset =
-                @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
-                  array ('p', 'o', 'otype', 'olang'), FALSE));
-
-              $contributors = array();
-
-              if(odbc_error())
-              {
-                $this->conneg->setStatus(500);
-                $this->conneg->setStatusMsg("Internal Error");
-                $this->conneg->setStatusMsgExt($this->errorMessenger->_302->name);
-                $this->conneg->setError($this->errorMessenger->_302->id, $this->errorMessenger->ws,
-                  $this->errorMessenger->_302->name, $this->errorMessenger->_302->description, odbc_errormsg(),
-                  $this->errorMessenger->_302->level);
-
-                return;
-              }
-              else
-              {
-                while(odbc_fetch_row($resultset))
-                {
-                  $predicate = odbc_result($resultset, 1);
-                  $object = $this->db->odbc_getPossibleLongResult($resultset, 2);
-                  $otype = odbc_result($resultset, 3);
-                  $olang = odbc_result($resultset, 4);
-
-                  if(isset($metaDescription[$predicate]))
-                  {
-                    array_push($metaDescription[$predicate], $object);
-                  }
-                  else
-                  {
-                    $metaDescription[$predicate] = array( $object );
-
-                    if($olang && $olang != "")
-                    {
-                      // If a language is defined for an object, we force its type to be xsd:string 
-                      $metaDescription[$predicate]["type"] = "http://www.w3.org/2001/XMLSchema#string";
-                    }
-                    else
-                    {
-                      $metaDescription[$predicate]["type"] = $otype;
-                    }
-                  }
-                }
-              }
-
-              unset($resultset);
-            }*/
-
-
-            // Get all contributors (users that have CUD perissions over the dataset)
-            $query =
-              "select ?contributor 
-                    from <" . $this->wsf_graph
-              . "datasets/>
-                    where
-                    {
-                      <$dataset> a <http://rdfs.org/ns/void#Dataset> ;
-                      <http://purl.org/dc/terms/contributor> ?contributor.
-                    }";
-
-            $resultset =
-              @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
-                array( 'contributor' ), FALSE));
-
-            $contributors = array();
-
-            if(odbc_error())
-            {
-              $this->conneg->setStatus(500);
-              $this->conneg->setStatusMsg("Internal Error");
-              $this->conneg->setStatusMsgExt($this->errorMessenger->_303->name);
-              $this->conneg->setError($this->errorMessenger->_303->id, $this->errorMessenger->ws,
-                $this->errorMessenger->_303->name, $this->errorMessenger->_303->description, odbc_errormsg(),
-                $this->errorMessenger->_303->level);
-
-              return;
-            }
-            elseif(odbc_fetch_row($resultset))
-            {
-              array_push($contributors, odbc_result($resultset, 1));
-            }
-            
-            $subject = new Subject($dataset);
-            $subject->setType(Namespaces::$void."Dataset");
-            
-            if($title != ""){$subject->setDataAttribute(Namespaces::$dcterms."title", $title);}
-            if($description != ""){$subject->setDataAttribute(Namespaces::$dcterms."description", $description);}
-            if($creator != ""){$subject->setObjectAttribute(Namespaces::$dcterms."creator", $creator, null, "sioc:User");}
-            if($created != ""){$subject->setDataAttribute(Namespaces::$dcterms."created", $created);}
-            if($modified != ""){$subject->setDataAttribute(Namespaces::$dcterms."modified", $modified);}
-            
-            foreach($contributors as $contributor)
-            {
-              if($contributor != "")
-              {
-                $subject->setObjectAttribute(Namespaces::$dcterms."contributor", $contributor, null, "sioc:User");
-              }
-            }  
-              
-            $this->rset->addSubject($subject);  
-            $nbDatasets++;
-          }
-        }
-      }
+      $interface = new $class($this);
       
-      if($nbDatasets == 0 && $this->datasetUri != "all")
-      {
-        $this->conneg->setStatus(400);
-        $this->conneg->setStatusMsg("Bad Request");
-        $this->conneg->setStatusMsgExt("This dataset doesn't exist in this WSF");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_304->name);
-        $this->conneg->setError($this->errorMessenger->_304->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_304->name, $this->errorMessenger->_304->description, "",
-          $this->errorMessenger->_304->level);
-      }
+      // Process the code defined in the source interface
+      $interface->processInterface();
+    }
+    else
+    { 
+      // Interface not existing
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_306->name);
+      $this->conneg->setError($this->errorMessenger->_306->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_306->name, $this->errorMessenger->_306->description, 
+        "Requested Source Interface: ".$this->interface,
+        $this->errorMessenger->_306->level);
     }
   }
 }

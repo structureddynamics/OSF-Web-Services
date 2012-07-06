@@ -119,10 +119,57 @@ class CrudRead extends \StructuredDynamics\structwsf\ws\framework\WebService
                           "level": "Fatal",
                           "name": "Can\'t get the reification statements for that resource(s)",
                           "description": "An error occured when we tried to get the reification statements of the resource(s)"
+                        },
+                        "_305": {
+                          "id": "WS-CRUD-READ-305",
+                          "level": "Fatal",
+                          "name": "Requested source interface not existing",
+                          "description": "The source interface you requested is not existing for this web service endpoint."
                         }  
 
                       }';
 
+  // Generate getter function for all private/protected variables of this class.
+  // protected variable of its parent class (the class it extends) will also
+  // get getters via this method
+  // This method is about 4 times slower than having the varaible as public instead
+  // of protected and private. However, these variables are only accessed about 10 to
+  // 200 times per script call. This means that for accessing these undefined
+  // variable using the __get magic call, then it adds about 0.00022 seconds to the call
+  // or, about 0.22 milli-second (one fifth of a millisecond)
+  // For the gain of keeping the variables protected and private, we can spend this one fifth
+  // of a milli-second. This is a good compromize.
+  
+  /**
+  * Implementation of the __get() magic method. We do implement it to create getter functions
+  * for all the protected and private variables of this class, and to all protected variables
+  * of the parent class.
+  * 
+  * This implementation is needed by the interfaces layer since we want the SourceInterface
+  * class to access the variables of the web service class for which it is used as a 
+  * source interface.
+  * 
+  * This means that all the privated and propected variables of these web service objects
+  * are available to users; but they won't be able to set values for them.
+  * 
+  * Also note that This method is about 4 times slower than having the varaible as public instead 
+  * of protected and private. However, these variables are only accessed about 10 to 200 times 
+  * per script call. This means that for accessing these undefined variable using the __get magic 
+  * method call, then it adds about 0.00022 seconds to the call or, about 0.22 milli-second 
+  * (one fifth of a millisecond) For the gain of keeping the variables protected and private, 
+  * we can spend this one fifth of a milli-second. This is a good compromize.  
+  * 
+  * @param mixed $name Name of the variable that is currently not defined for this object
+  */
+  public function __get($name)
+  {
+    // Check if the variable exists (so, if it is private or protected). If it is, then
+    // we return the value. Otherwise a fatal error will be returned by PHP.
+    if(isset($this->{$name}))
+    {
+      return($this->{$name});
+    }
+  }                       
 
   /** Constructor
               
@@ -143,13 +190,16 @@ class CrudRead extends \StructuredDynamics\structwsf\ws\framework\WebService
                                           resultset which considerably reduce the size of the resultset to transmit 
                                           and manipulate. Multiple attribute URIs can be added to this parameter by 
                                           splitting them with ";".
+      @param $interface Name of the source interface to use for this web service query. Default value: 'default'                            
               
 
       @return returns NULL
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($uri, $dataset, $include_linksback, $include_reification, $registered_ip, $requester_ip, $include_attributes_list="")
+  function __construct($uri, $dataset, $include_linksback, $include_reification, 
+                       $registered_ip, $requester_ip, $include_attributes_list="",
+                       $interface='default')
   {
     parent::__construct();
 
@@ -170,6 +220,15 @@ class CrudRead extends \StructuredDynamics\structwsf\ws\framework\WebService
     $this->include_linksback = $include_linksback;
     $this->include_reification = $include_reification;
     $this->requester_ip = $requester_ip;
+    
+    if(strtolower($interface) == "default")
+    {
+      $this->interface = "DefaultSourceInterface";
+    }
+    else
+    {
+      $this->interface = $interface;
+    }
 
     if($registered_ip == "")
     {
@@ -224,7 +283,7 @@ class CrudRead extends \StructuredDynamics\structwsf\ws\framework\WebService
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  protected function validateQuery()
+  public function validateQuery()
   {
     /*
       Check if dataset(s) URI(s) have been defined for this request. If not, then we query the
@@ -473,57 +532,7 @@ class CrudRead extends \StructuredDynamics\structwsf\ws\framework\WebService
       @author Frederick Giasson, Structured Dynamics LLC.
   */
   public function pipeline_getResponseHeaderStatusMsgExt() { return $this->conneg->getStatusMsgExt(); }
-
-  /** Get the namespace of a URI
-              
-      @param $uri Uri of the resource from which we want the namespace
-
-      @return returns the extracted namespace      
-      
-      @author Frederick Giasson, Structured Dynamics LLC.
-  */
-  private function getNamespace($uri)
-  {
-    $pos = strrpos($uri, "#");
-
-    if($pos !== FALSE)
-    {
-      return array (substr($uri, 0, $pos) . "#", substr($uri, $pos + 1, strlen($uri) - ($pos + 1)));
-    }
-    else
-    {
-      $pos = strrpos($uri, "/");
-
-      if($pos !== FALSE)
-      {
-        return array (substr($uri, 0, $pos) . "/", substr($uri, $pos + 1, strlen($uri) - ($pos + 1)));
-      }
-      else
-      {
-        $pos = strpos($uri, ":");
-
-        if($pos !== FALSE)
-        {
-          $nsUri = explode(":", $uri, 2);
-
-          foreach($this->namespaces as $uri2 => $prefix2)
-          {
-            $uri2 = urldecode($uri2);
-
-            if($prefix2 == $nsUri[0])
-            {
-              return (array ($uri2, $nsUri[1]));
-            }
-          }
-
-          return explode(":", $uri, 2);
-        }
-      }
-    }
-
-    return (FALSE);
-  }
-
+ 
   /** Serialize the web service answer.
 
       @return returns the serialized content
@@ -541,441 +550,28 @@ class CrudRead extends \StructuredDynamics\structwsf\ws\framework\WebService
   */
   public function process()
   {
-    // Make sure there was no conneg error prior to this process call
-    if($this->conneg->getStatus() == 200)
-    {
-      $uris = explode(";", $this->resourceUri);
-      $datasets = explode(";", $this->dataset);
-
-      if(count($uris) > 64)
-      {
-        $this->conneg->setStatus(400);
-        $this->conneg->setStatusMsg("Bad Request");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_301->name);
-        $this->conneg->setError($this->errorMessenger->_301->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_301->name, $this->errorMessenger->_301->description, "",
-          $this->errorMessenger->_301->level);
-
-        return;
-      }
+    // Check if the interface called by the user is existing
+    $class = $this->sourceinterface_exists(rtrim($this->wsf_base_path, "/")."/crud/read/interfaces/");
+    
+    if($class != "")
+    {    
+      $class = 'StructuredDynamics\structwsf\ws\crud\read\interfaces\\'.$class;
       
-      $subjects = array();
-
-      foreach($uris as $key => $u)
-      {
-        // Decode potentially encoded ";" character.
-        $u = str_ireplace("%3B", ";", $u);
-        $d = str_ireplace("%3B", ";", $datasets[$key]);
-
-        $query = "";
-
-        $attributesFilter = "";
-        
-        // If the structWSF instance uses Virtuoso 6, then we use the new FILTER...IN... statement
-        // instead of the FILTER...regex. This makes the queries much faster and fix an issue
-        // when the Virtuoso instance has been fixed with the LRL (long read length) path
-        if($this->virtuoso_main_version != 6)
-        {
-          foreach($this->include_attributes_list as $attr)
-          {
-            $attributesFilter .= $attr."|";
-          }
-          
-          $attributesFilter = trim($attributesFilter, "|");
-        }
-        else
-        {
-          foreach($this->include_attributes_list as $attr)
-          {
-            if($attr != "")
-            {
-              $attributesFilter .= "<$attr>,";
-            }
-          }
-          
-          $attributesFilter = trim($attributesFilter, ",");
-        }
-        
-        if($this->globalDataset === FALSE)
-        {
-          $d = str_ireplace("%3B", ";", $datasets[$key]);
-
-          // Archiving suject triples
-          $query = $this->db->build_sparql_query("
-            select ?p ?o (DATATYPE(?o)) as ?otype (LANG(?o)) as ?olang 
-            from <" . $d . "> 
-            where 
-            {
-              <$u> ?p ?o.
-              ".(
-                  $this->virtuoso_main_version != 6 ?
-                  ($attributesFilter == "" ? "" : "FILTER regex(str(?p), \"($attributesFilter)\")") : 
-                  ($attributesFilter == "" ? "" : "FILTER (?p IN($attributesFilter))")
-                )."
-            }", 
-            array ('p', 'o', 'otype', 'olang'), FALSE);
-        }
-        else
-        {
-          $d = "";
-
-          foreach($datasets as $dataset)
-          {
-            if($dataset != "")
-            {
-              $d .= " from named <$dataset> ";
-            }
-          }
-
-          // Archiving suject triples
-          $query = $this->db->build_sparql_query("
-            select ?p ?o (DATATYPE(?o)) as ?otype (LANG(?o)) as ?olang ?g 
-            $d 
-            where 
-            {
-              graph ?g
-              {
-                <$u> ?p ?o.
-              }
-              ".(
-                  $this->virtuoso_main_version != 6 ?
-                  ($attributesFilter == "" ? "" : "FILTER regex(str(?p), \"($attributesFilter)\")") : 
-                  ($attributesFilter == "" ? "" : "FILTER (?p IN($attributesFilter))")
-                )."
-            }", 
-            array ('p', 'o', 'otype', 'olang', 'g'), FALSE);
-               
-        }
-
-        $resultset = $this->db->query($query);
-
-        if(odbc_error())
-        {
-          $this->conneg->setStatus(500);
-          $this->conneg->setStatusMsg("Internal Error");
-          $this->conneg->setStatusMsgExt($this->errorMessenger->_302->name);
-          $this->conneg->setError($this->errorMessenger->_302->id, $this->errorMessenger->ws,
-            $this->errorMessenger->_302->name, $this->errorMessenger->_302->description, odbc_errormsg(),
-            $this->errorMessenger->_302->level);
-        }
-        
-        $g = "";
-        
-        $subjects[$u] = Array("type" => Array(),
-                              "prefLabel" => "",
-                              "altLabel" => Array(),
-                              "prefURL" => "",
-                              "description" => "");
-
-        $nbTriples = 0;                              
-                              
-        while(odbc_fetch_row($resultset))
-        {
-          $p = odbc_result($resultset, 1);
-          
-          $o = $this->db->odbc_getPossibleLongResult($resultset, 2);
-
-          $otype = odbc_result($resultset, 3);
-          $olang = odbc_result($resultset, 4);
-                    
-          if($g == "")
-          {
-            if($this->globalDataset === FALSE)
-            {
-              $g = str_ireplace("%3B", ";", $datasets[$key]);
-            }
-            else
-            {
-              $g = odbc_result($resultset, 5);
-            }
-          }
-
-          $objectType = "";
-          
-          if($olang && $olang != "")
-          {
-            /* If a language is defined for an object, we force its type to be xsd:string */
-            $objectType = "http://www.w3.org/2001/XMLSchema#string";
-          }
-          else
-          {
-            $objectType = $otype;
-          }
-  
-          if($this->globalDataset === TRUE) 
-          {
-            if($p == Namespaces::$rdf."type")
-            {
-              array_push($subjects[$u]["type"], $o);
-            }
-            else
-            {
-              /** 
-              * If we are using the globalDataset, there is a possibility that triples get duplicated
-              * if the same triples, exists in two different datasets. It is why we have to filter them there
-              * so that we don't duplicate them in the serialized dataset.
-              */
-              $found = FALSE;
-              if(isset($subjects[$u][$p]) && is_array($subjects[$u][$p]))
-              {
-                foreach($subjects[$u][$p] as $value)
-                {
-                  if(isset($value["value"]) && $value["value"] == $o)
-                  {
-                    $found = TRUE;
-                    break;
-                  }
-                  
-                  if(isset($value["uri"]) && $value["uri"] == $o)
-                  {
-                    $found = TRUE;
-                    break;
-                  }
-                }
-              }     
-              
-              if($found === FALSE)
-              {     
-                if(!isset($subjects[$u][$p]) || !is_array($subjects[$u][$p]))
-                {
-                  $subjects[$u][$p] = array();
-                }
-                
-                if($objectType !== NULL)
-                {
-                  array_push($subjects[$u][$p], Array("value" => $o, 
-                                                      "lang" => (isset($olang) ? $olang : ""),
-                                                      "type" => "rdfs:Literal"));
-                                                      
-                  $nbTriples++;
-                }
-                else
-                {
-                  array_push($subjects[$u][$p], Array("uri" => $o, 
-                                                      "type" => ""));
-                                                      
-                  $nbTriples++;
-                }
-              }
-            }
-          }
-          else
-          {
-            if($p == Namespaces::$rdf."type")
-            {
-              array_push($subjects[$u]["type"], $o);
-            }
-            else
-            {
-              if(!isset($subjects[$u][$p]) || !is_array($subjects[$u][$p]))
-              {
-                $subjects[$u][$p] = array();
-              }
-              
-              if($objectType !== NULL)
-              {
-                array_push($subjects[$u][$p], Array("value" => $o, 
-                                                    "lang" => (isset($olang) ? $olang : ""),
-                                                    "type" => "rdfs:Literal"));
-                                                      
-                $nbTriples++;
-              }
-              else
-              {
-                array_push($subjects[$u][$p], Array("uri" => $o, 
-                                                    "type" => ""));
-                                                      
-                $nbTriples++;
-              }
-            }
-          }
-        }
-
-        if($nbTriples <= 0)
-        {
-          $this->conneg->setStatus(400);
-          $this->conneg->setStatusMsg("Bad Request");
-          $this->conneg->setStatusMsgExt($this->errorMessenger->_300->name);
-          $this->conneg->setError($this->errorMessenger->_300->id, $this->errorMessenger->ws,
-            $this->errorMessenger->_300->name, $this->errorMessenger->_300->description, "",
-            $this->errorMessenger->_300->level);
-
-          return;
-        }
-        
-        // Assigning the Dataset relationship
-        if($g != "")
-        {         
-          if(!isset($subjects[$u]["http://purl.org/dc/terms/isPartOf"]) || !is_array($subjects[$u]["http://purl.org/dc/terms/isPartOf"]))
-          {
-            $subjects[$u]["http://purl.org/dc/terms/isPartOf"] = array();
-          }
-          
-          array_push($subjects[$u]["http://purl.org/dc/terms/isPartOf"], Array("uri" => $g, 
-                                                                               "type" => ""));            
-        }        
-
-        // Archiving object triples
-        if(strtolower($this->include_linksback) == "true")
-        {
-          $query = "";
-
-          if($this->globalDataset === FALSE)
-          {
-            $query = $this->db->build_sparql_query("select ?s ?p from <" . $d . "> where {?s ?p <" . $u . ">.}",
-              array ('s', 'p'), FALSE);
-          }
-          else
-          {
-            $d = "";
-
-            foreach($datasets as $dataset)
-            {
-              if($dataset != "")
-              {
-                $d .= " from named <$dataset> ";
-              }
-            }
-
-            $query =
-              $this->db->build_sparql_query("select ?s ?p $d where {graph ?g{?s ?p <" . $u . ">.}}", array ('s', 'p'),
-                FALSE);
-          }
-
-          $resultset = $this->db->query($query);
-
-          if(odbc_error())
-          {
-            $this->conneg->setStatus(500);
-            $this->conneg->setStatusMsg("Internal Error");
-            $this->conneg->setStatusMsgExt($this->errorMessenger->_303 > name);
-            $this->conneg->setError($this->errorMessenger->_303->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_303->name, $this->errorMessenger->_303->description, odbc_errormsg(),
-              $this->errorMessenger->_303->level);
-          }
-
-          while(odbc_fetch_row($resultset))
-          {
-            $s = odbc_result($resultset, 1);
-            $p = odbc_result($resultset, 2);
-
-            if(!isset($subjects[$s]))
-            {
-              $subjects[$s] = array( "type" => array(),
-                                     "prefLabel" => "",
-                                     "altLabel" => array(),
-                                     "prefURL" => "",
-                                     "description" => "");
-            }
-            
-            if(!isset($subjects[$s][$p]))
-            {
-              $subjects[$s][$p] = array();
-            }
-            
-            array_push($subjects[$s][$p], array("uri" => $u, "type" => ""));            
-          }
-
-          unset($resultset); 
-        }
-
-        // Get reification triples
-        if(strtolower($this->include_reification) == "true")
-        {
-          $query = "";
-
-          if($this->globalDataset === FALSE)
-          {
-            $query = "  select ?rei_p ?rei_o ?p ?o from <" . $d . "reification/> 
-                    where 
-                    {
-                      ?statement <http://www.w3.org/1999/02/22-rdf-syntax-ns#subject> <"
-              . $u
-              . ">.
-                      ?statement <http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate> ?rei_p.
-                      ?statement <http://www.w3.org/1999/02/22-rdf-syntax-ns#object> ?rei_o.
-                      ?statement ?p ?o.
-                    }";
-          }
-          else
-          {
-            $d = "";
-
-            foreach($datasets as $dataset)
-            {
-              if($dataset != "")
-              {
-                $d .= " from named <" . $dataset . "reification/> ";
-              }
-            }
-
-            $query = "  select ?rei_p ?rei_o ?p ?o $d 
-                    where 
-                    {
-                      graph ?g
-                      {
-                        ?statement <http://www.w3.org/1999/02/22-rdf-syntax-ns#subject> <"
-              . $u
-                . ">.
-                        ?statement <http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate> ?rei_p.
-                        ?statement <http://www.w3.org/1999/02/22-rdf-syntax-ns#object> ?rei_o.
-                        ?statement ?p ?o.
-                      }
-                    }";
-          }
-
-          $query = $this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
-            array ('rei_p', 'rei_o', 'p', 'o'), FALSE);
-
-          $resultset = $this->db->query($query);
-
-          if(odbc_error())
-          {
-            $this->conneg->setStatus(500);
-            $this->conneg->setStatusMsg("Internal Error");
-            $this->conneg->setStatusMsgExt($this->errorMessenger->_304->name);
-            $this->conneg->setError($this->errorMessenger->_304->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_304->name, $this->errorMessenger->_304->description, odbc_errormsg(),
-              $this->errorMessenger->_304->level);
-          }
-
-          while(odbc_fetch_row($resultset))
-          {
-            $rei_p = odbc_result($resultset, 1);
-            $rei_o = $this->db->odbc_getPossibleLongResult($resultset, 2);
-            $p = odbc_result($resultset, 3);
-            $o = $this->db->odbc_getPossibleLongResult($resultset, 4);
-
-            if($p != "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject"
-              && $p != "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate"
-              && $p != "http://www.w3.org/1999/02/22-rdf-syntax-ns#object"
-              && $p != "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
-            {
-              foreach($subjects[$u][$rei_p] as $key => $value)
-              {
-                if(isset($value["uri"]) && $value["uri"] == $rei_o)
-                {
-                  if(!isset($subjects[$u][$rei_p][$key]["reify"]))
-                  {
-                    $subjects[$u][$rei_p][$key]["reify"] = array();
-                  }
-                  
-                  if(!isset($subjects[$u][$rei_p][$key]["reify"][$p]))
-                  {
-                    $subjects[$u][$rei_p][$key]["reify"][$p] = array();
-                  }
-                  
-                  array_push($subjects[$u][$rei_p][$key]["reify"][$p], $o);
-                }
-              }
-            }
-          }
-
-          unset($resultset);
-        }
-      }
+      $interface = new $class($this);
       
-      $this->rset->setResultset(Array("unspecified" => $subjects));
+      // Process the code defined in the source interface
+      $interface->processInterface();
+    }
+    else
+    { 
+      // Interface not existing
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_305->name);
+      $this->conneg->setError($this->errorMessenger->_305->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_305->name, $this->errorMessenger->_305->description, 
+        "Requested Source Interface: ".$this->interface,
+        $this->errorMessenger->_305->level);
     }
   }
 }
@@ -984,3 +580,4 @@ class CrudRead extends \StructuredDynamics\structwsf\ws\framework\WebService
 //@}
 
 ?>
+

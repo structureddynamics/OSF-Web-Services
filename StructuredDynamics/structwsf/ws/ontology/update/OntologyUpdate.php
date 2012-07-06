@@ -9,16 +9,9 @@
 
 namespace StructuredDynamics\structwsf\ws\ontology\update; 
 
-use \ARC2;
-use \Exception;
 use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
 use \StructuredDynamics\structwsf\ws\auth\validator\AuthValidator;
 use \StructuredDynamics\structwsf\ws\framework\Conneg;
-use \StructuredDynamics\structwsf\ws\framework\OWLOntology;
-use \StructuredDynamics\structwsf\ws\ontology\read\OntologyRead;
-use \StructuredDynamics\structwsf\ws\crud\delete\CrudDelete;
-use \StructuredDynamics\structwsf\ws\crud\create\CrudCreate;
-use \StructuredDynamics\structwsf\ws\crud\update\CrudUpdate;
 use \StructuredDynamics\structwsf\framework\Namespaces;
 
 /** Update an ontology. Update any resource of an ontology. It may be a class, 
@@ -45,12 +38,7 @@ class OntologyUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServi
   private $ontologyUri = "";
   
   /** Ontology object. */
-  private $ontology;  
-
-  /** Requester's IP used for request validation */
-  private $requester_ip = "";
-  
-  private $OwlApiSession = null;
+  public $ontology;  
   
   /** enable/disable the reasoner when doing advanced indexation */
   private $reasoner = TRUE;  
@@ -94,21 +82,58 @@ class OntologyUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServi
                           "level": "Warning",
                           "name": "Can\'t parse RDF document",
                           "description": "Can\'t parse the specified RDF document"
-                        }                        
+                        },
+                        "_302": {
+                          "id": "WS-ONTOLOGY-UPDATE-305",
+                          "level": "Fatal",
+                          "name": "Requested source interface not existing",
+                          "description": "The source interface you requested is not existing for this web service endpoint."
+                        }                          
                       }';
 
+  /**
+  * Implementation of the __get() magic method. We do implement it to create getter functions
+  * for all the protected and private variables of this class, and to all protected variables
+  * of the parent class.
+  * 
+  * This implementation is needed by the interfaces layer since we want the SourceInterface
+  * class to access the variables of the web service class for which it is used as a 
+  * source interface.
+  * 
+  * This means that all the privated and propected variables of these web service objects
+  * are available to users; but they won't be able to set values for them.
+  * 
+  * Also note that This method is about 4 times slower than having the varaible as public instead 
+  * of protected and private. However, these variables are only accessed about 10 to 200 times 
+  * per script call. This means that for accessing these undefined variable using the __get magic 
+  * method call, then it adds about 0.00022 seconds to the call or, about 0.22 milli-second 
+  * (one fifth of a millisecond) For the gain of keeping the variables protected and private, 
+  * we can spend this one fifth of a milli-second. This is a good compromize.  
+  * 
+  * @param mixed $name Name of the variable that is currently not defined for this object
+  */
+  public function __get($name)
+  {
+    // Check if the variable exists (so, if it is private or protected). If it is, then
+    // we return the value. Otherwise a fatal error will be returned by PHP.
+    if(isset($this->{$name}))
+    {
+      return($this->{$name});
+    }
+  }                      
 
   /** Constructor
           
       @param $ontologyUri URI of the ontology where to delete something
       @param $registered_ip Target IP address registered in the WSF
       @param $requester_ip IP address of the requester
-
+      @param $interface Name of the source interface to use for this web service query. Default value: 'default'                            
+      
       @return returns NULL
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($ontologyUri, $registered_ip, $requester_ip)
+  function __construct($ontologyUri, $registered_ip, $requester_ip, $interface='default')
   {
     parent::__construct();
 
@@ -121,6 +146,15 @@ class OntologyUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServi
     {
       $this->registered_ip = $requester_ip;
     }
+    
+    if(strtolower($interface) == "default")
+    {
+      $this->interface = "DefaultSourceInterface";
+    }
+    else
+    {
+      $this->interface = $interface;
+    }    
 
     if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
     {
@@ -162,7 +196,7 @@ class OntologyUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServi
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  protected function validateQuery()
+  public function validateQuery()
   {
     $ws_av = new AuthValidator($this->requester_ip, $this->wsf_graph . "ontologies/", $this->uri);
 
@@ -342,7 +376,7 @@ class OntologyUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServi
   */
   public function ws_serialize() { return ""; }
   
-  private function returnError($statusCode, $statusMsg, $wsErrorCode, $debugInfo = "")
+  public function returnError($statusCode, $statusMsg, $wsErrorCode, $debugInfo = "")
   {
     $this->conneg->setStatus($statusCode);
     $this->conneg->setStatusMsg($statusMsg);
@@ -363,145 +397,11 @@ class OntologyUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServi
   */
   public function updateEntityUri($oldUri, $newUri, $advancedIndexation)
   { 
-    $this->initiateOwlBridgeSession();
-
-    $this->getOntologyReference();
+    $interface = $this->getInterface();
     
-    if($this->isValid())      
+    if($interface !== NULL)
     {
-      if($oldUri == "")
-      {
-        $this->returnError(400, "Bad Request", "_202");
-        return;              
-      }          
-      if($newUri == "")
-      {
-        $this->returnError(400, "Bad Request", "_203");
-        return;              
-      }      
-      
-      $this->ontology->updateEntityUri($oldUri, $newUri);
-      
-      if($advancedIndexation === TRUE)
-      {   
-        // Find the type of entity manipulated here
-        $entity = $this->ontology->_getEntity($newUri);
-        
-        $function = "";
-        $params = "";
-        
-        if((boolean)java_values($entity->isOWLClass()))
-        {
-          $function = "getClass";
-          $params = "uri=".$newUri;
-        }
-        elseif((boolean)java_values($entity->isOWLDataProperty()) ||
-           (boolean)java_values($entity->isOWLObjectProperty()) ||
-           (boolean)java_values($entity->isOWLAnnotationProperty()))
-        {
-          $function = "getProperty";
-          $params = "uri=".$newUri;
-        }
-        elseif((boolean)java_values($entity->isNamedIndividual()))
-        {
-          $function = "getNamedIndividual";
-          $params = "uri=".$newUri;
-        }
-        else
-        {
-          return;
-        }
-        
-        // Get the description of the newly updated entity.
-        $ontologyRead = new OntologyRead($this->ontologyUri, $function, $params,
-                                         $this->registered_ip, $this->requester_ip);
-
-        // Since we are in pipeline mode, we have to set the owlapisession using the current one.
-        // otherwise the java bridge will return an error
-        $ontologyRead->setOwlApiSession($this->OwlApiSession);                                                    
-                          
-        $ontologyRead->ws_conneg("application/rdf+xml", $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
-                               $_SERVER['HTTP_ACCEPT_LANGUAGE']);
-
-        if($this->reasoner)
-        {
-          $ontologyRead->useReasoner(); 
-        }  
-        else
-        {
-          $ontologyRead->stopUsingReasoner();
-        }                               
-                               
-        $ontologyRead->process();
-        
-        if($ontologyRead->pipeline_getResponseHeaderStatus() != 200)
-        {
-          $this->conneg->setStatus($ontologyRead->pipeline_getResponseHeaderStatus());
-          $this->conneg->setStatusMsg($ontologyRead->pipeline_getResponseHeaderStatusMsg());
-          $this->conneg->setStatusMsgExt($ontologyRead->pipeline_getResponseHeaderStatusMsgExt());
-          $this->conneg->setError($ontologyRead->pipeline_getError()->id, $ontologyRead->pipeline_getError()->webservice,
-            $ontologyRead->pipeline_getError()->name, $ontologyRead->pipeline_getError()->description,
-            $ontologyRead->pipeline_getError()->debugInfo, $ontologyRead->pipeline_getError()->level);
-
-          return;
-        } 
-        
-        $entitySerialized = $ontologyRead->pipeline_serialize();
-        
-        unset($ontologyRead);  
-
-        // Delete the old entity in Solr        
-        // Update the classes and properties into the Solr index
-        $crudDelete = new CrudDelete($oldUri, $this->ontologyUri, 
-                                     $this->registered_ip, $this->requester_ip);
-
-        $crudDelete->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
-          $_SERVER['HTTP_ACCEPT_LANGUAGE']);
-
-        $crudDelete->process();
-        
-        if($crudDelete->pipeline_getResponseHeaderStatus() != 200)
-        {
-          $this->conneg->setStatus($crudDelete->pipeline_getResponseHeaderStatus());
-          $this->conneg->setStatusMsg($crudDelete->pipeline_getResponseHeaderStatusMsg());
-          $this->conneg->setStatusMsgExt($crudDelete->pipeline_getResponseHeaderStatusMsgExt());
-          $this->conneg->setError($crudDelete->pipeline_getError()->id, $crudDelete->pipeline_getError()->webservice,
-            $crudDelete->pipeline_getError()->name, $crudDelete->pipeline_getError()->description,
-            $crudDelete->pipeline_getError()->debugInfo, $crudDelete->pipeline_getError()->level);
-
-          return;
-        } 
-        
-        unset($crudDelete);                
-        
-        // Add the new entity in Solr
-
-        // Update the classes and properties into the Solr index
-        $crudCreate = new CrudCreate($entitySerialized, "application/rdf+xml", "full", $this->ontologyUri, 
-                                     $this->registered_ip, $this->requester_ip);
-
-        $crudCreate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
-          $_SERVER['HTTP_ACCEPT_LANGUAGE']);
-
-        $crudCreate->process();
-        
-        if($crudCreate->pipeline_getResponseHeaderStatus() != 200)
-        {
-          $this->conneg->setStatus($crudCreate->pipeline_getResponseHeaderStatus());
-          $this->conneg->setStatusMsg($crudCreate->pipeline_getResponseHeaderStatusMsg());
-          $this->conneg->setStatusMsgExt($crudCreate->pipeline_getResponseHeaderStatusMsgExt());
-          $this->conneg->setError($crudCreate->pipeline_getError()->id, $crudCreate->pipeline_getError()->webservice,
-            $crudCreate->pipeline_getError()->name, $crudCreate->pipeline_getError()->description,
-            $crudCreate->pipeline_getError()->debugInfo, $crudCreate->pipeline_getError()->level);
-
-          return;
-        } 
-        
-        unset($crudCreate);                   
-      }
-          
-      // Update the name of the file of the ontology to mark it as "changed"
-      $this->ontology->addOntologyAnnotation("http://purl.org/ontology/wsf#ontologyModified", "true");
+      $interface->updateEntityUri($oldUri, $newUri, $advancedIndexation);      
     }
   }
 
@@ -515,319 +415,11 @@ class OntologyUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServi
   */
   public function createOrUpdateEntity($document, $advancedIndexation)
   {
-    $this->initiateOwlBridgeSession();
-
-    $this->getOntologyReference();
+    $interface = $this->getInterface();
     
-    if($this->isValid())      
+    if($interface !== NULL)
     {
-      // Now read the RDF file that we got as input to update the ontology with it.
-      // Basically, we list all the entities (classes, properties and instance)
-      // and we update each of them, one by one, in both the OWLAPI instance
-      // and structWSF if the advancedIndexation is enabled.
-      include_once("../../framework/arc2/ARC2.php");
-      $parser = ARC2::getRDFParser();
-      $parser->parse($this->ontology->getBaseUri(), $document);
-      $rdfxmlSerializer = ARC2::getRDFXMLSerializer();
-      
-      $resourceIndex = $parser->getSimpleIndex(0);
-
-      if(count($parser->getErrors()) > 0)
-      {
-        $errorsOutput = "";
-        $errors = $parser->getErrors();
-
-        foreach($errors as $key => $error)
-        {
-          $errorsOutput .= "[Error #$key] $error\n";
-        }
-
-        $this->conneg->setStatus(400);
-        $this->conneg->setStatusMsg("Bad Request");
-        $this->conneg->setError($this->errorMessenger->_301->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_301->name, $this->errorMessenger->_301->description, $errorsOutput,
-          $this->errorMessenger->_301->level);
-
-        return;
-      }
-      
-      // Get all entities
-      foreach($resourceIndex as $uri => $description)
-      {         
-        $types = array();
-        $literalValues = array();
-        $objectValues = array();    
-       
-        foreach($description as $predicate => $values)
-        {
-          switch($predicate)
-          {
-            case Namespaces::$rdf."type":
-              foreach($values as $value)
-              {
-                array_push($types, $value["value"]);
-              }
-            break;
-            
-            default:
-              foreach($values as $value)
-              {
-                if($value["type"] == "literal")
-                {
-                  if(!is_array($literalValues[$predicate]))
-                  {
-                    $literalValues[$predicate] = array();
-                  }
-                  
-                  array_push($literalValues[$predicate], $value["value"]);  
-                }
-                else
-                {
-                  if(!is_array($objectValues[$predicate]))
-                  {
-                    $objectValues[$predicate] = array();
-                  }
-                  
-                  array_push($objectValues[$predicate], $value["value"]);                      
-                }
-              }                
-            break;
-          }
-        }
- 
-        // Call different API calls depending what we are manipulating
-        if($this->in_array_r(Namespaces::$owl."Ontology", $description[Namespaces::$rdf."type"]))
-        {
-          $this->ontology->updateOntology($literalValues, $objectValues); 
-          
-          // Make sure advanced indexation is off when updating an ontology's description
-          $advancedIndexation = FALSE;
-        }
-        elseif($this->in_array_r(Namespaces::$owl."Class", $description[Namespaces::$rdf."type"]))
-        {
-          $this->ontology->updateClass($uri, $literalValues, $objectValues); 
-        }
-        elseif($this->in_array_r(Namespaces::$owl."DatatypeProperty", $description[Namespaces::$rdf."type"]) ||
-               $this->in_array_r(Namespaces::$owl."ObjectProperty", $description[Namespaces::$rdf."type"]) ||
-               $this->in_array_r(Namespaces::$owl."AnnotationProperty", $description[Namespaces::$rdf."type"]))
-        {
-          foreach($types as $type)
-          {
-            if(!is_array($objectValues[Namespaces::$rdf."type"]))
-            {
-              $objectValues[Namespaces::$rdf."type"] = array();
-            }
-            
-            array_push($objectValues[Namespaces::$rdf."type"], $type);      
-          }
-        
-          $this->ontology->updateProperty($uri, $literalValues, $objectValues);   
-        }
-        else
-        {
-          $this->ontology->updateNamedIndividual($uri, $types, $literalValues, $objectValues);   
-        }
-        
-        // Call different API calls depending what we are manipulating
-        if($advancedIndexation == TRUE)
-        {          
-          include_once("../../framework/arc2/ARC2.php");
-          $rdfxmlParser = ARC2::getRDFParser();
-          $rdfxmlSerializer = ARC2::getRDFXMLSerializer();
-          
-          $resourcesIndex = $rdfxmlParser->getSimpleIndex(0);
-          
-          // Index the entity to update
-          $rdfxmlParser->parse($uri, $rdfxmlSerializer->getSerializedIndex(array($uri => $resourceIndex[$uri])));
-          $rIndex = $rdfxmlParser->getSimpleIndex(0);
-          $resourcesIndex = ARC2::getMergedIndex($resourcesIndex, $rIndex);                    
-          
-          // Check if the entity got punned
-          $entities = $this->ontology->_getEntities($uri);
-          
-          if(count($entities) > 1)
-          {
-            // The entity got punned.
-            $isClass = FALSE;
-            $isProperty = FALSE;
-            $isNamedEntity = FALSE;
-            
-            
-            foreach($entities as $entity)
-            {
-              if((boolean)java_values($entity->isOWLClass()))
-              {
-                $isClass = TRUE;
-              }              
-              
-              if((boolean)java_values($entity->isOWLDataProperty()) ||
-                 (boolean)java_values($entity->isOWLObjectProperty()) ||
-                 (boolean)java_values($entity->isOWLAnnotationProperty()))
-              {
-                $isProperty = TRUE;
-              }
-              
-              if((boolean)java_values($entity->isOWLNamedIndividual()))
-              { 
-                $isNamedEntity = TRUE;
-              }             
-            }
-            
-            $queries = array();
-            
-            if($description[Namespaces::$rdf."type"][0]["value"] != Namespaces::$owl."Class" && $isClass)
-            {
-              array_push($queries, array("function" => "getClass", "params" => "uri=".$uri));
-            }
-            
-            if($description[Namespaces::$rdf."type"][0]["value"] != Namespaces::$owl."DatatypeProperty" && 
-               $description[Namespaces::$rdf."type"][0]["value"] != Namespaces::$owl."ObjectProperty" &&
-               $description[Namespaces::$rdf."type"][0]["value"] != Namespaces::$owl."AnnotationProperty" &&
-               $isProperty)
-            {
-              array_push($queries, array("function" => "getProperty", "params" => "uri=".$uri));
-            }
-            
-            if($description[Namespaces::$rdf."type"][0]["value"] != Namespaces::$owl."NamedIndividual" && $isNamedEntity)
-            {
-              array_push($queries, array("function" => "getNamedIndividual", "params" => "uri=".$uri));
-            }            
-            
-            foreach($queries as $query)
-            {
-              // Get the class description of the current punned entity
-              $ontologyRead = new OntologyRead($this->ontologyUri, $query["function"], $query["params"],
-                                               $this->registered_ip, $this->requester_ip);
-
-              // Since we are in pipeline mode, we have to set the owlapisession using the current one.
-              // otherwise the java bridge will return an error
-              $ontologyRead->setOwlApiSession($this->OwlApiSession);                                                    
-                                
-              $ontologyRead->ws_conneg("application/rdf+xml", $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
-                                     $_SERVER['HTTP_ACCEPT_LANGUAGE']);
-
-              if($this->reasoner)
-              {
-                $ontologyRead->useReasoner(); 
-              }  
-              else
-              {
-                $ontologyRead->stopUsingReasoner();
-              }                                     
-                                     
-              $ontologyRead->process();
-              
-              if($ontologyRead->pipeline_getResponseHeaderStatus() != 200)
-              {
-                $this->conneg->setStatus($ontologyRead->pipeline_getResponseHeaderStatus());
-                $this->conneg->setStatusMsg($ontologyRead->pipeline_getResponseHeaderStatusMsg());
-                $this->conneg->setStatusMsgExt($ontologyRead->pipeline_getResponseHeaderStatusMsgExt());
-                $this->conneg->setError($ontologyRead->pipeline_getError()->id, $ontologyRead->pipeline_getError()->webservice,
-                  $ontologyRead->pipeline_getError()->name, $ontologyRead->pipeline_getError()->description,
-                  $ontologyRead->pipeline_getError()->debugInfo, $ontologyRead->pipeline_getError()->level);
-
-                return;
-              } 
-              
-              $entitySerialized = $ontologyRead->pipeline_serialize();
-              
-              $rdfxmlParser->parse($uri, $entitySerialized);
-              $rIndex = $rdfxmlParser->getSimpleIndex(0);
-              $resourcesIndex = ARC2::getMergedIndex($resourcesIndex, $rIndex);                
-              
-              unset($ontologyRead);            
-            }
-          }                   
-          
-          switch($description[Namespaces::$rdf."type"][0]["value"])
-          {
-            case Namespaces::$owl."Class":
-            case Namespaces::$owl."DatatypeProperty":
-            case Namespaces::$owl."ObjectProperty":
-            case Namespaces::$owl."AnnotationProperty":
-            case Namespaces::$owl."NamedIndividual":
-            default:
-            
-              // We have to check if this entity to update is punned. If yes, we have to merge all the
-              // punned descriptison together before updating them in structWSF (Virtuoso and Solr).
-              // otherwise we will loose information in these other systems.
-              
-              // Once we start the ontology creation process, we have to make sure that even if the server
-              // loose the connection with the user the process will still finish.
-              ignore_user_abort(true);
-
-              // However, maybe there is an issue with the server handling that file tht lead to some kind of infinite or near
-              // infinite loop; so we have to limit the execution time of this procedure to 45 mins.
-              set_time_limit(2700);                
-              
-              $serializedResource = $rdfxmlSerializer->getSerializedIndex($resourcesIndex);
-              
-              // Update the classes and properties into the Solr index
-              $crudUpdate = new CrudUpdate($serializedResource, "application/rdf+xml", $this->ontologyUri, 
-                                           $this->registered_ip, $this->requester_ip);
-
-              $crudUpdate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
-                $_SERVER['HTTP_ACCEPT_LANGUAGE']);
-
-              $crudUpdate->process();
-              
-              if($crudUpdate->pipeline_getResponseHeaderStatus() != 200)
-              {
-                $this->conneg->setStatus($crudUpdate->pipeline_getResponseHeaderStatus());
-                $this->conneg->setStatusMsg($crudUpdate->pipeline_getResponseHeaderStatusMsg());
-                $this->conneg->setStatusMsgExt($crudUpdate->pipeline_getResponseHeaderStatusMsgExt());
-                $this->conneg->setError($crudUpdate->pipeline_getError()->id, $crudUpdate->pipeline_getError()->webservice,
-                  $crudUpdate->pipeline_getError()->name, $crudUpdate->pipeline_getError()->description,
-                  $crudUpdate->pipeline_getError()->debugInfo, $crudUpdate->pipeline_getError()->level);
-
-                return;
-              } 
-              
-              unset($crudUpdate);              
-            
-/*            
-              // Once we start the ontology creation process, we have to make sure that even if the server
-              // loose the connection with the user the process will still finish.
-              ignore_user_abort(true);
-
-              // However, maybe there is an issue with the server handling that file tht lead to some kind of infinite or near
-              // infinite loop; so we have to limit the execution time of this procedure to 45 mins.
-              set_time_limit(2700);  
-              
-              $ser = ARC2::getTurtleSerializer();
-              $serializedResource = $ser->getSerializedIndex(array($uri => $resourceIndex[$uri]));
-              
-              // Update the classes and properties into the Solr index
-              $crudUpdate = new CrudUpdate($serializedResource, "application/rdf+n3", $this->ontologyUri, 
-                                           $this->registered_ip, $this->requester_ip);
-
-              $crudUpdate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
-                $_SERVER['HTTP_ACCEPT_LANGUAGE']);
-
-              $crudUpdate->process();
-              
-              if($crudUpdate->pipeline_getResponseHeaderStatus() != 200)
-              {
-                $this->conneg->setStatus($crudUpdate->pipeline_getResponseHeaderStatus());
-                $this->conneg->setStatusMsg($crudUpdate->pipeline_getResponseHeaderStatusMsg());
-                $this->conneg->setStatusMsgExt($crudUpdate->pipeline_getResponseHeaderStatusMsgExt());
-                $this->conneg->setError($crudUpdate->pipeline_getError()->id, $crudUpdate->pipeline_getError()->webservice,
-                  $crudUpdate->pipeline_getError()->name, $crudUpdate->pipeline_getError()->description,
-                  $crudUpdate->pipeline_getError()->debugInfo, $crudUpdate->pipeline_getError()->level);
-
-                return;
-              } 
-              
-              unset($crudUpdate);  
-*/              
-                          
-            break;            
-          }          
-        }          
-      }
-      
-      // Update the name of the file of the ontology to mark it as "changed"
-      $this->ontology->addOntologyAnnotation("http://purl.org/ontology/wsf#ontologyModified", "true");    
+      $interface->createOrUpdateEntity($document, $advancedIndexation);  
     }
   }     
   
@@ -841,176 +433,14 @@ class OntologyUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServi
   */
   public function saveOntology()
   {
-    $this->initiateOwlBridgeSession();
-
-    $this->getOntologyReference();
+    $interface = $this->getInterface();
     
-    if($this->isValid())      
+    if($interface !== NULL)
     {
-      // Remove the "ontologyModified" annotation property value
-      $this->ontology->removeOntologyAnnotation("http://purl.org/ontology/wsf#ontologyModified", "true");
+      $interface->saveOntology();        
     }
   }
-
-  /**
-  * 
-  *   
-  * @param mixed $uri
-  * @param mixed $description
-  * @return string
-  *  
-  * @author Frederick Giasson, Structured Dynamics LLC.
-  */
-  public function getLabel($uri, $description)  
-  {
-    if(isset($description[Namespaces::$iron . "prefLabel"]))
-    {
-      return $description[Namespaces::$iron . "prefLabel"][0]["value"];
-    }
-
-    if(isset($description[Namespaces::$skos_2008 . "prefLabel"]))
-    {
-      return $description[Namespaces::$skos_2008 . "prefLabel"][0]["value"];
-    }
-
-    if(isset($description[Namespaces::$skos_2004 . "prefLabel"]))
-    {
-      return $description[Namespaces::$skos_2004 . "prefLabel"][0]["value"];
-    }
-
-    if(isset($description[Namespaces::$rdfs . "label"]))
-    {
-      return $description[Namespaces::$rdfs . "label"][0]["value"];
-    }
-
-    if(isset($description[Namespaces::$dcterms . "title"]))
-    {
-      return $description[Namespaces::$dcterms . "title"][0]["value"];
-    }
-
-    if(isset($description[Namespaces::$dc . "title"]))
-    {
-      return $description[Namespaces::$dc . "title"][0]["value"];
-    }
-
-    // Find the base URI of the ontology
-    $pos = strripos($uri, "#");
-
-    if($pos === FALSE)
-    {
-      $pos = strripos($uri, "/");
-    }
-
-    if($pos !== FALSE)
-    {
-      $pos++;
-    }
-
-    $resource = substr($uri, $pos, strlen($uri) - $pos);
-
-    return $resource;
-  }  
-  
-  /**
-  * 
-  * 
-  * @param mixed $description
-  * @return mixed
-  *  
-  * @author Frederick Giasson, Structured Dynamics LLC.
-  */
-  public function getDescription($description)
-  {
-    if(isset($description[Namespaces::$iron . "description"]))
-    {               
-      return $description[Namespaces::$iron . "description"][0]["value"];
-    }
-
-    if(isset($description[Namespaces::$skos_2008 . "definition"]))
-    {
-      return $description[Namespaces::$skos_2008 . "definition"][0]["value"];
-    }
-
-    if(isset($description[Namespaces::$skos_2004 . "definition"]))
-    {
-      return $description[Namespaces::$skos_2004 . "definition"][0]["value"];
-    }
-
-    if(isset($description[Namespaces::$rdfs . "comment"]))
-    {
-      return $description[Namespaces::$rdfs . "comment"][0]["value"];
-    }
-
-    if(isset($description[Namespaces::$dcterms . "description"]))
-    {
-      return $description[Namespaces::$dcterms . "description"][0]["value"];
-    }
-
-    if(isset($description[Namespaces::$dc . "description"]))
-    {
-      return $description[Namespaces::$dc . "description"][0]["value"];
-    }
-
-    return "No description available";
-  }  
-  
-  
-  /**
-  * 
-  *  
-  * @author Frederick Giasson, Structured Dynamics LLC.
-  */
-  private function initiateOwlBridgeSession()
-  {
-    // Starts the OWLAPI process/bridge
-    require_once($this->owlapiBridgeURI);
-
-    // Create the OWLAPI session object that could have been persisted on the OWLAPI instance.
-    // Second param "false" => we re-use the pre-created session without destroying the previous one
-    // third param "0" => it nevers timeout.
-    if($this->OwlApiSession == null)
-    {
-      $this->OwlApiSession = java_session("OWLAPI", false, 0);
-    }    
-  }
-  
-  /**
-  * 
-  *  
-  * @author Frederick Giasson, Structured Dynamics LLC.
-  */
-  private function getOntologyReference()
-  {
-    try
-    {
-      $this->ontology = new OWLOntology($this->ontologyUri, $this->OwlApiSession, TRUE);
-    }
-    catch(Exception $e)
-    {
-      $this->returnError(400, "Bad Request", "_300");
-    }    
-  }
-  
-  /**
-  * @author Frederick Giasson, Structured Dynamics LLC.
-  */
-  private function isValid()
-  {
-    // Make sure there was no conneg error prior to this process call
-    if($this->conneg->getStatus() == 200)
-    {
-      $this->validateQuery();
-
-      // If the query is still valid
-      if($this->conneg->getStatus() == 200)
-      {
-        return(TRUE);
-      }
-    }
     
-    return(FALSE);    
-  }  
-  
   /**
   * Enable the reasoner for advanced indexation 
   * 
@@ -1031,18 +461,34 @@ class OntologyUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServi
     $this->reasoner = FALSE;
   }  
   
-  private function in_array_r($needle, $haystack) 
+  private function getInterface()
   {
-    foreach($haystack as $item) 
-    {
-      if($item === $needle || (is_array($item) && $this->in_array_r($needle, $item))) 
-      {
-        return TRUE;
-      }
+    // Check if the interface called by the user is existing
+    $class = $this->sourceinterface_exists(rtrim($this->wsf_base_path, "/")."/ontology/update/interfaces/");
+    
+    if($class != "")
+    {    
+      $class = 'StructuredDynamics\structwsf\ws\ontology\update\interfaces\\'.$class;
+      
+      $interface = new $class($this);
+      
+      // Process the code defined in the source interface
+      return($interface);
     }
-
-    return FALSE;
-  }
+    else
+    { 
+      // Interface not existing
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_302->name);
+      $this->conneg->setError($this->errorMessenger->_302->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_302->name, $this->errorMessenger->_302->description, 
+        "Requested Source Interface: ".$this->interface,
+        $this->errorMessenger->_302->level);
+        
+      return(NULL);
+    }    
+  }  
 }
 
 //@}

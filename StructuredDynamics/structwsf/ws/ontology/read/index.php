@@ -25,6 +25,14 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST')
     die;
 }
 
+// Interface to use for this query
+$interface = "default";
+
+if(isset($_POST['interface']))
+{
+  $interface = $_POST['interface'];
+}
+
 // URI of the the ontology to query
 $ontology = "";
 
@@ -96,7 +104,7 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_or = new OntologyRead($ontology, $function, $params, $registered_ip, $requester_ip);
+$ws_or = new OntologyRead($ontology, $function, $params, $registered_ip, $requester_ip, $interface);
 
 $ws_or->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                   (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

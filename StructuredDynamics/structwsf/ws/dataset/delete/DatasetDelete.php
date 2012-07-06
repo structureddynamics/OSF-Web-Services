@@ -12,8 +12,6 @@ namespace StructuredDynamics\structwsf\ws\dataset\delete;
 use \StructuredDynamics\structwsf\ws\framework\DBVirtuoso; 
 use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
 use \StructuredDynamics\structwsf\ws\auth\validator\AuthValidator;
-use \StructuredDynamics\structwsf\ws\auth\registrar\access\AuthRegistrarAccess;
-use \StructuredDynamics\structwsf\ws\framework\Solr;
 use \StructuredDynamics\structwsf\ws\framework\Conneg;
 
 /** Dataset Delete Web Service. It deletes an existing graph of the structWSF instance
@@ -97,10 +95,47 @@ class DatasetDelete extends \StructuredDynamics\structwsf\ws\framework\WebServic
                           "level": "Error",
                           "name": "Ontology dataset can\'t be deleted",
                           "description": "This ontology dataset can\'t be deleted using the Dataset Delete web service endpoint. Please use the Ontology Dataset web service to delete this dataset."
-                        }                          
+                        },
+                        "_307": {
+                          "id": "WS-DATASET-DELETE-307",
+                          "level": "Fatal",
+                          "name": "Requested source interface not existing",
+                          "description": "The source interface you requested is not existing for this web service endpoint."
+                        }                            
                       }';
 
 
+  /**
+  * Implementation of the __get() magic method. We do implement it to create getter functions
+  * for all the protected and private variables of this class, and to all protected variables
+  * of the parent class.
+  * 
+  * This implementation is needed by the interfaces layer since we want the SourceInterface
+  * class to access the variables of the web service class for which it is used as a 
+  * source interface.
+  * 
+  * This means that all the privated and propected variables of these web service objects
+  * are available to users; but they won't be able to set values for them.
+  * 
+  * Also note that This method is about 4 times slower than having the varaible as public instead 
+  * of protected and private. However, these variables are only accessed about 10 to 200 times 
+  * per script call. This means that for accessing these undefined variable using the __get magic 
+  * method call, then it adds about 0.00022 seconds to the call or, about 0.22 milli-second 
+  * (one fifth of a millisecond) For the gain of keeping the variables protected and private, 
+  * we can spend this one fifth of a milli-second. This is a good compromize.  
+  * 
+  * @param mixed $name Name of the variable that is currently not defined for this object
+  */
+  public function __get($name)
+  {
+    // Check if the variable exists (so, if it is private or protected). If it is, then
+    // we return the value. Otherwise a fatal error will be returned by PHP.
+    if(isset($this->{$name}))
+    {
+      return($this->{$name});
+    }
+  }                      
+                      
   /** Constructor
           
       @param $uri URI of the dataset to delete
@@ -111,7 +146,7 @@ class DatasetDelete extends \StructuredDynamics\structwsf\ws\framework\WebServic
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($uri, $registered_ip, $requester_ip)
+  function __construct($uri, $registered_ip, $requester_ip, $interface='default')
   {
     parent::__construct();
 
@@ -127,6 +162,15 @@ class DatasetDelete extends \StructuredDynamics\structwsf\ws\framework\WebServic
     {
       $this->registered_ip = $registered_ip;
     }
+    
+    if(strtolower($interface) == "default")
+    {
+      $this->interface = "DefaultSourceInterface";
+    }
+    else
+    {
+      $this->interface = $interface;
+    }    
 
     if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
     {
@@ -179,7 +223,7 @@ class DatasetDelete extends \StructuredDynamics\structwsf\ws\framework\WebServic
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  protected function validateQuery()
+  public function validateQuery()
   {
     // Check if the requester has access to the main "http://.../wsf/datasets/" graph.
     $ws_av = new AuthValidator($this->registered_ip, $this->wsf_graph . "datasets/", $this->uri);
@@ -379,210 +423,28 @@ class DatasetDelete extends \StructuredDynamics\structwsf\ws\framework\WebServic
   */
   public function process()
   {
-    // Make sure there was no conneg error prior to this process call
-    if($this->conneg->getStatus() == 200)
-    {
-      // Make sure this is not an ontology dataset
-      $query = "select ?holdOntology
-                      from <" . $this->wsf_graph . "datasets/>
-                      where
-                      {
-                        <$this->datasetUri> <http://purl.org/ontology/wsf#holdOntology> ?holdOntology .
-                      }";
-
-      $resultset =
-        @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
-          array ('holdOntology'), FALSE));
-
-      if(odbc_error())
-      {
-        $this->conneg->setStatus(500);
-        $this->conneg->setStatusMsg("Internal Error");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_306->name);
-        $this->conneg->setError($this->errorMessenger->_306->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_306->name, $this->errorMessenger->_306->description, odbc_errormsg(),
-          $this->errorMessenger->_306->level);
-
-        return;
-      }
-      else
-      {
-        while(odbc_fetch_row($resultset))
-        {
-          $holdOntology = odbc_result($resultset, 1);
-
-          if(strtolower($holdOntology) == "true")
-          {
-            $this->conneg->setStatus(400);
-            $this->conneg->setStatusMsg("Bad Request");
-            $this->conneg->setStatusMsgExt($this->errorMessenger->_306->name);
-            $this->conneg->setError($this->errorMessenger->_306->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_306->name, $this->errorMessenger->_306->description, odbc_errormsg(),
-              $this->errorMessenger->_306->level);
-
-            return;            
-          }
-        }
-      }
-
-      unset($resultset);      
+     // Check if the interface called by the user is existing
+    $class = $this->sourceinterface_exists(rtrim($this->wsf_base_path, "/")."/dataset/delete/interfaces/");
+    
+    if($class != "")
+    {    
+      $class = 'StructuredDynamics\structwsf\ws\dataset\delete\interfaces\\'.$class;
       
-      // Remove  all the possible other meta descriptions
-      // of the dataset introduced by the wsf:meta property.
-
-      $query = "  delete from <" . $this->wsf_graph . "datasets/> 
-              { 
-                ?meta ?p_meta ?o_meta.
-              }
-              where
-              {
-                graph <"
-        . $this->wsf_graph
-        . "datasets/>
-                {
-                  <$this->datasetUri> <http://purl.org/ontology/wsf#meta> ?meta.
-                  ?meta ?p_meta ?o_meta.
-                }
-              }";
-
-      @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-        FALSE));
-
-      if(odbc_error())
-      {
-        $this->conneg->setStatus(500);
-        $this->conneg->setStatusMsg("Internal Error");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_300->name);
-        $this->conneg->setError($this->errorMessenger->_300->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_300->name, $this->errorMessenger->_300->description, odbc_errormsg(),
-          $this->errorMessenger->_300->level);
-
-        return;
-      }
-
-
-      // Remove the Graph description in the ".../datasets/"
-
-      $query = "  delete from <" . $this->wsf_graph . "datasets/> 
-              { 
-                <$this->datasetUri> ?p ?o.
-              }
-              where
-              {
-                graph <" . $this->wsf_graph . "datasets/>
-                {
-                  <$this->datasetUri> ?p ?o.
-                }
-              }";
-
-      @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-        FALSE));
-
-      if(odbc_error())
-      {
-        $this->conneg->setStatus(500);
-        $this->conneg->setStatusMsg("Internal Error");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_301->name);
-        $this->conneg->setError($this->errorMessenger->_301->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_301->name, $this->errorMessenger->_301->description, odbc_errormsg(),
-          $this->errorMessenger->_301->level);
-        return;
-      }
-
-      // Removing all accesses for this graph
-      $ws_ara = new AuthRegistrarAccess("", "", $this->datasetUri, "delete_all", "", "", $this->registered_ip);
-
-      $ws_ara->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
-        $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
-
-      $ws_ara->process();
-
-      if($ws_ara->pipeline_getResponseHeaderStatus() != 200)
-      {
-        $this->conneg->setStatus($ws_ara->pipeline_getResponseHeaderStatus());
-        $this->conneg->setStatusMsg($ws_ara->pipeline_getResponseHeaderStatusMsg());
-        $this->conneg->setStatusMsgExt($ws_ara->pipeline_getResponseHeaderStatusMsgExt());
-        $this->conneg->setError($ws_ara->pipeline_getError()->id, $ws_ara->pipeline_getError()->webservice,
-          $ws_ara->pipeline_getError()->name, $ws_ara->pipeline_getError()->description,
-          $ws_ara->pipeline_getError()->debugInfo, $ws_ara->pipeline_getError()->level);
-        return;
-      }
-
-      // Drop the entire graph
-      $query = "exst('select * from (sparql clear graph <" . $this->datasetUri . ">) sub')";
-
-      @$this->db->query($query);
-
-      if(odbc_error())
-      {
-        $this->conneg->setStatus(500);
-        $this->conneg->setStatusMsg("Internal Error");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_302->name);
-        $this->conneg->setError($this->errorMessenger->_302->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_302->name, $this->errorMessenger->_302->description, odbc_errormsg(),
-          $this->errorMessenger->_302->level);
-
-        return;
-      }
-
-      // Drop the reification graph related to this dataset
-      $query = "exst('select * from (sparql clear graph <" . $this->datasetUri . "reification/>) sub')";
-
-      @$this->db->query($query);
-
-      if(odbc_error())
-      {
-        $this->conneg->setStatus(500);
-        $this->conneg->setStatusMsg("Internal Error");
-        $this->conneg->setStatusMsgExt("Error #dataset-delete-105");
-        $this->conneg->setError($this->errorMessenger->_303->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_303->name, $this->errorMessenger->_303->description, odbc_errormsg(),
-          $this->errorMessenger->_303->level);
-
-        return;
-      }
-
-
-      // Remove all documents from the solr index for this Dataset
-      $solr = new Solr($this->wsf_solr_core, $this->solr_host, $this->solr_port, $this->fields_index_folder);
-
-      if(!$solr->flushDataset($this->datasetUri))
-      {
-        $this->conneg->setStatus(500);
-        $this->conneg->setStatusMsg("Internal Error");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_304->name);
-        $this->conneg->setError($this->errorMessenger->_304->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_304->name, $this->errorMessenger->_304->description, odbc_errormsg(),
-          $this->errorMessenger->_304->level);
-
-        return;
-      }
-
-      if($this->solr_auto_commit === FALSE)
-      {
-        if(!$solr->commit())
-        {
-          $this->conneg->setStatus(500);
-          $this->conneg->setStatusMsg("Internal Error");
-          $this->conneg->setStatusMsgExt($this->errorMessenger->_305->name);
-          $this->conneg->setError($this->errorMessenger->_305->id, $this->errorMessenger->ws,
-            $this->errorMessenger->_305->name, $this->errorMessenger->_305->description, odbc_errormsg(),
-            $this->errorMessenger->_305->level);
-
-          return;
-        }
-      }
-
-
-    /*      
-          if(!$solr->optimize())
-          {
-            $this->conneg->setStatus(500);
-            $this->conneg->setStatusMsg("Internal Error");
-            $this->conneg->setStatusMsgExt("Error #dataset-delete-104");  
-            return;          
-          }      
-    */
+      $interface = new $class($this);
+      
+      // Process the code defined in the source interface
+      $interface->processInterface();
+    }
+    else
+    { 
+      // Interface not existing
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_307->name);
+      $this->conneg->setError($this->errorMessenger->_307->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_307->name, $this->errorMessenger->_307->description, 
+        "Requested Source Interface: ".$this->interface,
+        $this->errorMessenger->_307->level);
     }
   }
 }

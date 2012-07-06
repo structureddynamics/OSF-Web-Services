@@ -24,6 +24,14 @@ if ($_SERVER['REQUEST_METHOD'] != 'GET')
     die;
 }
 
+// Interface to use for this query
+$interface = "default";
+
+if(isset($_GET['interface']))
+{
+  $interface = $_GET['interface'];
+}
+
 // Type of the thing to be listed
 $mode = "dataset";
 
@@ -87,7 +95,7 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_al = new AuthLister($mode, $dataset, $registered_ip, $requester_ip, $target_webservice);
+$ws_al = new AuthLister($mode, $dataset, $registered_ip, $requester_ip, $target_webservice, $interface);
 
 $ws_al->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                   (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

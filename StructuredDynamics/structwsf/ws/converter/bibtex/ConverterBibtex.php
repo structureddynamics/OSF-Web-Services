@@ -225,7 +225,7 @@ class ConverterBibtex extends \StructuredDynamics\structwsf\ws\framework\WebServ
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  protected function validateQuery() { return; }
+  public function validateQuery() { return; }
 
 
   /** Normalize the remaining of a URI

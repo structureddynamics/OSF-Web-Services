@@ -14,7 +14,6 @@ use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
 use \StructuredDynamics\structwsf\ws\auth\validator\AuthValidator;
 use \StructuredDynamics\structwsf\ws\auth\lister\AuthLister;
 use \StructuredDynamics\structwsf\ws\framework\ProcessorXML;
-use \StructuredDynamics\structwsf\ws\auth\registrar\access\AuthRegistrarAccess;
 use \StructuredDynamics\structwsf\ws\framework\Conneg;
 
 /** Dataset Create Web Service. It creates a new graph for this dataset & indexation of its description
@@ -95,8 +94,45 @@ class DatasetCreate extends \StructuredDynamics\structwsf\ws\framework\WebServic
                           "level": "Fatal",
                           "name": "Can\'t create the dataset",
                           "description": "An error occured when we tried to register the new dataset to the web service framework"
-                        }  
+                        },
+                        "_301": {
+                          "id": "WS-DATASET-CREATE-301",
+                          "level": "Fatal",
+                          "name": "Requested source interface not existing",
+                          "description": "The source interface you requested is not existing for this web service endpoint."
+                        }    
                       }';
+                      
+  /**
+  * Implementation of the __get() magic method. We do implement it to create getter functions
+  * for all the protected and private variables of this class, and to all protected variables
+  * of the parent class.
+  * 
+  * This implementation is needed by the interfaces layer since we want the SourceInterface
+  * class to access the variables of the web service class for which it is used as a 
+  * source interface.
+  * 
+  * This means that all the privated and propected variables of these web service objects
+  * are available to users; but they won't be able to set values for them.
+  * 
+  * Also note that This method is about 4 times slower than having the varaible as public instead 
+  * of protected and private. However, these variables are only accessed about 10 to 200 times 
+  * per script call. This means that for accessing these undefined variable using the __get magic 
+  * method call, then it adds about 0.00022 seconds to the call or, about 0.22 milli-second 
+  * (one fifth of a millisecond) For the gain of keeping the variables protected and private, 
+  * we can spend this one fifth of a milli-second. This is a good compromize.  
+  * 
+  * @param mixed $name Name of the variable that is currently not defined for this object
+  */
+  public function __get($name)
+  {
+    // Check if the variable exists (so, if it is private or protected). If it is, then
+    // we return the value. Otherwise a fatal error will be returned by PHP.
+    if(isset($this->{$name}))
+    {
+      return($this->{$name});
+    }
+  }                      
 
 
   /** Constructor
@@ -109,13 +145,15 @@ class DatasetCreate extends \StructuredDynamics\structwsf\ws\framework\WebServic
       @param $requester_ip IP address of the requester
       @param $webservices Web services that can be used to access and manage that dataset. It is list of ";" separated Web services URI
       @param $globalPermissions Permissions to set for the "public user" to access this new ontology dataset.
-
+      @param $interface Name of the source interface to use for this web service query. Default value: 'default'                            
+      
       @return returns NULL
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
   function __construct($uri, $datasetTitle, $description, $creator, $registered_ip, $requester_ip, 
-                       $webservices = "all", $globalPermissions = "False;False;False;False")
+                       $webservices = "all", $globalPermissions = "False;False;False;False",
+                       $interface='default')
   {
     parent::__construct();
 
@@ -136,6 +174,15 @@ class DatasetCreate extends \StructuredDynamics\structwsf\ws\framework\WebServic
     else
     {
       $this->registered_ip = $registered_ip;
+    }
+    
+    if(strtolower($interface) == "default")
+    {
+      $this->interface = "DefaultSourceInterface";
+    }
+    else
+    {
+      $this->interface = $interface;
     }
 
     if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
@@ -191,7 +238,7 @@ class DatasetCreate extends \StructuredDynamics\structwsf\ws\framework\WebServic
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  protected function validateQuery()
+  public function validateQuery()
   {
     // Only users that have "Create" access to the "http://.../wsf/datasets/" graph can create new dataset
     // in the structWSF instance.
@@ -327,12 +374,12 @@ class DatasetCreate extends \StructuredDynamics\structwsf\ws\framework\WebServic
     if($this->conneg->getStatus() == 200)
     {
       // Check if the dataset is already existing
-      $query .= "  select ?dataset 
-                from <" . $this->wsf_graph . "datasets/>
-                where
-                {
-                  <" . $this->datasetUri . "> a ?dataset .
-                }";
+      $query = "  select ?dataset 
+                  from <" . $this->wsf_graph . "datasets/>
+                  where
+                  {
+                     <" . $this->datasetUri . "> a ?dataset .
+                  }";
 
       $resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
         array( "dataset" ), FALSE));
@@ -422,131 +469,28 @@ class DatasetCreate extends \StructuredDynamics\structwsf\ws\framework\WebServic
   */
   public function process()
   {
-    // Make sure there was no conneg error prior to this process call
-    if($this->conneg->getStatus() == 200)
-    {
-      $query = "insert into <" . $this->wsf_graph . "datasets/>
-              {
-                <" . $this->datasetUri . "> a <http://rdfs.org/ns/void#Dataset> ;
-                " . ($this->datasetTitle != "" ? "<http://purl.org/dc/terms/title> \"\"\"" . str_replace("'", "\'", $this->datasetTitle) . "\"\"\" ; " : "") . "
-                " . ($this->description != "" ? "<http://purl.org/dc/terms/description> \"\"\"" . str_replace("'", "\'", $this->description) . "\"\"\" ; " : "") . "
-                " . ($this->creator != "" ? "<http://purl.org/dc/terms/creator> <$this->creator> ; " : "") . "
-                <http://purl.org/dc/terms/created> \"" . date("Y-n-j") . "\" .
-              }";
-
-      @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-        FALSE));
-
-      if(odbc_error())
-      {
-        $this->conneg->setStatus(500);
-        $this->conneg->setStatusMsg("Internal Error");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_300->name);
-        $this->conneg->setError($this->errorMessenger->_300->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_300->name, $this->errorMessenger->_300->description, odbc_errormsg(),
-          $this->errorMessenger->_300->level);
-
-        return;
-      }
-
-      /* 
-        If the dataset has been created, the next step is to create the permissions for this user (full crud)
-        and for the public one (no crud).
-      */
-
-      /* Get the list of web services registered to this structWSF instance. */
-      if(strtolower($this->webservices) == "all")
-      {      
-        $ws_al = new AuthLister("ws", $this->datasetUri, $this->requester_ip, $this->wsf_local_ip);
-
-        $ws_al->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
-          $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
-
-        $ws_al->process();
-
-        if($ws_al->pipeline_getResponseHeaderStatus() != 200)
-        {
-          $this->conneg->setStatus($ws_al->pipeline_getResponseHeaderStatus());
-          $this->conneg->setStatusMsg($ws_al->pipeline_getResponseHeaderStatusMsg());
-          $this->conneg->setStatusMsgExt($ws_al->pipeline_getResponseHeaderStatusMsgExt());
-          $this->conneg->setError($ws_al->pipeline_getError()->id, $ws_al->pipeline_getError()->webservice,
-            $ws_al->pipeline_getError()->name, $ws_al->pipeline_getError()->description,
-            $ws_al->pipeline_getError()->debugInfo, $ws_al->pipeline_getError()->level);
-
-          return;
-        }
-
-        /* Get all web services */
-
-        $webservices = "";
-
-        $xml = new ProcessorXML();
-        $xml->loadXML($ws_al->pipeline_getResultset());
-
-        $webServiceElements = $xml->getXPath('//predicate/object[attribute::type="wsf:WebService"]');
-
-        foreach($webServiceElements as $element)
-        {
-          $webservices .= $xml->getURI($element) . ";";
-        }
-
-        $webservices = substr($webservices, 0, strlen($webservices) - 1);
-        unset($xml);
-        unset($ws_al);         
-        
-        $this->webservices = $webservices;
-      }
-
-
-
-      /* Register full CRUD for the creator of the dataset, for the dataset's ID */
-
-      $ws_ara = new AuthRegistrarAccess("True;True;True;True", $this->webservices, $this->datasetUri, "create", "",
-        $this->requester_ip, $this->wsf_local_ip);
-
-      $ws_ara->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
-        $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
-
-      $ws_ara->process();
-
-      if($ws_ara->pipeline_getResponseHeaderStatus() != 200)
-      {
-        $this->conneg->setStatus($ws_ara->pipeline_getResponseHeaderStatus());
-        $this->conneg->setStatusMsg($ws_ara->pipeline_getResponseHeaderStatusMsg());
-        $this->conneg->setStatusMsgExt($ws_ara->pipeline_getResponseHeaderStatusMsgExt());
-        $this->conneg->setError($ws_ara->pipeline_getError()->id, $ws_ara->pipeline_getError()->webservice,
-          $ws_ara->pipeline_getError()->name, $ws_ara->pipeline_getError()->description,
-          $ws_ara->pipeline_getError()->debugInfo, $ws_ara->pipeline_getError()->level);
-
-        return;
-      }
-
-      unset($ws_ara);
-
-      /* Register no CRUD for the public user, for the dataset's ID */
-
-      $ws_ara =
-        new AuthRegistrarAccess($this->globalPermissions, $this->webservices, $this->datasetUri, "create", "", "0.0.0.0",
-          $this->wsf_local_ip);
-
-      $ws_ara->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
-        $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
-
-      $ws_ara->process();
-
-      if($ws_ara->pipeline_getResponseHeaderStatus() != 200)
-      {
-        $this->conneg->setStatus($ws_ara->pipeline_getResponseHeaderStatus());
-        $this->conneg->setStatusMsg($ws_ara->pipeline_getResponseHeaderStatusMsg());
-        $this->conneg->setStatusMsgExt($ws_ara->pipeline_getResponseHeaderStatusMsgExt());
-        $this->conneg->setError($ws_ara->pipeline_getError()->id, $ws_ara->pipeline_getError()->webservice,
-          $ws_ara->pipeline_getError()->name, $ws_ara->pipeline_getError()->description,
-          $ws_ara->pipeline_getError()->debugInfo, $ws_ara->pipeline_getError()->level);
-
-        return;
-      }
-
-      unset($ws_ara);
+     // Check if the interface called by the user is existing
+    $class = $this->sourceinterface_exists(rtrim($this->wsf_base_path, "/")."/dataset/create/interfaces/");
+    
+    if($class != "")
+    {    
+      $class = 'StructuredDynamics\structwsf\ws\dataset\create\interfaces\\'.$class;
+      
+      $interface = new $class($this);
+      
+      // Process the code defined in the source interface
+      $interface->processInterface();
+    }
+    else
+    { 
+      // Interface not existing
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_301->name);
+      $this->conneg->setError($this->errorMessenger->_301->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_301->name, $this->errorMessenger->_301->description, 
+        "Requested Source Interface: ".$this->interface,
+        $this->errorMessenger->_301->level);
     }
   }
 }

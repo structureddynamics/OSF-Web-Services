@@ -16,7 +16,6 @@ use \StructuredDynamics\structwsf\ws\framework\Conneg;
 use \StructuredDynamics\structwsf\ws\dataset\read\DatasetRead;
 use \StructuredDynamics\structwsf\ws\crud\read\CrudRead;
 use \StructuredDynamics\structwsf\framework\WebServiceQuerier;
-use \StructuredDynamics\structwsf\ws\framework\Solr;
 
 /** CRUD Delete web service. It removes record instances within dataset indexes on different systems (Virtuoso, Solr, etc).
 
@@ -87,9 +86,46 @@ class CrudDelete extends \StructuredDynamics\structwsf\ws\framework\WebService
         "level": "Fatal",
         "name": "Can\'t create a tracking record for one of the input records",
         "description": "We can\'t create the records because we can\'t ensure that we have a track of their changes."
-      }  
+      },
+      "_304": {
+        "id": "WS-CRUD-READ-304",
+        "level": "Fatal",
+        "name": "Requested source interface not existing",
+        "description": "The source interface you requested is not existing for this web service endpoint."
+      }    
     }';
 
+  /**
+  * Implementation of the __get() magic method. We do implement it to create getter functions
+  * for all the protected and private variables of this class, and to all protected variables
+  * of the parent class.
+  * 
+  * This implementation is needed by the interfaces layer since we want the SourceInterface
+  * class to access the variables of the web service class for which it is used as a 
+  * source interface.
+  * 
+  * This means that all the privated and propected variables of these web service objects
+  * are available to users; but they won't be able to set values for them.
+  * 
+  * Also note that This method is about 4 times slower than having the varaible as public instead 
+  * of protected and private. However, these variables are only accessed about 10 to 200 times 
+  * per script call. This means that for accessing these undefined variable using the __get magic 
+  * method call, then it adds about 0.00022 seconds to the call or, about 0.22 milli-second 
+  * (one fifth of a millisecond) For the gain of keeping the variables protected and private, 
+  * we can spend this one fifth of a milli-second. This is a good compromize.  
+  * 
+  * @param mixed $name Name of the variable that is currently not defined for this object
+  */
+  public function __get($name)
+  {
+    // Check if the variable exists (so, if it is private or protected). If it is, then
+    // we return the value. Otherwise a fatal error will be returned by PHP.
+    if(isset($this->{$name}))
+    {
+      return($this->{$name});
+    }
+  }    
+    
 
   /** Constructor
       
@@ -97,12 +133,14 @@ class CrudDelete extends \StructuredDynamics\structwsf\ws\framework\WebService
       @param $dataset URI of the dataset where the instance record is indexed
       @param $registered_ip Target IP address registered in the WSF
       @param $requester_ip IP address of the requester
+      @param $interface Name of the source interface to use for this web service query. Default value: 'default'                            
+
 
       @return returns NULL
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($uri, $dataset, $registered_ip, $requester_ip)
+  function __construct($uri, $dataset, $registered_ip, $requester_ip, $interface='default')
   {
     parent::__construct();
 
@@ -119,6 +157,15 @@ class CrudDelete extends \StructuredDynamics\structwsf\ws\framework\WebService
     else
     {
       $this->registered_ip = $registered_ip;
+    }
+    
+    if(strtolower($interface) == "default")
+    {
+      $this->interface = "DefaultSourceInterface";
+    }
+    else
+    {
+      $this->interface = $interface;
     }
 
     if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
@@ -161,7 +208,7 @@ class CrudDelete extends \StructuredDynamics\structwsf\ws\framework\WebService
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  protected function validateQuery()
+  public function validateQuery()
   {
     // Validation of the "requester_ip" to make sure the system that is sending the query as the rights.
     $ws_av = new AuthValidator($this->requester_ip, $this->dataset, $this->uri);
@@ -296,9 +343,9 @@ class CrudDelete extends \StructuredDynamics\structwsf\ws\framework\WebService
       $this->conneg->setStatus($ws_dr->pipeline_getResponseHeaderStatus());
       $this->conneg->setStatusMsg($ws_dr->pipeline_getResponseHeaderStatusMsg());
       $this->conneg->setStatusMsgExt($ws_dr->pipeline_getResponseHeaderStatusMsgExt());
-      $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
-        $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
-        $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
+      $this->conneg->setError($ws_dr->pipeline_getError()->id, $ws_dr->pipeline_getError()->webservice,
+        $ws_dr->pipeline_getError()->name, $ws_dr->pipeline_getError()->description,
+        $ws_dr->pipeline_getError()->debugInfo, $ws_dr->pipeline_getError()->level);
 
       return;
     }
@@ -361,134 +408,29 @@ class CrudDelete extends \StructuredDynamics\structwsf\ws\framework\WebService
   */
   public function process()
   {
-    // Make sure there was no conneg error prior to this process call
-    if($this->conneg->getStatus() == 200)
-    {
-      $this->validateQuery();
-
-      // If the query is still valid
-      if($this->conneg->getStatus() == 200)
-      {
-        
-        // Track the record description changes
-        if($this->track_delete === TRUE)
-        {
-          // First check if the record is already existing for this record, within this dataset.
-          $ws_cr = new CrudRead($this->resourceUri, $this->dataset, FALSE, TRUE, $this->registered_ip, $this->requester_ip);
-          
-          $ws_cr->ws_conneg("application/rdf+xml", "utf-8", "identity", "en");
-
-          $ws_cr->process();
-
-          $oldRecordDescription = $ws_cr->ws_serialize();
-          
-          $ws_cr_error = $ws_cr->pipeline_getError();
-          
-          if($ws_cr->pipeline_getResponseHeaderStatus() != 200)
-          {
-            // An error occured. Since we can't get the past state of a record, we have to send an error
-            // for the CrudUpdate call since we can't create a tracking record for this record.
-            $this->conneg->setStatus(400);
-            $this->conneg->setStatusMsg("Bad Request");
-            $this->conneg->setError($this->errorMessenger->_303->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_303->name, $this->errorMessenger->_303->description, 
-              "We can't create a track record for the following record: ".$this->resourceUri,
-              $this->errorMessenger->_303->level);
-              
-            break;
-          }    
-          
-          $endpoint = "";
-          if($this->tracking_endpoint != "")
-          {
-            // We send the query to a remove tracking endpoint
-            $endpoint = $this->tracking_endpoint."create/";
-          }
-          else
-          {
-            // We send the query to a local tracking endpoint
-            $endpoint = $this->wsf_base_url."/ws/tracker/create/";
-          }
-          
-          $wsq = new WebServiceQuerier($endpoint, "post",
-            "text/xml", "from_dataset=" . urlencode($this->dataset) .
-            "&record=" . urlencode($this->resourceUri) .
-            "&action=delete" .
-            "&previous_state=" . urlencode($oldRecordDescription) .
-            "&previous_state_mime=" . urlencode("application/rdf+xml") .
-            "&performer=" . urlencode($this->registered_ip) .
-            "&registered_ip=self");
-
-          if($wsq->getStatus() != 200)
-          {
-            $this->conneg->setStatus($wsq->getStatus());
-            $this->conneg->setStatusMsg($wsq->getStatusMessage());
-            /*
-            $this->conneg->setError($this->errorMessenger->_302->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_302->name, $this->errorMessenger->_302->description, odbc_errormsg(),
-              $this->errorMessenger->_302->level);                
-            */
-          }
-
-          unset($wsq);              
-        }        
-        
-        // Delete all triples for this URI in that dataset
-        $query = "delete from <" . $this->dataset . ">
-                { 
-                  <" . $this->resourceUri . "> ?p ?o. 
-                }
-                where
-                {
-                  <" . $this->resourceUri . "> ?p ?o. 
-                }";
-
-        @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-          FALSE));
-
-        if(odbc_error())
-        {
-          $this->conneg->setStatus(500);
-          $this->conneg->setStatusMsg("Internal Error");
-          $this->conneg->setStatusMsgExt($this->errorMessenger->_300->name);
-          $this->conneg->setError($this->errorMessenger->_300->id, $this->errorMessenger->ws,
-            $this->errorMessenger->_300->name, $this->errorMessenger->_300->description, odbc_errormsg(),
-            $this->errorMessenger->_300->level);
-
-          return;
-        }
-
-        // Delete the Solr document in the Solr index
-        $solr = new Solr($this->wsf_solr_core, $this->solr_host, $this->solr_port, $this->fields_index_folder);
-
-        if(!$solr->deleteInstanceRecord($this->resourceUri, $this->dataset))
-        {
-          $this->conneg->setStatus(500);
-          $this->conneg->setStatusMsg("Internal Error");
-          $this->conneg->setStatusMsgExt($this->errorMessenger->_301->name);
-          $this->conneg->setError($this->errorMessenger->_301->id, $this->errorMessenger->ws,
-            $this->errorMessenger->_301->name, $this->errorMessenger->_301->description, odbc_errormsg(),
-            $this->errorMessenger->_301->level);
-
-          return;
-        }
-
-        if($this->solr_auto_commit === FALSE)
-        {
-          if(!$solr->commit())
-          {
-            $this->conneg->setStatus(500);
-            $this->conneg->setStatusMsg("Internal Error");
-            $this->conneg->setStatusMsgExt($this->errorMessenger->_302->name);
-            $this->conneg->setError($this->errorMessenger->_302->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_302->name, $this->errorMessenger->_302->description, odbc_errormsg(),
-              $this->errorMessenger->_302->level);
-
-            return;
-          }
-        }
-      }
+    // Check if the interface called by the user is existing
+    $class = $this->sourceinterface_exists(rtrim($this->wsf_base_path, "/")."/crud/delete/interfaces/");
+    
+    if($class != "")
+    {    
+      $class = 'StructuredDynamics\structwsf\ws\crud\delete\interfaces\\'.$class;
+      
+      $interface = new $class($this);
+      
+      // Process the code defined in the source interface
+      $interface->processInterface();
     }
+    else
+    { 
+      // Interface not existing
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_304->name);
+      $this->conneg->setError($this->errorMessenger->_304->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_304->name, $this->errorMessenger->_304->description, 
+        "Requested Source Interface: ".$this->interface,
+        $this->errorMessenger->_304->level);
+    }  
   }
 }
 

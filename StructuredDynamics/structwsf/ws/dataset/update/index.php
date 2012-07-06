@@ -23,6 +23,14 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST')
     die;
 }
 
+// Interface to use for this query
+$interface = "default";
+
+if(isset($_POST['interface']))
+{
+  $interface = $_POST['interface'];
+}
+
 // URI for the dataset
 $uri = "";
 
@@ -100,9 +108,9 @@ if(isset($_SERVER['REMOTE_ADDR']))
 // Optional IP
 $registered_ip = "";
 
-if(isset($_GET['registered_ip']))
+if(isset($_POST['registered_ip']))
 {
-  $registered_ip = $_GET['registered_ip'];
+  $registered_ip = $_POST['registered_ip'];
 }
 
 $parameters = "";
@@ -123,7 +131,8 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_du = new DatasetUpdate($uri, $title, $description, $contributors, $modified, $registered_ip, $requester_ip);
+$ws_du = new DatasetUpdate($uri, $title, $description, $contributors, $modified, 
+                           $registered_ip, $requester_ip, $interface);
 
 $ws_du->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                   (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

@@ -13,7 +13,6 @@ use \StructuredDynamics\structwsf\ws\framework\DBVirtuoso;
 use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
 use \StructuredDynamics\structwsf\ws\auth\validator\AuthValidator;
 use \StructuredDynamics\structwsf\ws\framework\Conneg;
-use \StructuredDynamics\structwsf\framework\Subject;
 
 /** AuthLister Web Service. It lists registered web services and available dataset
             
@@ -88,7 +87,13 @@ class AuthLister extends \StructuredDynamics\structwsf\ws\framework\WebService
                           "level": "Fatal",
                           "name": "Can\'t get access information for this web service",
                           "description": "An error occured when we tried to get the information for the access to that web service."
-                        }  
+                        },
+                        "_305": {
+                          "id": "WS-AUTH-LISTER-305",
+                          "level": "Fatal",
+                          "name": "Requested source interface not existing",
+                          "description": "The source interface you requested is not existing for this web service endpoint."
+                        }    
                       }';
 
   /** Supported serialization mime types by this Web service */
@@ -96,7 +101,38 @@ class AuthLister extends \StructuredDynamics\structwsf\ws\framework\WebService
     array ("application/json", "application/rdf+xml", "application/rdf+n3", "application/iron+json", 
            "application/iron+csv", "application/*", "text/xml", "text/*", "*/*");
 
-/** Constructor
+  /**
+  * Implementation of the __get() magic method. We do implement it to create getter functions
+  * for all the protected and private variables of this class, and to all protected variables
+  * of the parent class.
+  * 
+  * This implementation is needed by the interfaces layer since we want the SourceInterface
+  * class to access the variables of the web service class for which it is used as a 
+  * source interface.
+  * 
+  * This means that all the privated and propected variables of these web service objects
+  * are available to users; but they won't be able to set values for them.
+  * 
+  * Also note that This method is about 4 times slower than having the varaible as public instead 
+  * of protected and private. However, these variables are only accessed about 10 to 200 times 
+  * per script call. This means that for accessing these undefined variable using the __get magic 
+  * method call, then it adds about 0.00022 seconds to the call or, about 0.22 milli-second 
+  * (one fifth of a millisecond) For the gain of keeping the variables protected and private, 
+  * we can spend this one fifth of a milli-second. This is a good compromize.  
+  * 
+  * @param mixed $name Name of the variable that is currently not defined for this object
+  */
+  public function __get($name)
+  {
+    // Check if the variable exists (so, if it is private or protected). If it is, then
+    // we return the value. Otherwise a fatal error will be returned by PHP.
+    if(isset($this->{$name}))
+    {
+      return($this->{$name});
+    }
+  }     
+           
+  /** Constructor
 
     @param $mode One of:  (1) "dataset (default)": List all datasets URI accessible by a user, 
                           (2) "ws": List all Web services registered in a WSF
@@ -116,12 +152,14 @@ class AuthLister extends \StructuredDynamics\structwsf\ws\framework\WebService
                                                    be taken into account and returned to the user (may be more time 
                                                    consuming).
                                 + "none": no web service URI, for any access record, will be returned. 
+    @param $interface Name of the source interface to use for this web service query. Default value: 'default'                            
     
     @return returns NULL
   
     @author Frederick Giasson, Structured Dynamics LLC.
 */
-  function __construct($mode, $dataset, $registered_ip, $requester_ip, $target_webservice = "all")
+  function __construct($mode, $dataset, $registered_ip, $requester_ip, $target_webservice = "all", 
+                       $interface='default')
   {
     parent::__construct();
 
@@ -131,6 +169,15 @@ class AuthLister extends \StructuredDynamics\structwsf\ws\framework\WebService
     $this->mode = $mode;
     $this->dataset = $dataset;
     $this->targetWebservice = strtolower($target_webservice);
+    
+    if(strtolower($interface) == "default")
+    {
+      $this->interface = "DefaultSourceInterface";
+    }
+    else
+    {
+      $this->interface = $interface;
+    }    
     
     if($registered_ip == "")
     {
@@ -183,7 +230,7 @@ class AuthLister extends \StructuredDynamics\structwsf\ws\framework\WebService
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  protected function validateQuery()
+  public function validateQuery()
   {
     // publicly accessible users
     if($this->mode != "dataset" && $this->mode != "access_user")
@@ -352,256 +399,29 @@ class AuthLister extends \StructuredDynamics\structwsf\ws\framework\WebService
   */
   public function process()
   {
-    // Make sure there was no conneg error prior to this process call
-    if($this->conneg->getStatus() == 200)
-    {
-      $this->validateQuery();
-
-      // If the query is still valid
-      if($this->conneg->getStatus() == 200)
-      {
-        if(strtolower($this->mode) == "dataset")
-        {
-          $query =
-            "  select distinct ?dataset 
-                  from <" . $this->wsf_graph
-            . "> 
-                  where 
-                  { 
-                    { 
-                      ?access <http://purl.org/ontology/wsf#registeredIP> \"$this->registered_ip\" ; 
-                            <http://purl.org/ontology/wsf#datasetAccess> ?dataset . 
-                    } 
-                    UNION 
-                    { 
-                      ?access <http://purl.org/ontology/wsf#registeredIP> \"0.0.0.0\" ; 
-                            <http://purl.org/ontology/wsf#create> ?create ; 
-                            <http://purl.org/ontology/wsf#read> ?read ; 
-                            <http://purl.org/ontology/wsf#update> ?update ; 
-                            <http://purl.org/ontology/wsf#delete> ?delete ; 
-                            <http://purl.org/ontology/wsf#datasetAccess> ?dataset .
-                      filter( str(?create) = \"True\" or str(?read) = \"True\" or str(?update) = \"True\" or str(?delete) = \"True\").
-                    }
-                  }";
-
-          $resultset =
-            @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-              FALSE));
-
-          if(odbc_error())
-          {
-            $this->conneg->setStatus(500);
-            $this->conneg->setStatusMsg("Internal Error");
-            $this->conneg->setStatusMsgExt($this->errorMessenger->_300->name);
-            $this->conneg->setError($this->errorMessenger->_300->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_300->name, $this->errorMessenger->_300->description, odbc_errormsg(),
-              $this->errorMessenger->_300->level);
-            return;
-          }
-
-          $subject = new Subject("bnode:".md5(microtime()));
-          $subject->setType("rdf:Bag");
-          
-          while(odbc_fetch_row($resultset))
-          {
-            $dataset = odbc_result($resultset, 1);
-            
-            $subject->setObjectAttribute("rdf:li", $dataset, null, "void:Dataset");
-          }
-          
-          $this->rset->addSubject($subject);            
-        }
-        elseif(strtolower($this->mode) == "ws")
-        {
-          $query =
-            "  select distinct ?ws from <" . $this->wsf_graph
-            . ">
-                  where
-                  {
-                    ?wsf a <http://purl.org/ontology/wsf#WebServiceFramework> ;
-                          <http://purl.org/ontology/wsf#hasWebService> ?ws .
-                  }";
-
-          $resultset =
-            @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-              FALSE));
-
-          if(odbc_error())
-          {
-            $this->conneg->setStatus(500);
-            $this->conneg->setStatusMsg("Internal Error");
-            $this->conneg->setStatusMsgExt($this->errorMessenger->_301->name);
-            $this->conneg->setError($this->errorMessenger->_301->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_301->name, $this->errorMessenger->_301->description, odbc_errormsg(),
-              $this->errorMessenger->_301->level);
-            return;
-          }
-          
-          $subject = new Subject("bnode:".md5(microtime()));
-          $subject->setType("rdf:Bag");          
-
-          while(odbc_fetch_row($resultset))
-          {
-            $ws = odbc_result($resultset, 1);
+    // Check if the interface called by the user is existing
+    $class = $this->sourceinterface_exists(rtrim($this->wsf_base_path, "/")."/auth/lister/interfaces/");
+    
+    if($class != "")
+    {    
+      $class = 'StructuredDynamics\structwsf\ws\auth\lister\interfaces\\'.$class;
       
-            $subject->setObjectAttribute("rdf:li", $ws, null, "wsf:WebService");
-          }
-          
-          $this->rset->addSubject($subject);    
-        }
-        else
-        { 
-          if(strtolower($this->mode) == "access_user")
-          { 
-            $query = "  select ?access ?datasetAccess ?create ?read ?update ?delete ?registeredIP ".($this->targetWebservice == "all" ? "?webServiceAccess" : "")."
-                    from <" . $this->wsf_graph
-              . ">
-                    where
-                    {
-                      {
-                        ?access a <http://purl.org/ontology/wsf#Access> ;
-                              <http://purl.org/ontology/wsf#registeredIP> \"$this->registered_ip\" ;
-                              <http://purl.org/ontology/wsf#create> ?create ;
-                              <http://purl.org/ontology/wsf#read> ?read ;
-                              <http://purl.org/ontology/wsf#update> ?update ;
-                              <http://purl.org/ontology/wsf#delete> ?delete ;
-                              <http://purl.org/ontology/wsf#datasetAccess> ?datasetAccess ;
-                              ".($this->targetWebservice == "all" ? "<http://purl.org/ontology/wsf#webServiceAccess> ?webServiceAccess ;" : "")."
-                              ".($this->targetWebservice != "none" && $this->targetWebservice != "all" ? "<http://purl.org/ontology/wsf#webServiceAccess> <".$this->targetWebservice."> ;" : "")."
-                              <http://purl.org/ontology/wsf#registeredIP> ?registeredIP .
-                      }
-                      union
-                      {
-                        ?access a <http://purl.org/ontology/wsf#Access> ;
-                              <http://purl.org/ontology/wsf#registeredIP> \"0.0.0.0\" ;
-                              <http://purl.org/ontology/wsf#create> ?create ;
-                              <http://purl.org/ontology/wsf#read> ?read ;
-                              <http://purl.org/ontology/wsf#update> ?update ;
-                              <http://purl.org/ontology/wsf#delete> ?delete ;
-                              <http://purl.org/ontology/wsf#datasetAccess> ?datasetAccess ;                      
-                              ".($this->targetWebservice == "all" ? "<http://purl.org/ontology/wsf#webServiceAccess> ?webServiceAccess ;" : "")."
-                              ".($this->targetWebservice != "none" && $this->targetWebservice != "all" ? "<http://purl.org/ontology/wsf#webServiceAccess> <".$this->targetWebservice."> ;" : "")."
-                              <http://purl.org/ontology/wsf#registeredIP> ?registeredIP .
-                              
-                        filter( str(?create) = \"True\" or str(?read) = \"True\" or str(?update) = \"True\" or str(?delete) = \"True\").
-                      }
-                    }";
-          }
-          else // access_dataset
-          {
-            $query = "  select ?access ?registeredIP ?create ?read ?update ?delete ".($this->targetWebservice == "all" ? "?webServiceAccess" : "")." 
-                    from <" . $this->wsf_graph
-              . ">
-                    where
-                    {
-                      ?access a <http://purl.org/ontology/wsf#Access> ;
-                            <http://purl.org/ontology/wsf#registeredIP> ?registeredIP ;
-                            <http://purl.org/ontology/wsf#create> ?create ;
-                            <http://purl.org/ontology/wsf#read> ?read ;
-                            <http://purl.org/ontology/wsf#update> ?update ;
-                            <http://purl.org/ontology/wsf#delete> ?delete ;
-                            ".($this->targetWebservice == "all" ? "<http://purl.org/ontology/wsf#webServiceAccess> ?webServiceAccess ;" : "")."
-                            ".($this->targetWebservice != "none" && $this->targetWebservice != "all" ? "<http://purl.org/ontology/wsf#webServiceAccess> <".$this->targetWebservice."> ;" : "")."
-                            <http://purl.org/ontology/wsf#datasetAccess> <$this->dataset> .
-                    }";
-          }
-
-          $resultset =
-            @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-              FALSE));
-
-          if(odbc_error())
-          {
-            $this->conneg->setStatus(500);
-            $this->conneg->setStatusMsg("Internal Error");
-
-            if(strtolower($this->mode) == "access_user" || strtolower($this->mode) == "access_dataset")
-            {
-              $this->conneg->setStatusMsgExt($this->errorMessenger->_302->name);
-              $this->conneg->setError($this->errorMessenger->_302->id, $this->errorMessenger->ws,
-                $this->errorMessenger->_302->name, $this->errorMessenger->_302->description, odbc_errormsg(),
-                $this->errorMessenger->_302->level);
-            }
-            else
-            {
-              $this->conneg->setStatusMsgExt($this->errorMessenger->_303->name);
-              $this->conneg->setError($this->errorMessenger->_303->id, $this->errorMessenger->ws,
-                $this->errorMessenger->_303->name, $this->errorMessenger->_303->description, odbc_errormsg(),
-                $this->errorMessenger->_303->level);
-            }
-
-            return;
-          }
-          
-          $accessPreviousId = "";
-          
-          $subject = null;
-
-          while(odbc_fetch_row($resultset))
-          {
-            $accessId = odbc_result($resultset, 1);
-            
-            if($accessPreviousId != $accessId)
-            {
-              if($subject != null)
-              {
-                $this->rset->addSubject($subject);
-              }
-              
-              $subject = new Subject($accessId);
-              $subject->setType("wsf:Access"); 
-              
-              $accessPreviousId = $accessId;
-            
-              $lastElement = "";
-
-              if(strtolower($this->mode) == "access_user")
-              {                
-                $subject->setObjectAttribute("wsf:datasetAccess", odbc_result($resultset, 2), null, "void:Dataset");  
-                $subject->setDataAttribute("wsf:create", odbc_result($resultset, 3));
-                $subject->setDataAttribute("wsf:read", odbc_result($resultset, 4));
-                $subject->setDataAttribute("wsf:update", odbc_result($resultset, 5));
-                $subject->setDataAttribute("wsf:delete", odbc_result($resultset, 6));
-                  $subject->setDataAttribute("wsf:registeredIP", odbc_result($resultset, 7));
-                                                    
-                if($this->targetWebservice == "all")
-                {                                                    
-                  $subject->setObjectAttribute("wsf:webServiceAccess", odbc_result($resultset, 8), null, "wsf:WebService");  
-                }
-              }
-              else // access_dataset
-              {
-                $subject->setDataAttribute("wsf:registeredIP", odbc_result($resultset, 2));
-                $subject->setDataAttribute("wsf:create", odbc_result($resultset, 3));
-                $subject->setDataAttribute("wsf:read", odbc_result($resultset, 4));
-                $subject->setDataAttribute("wsf:update", odbc_result($resultset, 5));
-                $subject->setDataAttribute("wsf:delete", odbc_result($resultset, 6));
-                                                                                                        
-                                                    
-                if($this->targetWebservice == "all")
-                {                                                    
-                  $subject->setObjectAttribute("wsf:webServiceAccess", odbc_result($resultset, 7), null, "wsf:WebService");                    
-                }
-              }            
-            }
-            else
-            {
-              if(strtolower($this->mode) == "access_user")
-              {              
-                $subject->setObjectAttribute("wsf:webServiceAccess", odbc_result($resultset, 8), null, "wsf:WebService");  
-              }
-              else // access_dataset
-              {
-                $subject->setObjectAttribute("wsf:webServiceAccess", odbc_result($resultset, 7), null, "wsf:WebService");  
-              }
-            }
-          }
-          
-          // Add the last subject
-          $this->rset->addSubject($subject);
-        }
-      }
+      $interface = new $class($this);
+      
+      // Process the code defined in the source interface
+      $interface->processInterface();
     }
+    else
+    { 
+      // Interface not existing
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_305->name);
+      $this->conneg->setError($this->errorMessenger->_305->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_305->name, $this->errorMessenger->_305->description, 
+        "Requested Source Interface: ".$this->interface,
+        $this->errorMessenger->_305->level);
+    }        
   }
 }
 

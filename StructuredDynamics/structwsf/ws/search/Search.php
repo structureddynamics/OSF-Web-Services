@@ -9,14 +9,9 @@
 
 namespace StructuredDynamics\structwsf\ws\search; 
 
-use \DOMDocument;
-use \DOMXPath;
+
 use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
-use \StructuredDynamics\structwsf\ws\auth\lister\AuthLister;
 use \StructuredDynamics\structwsf\ws\framework\Conneg;
-use \StructuredDynamics\structwsf\ws\framework\ProcessorXML;
-use \StructuredDynamics\structwsf\ws\framework\Solr;
-use \StructuredDynamics\structwsf\framework\Subject;
 use \StructuredDynamics\structwsf\framework\Namespaces;
 
 /** Search Web Service. It searches datasets by using three filtering properties: 
@@ -143,10 +138,47 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
                           "level": "Warning",
                           "name": "Not geo-enabled",
                           "description": "The Search web service endpoint is not geo-enabled. Please modify your query such that it does not use any geo feature such as the distance_filter and the range_filter parameters."
-                        }  
+                        },
+                        "_302": {
+                          "id": "WS-SEARCH-302",
+                          "level": "Fatal",
+                          "name": "Requested source interface not existing",
+                          "description": "The source interface you requested is not existing for this web service endpoint."
+                        }    
                         
                       }';
 
+  /**
+  * Implementation of the __get() magic method. We do implement it to create getter functions
+  * for all the protected and private variables of this class, and to all protected variables
+  * of the parent class.
+  * 
+  * This implementation is needed by the interfaces layer since we want the SourceInterface
+  * class to access the variables of the web service class for which it is used as a 
+  * source interface.
+  * 
+  * This means that all the privated and propected variables of these web service objects
+  * are available to users; but they won't be able to set values for them.
+  * 
+  * Also note that This method is about 4 times slower than having the varaible as public instead 
+  * of protected and private. However, these variables are only accessed about 10 to 200 times 
+  * per script call. This means that for accessing these undefined variable using the __get magic 
+  * method call, then it adds about 0.00022 seconds to the call or, about 0.22 milli-second 
+  * (one fifth of a millisecond) For the gain of keeping the variables protected and private, 
+  * we can spend this one fifth of a milli-second. This is a good compromize.  
+  * 
+  * @param mixed $name Name of the variable that is currently not defined for this object
+  */
+  public function __get($name)
+  {
+    // Check if the variable exists (so, if it is private or protected). If it is, then
+    // we return the value. Otherwise a fatal error will be returned by PHP.
+    if(isset($this->{$name}))
+    {
+      return($this->{$name});
+    }
+  }                      
+                      
 
   /** Constructor
       
@@ -222,6 +254,7 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
                                         a location for this parameter such that all results get aggregated around
                                         that specific location within the region. The value should be: 
                                         "latitude,longitude". By example: "49.92545999127249,-97.14934608459475"
+      @param $interface Name of the source interface to use for this web service query. Default value: 'default'                            
 
       @return returns NULL
     
@@ -231,7 +264,8 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
                        $registered_ip, $requester_ip, $distanceFilter = "", $rangeFilter = "", 
                        $aggregate_attributes = "", $attributesBooleanOperator = "and",
                        $includeAttributesList = "", $aggregate_attributes_object_type = "literal",
-                       $aggregate_attributes_nb = 10, $resultsLocationAggregator = "")
+                       $aggregate_attributes_nb = 10, $resultsLocationAggregator = "",
+                       $interface='default')
   {
     parent::__construct();
  
@@ -246,6 +280,15 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
     $this->aggregateAttributesObjectType = $aggregate_attributes_object_type;
     $this->aggregateAttributesNb = $aggregate_attributes_nb;
     $this->resultsLocationAggregator = explode(",", $resultsLocationAggregator);
+    
+    if(strtolower($interface) == "default")
+    {
+      $this->interface = "DefaultSourceInterface";
+    }
+    else
+    {
+      $this->interface = $interface;
+    }
     
     if($includeAttributesList != "")
     {
@@ -326,7 +369,7 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  protected function validateQuery() 
+  public function validateQuery() 
   {  
     if(($this->distanceFilter != "" || $this->rangeFilter != "") && $this->geoEnabled === FALSE)
     {
@@ -340,11 +383,11 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
       return;      
     }
     
-  // Here we can have a performance problem when "dataset = all" if we perform the authentication using AuthValidator.
-  // Since AuthValidator doesn't support multiple datasets at the same time, we will use the AuthLister web service
-  // in the process() function and check if the user has the permissions to "read" these datasets.
-  //
-  // This means that the validation of these queries doesn't happen at this level.
+    // Here we can have a performance problem when "dataset = all" if we perform the authentication using AuthValidator.
+    // Since AuthValidator doesn't support multiple datasets at the same time, we will use the AuthLister web service
+    // in the process() function and check if the user has the permissions to "read" these datasets.
+    //
+    // This means that the validation of these queries doesn't happen at this level.
   }
 
   /** Returns the error structure
@@ -466,56 +509,6 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
   */
   public function pipeline_getResponseHeaderStatusMsgExt() { return $this->conneg->getStatusMsgExt(); }
 
-  /** Get the namespace of a URI
-              
-      @param $uri Uri of the resource from which we want the namespace
-
-      @return returns the extracted namespace      
-      
-      @author Frederick Giasson, Structured Dynamics LLC.
-  */
-  private function getNamespace($uri)
-  {
-    $pos = strrpos($uri, "#");
-
-    if($pos !== FALSE)
-    {
-      return array (substr($uri, 0, $pos) . "#", substr($uri, $pos + 1, strlen($uri) - ($pos + 1)));
-    }
-    else
-    {
-      $pos = strrpos($uri, "/");
-
-      if($pos !== FALSE)
-      {
-        return array (substr($uri, 0, $pos) . "/", substr($uri, $pos + 1, strlen($uri) - ($pos + 1)));
-      }
-      else
-      {
-        $pos = strpos($uri, ":");
-
-        if($pos !== FALSE)
-        {
-          $nsUri = explode(":", $uri, 2);
-
-          foreach($this->namespaces as $uri2 => $prefix2)
-          {
-            $uri2 = urldecode($uri2);
-
-            if($prefix2 == $nsUri[0])
-            {
-              return (array ($uri2, $nsUri[1]));
-            }
-          }
-
-          return explode(":", $uri, 2);
-        }
-      }
-    }
-
-    return (FALSE);
-  }
-
   /** Serialize the web service answer.
 
       @return returns the serialized content
@@ -534,955 +527,30 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
   */
   public function process()
   {
-    // Make sure there was no conneg error prior to this process call
-    if($this->conneg->getStatus() == 200)
-    {
-      $solr = new Solr($this->wsf_solr_core, $this->solr_host, $this->solr_port, $this->fields_index_folder);
-
-      $solrQuery = "";
-
-      // Get all datasets accessible to that user
-      $accessibleDatasets = array();
-
-      $ws_al = new AuthLister("access_user", "", $this->registered_ip, $this->wsf_local_ip, "none");
-
-      $ws_al->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
-        $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
-
-      $ws_al->process();
-
-      $xml = new ProcessorXML();
-      $xml->loadXML($ws_al->pipeline_getResultset());
-
-      $accesses = $xml->getSubjectsByType("wsf:Access");
-
-      foreach($accesses as $access)
-      {
-        $predicates = $xml->getPredicatesByType($access, "wsf:datasetAccess");
-        $objects = $xml->getObjects($predicates->item(0));
-        $datasetUri = $xml->getURI($objects->item(0));
-
-        $predicates = $xml->getPredicatesByType($access, "wsf:read");
-        $objects = $xml->getObjects($predicates->item(0));
-        $read = $xml->getContent($objects->item(0));
-
-        if(strtolower($read) == "true" && array_search($datasetUri, $accessibleDatasets) === FALSE)
-        {          
-          array_push($accessibleDatasets, $datasetUri);
-        }
-      }
+    // Check if the interface called by the user is existing
+    $class = $this->sourceinterface_exists(rtrim($this->wsf_base_path, "/")."/search/interfaces/");
+    
+    if($class != "")
+    {    
+      $class = 'StructuredDynamics\structwsf\ws\search\interfaces\\'.$class;
       
-      unset($ws_al);
+      $interface = new $class($this);
       
-      /*
-        if registered_ip != requester_ip, this means that the query is sent by a registered system
-        on the behalf of someone else. In this case, we want to make sure that that system 
-        (the one that send the actual query) has access to the same datasets. Otherwise, it means that
-        it tries to personificate that registered_ip user.
-      */
-      if($this->registered_ip != $this->requester_ip)
-      {
-        // Get all datasets accessible to that system
-        $accessibleDatasetsSystem = array();
-
-        $ws_al = new AuthLister("access_user", "", $this->requester_ip, $this->wsf_local_ip, "none");
-
-        $ws_al->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
-          $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
-
-        $ws_al->process();
-
-        $xml = new ProcessorXML();
-        $xml->loadXML($ws_al->pipeline_getResultset());
-
-        $accesses = $xml->getSubjectsByType("wsf:Access");
-
-        foreach($accesses as $access)
-        {
-          $predicates = $xml->getPredicatesByType($access, "wsf:datasetAccess");
-          $objects = $xml->getObjects($predicates->item(0));
-          $datasetUri = $xml->getURI($objects->item(0));
-
-          $predicates = $xml->getPredicatesByType($access, "wsf:read");
-          $objects = $xml->getObjects($predicates->item(0));
-          $read = $xml->getContent($objects->item(0));
-
-          if(strtolower($read) == "true")
-          {
-            array_push($accessibleDatasetsSystem, $datasetUri);
-          }
-        }      
-        
-        unset($ws_al);         
-      
-        /*
-          Finally we use the intersection of the two set of dataset URIs as the list of accessible
-          datasets to include for the query.
-        */ 
-        $accessibleDatasets = array_intersect($accessibleDatasets, $accessibleDatasetsSystem);
-      }
-
-      if(count($accessibleDatasets) <= 0)
-      {
-        $this->conneg->setStatus(400);
-        $this->conneg->setStatusMsg("Bad Request");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_300->name);
-        $this->conneg->setError($this->errorMessenger->_300->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_300->name, $this->errorMessenger->_300->description, "",
-          $this->errorMessenger->_300->level);
-        return;
-      }
-      
-      $queryParam = "*:*";
-      
-      $specialChars = array('"', 'AND', 'OR', '?', '*', '~', '+', '-', 'NOT', '&&', '||', '!', '^');
-      
-      if($this->query != "")
-      {      
-        /* 
-          Check if characters of the Solr query language is used for this query. If some does, we *only* take
-          them to create the query.
-        */
-        $useLuceneSyntax = FALSE;
-        
-        foreach($specialChars as $char)
-        {
-          if(strpos($this->query, $char) !== FALSE)
-          {
-            $useLuceneSyntax = TRUE;
-            break;          
-          }
-        }
-        
-        if(!$useLuceneSyntax)
-        {
-          $queryParam = "%22" . urlencode(implode(" +", explode(" ", $this->escapeSolrValue($this->query)))) . "%22~5";
-        }
-        else
-        {
-          $queryParam = urlencode($this->query);
-        }        
-      }
-
-      $distanceQueryRevelencyBooster = "";
-      
-      if($this->geoEnabled && isset($this->resultsLocationAggregator[0]) && 
-         isset($this->resultsLocationAggregator[1]) && ($this->distanceFilter || $this->rangeFilter))
-      {
-        // Here, "^0" is added to zero-out the boost (revelency) value of the keyword
-        // in this query, we simply want to aggregate the results related to their
-        // distance of the center point.
-        $distanceQueryRevelencyBooster = '^0 AND _val_:"recip(dist(2, lat, long, '.$this->resultsLocationAggregator[0].', '.$this->resultsLocationAggregator[1].'), 1, 1, 0)"^100';  
-      }
-      
-      if(strtolower($this->datasets) == "all")
-      {
-        $datasetList = "";
-
-        $solrQuery = "q=$queryParam$distanceQueryRevelencyBooster&start=" . $this->page . "&rows=" . $this->items
-          . (strtolower($this->includeAggregates) == "true" ? "&facet=true&facet.sort=count&facet.limit=-1&facet.field=type" .
-          "&facet.field=attribute" . (strtolower($this->inference) == "on" ? "&facet.field=inferred_type" : "") . "&" .
-          "facet.field=dataset&facet.mincount=1" : "");
-
-        foreach($accessibleDatasets as $key => $dataset)
-        {
-          if($key == 0)
-          {
-            $solrQuery .= "&fq=dataset:%22" . urlencode($dataset) . "%22";
-          }
-          else
-          {
-            $solrQuery .= " OR dataset:%22" . urlencode($dataset) . "%22";
-          }
-        }
-      }
-      else
-      {
-        $datasets = explode(";", $this->datasets);
-
-        $solrQuery = "q=$queryParam$distanceQueryRevelencyBooster&start=" . $this->page . "&rows=" . $this->items
-          . (strtolower($this->includeAggregates) == "true" ? "&facet=true&facet.sort=count&facet.limit=-1&facet.field=type" .
-          "&facet.field=attribute" . (strtolower($this->inference) == "on" ? "&facet.field=inferred_type" : "") . "&" .
-          "facet.field=dataset&facet.mincount=1" : "");
-
-        $solrQuery .= "&fq=dataset:%22%22";
-
-        foreach($datasets as $dataset)
-        {
-          // Check if the dataset is accessible to the user
-          if(array_search($dataset, $accessibleDatasets) !== FALSE)
-          {
-            // Decoding potentially encoded ";" characters
-            $dataset = str_replace(array ("%3B", "%3b"), ";", $dataset);
-
-            $solrQuery .= " OR dataset:%22" . urlencode($dataset) . "%22";
-          }
-        }
-      }
-
-      if($this->types != "all")
-      {
-        // Lets include the information to facet per type.
-
-        $types = explode(";", $this->types);
-
-        $nbProcessed = 0;
-
-        foreach($types as $type)
-        {
-          // Decoding potentially encoded ";" characters
-          $type = str_replace(array ("%3B", "%3b"), ";", $type);
-
-          if($nbProcessed == 0)
-          {
-            $solrQuery .= "&fq=type:%22" . urlencode($type) . "%22";
-          }
-          else
-          {
-            $solrQuery .= " OR type:%22" . urlencode($type) . "%22";
-          }
-
-          $nbProcessed++;
-
-          if(strtolower($this->inference) == "on")
-          {
-            $solrQuery .= " OR inferred_type:%22" . urlencode($type) . "%22";
-          }
-        }
-      }
-      
-      if($this->attributes != "all")
-      {
-        // Lets include the information to facet per type.
-        $attributes = explode(";", $this->attributes);
-
-        $nbProcessed = 0;
-        
-        if(file_exists($this->fields_index_folder."fieldsIndex.srz"))
-        {
-          $indexedFields = unserialize(file_get_contents($this->fields_index_folder."fieldsIndex.srz"));
-        }
-        else
-        {
-          $indexedFields = array();
-        }
-
-        foreach($attributes as $attribute)
-        {
-          $attributeValue = explode("::", $attribute);
-          $attribute = urldecode($attributeValue[0]);
-
-          if(isset($attributeValue[1]) && $attributeValue[1] != "")
-          {
-            // Fix the reference to some of the core attributes
-            $coreAttr = FALSE;
-            switch($attribute)
-            {
-              case Namespaces::$iron."prefLabel":
-                $attribute = "prefLabel";
-                $coreAttr = TRUE;
-                
-                // Check if we are performing an autocompletion task on the pref label
-                $label = urldecode($attributeValue[1]);
-                if(substr($label, strlen($label) - 2) == "**")
-                {
-                  $attribute = "prefLabelAutocompletion";
-                  $attributeValue[1] = urlencode(str_replace(" ", "\\ ", substr($label, 0, strlen($label) -1)));
-                }
-              break;
-              
-              case Namespaces::$iron."altLabel":
-                $attribute = "altLabel";
-                $coreAttr = TRUE;
-              break;
-              
-              case Namespaces::$iron."description":
-                $attribute = "description";
-                $coreAttr = TRUE;
-              break;
-              
-              case Namespaces::$geo."lat":
-                if(!is_numeric(urldecode($attributeValue[1])))
-                {
-                  // If the value is not numeric, we skip that attribute/value. 
-                  // Otherwise an exception will be raised by Solr.
-                  continue;
-                }
-                              
-                $attribute = "lat";
-                $coreAttr = TRUE;
-              break;
-              
-              case Namespaces::$geo."long":
-                if(!is_numeric(urldecode($attributeValue[1])))
-                {
-                  // If the value is not numeric, we skip that attribute/value. 
-                  // Otherwise an exception will be raised by Solr.
-                  continue;
-                }
-                
-                $attribute = "long";
-                $coreAttr = TRUE;
-              break;
-              
-              case Namespaces::$sco."polygonCoordinates":              
-                $attribute = "polygonCoordinates";
-                $coreAttr = TRUE;
-              break;
-              
-              case Namespaces::$sco."polylineCoordinates":
-                $attribute = "polylineCoordinates";
-                $coreAttr = TRUE;
-              break;
-              
-              case Namespaces::$rdf."type":
-                $attribute = "type";
-                $coreAttr = TRUE;
-              break;
-              
-              case Namespaces::$geonames."locatedIn":
-                $attribute = "located_in";
-                $coreAttr = TRUE;
-              break;
-            }            
-
-            // A filtering value as been defined for this attribute.
-            $val = urldecode($attributeValue[1]);
-            
-            if($nbProcessed == 0)
-            {
-              if($coreAttr)
-              {
-                switch($attribute)
-                {                
-                  case "type":
-                    if(strtolower($this->inference) == "on")
-                    {
-                      $solrQuery .= "&fq=((type:".urlencode($this->escapeSolrValue($val)).") OR (inferred_type:".urlencode($this->escapeSolrValue($val))."))";
-                    }
-                    else
-                    {
-                      $solrQuery .= "&fq=(type:".urlencode($this->escapeSolrValue($val)).")";
-                    }
-                  break;
-                  
-                  case "located_in":
-                    $solrQuery .= "&fq=(located_in:".urlencode($this->escapeSolrValue($val)).")";
-                  break;
-                  
-                  default:
-                    $solrQuery .= "&fq=(".$attribute.":".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
-                  break;
-                }
-              }
-              else
-              {
-                $solrQuery .= "&fq=(";
-                
-                $addOR = FALSE;
-                $empty = TRUE;                
-                
-                // We have to detect if the fields are existing in Solr, otherwise Solr will throw
-                // "undefined fields" errors, and there is no way to ignore them and process
-                // the query anyway.
-                if(array_search(urlencode($attribute), $indexedFields) !== FALSE)
-                {
-                  $solrQuery .= "(".urlencode(urlencode($attribute)).":".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";  
-                  $addOR = TRUE;
-                  $empty = FALSE;
-                }
-
-                if(array_search(urlencode($attribute."_attr"), $indexedFields) !== FALSE)
-                {
-                  if($addOR)
-                  {
-                    $solrQuery .= " OR ";
-                  }
-                  
-                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr:".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
-                  $addOR = TRUE;
-                  $empty = FALSE;
-                }
-
-                if(array_search(urlencode($attribute."_attr_obj"), $indexedFields) !== FALSE)
-                {
-                  if($addOR)
-                  {
-                    $solrQuery .= " OR ";
-                  }
-                  
-                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj:".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
-                  $addOR = TRUE;
-                  $empty = FALSE;
-                }
-                
-                if(array_search(urlencode($attribute."_attr_obj_uri"), $indexedFields) !== FALSE)
-                {
-                  if($addOR)
-                  {
-                    $solrQuery .= " OR ";
-                  }
-                  
-                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj_uri:".urlencode($this->escapeSolrValue($val)).")";
-                  $addOR = TRUE;
-                  $empty = FALSE;
-                }                
-                
-                if($empty)
-                {
-                  $solrQuery = substr($solrQuery, 0, strlen($solrQuery) - 1);
-                }
-                else
-                {
-                  $solrQuery .= ")";                
-                }                
-              }
-            }
-            else
-            {
-              if($coreAttr)
-              {
-                switch($attribute)
-                {                
-                  case "type":
-                    if(strtolower($this->inference) == "on")
-                    {
-                      $solrQuery .= " ".$this->attributesBooleanOperator." ((type:".urlencode($this->escapeSolrValue($val)).") OR (inferred_type:".urlencode($this->escapeSolrValue($val))."))";
-                    }
-                    else
-                    {
-                      $solrQuery .= " ".$this->attributesBooleanOperator." (type:".urlencode($this->escapeSolrValue($val)).")";
-                    }
-                  break;                  
-                  case "located_in":
-                    $solrQuery .= " ".$this->attributesBooleanOperator." (located_in:".urlencode($this->escapeSolrValue($val)).")";
-                  break;
-                  
-                  default:
-                    $solrQuery .= " ".$this->attributesBooleanOperator." (".$attribute.":".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
-                  break;
-                }                
-                
-              }
-              else
-              {
-                if(substr($solrQuery, strlen($solrQuery) - 3) != "fq=")
-                {
-                  $solrQuery .= " ".$this->attributesBooleanOperator." (";
-                }
-                else
-                {
-                  $solrQuery .= "(";
-                }
-                
-                $addOR = FALSE;
-                $empty = TRUE;
-                
-                // We have to detect if the fields are existing in Solr, otherwise Solr will throw
-                // "undefined fields" errors, and there is no way to ignore them and process
-                // the query anyway.
-                if(array_search(urlencode($attribute), $indexedFields) !== FALSE)
-                {
-                  $solrQuery .= "(".urlencode(urlencode($attribute)).":".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
-                  $addOR = TRUE;
-                  $empty = FALSE;
-                }
-
-                if(array_search(urlencode($attribute."_attr"), $indexedFields) !== FALSE)
-                {
-                  if($addOR)
-                  {
-                    $solrQuery .= " OR ";
-                  }
-                  
-                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr:".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
-                  $addOR = TRUE;
-                  $empty = FALSE;
-                }
-
-                if(array_search(urlencode($attribute."_attr_obj"), $indexedFields) !== FALSE)
-                {
-                  if($addOR)
-                  {
-                    $solrQuery .= " OR ";
-                  }
-                  
-                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj:".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
-                  $addOR = TRUE;
-                  $empty = FALSE;
-                }
-
-                if(array_search(urlencode($attribute."_attr_obj_uri"), $indexedFields) !== FALSE)
-                {
-                  if($addOR)
-                  {
-                    $solrQuery .= " OR ";
-                  }
-                  
-                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj_uri:".urlencode($this->escapeSolrValue($val)).")";
-                  $addOR = TRUE;
-                  $empty = FALSE;
-                }
-
-                if(substr($solrQuery, strlen($solrQuery) - 4) != "fq=(")
-                {
-                  if($empty)
-                  {
-                    $solrQuery = substr($solrQuery, 0, strlen($solrQuery) - 5);
-                  }
-                  else
-                  {
-                    $solrQuery .= ")";                
-                  }
-                }
-                else
-                {
-                  $solrQuery = substr($solrQuery, 0, strlen($solrQuery) - 1);
-                }
-              }
-            }            
-          }
-          else
-          {
-            if($nbProcessed == 0)
-            {
-              $solrQuery .= "&fq=(attribute:%22" . urlencode($attribute) . "%22)";
-            }
-            else
-            {
-              $solrQuery .= " ".$this->attributesBooleanOperator." (attribute:%22" . urlencode($attribute) . "%22)";
-            }
-          }
-
-          $nbProcessed++;
-        }
-      }
-      
-      // Check if this query is geo-enabled and if a distance-filter is requested
-      if($this->geoEnabled && $this->distanceFilter != "")
-      {
-        /*
-          $params[0] == latitude
-          $params[1] == longitude
-          $params[2] == distance
-          $params[3] == (0) distance in kilometers, (1) distance in miles
-        */
-        $params = explode(";", $this->distanceFilter);
-        
-        $earthRadius = 6371;
-        
-        if($params[3] == 1)
-        {
-          $earthRadius = 3963.205;
-        }
-        
-        $solrQuery .= "&fq={!frange l=0 u=".$params[2]."}hsin(".$params[0].",".$params[1].
-                      " , lat_rad, long_rad, ".$earthRadius.")";
-      }
-      
-      // Check if this query is geo-enabled and if a range-filter is requested
-      if($this->geoEnabled && $this->rangeFilter != "")
-      {
-        /*
-          $params[0] == latitude top-left
-          $params[1] == longitude top-left
-          $params[2] == latitude bottom-right
-          $params[3] == longitude bottom-right
-        */
-        $params = explode(";", $this->rangeFilter);
-        
-        // Make sure the ranges are respected according to the way the cartesian coordinate
-        // system works.
-        $p1 = $params[0];
-        $p2 = $params[2];
-        $p3 = $params[1];
-        $p4 = $params[3];
-        
-        if($params[0] > $params[2])
-        {
-          $p1 = $params[2];
-          $p2 = $params[0];
-        }
-        
-        if($params[1] > $params[3])
-        {
-          $p3 = $params[3];
-          $p4 = $params[1];
-        }
-        
-        $solrQuery .= "&fq=lat:[".$p1." TO ".$p2."]&fq=long:[".$p3." TO ".$p4."]";
-      }
-
-      // Add the attribute/value aggregates if needed
-      if(count($this->aggregateAttributes) > 0 && strtolower($this->includeAggregates) == "true") 
-      {
-        foreach($this->aggregateAttributes as $attribute)
-        {
-          $solrQuery .= "&facet.field=".urlencode($attribute);
-          $solrQuery .= "&f.".urlencode($attribute).".facet.limit=".$this->aggregateAttributesNb;
-        }
-      }
-      
-      // Only return these fields in the resultset
-      if(count($this->includeAttributesList) > 0)
-      {
-        $solrQuery .= "&fl=";
-        
-        foreach($this->includeAttributesList as $atl)
-        {
-          $solrQuery .= urlencode(urlencode($atl))."_attr ";
-          $solrQuery .= urlencode(urlencode($atl))."_attr_obj ";
-          $solrQuery .= urlencode(urlencode($atl))."_attr_obj_uri ";
-        }
-        
-        // Also add the core attributes to the mixte
-        $solrQuery .= "prefLabel ";
-        $solrQuery .= "altLabel ";
-        $solrQuery .= "description ";
-        $solrQuery .= "lat ";
-        $solrQuery .= "long ";
-        $solrQuery .= "polygonCoordinates ";
-        $solrQuery .= "polylineCoordinates ";
-        $solrQuery .= "type ";
-        $solrQuery .= "uri ";
-        $solrQuery .= "locatedIn ";
-        $solrQuery .= "dataset ";
-        $solrQuery .= "prefURL ";
-        $solrQuery .= "geohash ";
-        $solrQuery .= "inferred_type ";
-        $solrQuery .= "prefLabelAutocompletion";
-        
-      }
-      
-      // Remove possible left-over introduced by the procedure above for some rare usecases.
-      $solrQuery = str_replace("fq= OR ", "fq=", $solrQuery);      
-      $solrQuery = str_replace("fq= AND ", "fq=", $solrQuery);      
-
-      $resultset = $solr->select($solrQuery);
-
-      // Create the internal representation of the resultset.      
-      $domResultset = new DomDocument("1.0", "utf-8");
-
-      $domResultset->loadXML($resultset);
-
-      $xpath = new DOMXPath($domResultset);
-
-      // Get the number of results
-      $founds = $xpath->query("*[@numFound]");
-
-      foreach($founds as $found)
-      {
-        $nbResources = $found->attributes->getNamedItem("numFound")->nodeValue;
-        break;
-      }
-
-      // Get all the "type" facets with their counts
-      $founds = $xpath->query("//*/lst[@name='facet_fields']//lst[@name='type']/int");
-      
-      // Set types aggregates
-      foreach($founds as $found)
-      {
-        $subject = new Subject($this->uri . "aggregate/" . md5(microtime()));
-        $subject->setType(Namespaces::$aggr."Aggregate");
-        $subject->setObjectAttribute(Namespaces::$aggr."property", Namespaces::$rdf."type");
-        $subject->setObjectAttribute(Namespaces::$aggr."object", $found->attributes->getNamedItem("name")->nodeValue);
-        $subject->setDataAttribute(Namespaces::$aggr."count", $found->nodeValue);
-        $this->rset->addSubject($subject);
-      }
-
-      // Set types aggregates for inferred types
-      if(strtolower($this->inference) == "on")
-      {
-        // Get all the "inferred_type" facets with their counts
-        $founds = $xpath->query("//*/lst[@name='facet_fields']//lst[@name='inferred_type']/int");
-
-        // Get types counts
-        foreach($founds as $found)
-        {
-          $subject = new Subject($this->uri . "aggregate/" . md5(microtime()));
-          $subject->setType(Namespaces::$aggr."Aggregate");
-          $subject->setObjectAttribute(Namespaces::$aggr."property", Namespaces::$rdf."type");
-          $subject->setObjectAttribute(Namespaces::$aggr."object", $found->attributes->getNamedItem("name")->nodeValue);
-          $subject->setDataAttribute(Namespaces::$aggr."count", $found->nodeValue);
-          $this->rset->addSubject($subject);
-        }
-      }                  
-      
-      // Set the dataset aggregates
-      $founds = $xpath->query("//*/lst[@name='facet_fields']//lst[@name='dataset']/int");
-
-      foreach($founds as $found)
-      {
-        $subject = new Subject($this->uri . "aggregate/" . md5(microtime()));
-        $subject->setType(Namespaces::$aggr."Aggregate");
-        $subject->setObjectAttribute(Namespaces::$aggr."property", Namespaces::$void."Dataset");
-        $subject->setObjectAttribute(Namespaces::$aggr."object", $found->attributes->getNamedItem("name")->nodeValue);
-        $subject->setDataAttribute(Namespaces::$aggr."count", $found->nodeValue);
-        $this->rset->addSubject($subject);        
-      }
-
-      // Set the attributes aggregates
-      $founds = $xpath->query("//*/lst[@name='facet_fields']//lst[@name='attribute']/int");
-
-      foreach($founds as $found)
-      {
-        $subject = new Subject($this->uri . "aggregate/" . md5(microtime()));
-        $subject->setType(Namespaces::$aggr."Aggregate");
-        $subject->setObjectAttribute(Namespaces::$aggr."property", Namespaces::$rdf."Property");
-        $subject->setObjectAttribute(Namespaces::$aggr."object", $found->attributes->getNamedItem("name")->nodeValue);
-        $subject->setDataAttribute(Namespaces::$aggr."count", $found->nodeValue);
-        $this->rset->addSubject($subject);        
-      }
-      
-      // Set all the attributes/values aggregates
-      foreach($this->aggregateAttributes as $attribute)
-      {
-        $founds = $xpath->query("//*/lst[@name='facet_fields']//lst[@name='$attribute']/int");
-
-        foreach($founds as $found)
-        {
-          $subject = new Subject($this->uri . "aggregate/" . md5(microtime()));
-          $subject->setType(Namespaces::$aggr."Aggregate");
-          $subject->setObjectAttribute(Namespaces::$aggr."property", str_replace(array("_attr_facets", "_attr_obj_uri"), "", urldecode($attribute)));
-          
-          if($this->aggregateAttributesObjectType == "uri")
-          {          
-            $subject->setObjectAttribute(Namespaces::$aggr."object", $found->attributes->getNamedItem("name")->nodeValue);
-          }
-          else
-          {
-            $subject->setDataAttribute(Namespaces::$aggr."object", $found->attributes->getNamedItem("name")->nodeValue);
-          }
-          
-          $subject->setDataAttribute(Namespaces::$aggr."count", $found->nodeValue);
-          $this->rset->addSubject($subject);
-        }          
-      }
-
-
-      // Set all the results
-      $resultsDom = $xpath->query("//doc");
-
-      foreach($resultsDom as $result)
-      {
-        // get URI
-        $resultURI = $xpath->query("arr[@name='uri']/str", $result);
-
-        $uri = "";
-
-        if($resultURI->length > 0)
-        {
-          $uri = $resultURI->item(0)->nodeValue;
-        }
-        else
-        {
-          continue;
-        }
-        
-        $subject = new Subject($uri);
-        
-        // get Dataset URI
-        $resultDatasetURI = $xpath->query("arr[@name='dataset']/str", $result);
-
-        if($resultDatasetURI->length > 0)
-        {
-          $subject->setObjectAttribute(Namespaces::$dcterms."isPartOf", $resultDatasetURI->item(0)->nodeValue);
-        }                
-
-        // get records preferred label
-        $resultPrefLabelURI = $xpath->query("arr[@name='prefLabel']/str", $result);
-
-        if($resultPrefLabelURI->length > 0)
-        {
-          $subject->setPrefLabel($resultPrefLabelURI->item(0)->nodeValue);
-        }
-
-        // get records aternative labels
-        $resultAltLabelURI = $xpath->query("arr[@name='altLabel']/str", $result);
-
-        for($i = 0; $i < $resultAltLabelURI->length; ++$i) 
-        {
-          $subject->setAltLabel($resultAltLabelURI->item($i)->nodeValue);
-        }
-                
-        // Get possible Lat/Long and shapes descriptions
-        
-        // First check if there is a polygonCoordinates pr a polylineCoordinates attribute for that record
-        // If there is one, then we simply ignore the lat/long coordinates since they come from these
-        // attributes and that we don't want to duplicate that information.
-        $skipLatLong = FALSE;
-        
-        $resultPolygonCoordinates = $xpath->query("arr[@name='polygonCoordinates']/str", $result);
-        
-        if($resultPolygonCoordinates->length > 0)
-        {
-          foreach($resultPolygonCoordinates as $value)
-          {
-            $subject->setDataAttribute(Namespaces::$sco."polygonCoordinates", $value->nodeValue);
-          }            
-          
-          $skipLatLong = TRUE;
-        }
-        
-        $resultPolylineCoordinates = $xpath->query("arr[@name='polylineCoordinates']/str", $result);
-        
-        if($resultPolylineCoordinates->length > 0)
-        {
-          foreach($resultPolylineCoordinates as $value)
-          {
-            $subject->setDataAttribute(Namespaces::$sco."polylineCoordinates", $value->nodeValue);
-          }            
-          
-          $skipLatLong = TRUE;
-        }          
-        
-        if(!$skipLatLong)
-        {
-          $resultDescriptionLat = $xpath->query("arr[@name='lat']/double", $result);
-
-          if($resultDescriptionLat->length > 0)
-          {
-            $subject->setDataAttribute(Namespaces::$geo."lat", $resultDescriptionLat->item(0)->nodeValue);
-          }
-
-          $resultDescriptionLong = $xpath->query("arr[@name='long']/double", $result);
-
-          if($resultDescriptionLong->length > 0)
-          {
-            $subject->setDataAttribute(Namespaces::$geo."long", $resultDescriptionLong->item(0)->nodeValue);
-          }
-        }
-        
-        // get possible locatedIn URI(s)
-        $resultLocatedIn = $xpath->query("arr[@name='located_in']/str", $result);
-
-        if($resultLocatedIn->length > 0)
-        {
-          $subject->setObjectAttribute(Namespaces::$geonames."locatedIn", $resultLocatedIn->item(0)->nodeValue);
-        }           
-
-        // get records description
-        $resultDescriptionURI = $xpath->query("arr[@name='description']/str", $result);
-
-        if($resultDescriptionURI->length > 0)
-        {
-          $subject->setDescription($resultDescriptionURI->item(0)->nodeValue);
-        }
-
-        // Get all dynamic fields attributes.
-        $resultProperties = $xpath->query("arr", $result);
-
-        $objectPropertyLabels = array();
-        $objectPropertyUris = array();
-        
-        foreach($resultProperties as $property)
-        {
-          $attribute = $property->getAttribute("name");
-
-          // Check what kind of attribute it is
-          $attributeType = "";
-
-          if(($pos = stripos($attribute, "_reify")) !== FALSE)
-          {
-            $attributeType = substr($attribute, $pos, strlen($attribute) - $pos);
-          }
-          elseif(($pos = stripos($attribute, "_attr")) !== FALSE)
-          {
-            $attributeType = substr($attribute, $pos, strlen($attribute) - $pos);
-          }
-
-          // Get the URI of the attribute
-          $attributeURI = urldecode(str_replace($attributeType, "", $attribute));
-
-          switch($attributeType)
-          {
-            case "_attr":
-              $values = $property->getElementsByTagName("str");
-
-              foreach($values as $value)
-              {
-                $subject->setDataAttribute($attributeURI, $value->nodeValue);
-              }
-            break;
-
-            case "_attr_obj":
-              $values = $property->getElementsByTagName("str");
-
-              foreach($values as $value)
-              {
-                if(!is_array($objectPropertyLabels[$attributeURI]))
-                {
-                  $objectPropertyLabels[$attributeURI] = array();
-                }
-                
-                array_push($objectPropertyLabels[$attributeURI], $value->nodeValue);
-              }
-            break;
-
-            case "_attr_obj_uri":
-              $values = $property->getElementsByTagName("str");
-
-              foreach($values as $value)
-              {
-                if(!is_array($objectPropertyUris[$attributeURI]))
-                {
-                  $objectPropertyUris[$attributeURI] = array();
-                }
-                
-                array_push($objectPropertyUris[$attributeURI], $value->nodeValue);
-              }
-            break;
-
-            case "_reify_attr":
-            case "_reify_attr_obj":
-            case "_reify_obj":
-            case "_reify_value": break;
-          }
-        }
-      
-        foreach($objectPropertyUris as $attributeUri => $objectUris)
-        {
-          foreach($objectUris as $key => $objectUri)
-          {
-            if(isset($objectPropertyLabels[$attributeUri][$key]))
-            {
-              $subject->setObjectAttribute($attributeUri, $objectUri, Array(Namespaces::$wsf."objectLabel" => Array($label = $objectPropertyLabels[$attributeUri][$key])));
-            }
-            else
-            {
-              $subject->setObjectAttribute($attributeUri, $objectUri);
-            }
-          }
-        }
-        
-        unset($objectPropertyUris);
-        unset($objectPropertyLabels);
-
-        // Get the types of the resource.
-        $resultTypes = $xpath->query("arr[@name='type']/str", $result);
-
-        for($i = 0; $i < $resultTypes->length; ++$i) 
-        {
-          if($resultTypes->item($i)->nodeValue != "-")
-          {
-            $subject->setType($resultTypes->item($i)->nodeValue);
-          }
-        }
-        
-        $this->rset->addSubject($subject, $resultDatasetURI->item(0)->nodeValue);
-      }
+      // Process the code defined in the source interface
+      $interface->processInterface();
+    }
+    else
+    { 
+      // Interface not existing
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_302->name);
+      $this->conneg->setError($this->errorMessenger->_302->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_302->name, $this->errorMessenger->_302->description, 
+        "Requested Source Interface: ".$this->interface,
+        $this->errorMessenger->_302->level);
     }
   }
-  
-  private function escapeSolrValue($string)
-  {
-    $match = array('\\', '+', '-', '&', '|', '!', '(', ')', '{', '}', '[', ']', '^', '~', '*', '?', ':', '"', ';', ' ');
-    $replace = array('\\\\', '\\+', '\\-', '\\&', '\\|', '\\!', '\\(', '\\)', '\\{', '\\}', '\\[', '\\]', '\\^', '\\~', '\\*', '\\?', '\\:', '\\"', '\\;', '\\ ');
-    $string = str_replace($match, $replace, $string);
-
-    return $string;
-  }
-  
 }
 
 

@@ -23,6 +23,14 @@ if ($_SERVER['REQUEST_METHOD'] != 'GET')
     die;
 }
 
+// Interface to use for this query
+$interface = "default";
+
+if(isset($_GET['interface']))
+{
+  $interface = $_GET['interface'];
+}
+
 // URI of the dataset to get the description of
 // "all" means all datasets visible to that user
 $uri = "";
@@ -80,7 +88,7 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_dr = new DatasetRead($uri, $meta, $registered_ip, $requester_ip);
+$ws_dr = new DatasetRead($uri, $meta, $registered_ip, $requester_ip, $interface);
 
 $ws_dr->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                   (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

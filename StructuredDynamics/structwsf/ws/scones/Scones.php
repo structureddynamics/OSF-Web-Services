@@ -9,7 +9,6 @@
 
 namespace StructuredDynamics\structwsf\ws\scones; 
 
-use \Exception;
 use \SimpleXMLElement;
 use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
 use \StructuredDynamics\structwsf\ws\framework\Conneg;
@@ -91,10 +90,46 @@ class Scones extends \StructuredDynamics\structwsf\ws\framework\WebService
                           "level": "Warning",
                           "name": "Document empty",
                           "description": "The content of the document you defined is empty"
-                        }
+                        },
+                        "_302": {
+                          "id": "WS-SCONES-302",
+                          "level": "Fatal",
+                          "name": "Requested source interface not existing",
+                          "description": "The source interface you requested is not existing for this web service endpoint."
+                        }  
                         
                       }';
 
+  /**
+  * Implementation of the __get() magic method. We do implement it to create getter functions
+  * for all the protected and private variables of this class, and to all protected variables
+  * of the parent class.
+  * 
+  * This implementation is needed by the interfaces layer since we want the SourceInterface
+  * class to access the variables of the web service class for which it is used as a 
+  * source interface.
+  * 
+  * This means that all the privated and propected variables of these web service objects
+  * are available to users; but they won't be able to set values for them.
+  * 
+  * Also note that This method is about 4 times slower than having the varaible as public instead 
+  * of protected and private. However, these variables are only accessed about 10 to 200 times 
+  * per script call. This means that for accessing these undefined variable using the __get magic 
+  * method call, then it adds about 0.00022 seconds to the call or, about 0.22 milli-second 
+  * (one fifth of a millisecond) For the gain of keeping the variables protected and private, 
+  * we can spend this one fifth of a milli-second. This is a good compromize.  
+  * 
+  * @param mixed $name Name of the variable that is currently not defined for this object
+  */
+  public function __get($name)
+  {
+    // Check if the variable exists (so, if it is private or protected). If it is, then
+    // we return the value. Otherwise a fatal error will be returned by PHP.
+    if(isset($this->{$name}))
+    {
+      return($this->{$name});
+    }
+  }                      
 
   /** Constructor
         
@@ -104,12 +139,13 @@ class Scones extends \StructuredDynamics\structwsf\ws\framework\WebService
                               pre-defined by the administrator of the node.
       @param $registered_ip Target IP address registered in the WSF
       @param $requester_ip IP address of the requester
+      @param $interface Name of the source interface to use for this web service query. Default value: 'default'                            
 
       @return returns NULL
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($document, $docmime, $application, $registered_ip, $requester_ip)
+  function __construct($document, $docmime, $application, $registered_ip, $requester_ip, $interface='default')
   {
     parent::__construct();
 
@@ -126,6 +162,15 @@ class Scones extends \StructuredDynamics\structwsf\ws\framework\WebService
     {
       $this->registered_ip = $registered_ip;
     }
+    
+    if(strtolower($interface) == "default")
+    {
+      $this->interface = "DefaultSourceInterface";
+    }
+    else
+    {
+      $this->interface = $interface;
+    }    
 
     if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
     {
@@ -169,7 +214,7 @@ class Scones extends \StructuredDynamics\structwsf\ws\framework\WebService
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  protected function validateQuery()
+  public function validateQuery()
   {
     if($this->docmime != "text/plain")
     {
@@ -375,108 +420,29 @@ class Scones extends \StructuredDynamics\structwsf\ws\framework\WebService
   */
   public function process()
   {     
-    // Make sure there was no conneg error prior to this process call
-    if($this->conneg->getStatus() == 200)
-    {
-      // Check which instance is available right now
-      $processed = FALSE;
-      
-      // Get accessible sessions (threads) from the running Scones instance
-      while($processed === FALSE) // Continue until we get a free running thread
-      {
-        for($i = 1; $i <= $this->config_ini["gate"]["nbSessions"]; $i++)
-        {
-          // Make sure the issued is not currently used by another user/process
-          if(java_values($this->SconesSession->get("session".$i."_used")) === FALSE)
-          {
-            $this->SconesSession->put("session".$i."_used", TRUE);
-            
-            // Process the incoming article
-            $corpus = $this->SconesSession->get("session".$i."_instance")->getCorpus();
-
-            $document;
-            $gateFactory = java("gate.Factory");
-            
-            if($this->isValidIRI($this->document))            
-            {
-              // Create the Gate document from the URL
-              $document = $gateFactory->newDocument(new java("java.net.URL", $this->document));
-            }
-            else
-            {
-              // Create the Gate document from the text document
-              $document = $gateFactory->newDocument(new java("java.lang.String", $this->document));
-            }
-            
-            // Create the corpus
-            $corpus = $gateFactory->newCorpus(new java("java.lang.String", "Scones Corpus"));
-            
-            // Add the document to the corpus
-            $corpus->add($document);
-            
-            // Add the corpus to the corpus controler (the application)
-            $this->SconesSession->get("session".$i."_instance")->setCorpus($corpus);
-            
-            // Execute the pipeline
-            try 
-            {
-              $this->SconesSession->get("session".$i."_instance")->execute();        
-            } 
-            catch (Exception $e) 
-            {
-              $this->SconesSession->put("session".$i."_used", FALSE);
-            }            
-            
-            // output the XML document
-            $this->annotatedDocument =  $document->toXML();
-            
-            // Empty the corpus
-            $corpus->clear();
-            
-            // Stop the thread seeking process
-            $processed = TRUE;
-            
-            // Liberate the thread for others to use
-            $this->SconesSession->put("session".$i."_used", FALSE);
-            
-            // Fix namespaces of the type of the tagged named entities
-            $this->fixNamedEntitiesNamespaces();
-            
-            break;
-          }
-        }
-        
-        sleep(1);
-      }      
-    }
-  }
-  
-  /** Fix namespaces of the type of the tagged named entities      
-
-      @author Frederick Giasson, Structured Dynamics LLC.
-  */
-  function fixNamedEntitiesNamespaces()
-  {
-    $annotatedNeXML = new SimpleXMLElement($this->annotatedDocument);
-
-    foreach($annotatedNeXML->xpath('//AnnotationSet') as $annotationSet) 
-    {
-      if((string) $annotationSet['Name'] == $this->config_ini["gate"]["neAnnotationSetName"])
-      {
-        foreach($annotationSet->Annotation as $annotation) 
-        {
-          foreach($annotation->Feature as $feature)
-          {
-            if((string) $feature->Name == "majorType")
-            {
-              $feature->Value = urldecode((string) $feature->Value);
-            }
-          }  
-        }         
-      }
-    }
+    // Check if the interface called by the user is existing
+    $class = $this->sourceinterface_exists(rtrim($this->wsf_base_path, "/")."/scones/interfaces/");
     
-    $this->annotatedDocument = $annotatedNeXML->asXML();
+    if($class != "")
+    {    
+      $class = 'StructuredDynamics\structwsf\ws\scones\interfaces\\'.$class;
+      
+      $interface = new $class($this);
+      
+      // Process the code defined in the source interface
+      $interface->processInterface();
+    }
+    else
+    { 
+      // Interface not existing
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_302->name);
+      $this->conneg->setError($this->errorMessenger->_302->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_302->name, $this->errorMessenger->_302->description, 
+        "Requested Source Interface: ".$this->interface,
+        $this->errorMessenger->_302->level);
+    }
   }
 }
 

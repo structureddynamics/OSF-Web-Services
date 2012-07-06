@@ -24,6 +24,14 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST')
     die;
 }
 
+// Interface to use for this query
+$interface = "default";
+
+if(isset($_POST['interface']))
+{
+  $interface = $_POST['interface'];
+}
+
 // Full text query supporting the Lucene operators
 $query = "";
 
@@ -193,7 +201,7 @@ elseif(isset($_SERVER['PHP_SELF']))
 $ws_s = new Search($query, $types, $attributes, $datasets, $items, $page, $inference, $include_aggregates, 
                    $registered_ip, $requester_ip, $distanceFilter, $rangeFilter, $aggregate_attributes, 
                    $attributesBooleanOperator, $includeAttributesList,$aggregateAttributesObjectType,
-                   $aggregateAttributesNb, $resultsLocationAggregator);
+                   $aggregateAttributesNb, $resultsLocationAggregator, $interface);
 
 $ws_s->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                  (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

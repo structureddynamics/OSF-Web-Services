@@ -23,6 +23,14 @@ if ($_SERVER['REQUEST_METHOD'] != 'GET')
     die;
 }
 
+// Interface to use for this query
+$interface = "default";
+
+if(isset($_GET['interface']))
+{
+  $interface = $_GET['interface'];
+}
+
 // URI for the dataset
 $uri = "";
 
@@ -70,7 +78,7 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_dd = new DatasetDelete($uri, $registered_ip, $requester_ip);
+$ws_dd = new DatasetDelete($uri, $registered_ip, $requester_ip, $interface);
 
 $ws_dd->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                   (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

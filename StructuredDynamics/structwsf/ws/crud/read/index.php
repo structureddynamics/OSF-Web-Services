@@ -18,6 +18,17 @@ ini_set("display_errors", "Off");
 
 ini_set("memory_limit", "64M");
 
+// Interface to use for this query
+$interface = "default";
+
+if(isset($_GET['interface']))
+{
+  $interface = $_GET['interface'];
+}
+elseif(isset($_POST['interface']))
+{
+  $interface = $_POST['interface'];
+}
 
 // URI of the resource to get its description
 $uri = "";
@@ -123,7 +134,8 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_cr = new CrudRead($uri, $dataset, $include_linksback, $include_reification, $registered_ip, $requester_ip, $include_attributes_list);
+$ws_cr = new CrudRead($uri, $dataset, $include_linksback, $include_reification, $registered_ip, 
+                      $requester_ip, $include_attributes_list, $interface);
 
 $ws_cr->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                   (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

@@ -89,10 +89,47 @@ class TrackerCreate extends \StructuredDynamics\structwsf\ws\framework\WebServic
         "level": "Fatal",
         "name": "Unsupported action",
         "description": "Only the actions \'delete\', \'create\' and \'update\' are supported by the tracker"
-      }
+      },
+      "_30-": {
+        "id": "WS-TRACKER-CREATE-300",
+        "level": "Fatal",
+        "name": "Requested source interface not existing",
+        "description": "The source interface you requested is not existing for this web service endpoint."
+      }        
     }';
 
 
+  /**
+  * Implementation of the __get() magic method. We do implement it to create getter functions
+  * for all the protected and private variables of this class, and to all protected variables
+  * of the parent class.
+  * 
+  * This implementation is needed by the interfaces layer since we want the SourceInterface
+  * class to access the variables of the web service class for which it is used as a 
+  * source interface.
+  * 
+  * This means that all the privated and propected variables of these web service objects
+  * are available to users; but they won't be able to set values for them.
+  * 
+  * Also note that This method is about 4 times slower than having the varaible as public instead 
+  * of protected and private. However, these variables are only accessed about 10 to 200 times 
+  * per script call. This means that for accessing these undefined variable using the __get magic 
+  * method call, then it adds about 0.00022 seconds to the call or, about 0.22 milli-second 
+  * (one fifth of a millisecond) For the gain of keeping the variables protected and private, 
+  * we can spend this one fifth of a milli-second. This is a good compromize.  
+  * 
+  * @param mixed $name Name of the variable that is currently not defined for this object
+  */
+  public function __get($name)
+  {
+    // Check if the variable exists (so, if it is private or protected). If it is, then
+    // we return the value. Otherwise a fatal error will be returned by PHP.
+    if(isset($this->{$name}))
+    {
+      return($this->{$name});
+    }
+  }    
+    
 /** Constructor
       
     @param $fromDataset Dataset where the record is indexed
@@ -105,12 +142,14 @@ class TrackerCreate extends \StructuredDynamics\structwsf\ws\framework\WebServic
     @param $performer Performer of the action on the target record.
     @param $registered_ip Target IP address registered in the WSF
     @param $requester_ip IP address of the requester
+    @param $interface Name of the source interface to use for this web service query. Default value: 'default'                               
 
     @return returns NULL
   
     @author Frederick Giasson, Structured Dynamics LLC.
 */
-  function __construct($fromDataset, $record, $action, $previousState, $previousStateMime, $performer,  $registered_ip, $requester_ip)
+  function __construct($fromDataset, $record, $action, $previousState, $previousStateMime, 
+                       $performer,  $registered_ip, $requester_ip, $interface='default')
   {
     parent::__construct();
 
@@ -125,6 +164,15 @@ class TrackerCreate extends \StructuredDynamics\structwsf\ws\framework\WebServic
     $this->previousState = base64_encode(gzencode($previousState));
     $this->previousStateMime = $previousStateMime;
     $this->performer = $performer;
+    
+    if(strtolower($interface) == "default")
+    {
+      $this->interface = "DefaultSourceInterface";
+    }
+    else
+    {
+      $this->interface = $interface;
+    }
     
     if($registered_ip == "")
     {
@@ -175,7 +223,7 @@ class TrackerCreate extends \StructuredDynamics\structwsf\ws\framework\WebServic
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  protected function validateQuery()
+  public function validateQuery()
   {
     // Validation of the "requester_ip" to make sure the system that is sending the query as the rights.
     $ws_av = new AuthValidator($this->requester_ip, $this->wsf_graph."track/", $this->uri);
@@ -383,54 +431,28 @@ class TrackerCreate extends \StructuredDynamics\structwsf\ws\framework\WebServic
   */
   public function process()
   {
-    // Make sure there was no conneg error prior to this process call
-    if($this->conneg->getStatus() == 200)
-    {
-      $this->validateQuery();
-
-      // If the query is still valid
-      if($this->conneg->getStatus() == 200)
-      {
-        $dateTime = date("c");
-
-        /*
-          Ordered changes for a record using sparql and this part of the WSF ontology.
-        
-          sparql select * from <http://.../wsf/track/> where 
-          {
-            ?s <http://purl.org/ontology/wsf#record> <http://.../wsf/datasets/67/resource/Welfare> .
-
-            ?s <http://purl.org/ontology/wsf#changeTime> ?time.
-          }
-          ORDER BY asc(xsd:dateTime(?time));
-        */
-        
-        $trackRecord = "<".$this->wsf_graph."track/record/".md5($dateTime.$this->record.$this->fromDataset)."> 
-                         a <http://purl.org/ontology/wsf#ChangeState> ;";
-                         
-        $trackRecord .= "<http://purl.org/ontology/wsf#record> <".$this->record."> ;";
-        $trackRecord .= "<http://purl.org/ontology/wsf#fromDataset> <".$this->fromDataset."> ;";
-        $trackRecord .= "<http://purl.org/ontology/wsf#changeTime> \"".$dateTime."\"^^xsd:dateTime ;";
-        $trackRecord .= "<http://purl.org/ontology/wsf#action> \"".$this->action."\" ;";
-        $trackRecord .= "<http://purl.org/ontology/wsf#previousState> \"\"\"".$this->previousState."\"\"\" ;";
-        $trackRecord .= "<http://purl.org/ontology/wsf#previousStateMime> \"".$this->previousStateMime."\" ;";
-        $trackRecord .= "<http://purl.org/ontology/wsf#performer> \"".$this->performer."\" .";
-        
-        $this->db->query("DB.DBA.TTLP_MT('"
-          . addslashes($trackRecord) . "', '" . $this->wsf_graph."track/" . "', '"
-          . $this->wsf_graph."track/" . "')");
-
-        if(odbc_error())
-        {
-          $this->conneg->setStatus(400);
-          $this->conneg->setStatusMsg("Bad Request");
-          $this->conneg->setError($this->errorMessenger->_302->id, $this->errorMessenger->ws,
-            $this->errorMessenger->_302->name, $this->errorMessenger->_302->description, odbc_errormsg(),
-            $this->errorMessenger->_302->level);
-
-          return;
-        }
-      }
+    // Check if the interface called by the user is existing
+    $class = $this->sourceinterface_exists(rtrim($this->wsf_base_path, "/")."/tracker/create/interfaces/");
+    
+    if($class != "")
+    {    
+      $class = 'StructuredDynamics\structwsf\ws\tracker\create\interfaces\\'.$class;
+      
+      $interface = new $class($this);
+      
+      // Process the code defined in the source interface
+      $interface->processInterface();
+    }
+    else
+    { 
+      // Interface not existing
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_300->name);
+      $this->conneg->setError($this->errorMessenger->_300->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_300->name, $this->errorMessenger->_300->description, 
+        "Requested Source Interface: ".$this->interface,
+        $this->errorMessenger->_300->level);
     }
   }
 }

@@ -9,15 +9,10 @@
 
 namespace StructuredDynamics\structwsf\ws\ontology\delete; 
 
-use \Exception;
 use \StructuredDynamics\structwsf\ws\framework\DBVirtuoso; 
 use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
 use \StructuredDynamics\structwsf\ws\auth\validator\AuthValidator;
 use \StructuredDynamics\structwsf\ws\framework\Conneg;
-use \StructuredDynamics\structwsf\ws\crud\delete\CrudDelete;
-use \StructuredDynamics\structwsf\ws\dataset\delete;
-use \StructuredDynamics\structwsf\ws\framework\OWLOntology;
-use \StructuredDynamics\structwsf\ws\dataset\delete\DatasetDelete;
 
 /** Ontology Delete Web Service. Delete entire ontologies from the system, or parts of it 
             (resources of type class or property)
@@ -42,8 +37,8 @@ class OntologyDelete extends \StructuredDynamics\structwsf\ws\framework\WebServi
   private $ontologyUri = "";
 
   /** Ontology object. */
-  private $ontology;
-
+  public $ontology;
+  
   /** IP being registered */
   private $registered_ip = "";
 
@@ -51,7 +46,7 @@ class OntologyDelete extends \StructuredDynamics\structwsf\ws\framework\WebServi
   private $requester_ip = "";
 
   /** URI of the inference rules set to use to delete the ontological structure. */
-  private $rulesSetURI = "";
+  private $rulesSetURI = "";      
 
   /** Error messages of this web service */
   private $errorMessenger =
@@ -92,9 +87,45 @@ class OntologyDelete extends \StructuredDynamics\structwsf\ws\framework\WebServi
                           "level": "Error",
                           "name": "Can\'t load the ontology",
                           "description": "The ontology can\'t be loaded by the endpoint"
-                        }
+                        },
+                        "_301": {
+                          "id": "WS-ONTOLOGY-DELETE-301",
+                          "level": "Fatal",
+                          "name": "Requested source interface not existing",
+                          "description": "The source interface you requested is not existing for this web service endpoint."
+                        }  
                       }';
 
+  /**
+  * Implementation of the __get() magic method. We do implement it to create getter functions
+  * for all the protected and private variables of this class, and to all protected variables
+  * of the parent class.
+  * 
+  * This implementation is needed by the interfaces layer since we want the SourceInterface
+  * class to access the variables of the web service class for which it is used as a 
+  * source interface.
+  * 
+  * This means that all the privated and propected variables of these web service objects
+  * are available to users; but they won't be able to set values for them.
+  * 
+  * Also note that This method is about 4 times slower than having the varaible as public instead 
+  * of protected and private. However, these variables are only accessed about 10 to 200 times 
+  * per script call. This means that for accessing these undefined variable using the __get magic 
+  * method call, then it adds about 0.00022 seconds to the call or, about 0.22 milli-second 
+  * (one fifth of a millisecond) For the gain of keeping the variables protected and private, 
+  * we can spend this one fifth of a milli-second. This is a good compromize.  
+  * 
+  * @param mixed $name Name of the variable that is currently not defined for this object
+  */
+  public function __get($name)
+  {
+    // Check if the variable exists (so, if it is private or protected). If it is, then
+    // we return the value. Otherwise a fatal error will be returned by PHP.
+    if(isset($this->{$name}))
+    {
+      return($this->{$name});
+    }
+  }                                           
 
   /** Constructor
           
@@ -106,7 +137,7 @@ class OntologyDelete extends \StructuredDynamics\structwsf\ws\framework\WebServi
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($ontologyUri, $registered_ip, $requester_ip)
+  function __construct($ontologyUri, $registered_ip, $requester_ip, $interface='default')
   {
     parent::__construct();
 
@@ -120,6 +151,15 @@ class OntologyDelete extends \StructuredDynamics\structwsf\ws\framework\WebServi
     if($this->registered_ip == "")
     {
       $this->registered_ip = $requester_ip;
+    }
+    
+    if(strtolower($interface) == "default")
+    {
+      $this->interface = "DefaultSourceInterface";
+    }
+    else
+    {
+      $this->interface = $interface;
     }
 
     if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
@@ -162,7 +202,7 @@ class OntologyDelete extends \StructuredDynamics\structwsf\ws\framework\WebServi
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  protected function validateQuery()
+  public function validateQuery()
   {
     $ws_av = new AuthValidator($this->requester_ip, $this->wsf_graph . "ontologies/", $this->uri);
 
@@ -354,6 +394,36 @@ class OntologyDelete extends \StructuredDynamics\structwsf\ws\framework\WebServi
       $this->errorMessenger->{$wsErrorCode}->name, $this->errorMessenger->{$wsErrorCode}->description, $debugInfo,
       $this->errorMessenger->{$wsErrorCode}->level);
   }
+  
+  private function getInterface()
+  {
+    // Check if the interface called by the user is existing
+    $class = $this->sourceinterface_exists(rtrim($this->wsf_base_path, "/")."/ontology/delete/interfaces/");
+
+    if($class != "")
+    {    
+      $class = 'StructuredDynamics\structwsf\ws\ontology\delete\interfaces\\'.$class;
+      
+      $interface = new $class($this);
+      
+      // Process the code defined in the source interface
+      return($interface);
+    }
+    else
+    { 
+      // Interface not existing
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_301->name);
+      $this->conneg->setError($this->errorMessenger->_301->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_301->name, $this->errorMessenger->_301->description, 
+        "Requested Source Interface: ".$this->interface,
+        $this->errorMessenger->_301->level);
+        
+      return(NULL);
+    }    
+  }
+  
 
   /**
   * 
@@ -364,45 +434,11 @@ class OntologyDelete extends \StructuredDynamics\structwsf\ws\framework\WebServi
   */
   public function deleteProperty($uri)
   {
-    if($this->isValid())
+    $interface = $this->getInterface();
+    
+    if($interface !== NULL)
     {
-      if($uri == "")
-      {
-        $this->returnError(400, "Bad Request", "_202");
-        return;
-      }	
-	
-      $this->initiateOwlBridgeSession();
-
-      $this->getOntologyReference();      
-
-      // Delete the OWLAPI property entity
-      $this->ontology->removeProperty($uri);
-
-      // Check to delete potential datasets that have been created within structWSF
-      $crudDelete =
-        new CrudDelete($uri, $this->ontologyUri, $this->registered_ip, $this->requester_ip);
-
-      $crudDelete->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'],
-        $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
-
-      $crudDelete->process();
-
-      if($crudDelete->pipeline_getResponseHeaderStatus() != 200)
-      {
-        $this->conneg->setStatus($crudDelete->pipeline_getResponseHeaderStatus());
-        $this->conneg->setStatusMsg($crudDelete->pipeline_getResponseHeaderStatusMsg());
-        $this->conneg->setStatusMsgExt($crudDelete->pipeline_getResponseHeaderStatusMsgExt());
-        $this->conneg->setError($crudDelete->pipeline_getError()->id,
-          $crudDelete->pipeline_getError()->webservice, $crudDelete->pipeline_getError()->name,
-          $crudDelete->pipeline_getError()->description, $crudDelete->pipeline_getError()->debugInfo,
-          $crudDelete->pipeline_getError()->level);
-
-        return;
-      }
-
-      // Update the name of the file of the ontology to mark it as "changed"
-      $this->ontology->addOntologyAnnotation("http://purl.org/ontology/wsf#ontologyModified", "true");    
+      $interface->deleteProperty($uri);     
     }
   }
   
@@ -415,45 +451,11 @@ class OntologyDelete extends \StructuredDynamics\structwsf\ws\framework\WebServi
   */
   public function deleteNamedIndividual($uri)
   {
-    if($this->isValid())
+    $interface = $this->getInterface();
+    
+    if($interface !== NULL)
     {
-      if($uri == "")
-      {
-        $this->returnError(400, "Bad Request", "_203");
-        return;
-      }	
-	
-      $this->initiateOwlBridgeSession();
-
-      $this->getOntologyReference();      
-
-      // Delete the OWLAPI named individual entity
-      $this->ontology->removeNamedIndividual($uri);
-
-      // Check to delete potential datasets that have been created within structWSF
-      $crudDelete =
-        new CrudDelete($uri, $this->ontologyUri, $this->registered_ip, $this->requester_ip);
-
-      $crudDelete->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'],
-        $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
-
-      $crudDelete->process();
-
-      if($crudDelete->pipeline_getResponseHeaderStatus() != 200)
-      {
-        $this->conneg->setStatus($crudDelete->pipeline_getResponseHeaderStatus());
-        $this->conneg->setStatusMsg($crudDelete->pipeline_getResponseHeaderStatusMsg());
-        $this->conneg->setStatusMsgExt($crudDelete->pipeline_getResponseHeaderStatusMsgExt());
-        $this->conneg->setError($crudDelete->pipeline_getError()->id,
-          $crudDelete->pipeline_getError()->webservice, $crudDelete->pipeline_getError()->name,
-          $crudDelete->pipeline_getError()->description, $crudDelete->pipeline_getError()->debugInfo,
-          $crudDelete->pipeline_getError()->level);
-
-        return;
-      }
-
-      // Update the name of the file of the ontology to mark it as "changed"
-      $this->ontology->addOntologyAnnotation("http://purl.org/ontology/wsf#ontologyModified", "true");    
+      $interface->deleteNamedIndividual($uri);    
     }
   }  
 
@@ -466,44 +468,11 @@ class OntologyDelete extends \StructuredDynamics\structwsf\ws\framework\WebServi
   */
   public function deleteClass($uri)
   {
-    if($this->isValid())
+    $interface = $this->getInterface();
+    
+    if($interface !== NULL)
     {
-      if($uri == "")
-      {
-        $this->returnError(400, "Bad Request", "_204");
-        return;
-      }
-	  	
-      $this->initiateOwlBridgeSession();
-
-      $this->getOntologyReference();
-
-      // Delete the OWLAPI class entity
-      $this->ontology->removeClass($uri);
-
-      // Check to delete potential datasets that have been created within structWSF
-      $crudDelete = new CrudDelete($uri, $this->ontologyUri, $this->registered_ip, $this->requester_ip);
-
-      $crudDelete->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'],
-        $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
-
-      $crudDelete->process();
-
-      if($crudDelete->pipeline_getResponseHeaderStatus() != 200)
-      {
-        $this->conneg->setStatus($crudDelete->pipeline_getResponseHeaderStatus());
-        $this->conneg->setStatusMsg($crudDelete->pipeline_getResponseHeaderStatusMsg());
-        $this->conneg->setStatusMsgExt($crudDelete->pipeline_getResponseHeaderStatusMsgExt());
-        $this->conneg->setError($crudDelete->pipeline_getError()->id,
-          $crudDelete->pipeline_getError()->webservice, $crudDelete->pipeline_getError()->name,
-          $crudDelete->pipeline_getError()->description, $crudDelete->pipeline_getError()->debugInfo,
-          $crudDelete->pipeline_getError()->level);
-
-        return;
-      }
-
-      // Update the name of the file of the ontology to mark it as "changed"
-      $this->ontology->addOntologyAnnotation("http://purl.org/ontology/wsf#ontologyModified", "true");    
+      $interface->deleteClass($uri);
     }
   }
   
@@ -514,106 +483,12 @@ class OntologyDelete extends \StructuredDynamics\structwsf\ws\framework\WebServi
   */
   public function deleteOntology()
   {
-    if($this->isValid())
-    {
-      $this->initiateOwlBridgeSession();
-
-      $this->getOntologyReference();
-
-      // Delete the OWLAPI instance
-      if($this->ontology)
-      {
-        $this->ontology->delete();
-      }
-      
-      // Remove the holdOntology tag before deleting the ontology
-      $query = "delete data from <" . $this->wsf_graph . "datasets/>
-              {
-                <" . $this->ontologyUri . "> <http://purl.org/ontology/wsf#holdOntology> \"true\" .
-              }";
-
-      @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-        FALSE));    
-
-      // Check to delete potential datasets that have been created within structWSF
-      $datasetDelete = new DatasetDelete($this->ontologyUri, $this->registered_ip, $this->requester_ip);
-
-      $datasetDelete->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'],
-        $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
-
-      $datasetDelete->process();
-
-      if($datasetDelete->pipeline_getResponseHeaderStatus() != 200)
-      {
-        $this->conneg->setStatus($datasetDelete->pipeline_getResponseHeaderStatus());
-        $this->conneg->setStatusMsg($datasetDelete->pipeline_getResponseHeaderStatusMsg());
-        $this->conneg->setStatusMsgExt($datasetDelete->pipeline_getResponseHeaderStatusMsgExt());
-        $this->conneg->setError($datasetDelete->pipeline_getError()->id,
-          $datasetDelete->pipeline_getError()->webservice, $datasetDelete->pipeline_getError()->name,
-          $datasetDelete->pipeline_getError()->description, $datasetDelete->pipeline_getError()->debugInfo,
-          $datasetDelete->pipeline_getError()->level);
-
-        return;
-      }
-    }
-  }
-  
-  /**
-  * 
-  *  
-  * @author Frederick Giasson, Structured Dynamics LLC.
-  */
-  private function initiateOwlBridgeSession()
-  {
-    // Starts the OWLAPI process/bridge
-    require_once($this->owlapiBridgeURI);
-
-    // Create the OWLAPI session object that could have been persisted on the OWLAPI instance.
-    // Second param "false" => we re-use the pre-created session without destroying the previous one
-    // third param "0" => it nevers timeout.
-    if($this->OwlApiSession == null)
-    {
-      $this->OwlApiSession = java_session("OWLAPI", false, 0);
-    }    
-  }
-  
-  /**
-  * 
-  *  
-  * @author Frederick Giasson, Structured Dynamics LLC.
-  */
-  private function getOntologyReference()
-  {
-    try
-    {
-      $this->ontology = new OWLOntology($this->ontologyUri, $this->OwlApiSession, TRUE);
-    }
-    catch(Exception $e)
-    {
-      $this->returnError(400, "Bad Request", "_300");
-    }    
-  }
-  
-  /**
-  * 
-  *  
-  * @author Frederick Giasson, Structured Dynamics LLC.
-  */
-  private function isValid()
-  {
-    // Make sure there was no conneg error prior to this process call
-    if($this->conneg->getStatus() == 200)
-    {
-      $this->validateQuery();
-
-      // If the query is still valid
-      if($this->conneg->getStatus() == 200)
-      {
-        return(TRUE);
-      }
-    }
+    $interface = $this->getInterface();
     
-    return(FALSE);    
+    if($interface !== NULL)
+    {
+      $interface->deleteOntology();  
+    }
   }
 }
 

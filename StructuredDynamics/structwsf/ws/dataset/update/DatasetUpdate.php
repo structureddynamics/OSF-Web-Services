@@ -107,9 +107,45 @@ class DatasetUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServic
                           "level": "Fatal",
                           "name": "Can\'t update the contributors of the dataset in the triple store",
                           "description": "An error occured when we tried to update the contributors of the dataset in the triple store"
-                        }  
+                        },
+                        "_304": {
+                          "id": "WS-DATASET-UPDATE-304",
+                          "level": "Fatal",
+                          "name": "Requested source interface not existing",
+                          "description": "The source interface you requested is not existing for this web service endpoint."
+                        }    
                       }';
 
+  /**
+  * Implementation of the __get() magic method. We do implement it to create getter functions
+  * for all the protected and private variables of this class, and to all protected variables
+  * of the parent class.
+  * 
+  * This implementation is needed by the interfaces layer since we want the SourceInterface
+  * class to access the variables of the web service class for which it is used as a 
+  * source interface.
+  * 
+  * This means that all the privated and propected variables of these web service objects
+  * are available to users; but they won't be able to set values for them.
+  * 
+  * Also note that This method is about 4 times slower than having the varaible as public instead 
+  * of protected and private. However, these variables are only accessed about 10 to 200 times 
+  * per script call. This means that for accessing these undefined variable using the __get magic 
+  * method call, then it adds about 0.00022 seconds to the call or, about 0.22 milli-second 
+  * (one fifth of a millisecond) For the gain of keeping the variables protected and private, 
+  * we can spend this one fifth of a milli-second. This is a good compromize.  
+  * 
+  * @param mixed $name Name of the variable that is currently not defined for this object
+  */
+  public function __get($name)
+  {
+    // Check if the variable exists (so, if it is private or protected). If it is, then
+    // we return the value. Otherwise a fatal error will be returned by PHP.
+    if(isset($this->{$name}))
+    {
+      return($this->{$name});
+    }
+  }                      
 
   /** Constructor
         
@@ -125,7 +161,8 @@ class DatasetUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServic
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($uri, $title, $description, $contributors, $modified, $registered_ip, $requester_ip)
+  function __construct($uri, $title, $description, $contributors, $modified, 
+                       $registered_ip, $requester_ip, $interface='default')
   {
     parent::__construct();
 
@@ -145,6 +182,15 @@ class DatasetUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServic
     else
     {
       $this->registered_ip = $registered_ip;
+    }
+    
+    if(strtolower($interface) == "default")
+    {
+      $this->interface = "DefaultSourceInterface";
+    }
+    else
+    {
+      $this->interface = $interface;
     }
 
     if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
@@ -198,7 +244,7 @@ class DatasetUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServic
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  protected function validateQuery()
+  public function validateQuery()
   {
     // Check if the dataset URI is missing.
     if($this->datasetUri == "")
@@ -466,216 +512,28 @@ class DatasetUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServic
   */
   public function process()
   {
-    // Make sure there was no conneg error prior to this process call
-    if($this->conneg->getStatus() == 200)
-    {
-/*    
-      $query = "modify <".$this->wsf_graph."datasets/>
-              delete
-              { 
-                ".($this->datasetTitle != "" ? "<$this->datasetUri> <http://purl.org/dc/terms/title> ?datasetTitle ." : "")."
-                ".($this->description != "" ? "<$this->datasetUri> <http://purl.org/dc/terms/description> ?description ." : "")."
-                ".($this->modified != "" ? "<$this->datasetUri> <http://purl.org/dc/terms/modified> ?modified ." : "")."
-                ".(count($this->contributors) > 0 && isset($contributor[0]) ? "<$this->datasetUri> <http://purl.org/dc/terms/contributor> ?contributors ." : "")."
-              }
-              insert
-              {
-                ".($this->datasetTitle != "" ? "<$this->datasetUri> <http://purl.org/dc/terms/title> \"\"\"$this->datasetTitle\"\"\" ." : "")."
-                ".($this->description != "" ? "<$this->datasetUri> <http://purl.org/dc/terms/description> \"\"\"$this->description\"\"\" ." : "")."
-                ".($this->modified != "" ? "<$this->datasetUri> <http://purl.org/dc/terms/modified> \"\"\"$this->modified\"\"\" ." : "")."";
-                
-      foreach($this->contributors as $contributor)
-      {
-        $query .=   ($this->contributor != "" ? "<$this->datasetUri> <http://purl.org/dc/terms/contributor> <$contributor> ." : "");
-      }                
-                
-      $query .= "}                  
-              where
-              {
-                graph <".$this->wsf_graph."datasets/>
-                {
-                  <$this->datasetUri> a <http://rdfs.org/ns/void#Dataset> .
-                  ".($this->datasetTitle != "" ? "<$this->datasetUri> <http://purl.org/dc/terms/title> ?datasetTitle ." : "")."
-                  ".($this->description != "" ? "<$this->datasetUri> <http://purl.org/dc/terms/description> ?description ." : "")."
-                  ".($this->modified != "" ? "<$this->datasetUri> <http://purl.org/dc/terms/modified> ?modified ." : "")."
-                  ".(count($this->contributors) > 0 ? "<$this->datasetUri> <http://purl.org/dc/terms/contributor> ?contributors ." : "")."
-                }
-              }";
-*/
-
-// Note: here we can't create a single SPARUL query to update everything because if one of the clause is not existing in the "delete" pattern,
-//          then nothing will be updated. Also, the problem come from the fact that "OPTIONAL" clauses only happen at the level of the "where" clause
-//          and can't be used in the "delete" clause.
-
-// Updating the title if it exists in the description
-      if($this->datasetTitle != "")
-      {
-
-        $query = "delete from <" . $this->wsf_graph . "datasets/>
-                { 
-                  <$this->datasetUri> <http://purl.org/dc/terms/title> ?datasetTitle .
-                }
-                where
-                {
-                  graph <" . $this->wsf_graph . "datasets/>
-                  {
-                    <$this->datasetUri> a <http://rdfs.org/ns/void#Dataset> .
-                    <$this->datasetUri> <http://purl.org/dc/terms/title> ?datasetTitle .
-                  }
-                }
-                " . ($this->datasetTitle != "-delete-" ? "
-                insert into <" . $this->wsf_graph . "datasets/>
-                {
-                  <$this->datasetUri> <http://purl.org/dc/terms/title> \"\"\"" . str_replace("'", "\'", $this->datasetTitle) . "\"\"\" .
-                }" : "");
-      }
-
-      @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-        FALSE));
-
-      if(odbc_error())
-      {
-        $this->conneg->setStatus(500);
-        $this->conneg->setStatusMsg("Internal Error");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_300->name);
-        $this->conneg->setError($this->errorMessenger->_300->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_300->name, $this->errorMessenger->_300->description, odbc_errormsg(),
-          $this->errorMessenger->_300->level);
-
-        return;
-      }
-
-      // Updating the description if it exists in the description
-      if($this->description != "")
-      {
-        $query = "delete from <" . $this->wsf_graph . "datasets/>
-                { 
-                  <$this->datasetUri> <http://purl.org/dc/terms/description> ?description .
-                }
-                where
-                {
-                  graph <" . $this->wsf_graph . "datasets/>
-                  {
-                    <$this->datasetUri> a <http://rdfs.org/ns/void#Dataset> .
-                    <$this->datasetUri> <http://purl.org/dc/terms/description> ?description .
-                  }
-                }
-                " . ($this->description != "-delete-" ? "
-                insert into <" . $this->wsf_graph . "datasets/>
-                {
-                  <$this->datasetUri> <http://purl.org/dc/terms/description> \"\"\"" . str_replace("'", "\'", $this->description) . "\"\"\" .
-                }" : "");
-      }
-
-      @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-        FALSE));
-
-      if(odbc_error())
-      {
-        $this->conneg->setStatus(500);
-        $this->conneg->setStatusMsg("Internal Error");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_301->name);
-        $this->conneg->setError($this->errorMessenger->_301->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_301->name, $this->errorMessenger->_301->description, odbc_errormsg(),
-          $this->errorMessenger->_301->level);
-
-        return;
-      }
-
-      // Updating the modification date if it exists in the description
-      if($this->modified != "")
-      {
-        $query = "delete from <" . $this->wsf_graph . "datasets/>
-                { 
-                  <$this->datasetUri> <http://purl.org/dc/terms/modified> ?modified .
-                }
-                where
-                {
-                  graph <" . $this->wsf_graph . "datasets/>
-                  {
-                    <$this->datasetUri> a <http://rdfs.org/ns/void#Dataset> .
-                    <$this->datasetUri> <http://purl.org/dc/terms/modified> ?modified .
-                  }
-                }
-                " . ($this->modified != "-delete-" ? "
-                insert into <" . $this->wsf_graph . "datasets/>
-                {
-                  <$this->datasetUri> <http://purl.org/dc/terms/modified> \"\"\"" . str_replace("'", "\'", $this->modified) . "\"\"\" .
-                }" : "");
-      }
-
-      @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-        FALSE));
-
-      if(odbc_error())
-      {
-        $this->conneg->setStatus(500);
-        $this->conneg->setStatusMsg("Internal Error");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_302->name);
-        $this->conneg->setError($this->errorMessenger->_302->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_302->name, $this->errorMessenger->_302->description, odbc_errormsg(),
-          $this->errorMessenger->_302->level);
-
-        return;
-      }
-
-      // Updating the contributors list if it exists in the description
-      if($this->contributors != "")
-      {
-        $query = "delete from <" . $this->wsf_graph . "datasets/>
-                { 
-                  <$this->datasetUri> <http://purl.org/dc/terms/contributor> ?contributor .
-                }
-                where
-                {
-                  graph <"
-          . $this->wsf_graph
-          . "datasets/>
-                  {
-                    <$this->datasetUri> a <http://rdfs.org/ns/void#Dataset> .
-                    <$this->datasetUri> <http://purl.org/dc/terms/contributor> ?contributor .
-                  }
-                }";
-
-        if($this->contributors != "-delete-")
-        {
-          $cons = array();
-
-          if(strpos($this->contributors, ";") !== FALSE)
-          {
-            $cons = explode(";", $this->contributors);
-          }
-
-          $query .= "insert into <" . $this->wsf_graph . "datasets/>
-                  {";
-
-          foreach($cons as $contributor)
-          {
-            $query .= "<$this->datasetUri> <http://purl.org/dc/terms/contributor> <$contributor> .";
-          }
-
-          if(count($cons) == 0)
-          {
-            $query .= "<$this->datasetUri> <http://purl.org/dc/terms/contributor> <$this->contributors> .";
-          }
-          $query .= "}";
-        }
-      }
-
-      @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-        FALSE));
-
-      if(odbc_error())
-      {
-        $this->conneg->setStatus(500);
-        $this->conneg->setStatusMsg("Internal Error");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_303->name);
-        $this->conneg->setError($this->errorMessenger->_303->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_303->name, $this->errorMessenger->_303->description, odbc_errormsg(),
-          $this->errorMessenger->_303->level);
-
-        return;
-      }
+     // Check if the interface called by the user is existing
+    $class = $this->sourceinterface_exists(rtrim($this->wsf_base_path, "/")."/dataset/update/interfaces/");
+    
+    if($class != "")
+    {    
+      $class = 'StructuredDynamics\structwsf\ws\dataset\update\interfaces\\'.$class;
+      
+      $interface = new $class($this);
+      
+      // Process the code defined in the source interface
+      $interface->processInterface();
+    }
+    else
+    { 
+      // Interface not existing
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_304->name);
+      $this->conneg->setError($this->errorMessenger->_304->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_304->name, $this->errorMessenger->v->description, 
+        "Requested Source Interface: ".$this->interface,
+        $this->errorMessenger->_304->level);
     }
   }
 }

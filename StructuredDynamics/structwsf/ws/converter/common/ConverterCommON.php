@@ -170,7 +170,7 @@ class ConverterCommON extends \StructuredDynamics\structwsf\ws\framework\WebServ
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  protected function validateQuery() { return; }
+  public function validateQuery() { return; }
 
   protected function splitUri($str, &$base, &$ext)
   {

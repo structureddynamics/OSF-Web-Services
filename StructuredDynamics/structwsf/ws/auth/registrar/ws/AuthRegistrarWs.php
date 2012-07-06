@@ -86,9 +86,46 @@ class AuthRegistrarWs extends \StructuredDynamics\structwsf\ws\framework\WebServ
                           "level": "Fatal",
                           "name": "Can\'t register this web service to the network",
                           "description": "An error occured when we tried to register this new web service to the network."
-                        }  
+                        },
+                        "_301": {
+                          "id": "WS-AUTH-REGISTRAR-WS-301",
+                          "level": "Fatal",
+                          "name": "Requested source interface not existing",
+                          "description": "The source interface you requested is not existing for this web service endpoint."
+                        }    
                       }';
 
+                      
+  /**
+  * Implementation of the __get() magic method. We do implement it to create getter functions
+  * for all the protected and private variables of this class, and to all protected variables
+  * of the parent class.
+  * 
+  * This implementation is needed by the interfaces layer since we want the SourceInterface
+  * class to access the variables of the web service class for which it is used as a 
+  * source interface.
+  * 
+  * This means that all the privated and propected variables of these web service objects
+  * are available to users; but they won't be able to set values for them.
+  * 
+  * Also note that This method is about 4 times slower than having the varaible as public instead 
+  * of protected and private. However, these variables are only accessed about 10 to 200 times 
+  * per script call. This means that for accessing these undefined variable using the __get magic 
+  * method call, then it adds about 0.00022 seconds to the call or, about 0.22 milli-second 
+  * (one fifth of a millisecond) For the gain of keeping the variables protected and private, 
+  * we can spend this one fifth of a milli-second. This is a good compromize.  
+  * 
+  * @param mixed $name Name of the variable that is currently not defined for this object
+  */
+  public function __get($name)
+  {
+    // Check if the variable exists (so, if it is private or protected). If it is, then
+    // we return the value. Otherwise a fatal error will be returned by PHP.
+    if(isset($this->{$name}))
+    {
+      return($this->{$name});
+    }
+  }                      
 
   /** Constructor
 
@@ -101,13 +138,14 @@ class AuthRegistrarWs extends \StructuredDynamics\structwsf\ws\framework\WebServ
       @param $registered_uri URI of the web service endpoint to register
       @param $registered_ip Target IP address registered in the WSF         
       @param $requester_ip IP address of the requester
-      
+      @param $interface Name of the source interface to use for this web service query. Default value: 'default'                            
       
       @return returns NULL
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($registered_title, $registered_endpoint, $registered_crud_usage, $registered_uri, $registered_ip, $requester_ip)
+  function __construct($registered_title, $registered_endpoint, $registered_crud_usage, $registered_uri, 
+                       $registered_ip, $requester_ip, $interface='default')
   {
     parent::__construct();
 
@@ -126,6 +164,15 @@ class AuthRegistrarWs extends \StructuredDynamics\structwsf\ws\framework\WebServ
     else
     {
       $this->registered_ip = $registered_ip;
+    }
+    
+    if(strtolower($interface) == "default")
+    {
+      $this->interface = "DefaultSourceInterface";
+    }
+    else
+    {
+      $this->interface = $interface;
     }
 
     if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
@@ -168,7 +215,7 @@ class AuthRegistrarWs extends \StructuredDynamics\structwsf\ws\framework\WebServ
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  protected function validateQuery()
+  public function validateQuery()
   {
     $ws_av = new AuthValidator($this->requester_ip, $this->wsf_graph, $this->uri);
 
@@ -387,68 +434,28 @@ class AuthRegistrarWs extends \StructuredDynamics\structwsf\ws\framework\WebServ
   */
   public function process()
   {
-    // Make sure there was no conneg error prior to this process call
-    if($this->conneg->getStatus() == 200)
+    // Check if the interface called by the user is existing
+    $class = $this->sourceinterface_exists(rtrim($this->wsf_base_path, "/")."/auth/registrar/ws/interfaces/");
+    
+    if($class != "")
     {
-      $this->validateQuery();
-
-      // If the query is still valid
-      if($this->conneg->getStatus() == 200)
-      {
-// Create and describe the resource being registered
-// Note: we make sure we remove any previously defined triples that we are about to re-enter in the graph. All information other than these new properties
-//       will remain in the graph
-
-        $query = "delete from <" . $this->wsf_graph . ">
-                { 
-                  <$this->registered_uri> a <http://purl.org/ontology/wsf#WebService> .
-                  <$this->registered_uri> <http://purl.org/dc/terms/title> ?title . 
-                  <$this->registered_uri> <http://purl.org/ontology/wsf#endpoint> ?endpoint .
-                  <$this->registered_uri> <http://purl.org/ontology/wsf#hasCrudUsage> ?crud_usage .
-                  ?crud_usage ?crud_property ?crud_value .
-                }
-                where
-                {
-                  graph <" . $this->wsf_graph . ">
-                  {
-                    <$this->registered_uri> a <http://purl.org/ontology/wsf#WebService> .
-                    <$this->registered_uri> <http://purl.org/dc/terms/title> ?title . 
-                    <$this->registered_uri> <http://purl.org/ontology/wsf#endpoint> ?endpoint .
-                    <$this->registered_uri> <http://purl.org/ontology/wsf#hasCrudUsage> ?crud_usage .
-                    ?crud_usage ?crud_property ?crud_value .
-                  }
-                }
-                insert into <" . $this->wsf_graph . ">
-                {
-                  <$this->registered_uri> a <http://purl.org/ontology/wsf#WebService> .
-                  <$this->registered_uri> <http://purl.org/dc/terms/title> \"$this->registered_title\" .
-                  <$this->registered_uri> <http://purl.org/ontology/wsf#endpoint> \"$this->registered_endpoint\" .
-                  <$this->registered_uri> <http://purl.org/ontology/wsf#hasCrudUsage> <" . $this->registered_uri . "usage/> .
-                  
-                  <" . $this->registered_uri . "usage/> a <http://purl.org/ontology/wsf#CrudUsage> ;
-                  <http://purl.org/ontology/wsf#create> " . ($this->crud_usage->create ? "\"True\"" : "\"False\"") . " ;
-                  <http://purl.org/ontology/wsf#read> " . ($this->crud_usage->read ? "\"True\"" : "\"False\"") . " ;
-                  <http://purl.org/ontology/wsf#update> " . ($this->crud_usage->update ? "\"True\"" : "\"False\"") . " ;
-                  <http://purl.org/ontology/wsf#delete> " . ($this->crud_usage->delete ? "\"True\"" : "\"False\"") . " .
-                  
-                  <" . $this->wsf_graph . "> <http://purl.org/ontology/wsf#hasWebService> <$this->registered_uri>.
-                }";
-
-        @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-          FALSE));
-
-        if(odbc_error())
-        {
-          $this->conneg->setStatus(500);
-          $this->conneg->setStatusMsg("Internal Error");
-          $this->conneg->setStatusMsgExt($this->errorMessenger->_300->name);
-          $this->conneg->setError($this->errorMessenger->_300->id, $this->errorMessenger->ws,
-            $this->errorMessenger->_300->name, $this->errorMessenger->_300->description, odbc_errormsg(),
-            $this->errorMessenger->_300->level);
-
-          return;
-        }
-      }
+      $class = 'StructuredDynamics\structwsf\ws\auth\registrar\ws\interfaces\\'.$class;
+      
+      $interface = new $class($this);
+      
+      // Process the code defined in the source interface
+      $interface->processInterface();
+    }
+    else
+    { 
+      // Interface not existing
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_301->name);
+      $this->conneg->setError($this->errorMessenger->_301->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_301->name, $this->errorMessenger->_301->description, 
+        "Requested Source Interface: ".$this->interface,
+        $this->errorMessenger->_301->level);
     }
   }
 }

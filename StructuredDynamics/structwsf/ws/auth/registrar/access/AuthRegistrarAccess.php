@@ -118,9 +118,46 @@ class AuthRegistrarAccess extends \StructuredDynamics\structwsf\ws\framework\Web
                           "level": "Fatal",
                           "name": "Can\'t delete all accesses to this dataset",
                           "description": "An error occured when we tried to delete all accesses to this dataset"
-                        }  
+                        },
+                        "_304": {
+                          "id": "WS-AUTH-REGISTRAR-ACCESS-304",
+                          "level": "Fatal",
+                          "name": "Requested source interface not existing",
+                          "description": "The source interface you requested is not existing for this web service endpoint."
+                        }                            
                       }';
 
+  /**
+  * Implementation of the __get() magic method. We do implement it to create getter functions
+  * for all the protected and private variables of this class, and to all protected variables
+  * of the parent class.
+  * 
+  * This implementation is needed by the interfaces layer since we want the SourceInterface
+  * class to access the variables of the web service class for which it is used as a 
+  * source interface.
+  * 
+  * This means that all the privated and propected variables of these web service objects
+  * are available to users; but they won't be able to set values for them.
+  * 
+  * Also note that This method is about 4 times slower than having the varaible as public instead 
+  * of protected and private. However, these variables are only accessed about 10 to 200 times 
+  * per script call. This means that for accessing these undefined variable using the __get magic 
+  * method call, then it adds about 0.00022 seconds to the call or, about 0.22 milli-second 
+  * (one fifth of a millisecond) For the gain of keeping the variables protected and private, 
+  * we can spend this one fifth of a milli-second. This is a good compromize.  
+  * 
+  * @param mixed $name Name of the variable that is currently not defined for this object
+  */
+  public function __get($name)
+  {
+    // Check if the variable exists (so, if it is private or protected). If it is, then
+    // we return the value. Otherwise a fatal error will be returned by PHP.
+    if(isset($this->{$name}))
+    {
+      return($this->{$name});
+    }
+  }                      
+                      
   /** Constructor
 
       @param $crud   A quadruple with a value "True" or "False" defined as <Create;Read;Update;Delete>. 
@@ -136,12 +173,14 @@ class AuthRegistrarAccess extends \StructuredDynamics\structwsf\ws\framework\Web
       @param $target_access_uri Target URI of the access resource to update. Only used when param4 = update
       @param $registered_ip Target IP address registered in the WSF
       @param $requester_ip IP address of the requester
+      @param $interface Name of the source interface to use for this web service query. Default value: 'default'                                  
       
       @return returns NULL
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($crud, $ws_uris, $dataset, $action, $target_access_uri, $registered_ip, $requester_ip)
+  function __construct($crud, $ws_uris, $dataset, $action, $target_access_uri, $registered_ip, 
+                       $requester_ip, $interface='default')
   {
     parent::__construct();
 
@@ -176,6 +215,15 @@ class AuthRegistrarAccess extends \StructuredDynamics\structwsf\ws\framework\Web
         $this->registered_ip = $requester_ip;
       }
     }
+    
+    if(strtolower($interface) == "default")
+    {
+      $this->interface = "DefaultSourceInterface";
+    }
+    else
+    {
+      $this->interface = $interface;
+    }    
 
     $this->uri = $this->wsf_base_url . "/wsf/ws/auth/registrar/access/";
     $this->title = "Authentication Access Registration Web Service";
@@ -201,7 +249,7 @@ class AuthRegistrarAccess extends \StructuredDynamics\structwsf\ws\framework\Web
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  protected function validateQuery()
+  public function validateQuery()
   {
     $ws_av = new AuthValidator($this->requester_ip, $this->wsf_graph, $this->uri);
 
@@ -219,23 +267,6 @@ class AuthRegistrarAccess extends \StructuredDynamics\structwsf\ws\framework\Web
         $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
         $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
     }
-  }
-
-  /** Normalize the remaining of a URI
-
-      @param $uri The remaining of a URI to normalize
-      
-      @return a Normalized remaining URI
-      
-      @author Frederick Giasson, Structured Dynamics LLC.
-  */
-  private function uriEncode($uri)
-  {
-    $uri = preg_replace("|[^a-zA-z0-9]|", " ", $uri);
-    $uri = preg_replace("/\s+/", " ", $uri);
-    $uri = str_replace(" ", "_", $uri);
-
-    return ($uri);
   }
 
   /** Returns the error structure
@@ -419,187 +450,29 @@ class AuthRegistrarAccess extends \StructuredDynamics\structwsf\ws\framework\Web
   */
   public function process()
   {
-    // Make sure there was no conneg error prior to this process call
-    if($this->conneg->getStatus() == 200)
-    {
-      $this->validateQuery();
-
-      // If the query is still valid
-      if($this->conneg->getStatus() == 200)
-      {
-        if(strtolower($this->action) == "create")
-        {
-          // Create and describe the resource being registered
-          // Note: we make sure we remove any previously defined triples that we are about to re-enter in the graph. 
-          //       All information other than these new properties will remain in the graph
-
-          $query = "delete from graph <" . $this->wsf_graph . ">
-                  { 
-                    ?access a <http://purl.org/ontology/wsf#Access> ;
-                    <http://purl.org/ontology/wsf#registeredIP> \"$this->registered_ip\" ; 
-                    <http://purl.org/ontology/wsf#datasetAccess> <$this->dataset> ;
-                    ?p ?o.
-                  }
-                  where
-                  {
-                    ?access a <http://purl.org/ontology/wsf#Access> ;
-                    <http://purl.org/ontology/wsf#registeredIP> \"$this->registered_ip\" ; 
-                    <http://purl.org/ontology/wsf#datasetAccess> <$this->dataset> ;
-                    ?p ?o.
-                  }
-                  insert into <"
-            . $this->wsf_graph . ">
-                  {
-                    <" . $this->wsf_graph . "access/" . md5($this->registered_ip . $this->dataset)
-            . "> a <http://purl.org/ontology/wsf#Access> ;
-                    <http://purl.org/ontology/wsf#registeredIP> \"$this->registered_ip\" ; 
-                    <http://purl.org/ontology/wsf#datasetAccess> <$this->dataset> ;";
-
-          foreach($this->ws_uris as $uri)
-          {
-            if($uri != "")
-            {
-              $query .= "<http://purl.org/ontology/wsf#webServiceAccess> <$uri> ;";
-            }
-          }
-
-          $query .= "  <http://purl.org/ontology/wsf#create> " . ($this->crud->create ? "\"True\"" : "\"False\"") . " ;
-                    <http://purl.org/ontology/wsf#read> " . ($this->crud->read ? "\"True\"" : "\"False\"") . " ;
-                    <http://purl.org/ontology/wsf#update> " . ($this->crud->update ? "\"True\"" : "\"False\"") . " ;
-                    <http://purl.org/ontology/wsf#delete> " . ($this->crud->delete ? "\"True\"" : "\"False\"") . " .
-                  }";
-
-          $this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-            FALSE));
-
-          if(odbc_error())
-          {
-            $this->conneg->setStatus(500);
-            $this->conneg->setStatusMsg("Internal Error");
-            $this->conneg->setStatusMsgExt($this->errorMessenger->_300->name);
-            $this->conneg->setError($this->errorMessenger->_300->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_300->name, $this->errorMessenger->_300->description, odbc_errormsg(),
-              $this->errorMessenger->_300->level);
-            return;
-          }
-        }
-        elseif(strtolower($this->action) == "update")
-        {
-          // Update and describe the resource being registered
-
-          $query = "modify graph <" . $this->wsf_graph . ">
-                  delete
-                  { 
-                    <$this->target_access_uri> a <http://purl.org/ontology/wsf#Access> ;
-                    ?p ?o.
-                  }
-                  insert
-                  {
-                    <"
-            . $this->wsf_graph . "access/" . md5($this->registered_ip . $this->dataset)
-            . "> a <http://purl.org/ontology/wsf#Access> ;
-                    <http://purl.org/ontology/wsf#registeredIP> \"$this->registered_ip\" ; 
-                    <http://purl.org/ontology/wsf#datasetAccess> <$this->dataset> ;";
-
-          foreach($this->ws_uris as $uri)
-          {
-            if($uri != "")
-            {            
-              $query .= "<http://purl.org/ontology/wsf#webServiceAccess> <$uri> ;";
-            }
-          }
-
-          $query .= "  <http://purl.org/ontology/wsf#create> " . ($this->crud->create ? "\"True\"" : "\"False\"") . " ;
-                    <http://purl.org/ontology/wsf#read> " . ($this->crud->read ? "\"True\"" : "\"False\"") . " ;
-                    <http://purl.org/ontology/wsf#update> " . ($this->crud->update ? "\"True\"" : "\"False\"") . " ;
-                    <http://purl.org/ontology/wsf#delete> " . ($this->crud->delete ? "\"True\"" : "\"False\"")
-            . " .
-                  }                  
-                  where
-                  {
-                    <$this->target_access_uri> a <http://purl.org/ontology/wsf#Access> ;
-                    ?p ?o.
-                  }";
-
-          @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-            FALSE));
-
-          if(odbc_error())
-          {
-            $this->conneg->setStatus(500);
-            $this->conneg->setStatusMsg("Internal Error");
-            $this->conneg->setStatusMsgExt($this->errorMessenger->_301->name);
-            $this->conneg->setError($this->errorMessenger->_301->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_301->name, $this->errorMessenger->_301->description, odbc_errormsg() . $query,
-              $this->errorMessenger->_301->level);
-            return;
-          }
-        }
-        elseif(strtolower($this->action) == "delete_target")
-        {
-          // Just delete target access
-          $query =
-            "delete from graph <" . $this->wsf_graph
-            . ">
-                  { 
-                    ?access a <http://purl.org/ontology/wsf#Access> ;
-                    <http://purl.org/ontology/wsf#registeredIP> \"$this->registered_ip\" ; 
-                    <http://purl.org/ontology/wsf#datasetAccess> <$this->dataset> ;
-                    ?p ?o.
-                  }
-                  where
-                  {
-                    ?access a <http://purl.org/ontology/wsf#Access> ;
-                    <http://purl.org/ontology/wsf#registeredIP> \"$this->registered_ip\" ; 
-                    <http://purl.org/ontology/wsf#datasetAccess> <$this->dataset> ;
-                    ?p ?o.
-                  }";
-
-          @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-            FALSE));
-
-          if(odbc_error())
-          {
-            $this->conneg->setStatus(500);
-            $this->conneg->setStatusMsg("Internal Error");
-            $this->conneg->setStatusMsgExt($this->errorMessenger->_302->name);
-            $this->conneg->setError($this->errorMessenger->_302->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_302->name, $this->errorMessenger->_302->description, odbc_errormsg(),
-              $this->errorMessenger->_302->level);
-            return;
-          }
-        }
-        else
-        {
-          // Delete all access to a specific dataset
-          $query =
-            "delete from graph <" . $this->wsf_graph
-            . ">
-                  { 
-                    ?access ?p ?o. 
-                  }
-                  where
-                  {
-                    ?access a <http://purl.org/ontology/wsf#Access> ;
-                    <http://purl.org/ontology/wsf#datasetAccess> <$this->dataset> ;
-                    ?p ?o.
-                  }";
-
-          @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-            FALSE));
-
-          if(odbc_error())
-          {
-            $this->conneg->setStatus(500);
-            $this->conneg->setStatusMsg("Internal Error");
-            $this->conneg->setError($this->errorMessenger->_303->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_303->name, $this->errorMessenger->_303->description, odbc_errormsg(),
-              $this->errorMessenger->_303->level);
-            return;
-          }
-        }
-      }
+    // Check if the interface called by the user is existing
+    $class = $this->sourceinterface_exists(rtrim($this->wsf_base_path, "/")."/auth/registrar/access/interfaces/");
+    
+    if($class != "")
+    {    
+      $class = 'StructuredDynamics\structwsf\ws\auth\registrar\access\interfaces\\'.$class;
+      
+      $interface = new $class($this);
+      
+      // Process the code defined in the source interface
+      $interface->processInterface();
     }
+    else
+    { 
+      // Interface not existing
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_304->name);
+      $this->conneg->setError($this->errorMessenger->_304->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_304->name, $this->errorMessenger->_304->description, 
+        "Requested Source Interface: ".$this->interface,
+        $this->errorMessenger->_304->level);
+    } 
   }
 }
 

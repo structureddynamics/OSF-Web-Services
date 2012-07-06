@@ -127,21 +127,59 @@ class AuthValidator extends \StructuredDynamics\structwsf\ws\framework\WebServic
                           "level": "Warning",
                           "name": "No delete permissions",
                           "description": "The target web service needs delete access and the requested user doesn\'t have this access for that dataset."
-                        }  
+                        },
+                        "_308": {
+                          "id": "WS-AUTH-VALIDATOR-308",
+                          "level": "Fatal",
+                          "name": "Requested source interface not existing",
+                          "description": "The source interface you requested is not existing for this web service endpoint."
+                        }    
                       }';
 
+  /**
+  * Implementation of the __get() magic method. We do implement it to create getter functions
+  * for all the protected and private variables of this class, and to all protected variables
+  * of the parent class.
+  * 
+  * This implementation is needed by the interfaces layer since we want the SourceInterface
+  * class to access the variables of the web service class for which it is used as a 
+  * source interface.
+  * 
+  * This means that all the privated and propected variables of these web service objects
+  * are available to users; but they won't be able to set values for them.
+  * 
+  * Also note that This method is about 4 times slower than having the varaible as public instead 
+  * of protected and private. However, these variables are only accessed about 10 to 200 times 
+  * per script call. This means that for accessing these undefined variable using the __get magic 
+  * method call, then it adds about 0.00022 seconds to the call or, about 0.22 milli-second 
+  * (one fifth of a millisecond) For the gain of keeping the variables protected and private, 
+  * we can spend this one fifth of a milli-second. This is a good compromize.  
+  * 
+  * @param mixed $name Name of the variable that is currently not defined for this object
+  */
+  public function __get($name)
+  {
+    // Check if the variable exists (so, if it is private or protected). If it is, then
+    // we return the value. Otherwise a fatal error will be returned by PHP.
+    if(isset($this->{$name}))
+    {
+      return($this->{$name});
+    }
+  }                      
 
   /** Constructor
         
       @param $requester_ip IP address of the requester
       @param $requested_datasets Target dataset targeted by the query of the user
       @param $requested_ws_uri Target web service endpoint accessing the target dataset
+      @param $interface Name of the source interface to use for this web service query. Default value: 'default'                            
+
 
       @return returns NULL
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($requester_ip, $requested_datasets, $requested_ws_uri)
+  function __construct($requester_ip, $requested_datasets, $requested_ws_uri, $interface='default')
   { 
     parent::__construct();
 
@@ -150,6 +188,15 @@ class AuthValidator extends \StructuredDynamics\structwsf\ws\framework\WebServic
     $this->requester_ip = $requester_ip;
     $this->requested_datasets = $requested_datasets;
     $this->requested_ws_uri = $requested_ws_uri;
+    
+    if(strtolower($interface) == "default")
+    {
+      $this->interface = "DefaultSourceInterface";
+    }
+    else
+    {
+      $this->interface = $interface;
+    }
 
     $this->uri = $this->wsf_base_url . "/wsf/ws/auth/validator/";
     $this->title = "Authentication Validator Web Service";
@@ -177,7 +224,7 @@ class AuthValidator extends \StructuredDynamics\structwsf\ws\framework\WebServic
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  protected function validateQuery() { return TRUE; }
+  public function validateQuery() { return TRUE; }
 
   /** Returns the error structure
 
@@ -365,196 +412,29 @@ class AuthValidator extends \StructuredDynamics\structwsf\ws\framework\WebServic
 
   public function process()
   {
-    // Make sure there was no conneg error prior to this process call
-    if($this->conneg->getStatus() == 200)
-    {  
-      // Get the CRUD usage of the target web service
-      $resultset =
-        $this->db->query($this->db->build_sparql_query("select ?_wsf ?_create ?_read ?_update ?_delete from <"
-        . $this->wsf_graph . "> where {?_wsf a <http://purl.org/ontology/wsf#WebServiceFramework>." .
-        " ?_wsf <http://purl.org/ontology/wsf#hasWebService> <$this->requested_ws_uri>. " .
-        "<$this->requested_ws_uri> <http://purl.org/ontology/wsf#hasCrudUsage> ?crudUsage. " .
-        "?crudUsage <http://purl.org/ontology/wsf#create> ?_create; <http://purl.org/ontology/wsf#read> " .
-        "?_read; <http://purl.org/ontology/wsf#update> ?_update; <http://purl.org/ontology/wsf#delete> " .
-        "?_delete. }", array ('_wsf', '_create', '_read', '_update', '_delete'), FALSE));
-
-      if(odbc_error())
-      {
-        $this->conneg->setStatus(500);
-        $this->conneg->setStatusMsg("Internal Error");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_300->name);
-        $this->conneg->setError($this->errorMessenger->_300->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_300->name, $this->errorMessenger->_300->description, odbc_errormsg(),
-          $this->errorMessenger->_300->level);
-        return;
-      }
-      elseif(odbc_fetch_row($resultset))
-      {
-        $wsf = odbc_result($resultset, 1);
-        $ws_create = odbc_result($resultset, 2);
-        $ws_read = odbc_result($resultset, 3);
-        $ws_update = odbc_result($resultset, 4);
-        $ws_delete = odbc_result($resultset, 5);
-      }
-
-      unset($resultset);
-
-      // Check if the web service is registered
-      if($wsf == "")
-      {
-        $this->conneg->setStatus(500);
-        $this->conneg->setStatusMsg("Internal Error");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_301->name);
-        $this->conneg->setError($this->errorMessenger->_301->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_301->name, $this->errorMessenger->_301->description,
-          "Target web service ($this->requested_ws_uri) not registered to this Web Services Framework",
-          $this->errorMessenger->_301->level);
-        return;
-      }
-
-      // Check the list of datasets
-      $datasets = explode(";", $this->requested_datasets);
-
-      foreach($datasets as $dataset)
-      {
-        // Decode potentially encoded ";" character.
-        $dataset = str_ireplace("%3B", ";", $dataset);
-
-        $query =
-          "select ?_access ?_create ?_read ?_update ?_delete 
-                from <" . $this->wsf_graph
-          . "> 
-                where 
-                { 
-                    {
-                    ?_access <http://purl.org/ontology/wsf#webServiceAccess> <$this->requested_ws_uri>; 
-                    <http://purl.org/ontology/wsf#datasetAccess> <$dataset>; 
-                    <http://purl.org/ontology/wsf#registeredIP> ?ip; 
-                    <http://purl.org/ontology/wsf#create> ?_create; 
-                    <http://purl.org/ontology/wsf#read> ?_read; 
-                    <http://purl.org/ontology/wsf#update> ?_update; 
-                    <http://purl.org/ontology/wsf#delete> ?_delete. 
-                    filter(str(?ip) = \"$this->requester_ip\").
-                  }
-                  UNION
-                  {
-                    ?_access <http://purl.org/ontology/wsf#webServiceAccess> <$this->requested_ws_uri>; 
-                    <http://purl.org/ontology/wsf#datasetAccess> <$dataset>; 
-                    <http://purl.org/ontology/wsf#registeredIP> ?ip; 
-                    <http://purl.org/ontology/wsf#create> ?_create; 
-                    <http://purl.org/ontology/wsf#read> ?_read; 
-                    <http://purl.org/ontology/wsf#update> ?_update; 
-                    <http://purl.org/ontology/wsf#delete> ?_delete. 
-                    filter(str(?ip) = \"0.0.0.0\").
-                  }
-                }";
-
-        $resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
-          array ('_access', '_create', '_read', '_update', '_delete'), FALSE));
-
-        $access = array();
-        $create = array();
-        $read = array();
-        $update = array();
-        $delete = array();
-
-        if(odbc_error())
-        {
-          $this->conneg->setStatus(500);
-          $this->conneg->setStatusMsg("Internal Error");
-          $this->conneg->setStatusMsgExt($this->errorMessenger->_302->name);
-          $this->conneg->setError($this->errorMessenger->_302->id, $this->errorMessenger->ws,
-            $this->errorMessenger->_302->name, $this->errorMessenger->_302->description, odbc_errormsg(),
-            $this->errorMessenger->_302->level);
-        }
-
-        while(odbc_fetch_row($resultset))
-        {
-          array_push($access, strtolower(odbc_result($resultset, 1)));
-          array_push($create, strtolower(odbc_result($resultset, 2)));
-          array_push($read, strtolower(odbc_result($resultset, 3)));
-          array_push($update, strtolower(odbc_result($resultset, 4)));
-          array_push($delete, strtolower(odbc_result($resultset, 5)));
-        }
-
-        unset($resultset);
-
-        // Check if an access is defined for this IP, dataset and registered web service
-        if(count($access) <= 0)
-        {          
-          $this->conneg->setStatus(403);
-          $this->conneg->setStatusMsg("Forbidden");
-          $this->conneg->setStatusMsgExt($this->errorMessenger->_303->name);
-          $this->conneg->setError($this->errorMessenger->_303->id, $this->errorMessenger->ws,
-            $this->errorMessenger->_303->name, $this->errorMessenger->_303->description,
-            "No access defined for this requester IP ($this->requester_ip), dataset ($dataset) and web service ($this->requested_ws_uri)",
-            $this->errorMessenger->_303->level);
-          return;
-        }
-
-        // Check if the user has permissions to perform one of the CRUD operation needed by the web service
-
-        if(strtolower($ws_create) == "true")
-        {
-          if(array_search("true", $create) === FALSE)
-          {
-            $this->conneg->setStatus(403);
-            $this->conneg->setStatusMsg("Forbidden");
-            $this->conneg->setStatusMsgExt($this->errorMessenger->_304->name);
-            $this->conneg->setError($this->errorMessenger->_304->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_304->name, $this->errorMessenger->_304->description,
-              "The target web service ($this->requested_ws_uri) needs create access and the requested user ($this->requester_ip) doesn't have this access for that dataset ($dataset).",
-              $this->errorMessenger->_304->level);
-          }
-        }
-
-        if(strtolower($ws_update) == "true")
-        {
-          if(array_search("true", $update) === FALSE)
-          {
-            $this->conneg->setStatus(403);
-            $this->conneg->setStatusMsg("Forbidden");
-            $this->conneg->setStatusMsgExt($this->errorMessenger->_305->name);
-            $this->conneg->setError($this->errorMessenger->_305->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_305->name, $this->errorMessenger->_305->description,
-              "The target web service ($this->requested_ws_uri) needs update access and the requested user ($this->requester_ip) doesn't have this access for that dataset ($dataset).",
-              $this->errorMessenger->_305->level);
-          }
-        }
-
-        if(strtolower($ws_read) == "true")
-        {
-          if(array_search("true", $read) === FALSE)
-          {
-            $this->conneg->setStatus(403);
-            $this->conneg->setStatusMsg("Forbidden");
-            $this->conneg->setStatusMsgExt($this->errorMessenger->_306->name);
-            $this->conneg->setError($this->errorMessenger->_306->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_306->name, $this->errorMessenger->_306->description,
-              "The target web service ($this->requested_ws_uri) needs read access and the requested user ($this->requester_ip) doesn't have this access for that dataset ($dataset).",
-              $this->errorMessenger->_306->level);
-
-            return;
-          }
-        }
-
-        if(strtolower($ws_delete) == "true")
-        {
-          if(array_search("true", $delete) === FALSE)
-          {
-            $this->conneg->setStatus(403);
-            $this->conneg->setStatusMsg("Forbidden");
-            $this->conneg->setStatusMsgExt($this->errorMessenger->_307->name);
-            $this->conneg->setError($this->errorMessenger->_307->id, $this->errorMessenger->ws,
-              $this->errorMessenger->_307->name, $this->errorMessenger->_307->description,
-              "The target web service needs delete access and the requested user doesn't have this access for that dataset.",
-              $this->errorMessenger->_307->level);
-
-            return;
-          }
-        }
-      }
+    // Check if the interface called by the user is existing
+    $class = $this->sourceinterface_exists(rtrim($this->wsf_base_path, "/")."/auth/validator/interfaces/");
+    
+    if($class != "")
+    {    
+      $class = 'StructuredDynamics\structwsf\ws\auth\validator\interfaces\\'.$class;
+      
+      $interface = new $class($this);
+      
+      // Process the code defined in the source interface
+      $interface->processInterface();
     }
+    else
+    { 
+      // Interface not existing
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_308->name);
+      $this->conneg->setError($this->errorMessenger->_308->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_308->name, $this->errorMessenger->_308->description, 
+        "Requested Source Interface: ".$this->interface,
+        $this->errorMessenger->_308->level);
+    } 
   }
 }
 

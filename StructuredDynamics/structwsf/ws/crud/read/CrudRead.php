@@ -128,17 +128,6 @@ class CrudRead extends \StructuredDynamics\structwsf\ws\framework\WebService
                         }  
 
                       }';
-
-  // Generate getter function for all private/protected variables of this class.
-  // protected variable of its parent class (the class it extends) will also
-  // get getters via this method
-  // This method is about 4 times slower than having the varaible as public instead
-  // of protected and private. However, these variables are only accessed about 10 to
-  // 200 times per script call. This means that for accessing these undefined
-  // variable using the __get magic call, then it adds about 0.00022 seconds to the call
-  // or, about 0.22 milli-second (one fifth of a millisecond)
-  // For the gain of keeping the variables protected and private, we can spend this one fifth
-  // of a milli-second. This is a good compromize.
   
   /**
   * Implementation of the __get() magic method. We do implement it to create getter functions

@@ -148,6 +148,32 @@ abstract class WebService
       @see http://techwiki.openstructs.org/index.php/Internal_Resultset_Array */
   protected $rset;
   
+  /** 
+  * Version of the Web Service Endpoint API  
+  * 
+  * The goal of the versioning system is to notice the user of the endpoint if 
+  * the behavior of the endpoint changed since the client application was developed 
+  * for interacting with it.
+  * 
+  * The version will increase when the behavior of the endpoint API changes. The
+  * behavior may changes if:
+  * 
+  * (1) A bug get fixed (and at least a behavior changes)
+  * (2) The code get refactored (and at least a behavior changes) [impacts]
+  * (3) A new parameter/feature is added to the endpoint (but at least another behavior changed) [impacts]
+  * (4) An existing parameter/feature got changed [impacts]
+  * (5) An existing parameter/feature got removed [impacts]
+  * 
+  * In this kind of versioning system, versions are not backward compatible. Because
+  * the version only changes when core behaviors of existing featuers changes, the
+  * versions can't be backward compatible. It is used to track if behaviors changed, 
+  * and to notice users if they did since they last implemented the API.
+  */
+  protected $version;
+  
+  /** Version of the interface requested by the user */
+  protected $requestedInterfaceVersion;
+  
   function __construct()
   {    
     // Load INI settings

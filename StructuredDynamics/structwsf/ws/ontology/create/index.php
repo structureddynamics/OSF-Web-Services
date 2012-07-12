@@ -31,6 +31,14 @@ if(isset($_POST['interface']))
   $interface = $_POST['interface'];
 }
 
+// Version of the requested interface to use for this query
+$version = "";
+
+if(isset($_POST['version']))
+{
+  $version = $_POST['version'];
+}
+
 // IP being registered
 $registered_ip = "";
 
@@ -119,7 +127,8 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_ontologycreate =  new OntologyCreate($ontologyUri, $registered_ip, $requester_ip, $interface);
+$ws_ontologycreate =  new OntologyCreate($ontologyUri, $registered_ip, $requester_ip, 
+                                         $interface, $version);
 
 $ws_ontologycreate->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                               (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

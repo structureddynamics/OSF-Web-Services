@@ -23,6 +23,14 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST')
     die;
 }
 
+// Version of the requested interface to use for this query
+$version = "";
+
+if(isset($_POST['version']))
+{
+  $version = $_POST['version'];
+}
+
 // Interface to use for this query
 $interface = "default";
 
@@ -120,7 +128,7 @@ elseif(isset($_SERVER['PHP_SELF']))
 }
 
 $ws_dc = new DatasetCreate($uri, $title, $description, $creator, $registered_ip, $requester_ip, 
-                           $webservices, $globalPermissions, $interface);
+                           $webservices, $globalPermissions, $interface, $version);
 
 $ws_dc->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                   (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

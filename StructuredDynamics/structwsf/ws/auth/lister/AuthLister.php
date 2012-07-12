@@ -93,7 +93,19 @@ class AuthLister extends \StructuredDynamics\structwsf\ws\framework\WebService
                           "level": "Fatal",
                           "name": "Requested source interface not existing",
                           "description": "The source interface you requested is not existing for this web service endpoint."
-                        }    
+                        },
+                        "_306": {
+                          "id": "WS-AUTH-LISTER-306",
+                          "level": "Fatal",
+                          "name": "Requested incompatible Source Interface version",
+                          "description": "The version of the source interface you requested is not compatible with the version of the source interface currently hosted on the system. Please make sure that your tool get upgraded for using this current version of the endpoint."
+                        },
+                        "_307": {
+                          "id": "WS-AUTH-LISTER-307",
+                          "level": "Fatal",
+                          "name": "Source Interface\'s version not compatible with the web service endpoint\'s",
+                          "description": "The version of the source interface you requested is not compatible with the one of the web service endpoint. Please contact the system administrator such that he updates the source interface to make it compatible with the new endpoint version."
+                        }  
                       }';
 
   /** Supported serialization mime types by this Web service */
@@ -153,15 +165,20 @@ class AuthLister extends \StructuredDynamics\structwsf\ws\framework\WebService
                                                    consuming).
                                 + "none": no web service URI, for any access record, will be returned. 
     @param $interface Name of the source interface to use for this web service query. Default value: 'default'                            
+    @param $requestedInterfaceVersion Version used for the requested source interface. The default is the latest 
+                                      version of the interface.
+
     
     @return returns NULL
   
     @author Frederick Giasson, Structured Dynamics LLC.
 */
   function __construct($mode, $dataset, $registered_ip, $requester_ip, $target_webservice = "all", 
-                       $interface='default')
+                       $interface='default', $requestedInterfaceVersion="")
   {
     parent::__construct();
+    
+    $this->version = "1.0";
 
     $this->db = new DBVirtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 
@@ -177,7 +194,9 @@ class AuthLister extends \StructuredDynamics\structwsf\ws\framework\WebService
     else
     {
       $this->interface = $interface;
-    }    
+    }       
+    
+    $this->requestedInterfaceVersion = $requestedInterfaceVersion;    
     
     if($registered_ip == "")
     {
@@ -407,6 +426,41 @@ class AuthLister extends \StructuredDynamics\structwsf\ws\framework\WebService
       $class = 'StructuredDynamics\structwsf\ws\auth\lister\interfaces\\'.$class;
       
       $interface = new $class($this);
+      
+      // Validate versions
+      if($this->requestedInterfaceVersion == "")
+      {
+        // The default requested version is the last version of the interface
+        $this->requestedInterfaceVersion = $interface->getVersion();
+      }
+      else
+      {
+        if(!$interface->validateWebServiceCompatibility())
+        {
+          $this->conneg->setStatus(400);
+          $this->conneg->setStatusMsg("Bad Request");
+          $this->conneg->setStatusMsgExt($this->errorMessenger->_306->name);
+          $this->conneg->setError($this->errorMessenger->_306->id, $this->errorMessenger->ws,
+            $this->errorMessenger->_306->name, $this->errorMessenger->_306->description, 
+            "Requested Source Interface: ".$this->interface,
+            $this->errorMessenger->_306->level);
+            
+          return;        
+        }
+        
+        if(!$interface->validateInterfaceVersion())
+        {
+          $this->conneg->setStatus(400);
+          $this->conneg->setStatusMsg("Bad Request");
+          $this->conneg->setStatusMsgExt($this->errorMessenger->_307->name);
+          $this->conneg->setError($this->errorMessenger->_307->id, $this->errorMessenger->ws,
+            $this->errorMessenger->_307->name, $this->errorMessenger->_307->description, 
+            "Requested Source Interface: ".$this->interface,
+            $this->errorMessenger->_307->level);  
+            
+            return;
+        }
+      }    
       
       // Process the code defined in the source interface
       $interface->processInterface();

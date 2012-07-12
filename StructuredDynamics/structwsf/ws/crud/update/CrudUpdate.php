@@ -169,11 +169,15 @@ class CrudUpdate extends \StructuredDynamics\structwsf\ws\framework\WebService
                       
   /** Constructor
 
+      @param $requestedInterfaceVersion Version used for the requested source interface. The default is the latest 
+                                        version of the interface.
+  
       @return returns NULL
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($document, $mime, $dataset, $registered_ip, $requester_ip, $interface='default')
+  function __construct($document, $mime, $dataset, $registered_ip, $requester_ip, $interface='default', 
+                       $requestedInterfaceVersion="")
   {
     parent::__construct();
 
@@ -209,6 +213,8 @@ class CrudUpdate extends \StructuredDynamics\structwsf\ws\framework\WebService
     {
       $this->interface = $interface;
     }    
+    
+    $this->requestedInterfaceVersion = $requestedInterfaceVersion;
 
     if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
     {
@@ -469,6 +475,41 @@ class CrudUpdate extends \StructuredDynamics\structwsf\ws\framework\WebService
       $class = 'StructuredDynamics\structwsf\ws\crud\update\interfaces\\'.$class;
       
       $interface = new $class($this);
+      
+      // Validate versions
+      if($this->requestedInterfaceVersion == "")
+      {
+        // The default requested version is the last version of the interface
+        $this->requestedInterfaceVersion = $interface->getVersion();
+      }
+      else
+      {
+        if(!$interface->validateWebServiceCompatibility())
+        {
+          $this->conneg->setStatus(400);
+          $this->conneg->setStatusMsg("Bad Request");
+          $this->conneg->setStatusMsgExt($this->errorMessenger->_310->name);
+          $this->conneg->setError($this->errorMessenger->_310->id, $this->errorMessenger->ws,
+            $this->errorMessenger->_310->name, $this->errorMessenger->_310->description, 
+            "Requested Source Interface: ".$this->interface,
+            $this->errorMessenger->_310->level);
+            
+          return;        
+        }
+        
+        if(!$interface->validateInterfaceVersion())
+        {
+          $this->conneg->setStatus(400);
+          $this->conneg->setStatusMsg("Bad Request");
+          $this->conneg->setStatusMsgExt($this->errorMessenger->_309->name);
+          $this->conneg->setError($this->errorMessenger->_309->id, $this->errorMessenger->ws,
+            $this->errorMessenger->_309->name, $this->errorMessenger->_309->description, 
+            "Requested Source Interface: ".$this->interface,
+            $this->errorMessenger->_309->level);  
+            
+            return;
+        }
+      }      
       
       // Process the code defined in the source interface
       $interface->processInterface();

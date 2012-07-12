@@ -21,6 +21,8 @@
     {   
       parent::__construct($webservice);
       
+      $this->compatibleWith = "1.0";
+      
       $this->query = $this->ws->query;
     }
 

@@ -28,6 +28,18 @@ if(isset($_GET['interface']))
 elseif(isset($_POST['interface']))
 {
   $interface = $_POST['interface'];
+}      
+
+// Version of the requested interface to use for this query
+$version = "";
+
+if(isset($_GET['version']))
+{
+  $version = $_GET['version'];
+}
+elseif(isset($_POST['version']))
+{
+  $version = $_POST['version'];
 }
 
 // URI of the resource to get its description
@@ -135,7 +147,7 @@ elseif(isset($_SERVER['PHP_SELF']))
 }
 
 $ws_cr = new CrudRead($uri, $dataset, $include_linksback, $include_reification, $registered_ip, 
-                      $requester_ip, $include_attributes_list, $interface);
+                      $requester_ip, $include_attributes_list, $interface, $version);
 
 $ws_cr->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                   (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

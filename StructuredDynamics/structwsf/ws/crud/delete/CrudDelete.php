@@ -82,16 +82,28 @@ class CrudDelete extends \StructuredDynamics\structwsf\ws\framework\WebService
         "description": "An error occured when we tried to commit changes to the Solr index"
       },
       "_303": {
-        "id": "WS-CRUD-CREATE-303",
+        "id": "WS-CRUD-DELETE-303",
         "level": "Fatal",
         "name": "Can\'t create a tracking record for one of the input records",
         "description": "We can\'t create the records because we can\'t ensure that we have a track of their changes."
       },
       "_304": {
-        "id": "WS-CRUD-READ-304",
+        "id": "WS-CRUD-DELETE-304",
         "level": "Fatal",
         "name": "Requested source interface not existing",
         "description": "The source interface you requested is not existing for this web service endpoint."
+      },
+      "_305": {
+        "id": "WS-CRUD-DELETE-305",
+        "level": "Fatal",
+        "name": "Requested incompatible Source Interface version",
+        "description": "The version of the source interface you requested is not compatible with the version of the source interface currently hosted on the system. Please make sure that your tool get upgraded for using this current version of the endpoint."
+      },
+      "_306": {
+        "id": "WS-CRUD-DELETE-306",
+        "level": "Fatal",
+        "name": "Source Interface\'s version not compatible with the web service endpoint\'s",
+        "description": "The version of the source interface you requested is not compatible with the one of the web service endpoint. Please contact the system administrator such that he updates the source interface to make it compatible with the new endpoint version."
       }    
     }';
 
@@ -134,15 +146,19 @@ class CrudDelete extends \StructuredDynamics\structwsf\ws\framework\WebService
       @param $registered_ip Target IP address registered in the WSF
       @param $requester_ip IP address of the requester
       @param $interface Name of the source interface to use for this web service query. Default value: 'default'                            
-
+      @param $requestedInterfaceVersion Version used for the requested source interface. The default is the latest 
+                                        version of the interface.
 
       @return returns NULL
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($uri, $dataset, $registered_ip, $requester_ip, $interface='default')
+  function __construct($uri, $dataset, $registered_ip, $requester_ip, $interface='default', 
+                       $requestedInterfaceVersion="")
   {
     parent::__construct();
+    
+    $this->version = "1.0";
 
     $this->db = new DBVirtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 
@@ -167,6 +183,8 @@ class CrudDelete extends \StructuredDynamics\structwsf\ws\framework\WebService
     {
       $this->interface = $interface;
     }
+    
+    $this->requestedInterfaceVersion = $requestedInterfaceVersion;
 
     if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
     {
@@ -416,6 +434,41 @@ class CrudDelete extends \StructuredDynamics\structwsf\ws\framework\WebService
       $class = 'StructuredDynamics\structwsf\ws\crud\delete\interfaces\\'.$class;
       
       $interface = new $class($this);
+      
+      // Validate versions
+      if($this->requestedInterfaceVersion == "")
+      {
+        // The default requested version is the last version of the interface
+        $this->requestedInterfaceVersion = $interface->getVersion();
+      }
+      else
+      {
+        if(!$interface->validateWebServiceCompatibility())
+        {
+          $this->conneg->setStatus(400);
+          $this->conneg->setStatusMsg("Bad Request");
+          $this->conneg->setStatusMsgExt($this->errorMessenger->_306->name);
+          $this->conneg->setError($this->errorMessenger->_306->id, $this->errorMessenger->ws,
+            $this->errorMessenger->_306->name, $this->errorMessenger->_306->description, 
+            "Requested Source Interface: ".$this->interface,
+            $this->errorMessenger->_306->level);
+            
+          return;        
+        }
+        
+        if(!$interface->validateInterfaceVersion())
+        {
+          $this->conneg->setStatus(400);
+          $this->conneg->setStatusMsg("Bad Request");
+          $this->conneg->setStatusMsgExt($this->errorMessenger->_305->name);
+          $this->conneg->setError($this->errorMessenger->_305->id, $this->errorMessenger->ws,
+            $this->errorMessenger->_305->name, $this->errorMessenger->_305->description, 
+            "Requested Source Interface: ".$this->interface,
+            $this->errorMessenger->_305->level);  
+            
+            return;
+        }
+      }      
       
       // Process the code defined in the source interface
       $interface->processInterface();

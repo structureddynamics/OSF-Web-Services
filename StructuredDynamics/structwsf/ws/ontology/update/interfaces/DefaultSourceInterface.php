@@ -22,6 +22,8 @@
     function __construct($webservice)
     {   
       parent::__construct($webservice);
+      
+      $this->compatibleWith = "1.0";
     }
     
     /**

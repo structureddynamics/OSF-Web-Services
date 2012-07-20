@@ -7,6 +7,8 @@
     @brief The property hierarchy of the system.
 */
 
+namespace StructuredDynamics\structwsf\ws\framework;
+
 /** The property hierarchy of the system. This property structure is used by multiple modules to 
     leverage the properties structure of a node. It is used to get the super-properties-of, sub-properties-of, 
     labels and descriptions of properties.

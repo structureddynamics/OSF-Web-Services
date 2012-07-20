@@ -7,6 +7,8 @@
     @brief The class hierarchy of the system.
  */
  
+namespace StructuredDynamics\structwsf\ws\framework;
+ 
 /** The class hierarchy of the system. This class structure is used by multiple modules to 
     leverage the class structure of a node. It is used to get the super-classes-of, sub-classes-of, 
     labels and descriptions of classes.

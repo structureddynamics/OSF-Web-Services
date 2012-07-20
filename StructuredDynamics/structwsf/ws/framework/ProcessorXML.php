@@ -807,12 +807,12 @@ class ProcessorXML
     // XML parsers doesn't seem to like (and throws errors).
     //$string = str_replace(array ("%5C", "&amp;", "&lt;", "&gt;"), array ("\\", "&", "<", ">"), $string);
     
-    return str_replace(array ("\\", "&", "<", ">"), array ("%5C", "&amp;", "&lt;", "&gt;"), $string); 
+    return str_replace(array ("&", "<", ">"), array ("&amp;", "&lt;", "&gt;"), $string); 
   } 
   
   function xmlDecode($string)
   { 
-    return str_replace(array ("%5C", "&amp;", "&lt;", "&gt;"), array ("\\", "&", "<", ">"), $string); 
+    return str_replace(array ("&amp;", "&lt;", "&gt;"), array ("&", "<", ">"), $string); 
   }    
   
   function saveRdfN3()

@@ -118,7 +118,7 @@ class Error
       @author Frederick Giasson, Structured Dynamics LLC.
   */
   public function xmlEncode($string)
-    { return str_replace(array ("\\", "&", "<", ">"), array ("%5C", "&amp;", "&lt;", "&gt;"), $string); }
+    { return str_replace(array ("&", "<", ">"), array ("&amp;", "&lt;", "&gt;"), $string); }
 
   /** Encode a string to put in a JSON value
               

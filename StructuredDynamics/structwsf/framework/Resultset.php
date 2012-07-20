@@ -1236,9 +1236,9 @@ class Resultset
     // Replace all the possible entities by their character. That way, we won't "double encode" 
     // these entities. Otherwise, we can endup with things such as "&amp;amp;" which some
     // XML parsers doesn't seem to like (and throws errors).
-    $string = str_replace(array ("%5C", "&amp;", "&lt;", "&gt;"), array ("\\", "&", "<", ">"), $string);
-    
-    return str_replace(array ("\\", "&", "<", ">"), array ("%5C", "&amp;", "&lt;", "&gt;"), $string); 
+    $string = str_replace(array ("&amp;", "&lt;", "&gt;"), array ("\\", "&", "<", ">"), $string);
+                           
+    return str_replace(array ("&", "<", ">"), array ("%5C", "&amp;", "&lt;", "&gt;"), $string); 
   }
 
   /**

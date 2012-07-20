@@ -2108,23 +2108,21 @@ class OWLOntology
       
       foreach($ranges as $range)
       {
-        if(java_instanceof($range, java("uk.ac.manchester.cs.owl.owlapi.OWLClassImpl")))       
+        if((java_instanceof($range, java("uk.ac.manchester.cs.owl.owlapi.OWLClassImpl")) && $range->isOWLNothing()) ||
+           java_instanceof($range, java("uk.ac.manchester.cs.owl.owlapi.OWLDatatypeImpl")))       
         {
-          if(!java_values($range->isOWLNothing()))
+          $rangeClassUri = (string)java_values($range->toStringID());
+                
+          if(!isset($propertyDescription[Namespaces::$rdfs."range"]) || 
+             is_array($propertyDescription[Namespaces::$rdfs."range"]) === FALSE)
           {
-            $rangeClassUri = (string)java_values($range->toStringID());
-                  
-            if(!isset($propertyDescription[Namespaces::$rdfs."range"]) || 
-               is_array($propertyDescription[Namespaces::$rdfs."range"]) === FALSE)
-            {
-              $propertyDescription[Namespaces::$rdfs."range"] = array(); 
-            }
-            
-            array_push($propertyDescription[Namespaces::$rdfs."range"], array("uri" => $rangeClassUri,
-                                                                              "reify" => array(
-                                                                                "wsf:objectLabel" => array($this->getPrefLabel($range))
-                                                                              ))); 
+            $propertyDescription[Namespaces::$rdfs."range"] = array(); 
           }
+          
+          array_push($propertyDescription[Namespaces::$rdfs."range"], array("uri" => $rangeClassUri,
+                                                                            "reify" => array(
+                                                                              "wsf:objectLabel" => array($this->getPrefLabel($range))
+                                                                            ))); 
         }
       }
     }

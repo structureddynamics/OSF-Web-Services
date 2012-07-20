@@ -12,8 +12,6 @@ namespace StructuredDynamics\structwsf\ws\dataset\create;
 use \StructuredDynamics\structwsf\ws\framework\DBVirtuoso; 
 use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
 use \StructuredDynamics\structwsf\ws\auth\validator\AuthValidator;
-use \StructuredDynamics\structwsf\ws\auth\lister\AuthLister;
-use \StructuredDynamics\structwsf\ws\framework\ProcessorXML;
 use \StructuredDynamics\structwsf\ws\framework\Conneg;
 
 /** Dataset Create Web Service. It creates a new graph for this dataset & indexation of its description
@@ -53,7 +51,7 @@ class DatasetCreate extends \StructuredDynamics\structwsf\ws\framework\WebServic
   private $globalPermissions = "False;False;False;False";      
 
   /** Web services that can be used to access and manage that dataset. It is list of ";" separated Web services URI */
-  private $webservices = "all";      
+  public $webservices = "all";      
 
   /** Error messages of this web service */
   private $errorMessenger =

@@ -279,7 +279,7 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
                        $aggregate_attributes = "", $attributesBooleanOperator = "and",
                        $includeAttributesList = "", $aggregate_attributes_object_type = "literal",
                        $aggregate_attributes_nb = 10, $resultsLocationAggregator = "",
-                       $interface='default')
+                       $interface='default', $requestedInterfaceVersion="")
   {
     parent::__construct();
  
@@ -337,8 +337,6 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
 
     $this->distanceFilter = $distanceFilter;
     $this->rangeFilter = $rangeFilter;
-    $this->distance = $distance;
-    $this->distanceType = $distanceType;
     
     $this->requester_ip = $requester_ip;
 

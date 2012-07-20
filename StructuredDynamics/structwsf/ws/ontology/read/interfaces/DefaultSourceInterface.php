@@ -1001,8 +1001,8 @@
               
               $schema .= '"'.$this->ironPrefixize($uri, $prefixes).'": {';
 
-              $schema .= '"description": "'.parent::jsonEncode($this->getDescription($subject)).'",';
-              $schema .= '"prefLabel": "'.parent::jsonEncode($this->getLabel($uri, $subject)).'",';
+              $schema .= '"description": "'.$this->ws->jsonEncode($this->getDescription($subject)).'",';
+              $schema .= '"prefLabel": "'.$this->ws->jsonEncode($this->getLabel($uri, $subject)).'",';
               
               foreach($subject as $predicate => $values)
               {  
@@ -1044,7 +1044,7 @@
                     case Namespaces::$rdfs."subClassOf":
                       $this->manageIronPrefixes($value["uri"], $prefixes);
                       
-                      $schema .= '"'.parent::jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
+                      $schema .= '"'.$this->ws->jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
                     break;
                     
                     case Namespaces::$sco."displayControl":
@@ -1058,7 +1058,7 @@
                         $displayControl = $value["value"];
                       }
                                          
-                      $schema .= '"'.parent::jsonEncode($displayControl).'",';
+                      $schema .= '"'.$this->ws->jsonEncode($displayControl).'",';
                     break;
                     
                     case Namespaces::$sco."ignoredBy":
@@ -1072,25 +1072,25 @@
                         $ignoredBy = $value["value"];
                       }
                                          
-                      $schema .= '"'.parent::jsonEncode($ignoredBy).'",';
+                      $schema .= '"'.$this->ws->jsonEncode($ignoredBy).'",';
                     break;
                     
                     case Namespaces::$sco."shortLabel":
-                      $schema .= '"'.parent::jsonEncode($value["value"]).'",';
+                      $schema .= '"'.$this->ws->jsonEncode($value["value"]).'",';
                     break;
                     
                     case Namespaces::$sco."color":
-                      $schema .= '"'.parent::jsonEncode($value["value"]).'",';
+                      $schema .= '"'.$this->ws->jsonEncode($value["value"]).'",';
                     break;
                     
                     case Namespaces::$sco."mapMarkerImageUrl":
-                      $schema .= '"'.parent::jsonEncode($value["value"]).'",';
+                      $schema .= '"'.$this->ws->jsonEncode($value["value"]).'",';
                     break;
                     
                     case Namespaces::$sco."relationBrowserNodeType":
                       $this->manageIronPrefixes($value["uri"], $prefixes);
                       
-                      $schema .= '"'.parent::jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
+                      $schema .= '"'.$this->ws->jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
                     break;
                   }              
                 }
@@ -1129,15 +1129,15 @@
               
               $schema .= '"'.$this->ironPrefixize($uri, $prefixes).'": {';
               
-              $schema .= '"description": "'.parent::jsonEncode($this->getDescription($subject)).'",';
-              $schema .= '"prefLabel": "'.parent::jsonEncode($this->getLabel($uri, $subject)).'",';
+              $schema .= '"description": "'.$this->ws->jsonEncode($this->getDescription($subject)).'",';
+              $schema .= '"prefLabel": "'.$this->ws->jsonEncode($this->getLabel($uri, $subject)).'",';
               
               foreach($subject as $predicate => $values)
               {             
                 switch($predicate)
                 {
                   case Namespaces::$iron."allowedValue":
-                    $schema .= '"allowedValue": {"primitive": "'.parent::jsonEncode($value["value"]).'"},';
+                    $schema .= '"allowedValue": {"primitive": "'.$this->ws->jsonEncode($value["value"]).'"},';
                   break;                
                   
                   case Namespaces::$rdfs."subPropertyOf":
@@ -1184,7 +1184,7 @@
                     case Namespaces::$rdfs."domain":
                       $this->manageIronPrefixes($value["uri"], $prefixes);
                       
-                      $schema .= '"'.parent::jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
+                      $schema .= '"'.$this->ws->jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
                     break;
                     
                     case Namespaces::$sco."displayControl":
@@ -1197,7 +1197,7 @@
                         $displayControl = $value["value"];
                       }
                       
-                      $schema .= '"'.parent::jsonEncode($displayControl).'",';
+                      $schema .= '"'.$this->ws->jsonEncode($displayControl).'",';
                     break;
                     
                     case Namespaces::$sco."ignoredBy":
@@ -1210,33 +1210,33 @@
                         $ignoredBy = $value["value"];
                       }
                       
-                      $schema .= '"'.parent::jsonEncode($ignoredBy).'",';
+                      $schema .= '"'.$this->ws->jsonEncode($ignoredBy).'",';
                     break;
 
                     case Namespaces::$sco."comparableWith":
                       $this->manageIronPrefixes($value["uri"], $prefixes);
                       
-                      $schema .= '"'.parent::jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
+                      $schema .= '"'.$this->ws->jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
                     break;
 
                     case Namespaces::$sco."unitType":
                       $this->manageIronPrefixes($value["uri"], $prefixes);
                       
-                      $schema .= '"'.parent::jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
+                      $schema .= '"'.$this->ws->jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
                     break;
                     
                     case Namespaces::$sco."shortLabel":
-                      $schema .= '"'.parent::jsonEncode($value["value"]).'",';
+                      $schema .= '"'.$this->ws->jsonEncode($value["value"]).'",';
                     break;
                     
                     case Namespaces::$sco."orderingValue":
-                      $schema .= '"'.parent::jsonEncode($value["value"]).'",';
+                      $schema .= '"'.$this->ws->jsonEncode($value["value"]).'",';
                     break;  
                     
                     case Namespaces::$rdfs."subPropertyOf":
                       $this->manageIronPrefixes($value["uri"], $prefixes);
                       
-                      $schema .= '"'.parent::jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
+                      $schema .= '"'.$this->ws->jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
                     break;
                   }
                 }
@@ -1270,8 +1270,8 @@
               
               $schema .= '"'.$this->ironPrefixize($uri, $prefixes).'": {';
               
-              $schema .= '"description": "'.parent::jsonEncode($this->getDescription($subject)).'",';
-              $schema .= '"prefLabel": "'.parent::jsonEncode($this->getLabel($uri, $subject)).'",';
+              $schema .= '"description": "'.$this->ws->jsonEncode($this->getDescription($subject)).'",';
+              $schema .= '"prefLabel": "'.$this->ws->jsonEncode($this->getLabel($uri, $subject)).'",';
               
               foreach($subject as $predicate => $values)
               {
@@ -1319,19 +1319,19 @@
                   switch($predicate)
                   {
                     case Namespaces::$iron."allowedValue":
-                      $schema .= '{"primitive": "'.parent::jsonEncode($value["value"]).'"},';
+                      $schema .= '{"primitive": "'.$this->ws->jsonEncode($value["value"]).'"},';
                     break;                
                     
                     case Namespaces::$rdfs."domain":
                       $this->manageIronPrefixes($value["uri"], $prefixes);
                       
-                      $schema .= '"'.parent::jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
+                      $schema .= '"'.$this->ws->jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
                     break;
                     
                     case Namespaces::$rdfs."range":
                       $this->manageIronPrefixes($value["uri"], $prefixes);
                       
-                      $schema .= '{ "type": "'.parent::jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'"},';
+                      $schema .= '{ "type": "'.$this->ws->jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'"},';
                     break;
                     
                     case Namespaces::$sco."displayControl":
@@ -1344,7 +1344,7 @@
                         $displayControl = $value["value"];
                       }
                       
-                      $schema .= '"'.parent::jsonEncode($displayControl).'",';
+                      $schema .= '"'.$this->ws->jsonEncode($displayControl).'",';
                     break;
                     
                     case Namespaces::$sco."ignoredBy":
@@ -1357,33 +1357,33 @@
                         $ignoredBy = $value["value"];
                       }
                       
-                      $schema .= '"'.parent::jsonEncode($ignoredBy).'",';
+                      $schema .= '"'.$this->ws->jsonEncode($ignoredBy).'",';
                     break;
 
                     case Namespaces::$sco."comparableWith":
                       $this->manageIronPrefixes($value["uri"], $prefixes);
                       
-                      $schema .= '"'.parent::jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
+                      $schema .= '"'.$this->ws->jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
                     break;
                     
                     case Namespaces::$sco."shortLabel":
-                      $schema .= '"'.parent::jsonEncode($value["value"]).'",';
+                      $schema .= '"'.$this->ws->jsonEncode($value["value"]).'",';
                     break;
                     
                     case Namespaces::$sco."unitType":
                       $this->manageIronPrefixes($value["uri"], $prefixes);
                       
-                      $schema .= '"'.parent::jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
+                      $schema .= '"'.$this->ws->jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
                     break;                  
                     
                     case Namespaces::$sco."orderingValue":
-                      $schema .= '"'.parent::jsonEncode($value["value"]).'",';
+                      $schema .= '"'.$this->ws->jsonEncode($value["value"]).'",';
                     break;     
                                                                      
                     case Namespaces::$rdfs."subPropertyOf":
                       $this->manageIronPrefixes($value["uri"], $prefixes);
                       
-                      $schema .= '"'.parent::jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
+                      $schema .= '"'.$this->ws->jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
                     break;
                   }
                 }

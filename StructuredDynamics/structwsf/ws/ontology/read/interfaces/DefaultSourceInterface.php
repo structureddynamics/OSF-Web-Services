@@ -222,6 +222,8 @@
         {
           foreach($description[Namespaces::$rdfs."domain"] as $domain)
           {
+            array_push($rangeClasses, $domain["uri"]);
+            
             array_push($domainClasses, $ontology->getSubClassesUri($domain["uri"], FALSE));
           }
         }
@@ -236,7 +238,9 @@
         {
           foreach($description[Namespaces::$rdfs."range"] as $range)
           {
-            array_push($rangeClasses, $ontology->getSubClassesUri($range["uri"], FALSE));
+            array_push($rangeClasses, $range["uri"]);
+            
+            array_push($rangeClasses, $ontology->getSubClassesUri($range["uri"], FALSE));            
           }
         }
              

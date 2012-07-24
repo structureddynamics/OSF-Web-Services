@@ -8,6 +8,7 @@
   use \StructuredDynamics\structwsf\ws\framework\Solr;
   use \StructuredDynamics\structwsf\framework\Subject;
   use \StructuredDynamics\structwsf\ws\auth\lister\AuthLister;
+  use \StructuredDynamics\structwsf\framework\Datasetypes;
   use \DOMDocument;
   use \DOMXPath;  
   
@@ -169,7 +170,8 @@
           // Here, "^0" is added to zero-out the boost (revelency) value of the keyword
           // in this query, we simply want to aggregate the results related to their
           // distance of the center point.
-          $distanceQueryRevelencyBooster = '^0 AND _val_:"recip(dist(2, lat, long, '.$this->ws->resultsLocationAggregator[0].', '.$this->ws->resultsLocationAggregator[1].'), 1, 1, 0)"^100';  
+          //$distanceQueryRevelencyBooster = '^0 AND _val_:"recip(dist(2, lat, long, '.$this->ws->resultsLocationAggregator[0].', '.$this->ws->resultsLocationAggregator[1].'), 1, 1, 0)"^100';  
+          $distanceQueryRevelencyBooster = '^0 AND _val_:"recip(geodist(geohash, '.$this->ws->resultsLocationAggregator[0].', '.$this->ws->resultsLocationAggregator[1].'), 1, 1, 0)"^100';  
         }
         
         if(strtolower($this->ws->datasets) == "all")
@@ -249,7 +251,7 @@
         }
         
         if($this->ws->attributes != "all")
-        {
+        {                    
           // Lets include the information to facet per type.
           $attributes = explode(";", $this->ws->attributes);
 
@@ -397,6 +399,179 @@
                     }
                     
                     $solrQuery .= "(".urlencode(urlencode($attribute))."_attr:".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
+                    $addOR = TRUE;
+                    $empty = FALSE;
+                  }
+
+                  if(array_search(urlencode($attribute."_attr_int"), $indexedFields) !== FALSE)
+                  {                  
+                    if($addOR)
+                    {
+                      $solrQuery .= " OR ";
+                    }
+                    
+                    if(is_numeric($val))
+                    {
+                      $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_int:".$val.")";                      
+                    }
+                    else
+                    {
+                      // Extract the FROM and TO numbers range
+                      $numbers = explode(" TO ", trim(str_replace(" to ", " TO ", $val), "[]"));
+                      
+                      if($numbers[0] != "*")
+                      {
+                        if(!is_numeric($numbers[0]))
+                        {
+                          $this->ws->conneg->setStatus(400);
+                          $this->ws->conneg->setStatusMsg("Bad Request");
+                          $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_306->name);
+                          $this->ws->conneg->setError($this->ws->errorMessenger->_306->id, $this->ws->errorMessenger->ws,
+                            $this->ws->errorMessenger->_306->name, $this->ws->errorMessenger->_306->description, "",
+                            $this->ws->errorMessenger->_306->level);
+                          return;
+                        }
+                      }
+                      
+                      if($numbers[1] != "*")
+                      {
+                        if(!is_numeric($numbers[1]))
+                        {
+                          $this->ws->conneg->setStatus(400);
+                          $this->ws->conneg->setStatusMsg("Bad Request");
+                          $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_306->name);
+                          $this->ws->conneg->setError($this->ws->errorMessenger->_306->id, $this->ws->errorMessenger->ws,
+                            $this->ws->errorMessenger->_306->name, $this->ws->errorMessenger->_306->description, "",
+                            $this->ws->errorMessenger->_306->level);
+                          return;
+                        }
+                      } 
+                      
+                      $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_int:".urlencode("[".$numbers[0]." TO ".$numbers[1]."]").")";
+                    }
+                      
+                      
+                    $addOR = TRUE;
+                    $empty = FALSE;
+                  }   
+                  
+                  if(array_search(urlencode($attribute."_attr_float"), $indexedFields) !== FALSE)
+                  {                  
+                    if($addOR)
+                    {
+                      $solrQuery .= " OR ";
+                    }
+                          
+                    if(is_numeric($val))
+                    {
+                      $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_float:".$val.")";
+                    }
+                    else
+                    {                    
+                      // Extract the FROM and TO numbers range
+                      $numbers = explode(" TO ", trim(str_replace(" to ", " TO ", $val), "[]"));
+                      
+                      if($numbers[0] != "*")
+                      {
+                        if(!is_numeric($numbers[0]))
+                        {
+                          $this->ws->conneg->setStatus(400);
+                          $this->ws->conneg->setStatusMsg("Bad Request");
+                          $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_306->name);
+                          $this->ws->conneg->setError($this->ws->errorMessenger->_306->id, $this->ws->errorMessenger->ws,
+                            $this->ws->errorMessenger->_306->name, $this->ws->errorMessenger->_306->description, "",
+                            $this->ws->errorMessenger->_306->level);
+                          return;
+                        }
+                      }
+                      
+                      if($numbers[1] != "*")
+                      {
+                        if(!is_numeric($numbers[1]))
+                        {
+                          $this->ws->conneg->setStatus(400);
+                          $this->ws->conneg->setStatusMsg("Bad Request");
+                          $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_306->name);
+                          $this->ws->conneg->setError($this->ws->errorMessenger->_306->id, $this->ws->errorMessenger->ws,
+                            $this->ws->errorMessenger->_306->name, $this->ws->errorMessenger->_306->description, "",
+                            $this->ws->errorMessenger->_306->level);
+                          return;
+                        }
+                      } 
+                      
+                      $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_float:".urlencode("[".$numbers[0]." TO ".$numbers[1]."]").")";
+                    }
+                    $addOR = TRUE;
+                    $empty = FALSE;
+                  }
+                  
+                  if(array_search(urlencode($attribute."_attr_date"), $indexedFields) !== FALSE)
+                  {
+                    if($addOR)
+                    {
+                      $solrQuery .= " OR ";
+                    }
+                    
+                    $dateFrom = "";
+                    $dateTo = "NOW";
+                    
+                    // Check if it is a range query
+                    if(substr($val, 0, 1) == "[" && substr($val, strlen($val) - 1, 1) == "]")
+                    {
+                      // Extract the FROM and TO dates range
+                      $dates = explode(" TO ", trim(str_replace(" to ", " TO ", $val), "[]"));
+                      
+                      if($dates[0] != "*")
+                      {
+                        $dateFrom = $this->safeDate($dates[0]);
+                        
+                        if($dateFrom === FALSE)
+                        {
+                          $this->ws->conneg->setStatus(400);
+                          $this->ws->conneg->setStatusMsg("Bad Request");
+                          $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_305->name);
+                          $this->ws->conneg->setError($this->ws->errorMessenger->_305->id, $this->ws->errorMessenger->ws,
+                            $this->ws->errorMessenger->_305->name, $this->ws->errorMessenger->_305->description, "",
+                            $this->ws->errorMessenger->_305->level);
+                          return;
+                        }
+                      }
+                      
+                      if($dates[1] != "*")
+                      {
+                        $dateTo = $this->safeDate($dates[1]);
+                        
+                        if($dateTo === FALSE)
+                        {
+                          $this->ws->conneg->setStatus(400);
+                          $this->ws->conneg->setStatusMsg("Bad Request");
+                          $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_305->name);
+                          $this->ws->conneg->setError($this->ws->errorMessenger->_305->id, $this->ws->errorMessenger->ws,
+                            $this->ws->errorMessenger->_305->name, $this->ws->errorMessenger->_305->description, "",
+                            $this->ws->errorMessenger->_305->level);
+                          return;
+                        }                        
+                      }
+                    }
+                    else
+                    {
+                      // If no range is defined, we consider the input date to be the initial date to use
+                      // until now.
+                      $dateFrom = $this->safeDate($val);
+                      
+                      if($dateFrom === FALSE)
+                      {
+                        $this->ws->conneg->setStatus(400);
+                        $this->ws->conneg->setStatusMsg("Bad Request");
+                        $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_305->name);
+                        $this->ws->conneg->setError($this->ws->errorMessenger->_305->id, $this->ws->errorMessenger->ws,
+                          $this->ws->errorMessenger->_305->name, $this->ws->errorMessenger->_305->description, "",
+                          $this->ws->errorMessenger->_305->level);
+                        return;
+                      }                       
+                    }
+                    
+                    $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_date:".urlencode("[".$dateFrom." TO ".$dateTo)."]".")";
                     $addOR = TRUE;
                     $empty = FALSE;
                   }
@@ -655,6 +830,8 @@
         $solrQuery = str_replace("fq= OR ", "fq=", $solrQuery);      
         $solrQuery = str_replace("fq= AND ", "fq=", $solrQuery);      
 
+        file_put_contents("/tmp/solr.query", $solrQuery);
+        
         $resultset = $solr->select($solrQuery);
 
         // Create the internal representation of the resultset.      
@@ -899,6 +1076,33 @@
                 foreach($values as $value)
                 {
                   $subject->setDataAttribute($attributeURI, $value->nodeValue);
+                }
+              break;
+
+              case "_attr_date":
+                $values = $property->getElementsByTagName("date");
+
+                foreach($values as $value)
+                {
+                  $subject->setDataAttribute($attributeURI, $value->nodeValue, Datasetypes::$date);
+                }
+              break;
+
+              case "_attr_int":
+                $values = $property->getElementsByTagName("int");
+
+                foreach($values as $value)
+                {
+                  $subject->setDataAttribute($attributeURI, $value->nodeValue, Datasetypes::$int);
+                }
+              break;
+
+              case "_attr_float":
+                $values = $property->getElementsByTagName("float");
+
+                foreach($values as $value)
+                {
+                  $subject->setDataAttribute($attributeURI, $value->nodeValue, Datasetypes::$float);
                 }
               break;
 

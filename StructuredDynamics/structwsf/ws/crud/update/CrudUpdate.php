@@ -132,7 +132,13 @@ class CrudUpdate extends \StructuredDynamics\structwsf\ws\framework\WebService
                           "level": "Fatal",
                           "name": "Requested source interface not existing",
                           "description": "The source interface you requested is not existing for this web service endpoint."
-                        }                                                     
+                        },
+                        "_311: {
+                          "id": "WS-CRUD-UPDATE-311",
+                          "level": "Fatal",
+                          "name": "Can\'t parse the propertyHierarchySerialized.srz file",
+                          "description": "We can\'t parse the propertyHierarchySerialized.srz file. Please do make sure that this file is properly serialized. You can try to fix that issue by re-creating a serialization file from the latest version of the OntologyRead web service endpoint and to replace the result with the current file being used."
+                        }                                                    
                       }';
 
 

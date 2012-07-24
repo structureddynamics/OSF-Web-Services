@@ -536,10 +536,11 @@
                         "</field>";                  
                 
                 // Add hashcode
-                $geohash = new Geohash();
+                //$geohash = new Geohash();
                 
                 $add .= "<field name=\"geohash\">". 
-                           $this->ws->xmlEncode($geohash->encode($lat, $long)). 
+                //           $this->ws->xmlEncode($geohash->encode($lat, $long)). 
+                           "$lat,$long".
                         "</field>"; 
                 $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$sco."geohash") . "</field>";
                        
@@ -624,10 +625,11 @@
                             "</field>";                  
                     
                     // Add hashcode
-                    $geohash = new Geohash();
+                    //$geohash = new Geohash();
                     
                     $add .= "<field name=\"geohash\">". 
-                               $this->ws->xmlEncode($geohash->encode($points[1], $points[0])). 
+                               //$this->ws->xmlEncode($geohash->encode($points[1], $points[0])). 
+                               $points[1].",".$points[0].
                             "</field>"; 
                             
                     if($key == 0)
@@ -683,13 +685,58 @@
                   if($value["type"] == "literal")
                   {
                     // Detect if the field currently exists in the fields index 
-                    if(!$newFields && array_search(urlencode($predicate) . "_attr", $indexedFields) !== FALSE)
+                    if(!$newFields && 
+                       array_search(urlencode($predicate) . "_attr", $indexedFields) === FALSE &&
+                       array_search(urlencode($predicate) . "_attr_date", $indexedFields) === FALSE &&
+                       array_search(urlencode($predicate) . "_attr_int", $indexedFields) === FALSE &&
+                       array_search(urlencode($predicate) . "_attr_float", $indexedFields) === FALSE)
                     {
                       $newFields = TRUE;
                     }
-                   
-                    $add .= "<field name=\"" . urlencode($predicate) . "_attr\">" . $this->ws->xmlEncode($value["value"])
-                      . "</field>";
+                      
+                    // Check the datatype of the datatype property
+                    $filename = rtrim($this->ws->ontological_structure_folder, "/") . "/propertyHierarchySerialized.srz";
+                    
+                    $file = fopen($filename, "r");
+                    $propertyHierarchy = fread($file, filesize($filename));
+                    $propertyHierarchy = unserialize($propertyHierarchy);                        
+                    fclose($file);
+                    
+                    if($propertyHierarchy === FALSE)
+                    {
+                      $this->ws->conneg->setStatus(500);   
+                      $this->ws->conneg->setStatusMsg("Internal Error");
+                      $this->ws->conneg->setError($this->ws->errorMessenger->_311->id, $this->ws->errorMessenger->ws,
+                        $this->ws->errorMessenger->_311->name, $this->ws->errorMessenger->_311->description, "",
+                        $this->ws->errorMessenger->_311->level);
+                      return;
+                    }                         
+                    
+                    $property = $propertyHierarchy->getProperty($predicate);
+
+                    if(is_array($property->range) && array_search("http://www.w3.org/2001/XMLSchema#dateTime", $property->range) !== FALSE)
+                    {
+                      $add .= "<field name=\"" . urlencode($predicate) . "_attr_date\">" . $this->ws->xmlEncode($this->safeDate($value["value"]))
+                        . "</field>";
+                    }
+                    elseif(is_array($property->range) && array_search("http://www.w3.org/2001/XMLSchema#int", $property->range) !== FALSE ||
+                           is_array($property->range) && array_search("http://www.w3.org/2001/XMLSchema#integer", $property->range) !== FALSE)
+                    {
+                      $add .= "<field name=\"" . urlencode($predicate) . "_attr_int\">" . $this->ws->xmlEncode($value["value"])
+                        . "</field>";
+                    }
+                    elseif(is_array($property->range) && array_search("http://www.w3.org/2001/XMLSchema#float", $property->range) !== FALSE)
+                    {
+                      $add .= "<field name=\"" . urlencode($predicate) . "_attr_float\">" . $this->ws->xmlEncode($value["value"])
+                        . "</field>";
+                    }
+                    else
+                    {
+                      // By default, the datatype used is a literal/string
+                      $add .= "<field name=\"" . urlencode($predicate) . "_attr\">" . $this->ws->xmlEncode($value["value"])
+                        . "</field>";                          
+                    }                      
+                      
                     $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode($predicate) . "</field>";
                     $add .= "<field name=\"" . urlencode($predicate) . "_attr_facets\">" . $this->ws->xmlEncode($value["value"])
                       . "</field>";
@@ -741,7 +788,7 @@
                   elseif($value["type"] == "uri")
                   {
                     // Detect if the field currently exists in the fields index 
-                    if(!$newFields && array_search(urlencode($predicate) . "_attr", $indexedFields) !== FALSE)
+                    if(!$newFields && array_search(urlencode($predicate) . "_attr", $indexedFields) === FALSE)
                     {
                       $newFields = TRUE;
                     }                      
@@ -779,7 +826,7 @@
                     }
                     
                     // Detect if the field currently exists in the fields index 
-                    if(!$newFields && array_search(urlencode($predicate) . "_attr_obj", $indexedFields) !== FALSE)
+                    if(!$newFields && array_search(urlencode($predicate) . "_attr_obj", $indexedFields) === FALSE)
                     {
                       $newFields = TRUE;
                     }

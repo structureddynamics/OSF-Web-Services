@@ -113,6 +113,55 @@
       return($this->version);
     }
     
+    protected function safeDate($string)
+    {
+      if(!preg_match("/\d{4}/", $string, $match))
+      {
+        // Year must be in YYYY form. Return error.
+        return(FALSE); 
+      }
+      
+      // Converting the year to integer
+      $year = intval($match[0]); 
+      
+      if($year >= 1970) 
+      {
+        $timestamp = strtotime($string);
+        
+        if($timestamp !== FALSE)
+        {
+          return(gmdate("Y-m-d\TH:i:s\Z", $timestamp));
+        }
+        else
+        {
+          return(FALSE);
+        }          
+      }
+      else
+      {
+        // Calculating the difference between 1975 and the year
+        $diff = 1975 - $year; 
+        
+        // Year + diff = new_year will be for sure > 1970
+        $new_year = $year + $diff; 
+        
+        $timestamp = strtotime(str_replace($year, $new_year, $string));
+        
+        if($timestamp !== FALSE)
+        {
+          // Replacing the year with the new_year, try strtotime, rendering the date
+          $new_date = gmdate("Y-m-d\TH:i:s\Z", $timestamp); 
+          
+          // Returning the date with the correct year
+          return str_replace($new_year, $year, $new_date); 
+        }
+        else
+        {
+          return(FALSE);
+        }          
+      }
+    }    
+    
     abstract public function processInterface();
   }
   

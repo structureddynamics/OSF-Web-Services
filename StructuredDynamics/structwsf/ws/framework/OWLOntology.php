@@ -3352,6 +3352,8 @@ class OWLOntology
             switch($objectValues[Namespaces::$rdf."type"][0])
             {
               case Namespaces::$owl."DatatypeProperty":
+                $owlDataType = $this->owlDataFactory->getOWLDatatype(java("org.semanticweb.owlapi.model.IRI")->create($value));
+                $rangeAxiom = $this->owlDataFactory->getOWLDataPropertyRangeAxiom($property, $owlDataType);    
               break;
               
               case Namespaces::$owl."ObjectProperty":

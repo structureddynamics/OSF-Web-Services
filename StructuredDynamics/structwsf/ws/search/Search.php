@@ -156,8 +156,19 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
                           "level": "Fatal",
                           "name": "Source Interface\'s version not compatible with the web service endpoint\'s",
                           "description": "The version of the source interface you requested is not compatible with the one of the web service endpoint. Please contact the system administrator such that he updates the source interface to make it compatible with the new endpoint version."
+                        },
+                        "_305": {
+                          "id": "WS-SEARCH-305",
+                          "level": "Fatal",
+                          "name": "Invalid query date(s)",
+                          "description": "The dates range of one of your date range attribute/value filter is invalid. Please make sure you entered to valid date-ranges."
+                        },
+                        "_306": {
+                          "id": "WS-SEARCH-306",
+                          "level": "Fatal",
+                          "name": "Invalid number in the numbers range filter",
+                          "description": "Numbers are expected in the numbers range filter you defined for this query"
                         }
-                        
                       }';
 
   /**
@@ -196,12 +207,38 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
       
       @param $query Global query filtering parameter  
       @param $types List of filtering types URIs separated by ";"
-      @param $attributes List of filtering attributes (property) of (encoded) URIs separated by ";". 
-                             Additionally, the URI can end with a (un-encoded) double-colon "::". What follows
-                             this colon is a possible value restriction to be applied, as a filter
-                             to this attribute. The lucene query syntax can be used for that filtering
-                             value. The value also has to be encoded. An example of this "attribute" parameter is: 
-                             "http%3A%2F%2Fsome-attribute-uri::some%2Bfiltering%2Bvalue"
+      @param $attributes List of filtering attributes (property) of (encoded) URIs separated 
+                         by ";". Additionally, the URI can end with a (un-encoded) double-colon "::". 
+                         What follows this double colons is a possible value restriction to be applied 
+                         as a filter to this attribute to perform attribute/value filtered searches. 
+                         The query syntax can be used for that filtering value. The value also has 
+                         to be encoded. An example of this "attribute" parameter is: 
+                         "http%3A%2F%2Fsome-attribute-uri::some%2Bfiltering%2Bvalue". There is a 
+                         special markup used with the prefLabel attribute when the attribute/value 
+                         filtering is used in this parameter. It is the double stars "**" that 
+                         introduces an auto-completion behavior on the prefLabel core attribute. 
+                         It should be used like: "attributes=prefLabel::te**"; this will tells the 
+                         search endpoint that the requester is performing an auto-completion task. 
+                         That way, the endpoint will ensure that the autocompletion task can be 
+                         performed for more than one word, including spaces. If the target attribute 
+                         is defined in the ontology with the xsd:dateTime datatype in its range, 
+                         then date queries can be used in this filter. If a single date is specified, 
+                         such as 2001-05-24, then all the records from that date until now will be 
+                         returned by the query. If a range of date is specified such as [1999 to 2010], 
+                         then all the records between these two dates will be returned. A range of 
+                         dates has to be between double brackets. Also, the seperator of the two 
+                         dates has to be " to " (space, the word "to" and another space). The format 
+                         of a date description is about any English textual datetime description. If 
+                         the target attribute is defined in the ontology with the xsd:int or the 
+                         xsd:float datatype in its range, then numeric queries can be used in 
+                         this filter. If a single number is specified, such as 235, then all the 
+                         records with that attribute/value will be returned. If a range of numbers 
+                         is specified such as [235 to 900], then all the records between these two 
+                         numbers will be returned. A range of numbers has to be between double brackets. 
+                         Also, the seperator of the two dates has to be " to " (space, the word "to" 
+                         and another space). When a range is defined for an attribute/value filter, 
+                         the star character (*) can be used to denote "any" (so, any number, any date, 
+                         etc) like [235 to *].  
       @param $datasets List of filtering datasets URIs separated by ";"
       @param $items Number of items returned by resultset
       @param $page Starting item number of the returned resultset

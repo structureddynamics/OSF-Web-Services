@@ -997,8 +997,32 @@
                             {
                               if($reiValue["type"] == "literal")
                               {
+                                $reiLang = "";
+                                
+                                if(isset($reiValue["lang"]))
+                                {
+                                  if(array_search($reiValue["lang"], $this->ws->supportedLanguages) !== FALSE)
+                                  {
+                                    // The language used for this string is supported by the system, so we index it in
+                                    // the good place
+                                    $reiLang = $reiValue["lang"];  
+                                  }
+                                  else
+                                  {
+                                    // The language used for this string is not supported by the system, so we
+                                    // index it in the default language
+                                    $reiLang = $this->ws->supportedLanguages[0];                        
+                                  }
+                                }
+                                else
+                                {
+                                  // The language is not defined for this string, so we simply consider that it uses
+                                  // the default language supported by the structWSF instance
+                                  $reiLang = $this->ws->supportedLanguages[0];                        
+                                }                                 
+                                
                                 // Attribute used to reify information to a statement.
-                                $add .= "<field name=\"" . urlencode($reiPredicate) . "_reify_attr_obj\">"
+                                $add .= "<field name=\"" . urlencode($reiPredicate) . "_reify_attr\">"
                                   . $this->ws->xmlEncode($predicate) .
                                   "</field>";
 
@@ -1006,7 +1030,7 @@
                                   . $this->ws->xmlEncode($value["value"]) .
                                   "</field>";
 
-                                $add .= "<field name=\"" . urlencode($reiPredicate) . "_reify_value\">"
+                                $add .= "<field name=\"" . urlencode($reiPredicate) . "_reify_value_".$reiLang."\">"
                                   . $this->ws->xmlEncode($reiValue["value"]) .
                                   "</field>";
 

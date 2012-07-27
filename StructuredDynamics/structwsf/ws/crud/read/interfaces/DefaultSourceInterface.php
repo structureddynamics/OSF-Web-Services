@@ -152,6 +152,11 @@
 
             $otype = odbc_result($resultset, 3);
             $olang = odbc_result($resultset, 4);
+            
+            if($this->ws->lang != "" & $olang != "" && $olang != $this->ws->lang)
+            {
+              continue;
+            }
                       
             if($g == "")
             {

@@ -48,7 +48,10 @@ class OntologyRead extends \StructuredDynamics\structwsf\ws\framework\WebService
   * 
   * **Java variable type:** boolean
   */
-  private $useReasoner = TRUE;  
+  private $useReasoner = TRUE;   
+  
+  /** Language of the annotations to return. */
+  public $lang = "en";  
 
   /** Namespaces/Prefixes binding */
   private $namespaces =
@@ -132,6 +135,12 @@ class OntologyRead extends \StructuredDynamics\structwsf\ws\framework\WebService
                           "level": "Fatal",
                           "name": "Source Interface\'s version not compatible with the web service endpoint\'s",
                           "description": "The version of the source interface you requested is not compatible with the one of the web service endpoint. Please contact the system administrator such that he updates the source interface to make it compatible with the new endpoint version."
+                        },
+                        "_304": {
+                          "id": "WS-ONTOLOGY-READ-304",
+                          "level": "Fatal",
+                          "name": "Language not supported by the endpoint",
+                          "description": "The language you requested for you query is currently not supported by the endpoint. Please use another one and re-send your query."
                         }  
                       }';
 
@@ -181,13 +190,18 @@ class OntologyRead extends \StructuredDynamics\structwsf\ws\framework\WebService
       @param $interface Name of the source interface to use for this web service query. Default value: 'default'                            
       @param $requestedInterfaceVersion Version used for the requested source interface. The default is the latest 
                                         version of the interface.
-      
+      @param $lang Language of the records to be returned by the search endpoint. Only the textual information
+                   of the requested language will be returned to the user. If no textual information is available
+                   for a record, for a requested language, then only non-textual information will be returned
+                   about the record. The default is "en"; however, if the parameter is an empty string, then
+                   all the language strings for the record(s) will be returned.  
+                         
       @return returns NULL
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
   function __construct($ontologyUri, $function, $parameters, $registered_ip, $requester_ip, 
-                       $interface='default', $requestedInterfaceVersion="")
+                       $interface='default', $requestedInterfaceVersion="", $lang="en")
   {
     parent::__construct();
     
@@ -241,7 +255,9 @@ class OntologyRead extends \StructuredDynamics\structwsf\ws\framework\WebService
       {
         $this->registered_ip = $requester_ip;
       }
-    }
+    }     
+    
+    $this->lang = $lang;
 
     $this->uri = $this->wsf_base_url . "/wsf/ws/ontology/read/";
     $this->title = "Ontology Read Web Service";
@@ -272,7 +288,19 @@ class OntologyRead extends \StructuredDynamics\structwsf\ws\framework\WebService
       @author Frederick Giasson, Structured Dynamics LLC.
   */
   public function validateQuery()
-  {
+  {            
+    if($this->lang != "" && array_search($this->lang, $this->supportedLanguages) === FALSE)
+    {
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_304->name);
+      $this->conneg->setError($this->errorMessenger->_304->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_304->name, $this->errorMessenger->_304->description, "",
+        $this->errorMessenger->_304->level);
+
+      return;      
+    }    
+    
     // @TODO Validate the OntologyRead queries such that: (1) if the user is requesting something related to a 
     //       specific ontology, we check if it has the rights. If it is requesting a list of available ontologies
     //       we list the ones he has access to. That second validation has to happen in these special functions.

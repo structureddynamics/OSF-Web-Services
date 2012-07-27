@@ -86,7 +86,14 @@ class OWLOntology
   * 
   * **Java variable type:** boolean
   */
-  private $useReasoner = TRUE;
+  private $useReasoner = TRUE;  
+  
+  /**
+  * Language to use to return the annotations
+  * 
+  * @var mixed
+  */
+  private $lang = "en";
   
   /**
   * Constructor
@@ -299,9 +306,12 @@ class OWLOntology
       }
       else
       {
-        array_push($niDescription[$info["property"]], array("value" => $info["value"],
-                                                            "type" => $info["type"],
-                                                            "lang" => $info["lang"]));       
+        if($info["lang"] == "" || $this->lang == "" || $info["lang"] == $this->lang)
+        {
+          array_push($niDescription[$info["property"]], array("value" => $info["value"],
+                                                              "type" => $info["type"],
+                                                              "lang" => $info["lang"]));       
+        }
       }
     }
     
@@ -338,9 +348,13 @@ class OWLOntology
       
       foreach($valuesOWLLiteral as $valueOWLLiteral)
       {
-        array_push($niDescription[$propertyUri], array("value" => (string)$valueOWLLiteral->getLiteral(),
-                                                       "type" => "rdfs:Literal",
-                                                       "lang" => (string)$valueOWLLiteral->getLang()));       
+        if((string)$valueOWLLiteral->getLang() == "" || $this->lang == "" || 
+           (string)$valueOWLLiteral->getLang() == $this->lang)
+        {
+          array_push($niDescription[$propertyUri], array("value" => (string)$valueOWLLiteral->getLiteral(),
+                                                         "type" => "rdfs:Literal",
+                                                         "lang" => (string)$valueOWLLiteral->getLang()));       
+        }
       }
     }
     
@@ -443,9 +457,12 @@ class OWLOntology
         }
         else
         {
-          array_push($niDescription[$info["property"]], array("value" => $info["value"],
-                                                              "type" => $info["type"],
-                                                              "lang" => $info["lang"]));
+          if($info["lang"] == "" || $this->lang == "" || $info["lang"] == $this->lang)
+          {
+            array_push($niDescription[$info["property"]], array("value" => $info["value"],
+                                                                "type" => $info["type"],
+                                                                "lang" => $info["lang"]));
+          }
         }
       }       
     }
@@ -472,9 +489,13 @@ class OWLOntology
         
         foreach($valuesOWLLiteral as $valueOWLLiteral)
         {
-          array_push($niDescription[$propertyUri], array("value" => (string)$valueOWLLiteral->getLiteral(),
-                                                         "type" => "rdfs:Literal",
-                                                         "lang" => (string)$valueOWLLiteral->getLang()));       
+          if((string)$valueOWLLiteral->getLang() == "" || $this->lang == "" || 
+             (string)$valueOWLLiteral->getLang() == $this->lang)
+          {
+            array_push($niDescription[$propertyUri], array("value" => (string)$valueOWLLiteral->getLiteral(),
+                                                           "type" => "rdfs:Literal",
+                                                           "lang" => (string)$valueOWLLiteral->getLang()));       
+          }
         }
       }
     }
@@ -1895,9 +1916,12 @@ class OWLOntology
       }
       else
       {
-        array_push($propertyDescription[$info["property"]], array("value" => $info["value"],
-                                                                  "type" => $info["type"],
-                                                                  "lang" => $info["lang"])); 
+        if($info["lang"] == "" || $this->lang == "" || $info["lang"] == $this->lang)
+        {
+          array_push($propertyDescription[$info["property"]], array("value" => $info["value"],
+                                                                    "type" => $info["type"],
+                                                                    "lang" => $info["lang"])); 
+        }
       }
     }
      
@@ -2306,9 +2330,12 @@ class OWLOntology
       }
       else
       {
-        array_push($classDescription[$info["property"]], array("value" => $info["value"],
-                                                           "type" => $info["type"],
-                                                           "lang" => $info["lang"]));     
+        if($info["lang"] == "" || $this->lang == "" || $info["lang"] == $this->lang)
+        {
+          array_push($classDescription[$info["property"]], array("value" => $info["value"],
+                                                             "type" => $info["type"],
+                                                             "lang" => $info["lang"]));     
+        }
       }
     } 
     
@@ -2396,9 +2423,12 @@ class OWLOntology
       }
       else
       {
-        array_push($classDescription[$info["property"]], array("value" => $info["value"],
-                                                               "type" => $info["type"],
-                                                               "lang" => $info["lang"]));       
+        if($info["lang"] == "" || $this->lang == "" || $info["lang"] == $this->lang)
+        {
+          array_push($classDescription[$info["property"]], array("value" => $info["value"],
+                                                                 "type" => $info["type"],
+                                                                 "lang" => $info["lang"]));       
+        }
       }
     }
     
@@ -2569,9 +2599,12 @@ class OWLOntology
       }
       else
       {
-        array_push($ontologyDescription[$info["property"]], array("value" => $info["value"],
-                                                                  "type" => $info["type"],
-                                                                  "lang" => $info["lang"]));       
+        if($info["lang"] == "" || $this->lang == "" || $info["lang"] == $this->lang)
+        {
+          array_push($ontologyDescription[$info["property"]], array("value" => $info["value"],
+                                                                    "type" => $info["type"],
+                                                                    "lang" => $info["lang"]));       
+        }
       }
     }
     
@@ -4028,6 +4061,16 @@ class OWLOntology
     {
       return($uri."#");
     }    
+  }
+  
+  /**
+  * Set the language of the annotations to return
+  * 
+  * @param mixed $lang Language reference such as "en", "fr", etc.
+  */
+  public function setLanguage($lang)
+  {
+    $this->lang = $lang;
   }
 }  
 

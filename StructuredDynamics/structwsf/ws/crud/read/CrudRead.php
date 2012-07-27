@@ -54,8 +54,11 @@ class CrudRead extends \StructuredDynamics\structwsf\ws\framework\WebService
   /** Description of one or multiple datasets */
   private $datasetsDescription = array();
 
-/** The global datasetis the set of all datasets on an instance. TRUE == we query the global dataset, FALSE we don't. */
-  private $globalDataset = FALSE;
+  /** The global datasetis the set of all datasets on an instance. TRUE == we query the global dataset, FALSE we don't. */
+  private $globalDataset = FALSE;  
+  
+  /** Language of the records to return. */
+  public $lang = "en";  
 
   /** Namespaces/Prefixes binding */
   private $namespaces =
@@ -137,6 +140,12 @@ class CrudRead extends \StructuredDynamics\structwsf\ws\framework\WebService
                           "level": "Fatal",
                           "name": "Source Interface\'s version not compatible with the web service endpoint\'s",
                           "description": "The version of the source interface you requested is not compatible with the one of the web service endpoint. Please contact the system administrator such that he updates the source interface to make it compatible with the new endpoint version."
+                        },
+                        "_308": {
+                          "id": "WS-CRUD-READ-308",
+                          "level": "Fatal",
+                          "name": "Language not supported by the endpoint",
+                          "description": "The language you requested for you query is currently not supported by the endpoint. Please use another one and re-send your query."
                         }  
                       }';
   
@@ -193,7 +202,11 @@ class CrudRead extends \StructuredDynamics\structwsf\ws\framework\WebService
       @param $interface Name of the source interface to use for this web service query. Default value: 'default'                            
       @param $requestedInterfaceVersion Version used for the requested source interface. The default is the latest 
                                         version of the interface.
-              
+      @param $lang Language of the records to be returned by the search endpoint. Only the textual information
+                   of the requested language will be returned to the user. If no textual information is available
+                   for a record, for a requested language, then only non-textual information will be returned
+                   about the record. The default is "en"; however, if the parameter is an empty string, then
+                   all the language strings for the record(s) will be returned.                
 
       @return returns NULL
     
@@ -201,7 +214,8 @@ class CrudRead extends \StructuredDynamics\structwsf\ws\framework\WebService
   */
   function __construct($uri, $dataset, $include_linksback, $include_reification, 
                        $registered_ip, $requester_ip, $include_attributes_list="",
-                       $interface='default', $requestedInterfaceVersion="")
+                       $interface='default', $requestedInterfaceVersion="",
+                       $lang="en")
   {
     parent::__construct();
     
@@ -220,6 +234,8 @@ class CrudRead extends \StructuredDynamics\structwsf\ws\framework\WebService
     }
 
     $this->resourceUri = $uri;
+    
+    $this->lang = $lang; 
 
     $this->include_linksback = $include_linksback;
     $this->include_reification = $include_reification;
@@ -291,6 +307,19 @@ class CrudRead extends \StructuredDynamics\structwsf\ws\framework\WebService
   */
   public function validateQuery()
   {
+    if(array_search($this->lang, $this->supportedLanguages) === FALSE &&
+       $this->lang != "")
+    {
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_308->name);
+      $this->conneg->setError($this->errorMessenger->_308->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_308->name, $this->errorMessenger->_308->description, "",
+        $this->errorMessenger->_308->level);
+
+      return;      
+    }    
+    
     /*
       Check if dataset(s) URI(s) have been defined for this request. If not, then we query the
       AuthLister web service endpoint to get the list of datasets accessible by this user to see

@@ -141,6 +141,11 @@ abstract class WebService
              can be used. */
   protected $geoEnabled = FALSE;
   
+  /**  An array of supported languages by the structWSF instance. Each of the 
+  *    language that appear here have to be properly configured in the Solr schema.
+  */
+  protected $supportedLanguages = array("en");
+  
   /** Name of the source interface to use for this web service query */
   protected $interface = "default";
 
@@ -371,8 +376,12 @@ abstract class WebService
       {
         $this->geoEnabled = TRUE;
       }      
-    }   
+    } 
     
+    if(isset($network_ini["lang"]["supported_languages"]))  
+    {
+      $this->supportedLanguages = $network_ini["lang"]["supported_languages"];
+    }
     
     if(isset($data_ini["solr"]["wsf_solr_core"]))
     {

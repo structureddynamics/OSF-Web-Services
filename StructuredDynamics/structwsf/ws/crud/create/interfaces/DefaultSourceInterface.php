@@ -35,7 +35,7 @@
           $parser = ARC2::getRDFParser();
           $parser->parse($this->ws->dataset, $this->ws->document);
           $rdfxmlSerializer = ARC2::getRDFXMLSerializer();
-
+    
           $resourceIndex = $parser->getSimpleIndex(0);
 
           if(count($parser->getErrors()) > 0)
@@ -358,30 +358,64 @@
                 }
 
                 // get the preferred and alternative labels for this resource
-                $prefLabelFound = FALSE;
+                $prefLabelFound = array();
+                
+                foreach($this->ws->supportedLanguages as $lang)
+                {
+                  $prefLabelFound[$lang] = FALSE;
+                }
 
                 foreach($labelProperties as $property)
                 {
-                  if(isset($resourceIndex[$subject][$property]) && !$prefLabelFound)
-                  {
-                    $prefLabelFound = TRUE;
-                    $add .= "<field name=\"prefLabel\">" . $this->ws->xmlEncode($resourceIndex[$subject][$property][0]["value"])
-                      . "</field>";
-                    $add .= "<field name=\"prefLabelAutocompletion\">" . $this->ws->xmlEncode($resourceIndex[$subject][$property][0]["value"])
-                      . "</field>";
-                    $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$iron . "prefLabel") . "</field>";
-                    
-                    $add .= "<field name=\"" . urlencode($this->ws->xmlEncode(Namespaces::$iron . "prefLabel")) . "_attr_facets\">" . $this->ws->xmlEncode($resourceIndex[$subject][$property][0]["value"])
-                      . "</field>";
-                  }
-                  elseif(isset($resourceIndex[$subject][$property]))
+                  if(isset($resourceIndex[$subject][$property]))
                   {
                     foreach($resourceIndex[$subject][$property] as $value)
                     {
-                      $add .= "<field name=\"altLabel\">" . $this->ws->xmlEncode($value["value"]) . "</field>";
-                      $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$iron . "altLabel") . "</field>";
-                      $add .= "<field name=\"" . urlencode($this->ws->xmlEncode(Namespaces::$iron . "altLabel")) . "_attr_facets\">" . $this->ws->xmlEncode($value["value"])
-                        . "</field>";
+                      $lang = "";
+                      
+                      if(isset($value["lang"]))
+                      {
+                        if(array_search($value["lang"], $this->ws->supportedLanguages) !== FALSE)
+                        {
+                          // The language used for this string is supported by the system, so we index it in
+                          // the good place
+                          $lang = $value["lang"];  
+                        }
+                        else
+                        {
+                          // The language used for this string is not supported by the system, so we
+                          // index it in the default language
+                          $lang = $this->ws->supportedLanguages[0];                        
+                        }
+                      }
+                      else
+                      {
+                        // The language is not defined for this string, so we simply consider that it uses
+                        // the default language supported by the structWSF instance
+                        $lang = $this->ws->supportedLanguages[0];                        
+                      }
+                      
+                      if(!$prefLabelFound[$lang])
+                      {
+                        $prefLabelFound[$lang] = TRUE;
+                        
+                        $add .= "<field name=\"prefLabel_".$lang."\">" . $this->ws->xmlEncode($value["value"])
+                          . "</field>";
+                          
+                        $add .= "<field name=\"prefLabelAutocompletion_".$lang."\">" . $this->ws->xmlEncode($value["value"])
+                          . "</field>";
+                        $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$iron . "prefLabel") . "</field>";
+                        
+                        $add .= "<field name=\"" . urlencode($this->ws->xmlEncode(Namespaces::$iron . "prefLabel")) . "_attr_facets\">" . $this->ws->xmlEncode($value["value"])
+                          . "</field>";
+                      }
+                      else
+                      {         
+                        $add .= "<field name=\"altLabel_".$lang."\">" . $this->ws->xmlEncode($value["value"]) . "</field>";
+                        $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$iron . "altLabel") . "</field>";
+                        $add .= "<field name=\"" . urlencode($this->ws->xmlEncode(Namespaces::$iron . "altLabel")) . "_attr_facets\">" . $this->ws->xmlEncode($value["value"])
+                          . "</field>";
+                      }
                     }
                   }
                 }
@@ -389,18 +423,20 @@
                 // If no labels are found for this resource, we use the ending of the URI as the label
                 if(!$prefLabelFound)
                 {
+                  $lang = $this->ws->supportedLanguages[0];   
+                  
                   if(strrpos($subject, "#"))
                   {
-                    $add .= "<field name=\"prefLabel\">" . substr($subject, strrpos($subject, "#") + 1) . "</field>";                   
-                    $add .= "<field name=\"prefLabelAutocompletion\">" . substr($subject, strrpos($subject, "#") + 1) . "</field>";                   
+                    $add .= "<field name=\"prefLabel_".$lang."\">" . substr($subject, strrpos($subject, "#") + 1) . "</field>";                   
+                    $add .= "<field name=\"prefLabelAutocompletion_".$lang."\">" . substr($subject, strrpos($subject, "#") + 1) . "</field>";                   
                     $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$iron . "prefLabel") . "</field>";
                     $add .= "<field name=\"" . urlencode($this->ws->xmlEncode(Namespaces::$iron . "prefLabel")) . "_attr_facets\">" . $this->ws->xmlEncode(substr($subject, strrpos($subject, "#") + 1))
                       . "</field>";
                   }
                   elseif(strrpos($subject, "/"))
                   {
-                    $add .= "<field name=\"prefLabel\">" . substr($subject, strrpos($subject, "/") + 1) . "</field>";                   
-                    $add .= "<field name=\"prefLabelAutocompletion\">" . substr($subject, strrpos($subject, "/") + 1) . "</field>";                   
+                    $add .= "<field name=\"prefLabel_".$lang."\">" . substr($subject, strrpos($subject, "/") + 1) . "</field>";                   
+                    $add .= "<field name=\"prefLabelAutocompletion_".$lang."\">" . substr($subject, strrpos($subject, "/") + 1) . "</field>";                   
                     $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$iron . "prefLabel") . "</field>";
                     $add .= "<field name=\"" . urlencode($this->ws->xmlEncode(Namespaces::$iron . "prefLabel")) . "_attr_facets\">" . $this->ws->xmlEncode(substr($subject, strrpos($subject, "/") + 1))
                       . "</field>";
@@ -412,12 +448,38 @@
                 {
                   if(isset($resourceIndex[$subject][$property]))
                   {
-                    $add .= "<field name=\"description\">"
-                      . $this->ws->xmlEncode($resourceIndex[$subject][$property][0]["value"]) . "</field>";
-                    $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$iron . "description") . "</field>";
-                    $add .= "<field name=\"" . urlencode($this->ws->xmlEncode(Namespaces::$iron . "description")) . "_attr_facets\">" . $this->ws->xmlEncode($resourceIndex[$subject][$property][0]["value"])
-                      . "</field>";
-                    break;
+                    $lang = "";
+                    
+                    foreach($resourceIndex[$subject][$property] as $value)
+                    {
+                      if(isset($value["lang"]))
+                      {
+                        if(array_search($value["lang"], $this->ws->supportedLanguages) !== FALSE)
+                        {
+                          // The language used for this string is supported by the system, so we index it in
+                          // the good place
+                          $lang = $value["lang"];  
+                        }
+                        else
+                        {
+                          // The language used for this string is not supported by the system, so we
+                          // index it in the default language
+                          $lang = $this->ws->supportedLanguages[0];                        
+                        }
+                      }
+                      else
+                      {
+                        // The language is not defined for this string, so we simply consider that it uses
+                        // the default language supported by the structWSF instance
+                        $lang = $this->ws->supportedLanguages[0];                        
+                      }
+                      
+                      $add .= "<field name=\"description_".$lang."\">"
+                        . $this->ws->xmlEncode($value["value"]) . "</field>";
+                      $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$iron . "description") . "</field>";
+                      $add .= "<field name=\"" . urlencode($this->ws->xmlEncode(Namespaces::$iron . "description")) . "_attr_facets\">" . $this->ws->xmlEncode($value["value"])
+                        . "</field>";
+                    }
                   }
                 }
 
@@ -569,7 +631,6 @@
                 }
 
                 // Get properties with the type of the object
-                
                 foreach($resourceIndex[$subject] as $predicate => $values)
                 {
                   if(array_search($predicate, $labelProperties) === FALSE && 
@@ -585,9 +646,33 @@
                     {
                       if($value["type"] == "literal")
                       {
+                        $lang = "";
+                        
+                        if(isset($value["lang"]))
+                        {
+                          if(array_search($value["lang"], $this->ws->supportedLanguages) !== FALSE)
+                          {
+                            // The language used for this string is supported by the system, so we index it in
+                            // the good place
+                            $lang = $value["lang"];  
+                          }
+                          else
+                          {
+                            // The language used for this string is not supported by the system, so we
+                            // index it in the default language
+                            $lang = $this->ws->supportedLanguages[0];                        
+                          }
+                        }
+                        else
+                        {
+                          // The language is not defined for this string, so we simply consider that it uses
+                          // the default language supported by the structWSF instance
+                          $lang = $this->ws->supportedLanguages[0];                        
+                        }                        
+                        
                         // Detect if the field currently exists in the fields index 
                         if(!$newFields && 
-                           array_search(urlencode($predicate) . "_attr", $indexedFields) === FALSE &&
+                           array_search(urlencode($predicate) . "_attr_".$lang, $indexedFields) === FALSE &&
                            array_search(urlencode($predicate) . "_attr_date", $indexedFields) === FALSE &&
                            array_search(urlencode($predicate) . "_attr_int", $indexedFields) === FALSE &&
                            array_search(urlencode($predicate) . "_attr_float", $indexedFields) === FALSE)
@@ -634,7 +719,7 @@
                         else
                         {
                           // By default, the datatype used is a literal/string
-                          $add .= "<field name=\"" . urlencode($predicate) . "_attr\">" . $this->ws->xmlEncode($value["value"])
+                          $add .= "<field name=\"" . urlencode($predicate) . "_attr_".$lang."\">" . $this->ws->xmlEncode($value["value"])
                             . "</field>";                          
                         }
                         
@@ -666,6 +751,29 @@
                               {
                                 foreach($reiValues as $reiValue)
                                 {
+                                  $reiLang = "";
+                                  
+                                  if(isset($reiValue["lang"]))
+                                  {
+                                    if(array_search($reiValue["lang"], $this->ws->supportedLanguages) !== FALSE)
+                                    {
+                                      // The language used for this string is supported by the system, so we index it in
+                                      // the good place
+                                      $reiLang = $reiValue["lang"];  
+                                    }
+                                    else
+                                    {
+                                      // The language used for this string is not supported by the system, so we
+                                      // index it in the default language
+                                      $reiLang = $this->ws->supportedLanguages[0];                        
+                                    }
+                                  }
+                                  else
+                                  {
+                                    // The language is not defined for this string, so we simply consider that it uses
+                                    // the default language supported by the structWSF instance
+                                    $reiLang = $this->ws->supportedLanguages[0];                        
+                                  }                                   
                                   if($reiValue["type"] == "literal")
                                   {
                                     // Attribute used to reify information to a statement.
@@ -677,7 +785,7 @@
                                       . $this->ws->xmlEncode($value["value"]) .
                                       "</field>";
 
-                                    $add .= "<field name=\"" . urlencode($reiPredicate) . "_reify_value\">"
+                                    $add .= "<field name=\"" . urlencode($reiPredicate) . "_reify_value_".$reiLang."\">"
                                       . $this->ws->xmlEncode($reiValue["value"]) .
                                       "</field>";
 
@@ -691,6 +799,9 @@
                       }
                       elseif($value["type"] == "uri")
                       {
+                        // Set default language
+                        $lang = $this->ws->supportedLanguages[0];                        
+                        
                         // Detect if the field currently exists in the fields index 
                         if(!$newFields && array_search(urlencode($predicate) . "_attr", $indexedFields) === FALSE)
                         {
@@ -734,7 +845,7 @@
                         }
                         
                         // Detect if the field currently exists in the fields index 
-                        if(!$newFields && array_search(urlencode($predicate) . "_attr_obj", $indexedFields) === FALSE)
+                        if(!$newFields && array_search(urlencode($predicate) . "_attr_obj_".$lang, $indexedFields) === FALSE)
                         {
                           $newFields = TRUE;
                         }
@@ -750,7 +861,7 @@
 
                         if($labels != "")
                         {
-                          $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj\">" . $this->ws->xmlEncode($labels)
+                          $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_".$lang."\">" . $this->ws->xmlEncode($labels)
                             . "</field>";
                           $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_uri\">"
                             . $this->ws->xmlEncode($value["value"]) . "</field>";
@@ -778,7 +889,7 @@
                             }
                           }
                           
-                          $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj\">" . $this->ws->xmlEncode($temporaryLabel)
+                          $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_".$lang."\">" . $this->ws->xmlEncode($temporaryLabel)
                             . "</field>";
                           $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_uri\">"
                             . $this->ws->xmlEncode($value["value"]) . "</field>";

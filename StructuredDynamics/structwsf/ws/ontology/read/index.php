@@ -65,6 +65,14 @@ if(isset($_POST['parameters']))
   $params = $_POST['parameters'];
 }
 
+// Language of the annotations
+$lang = "en";
+
+if(isset($_POST['lang']))
+{
+  $lang = $_POST['lang'];
+}
+
 $reasoner = "true";
 
 if(isset($_POST['reasoner']))
@@ -113,7 +121,7 @@ elseif(isset($_SERVER['PHP_SELF']))
 }
 
 $ws_or = new OntologyRead($ontology, $function, $params, $registered_ip, $requester_ip, 
-                          $interface, $version);
+                          $interface, $version, $lang);
 
 $ws_or->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                   (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

@@ -111,6 +111,9 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
   /** Number of aggregated values to return for each attribute of the list of aggregated attributes requested
              for this query. If this value is "-1", then it means all the possible values. */
   public $aggregateAttributesNb = 10;
+  
+  /** Language of the records to return. */
+  public $lang = "en";
 
   /** Supported serialization mime types by this Web service */
   public static $supportedSerializations =
@@ -168,6 +171,12 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
                           "level": "Fatal",
                           "name": "Invalid number in the numbers range filter",
                           "description": "Numbers are expected in the numbers range filter you defined for this query"
+                        },
+                        "_307": {
+                          "id": "WS-SEARCH-307",
+                          "level": "Fatal",
+                          "name": "Language not supported by the endpoint",
+                          "description": "The language you requested for you query is currently not supported by the endpoint. Please use another one and re-send your query."
                         }
                       }';
 
@@ -306,6 +315,10 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
       @param $interface Name of the source interface to use for this web service query. Default value: 'default'                            
       @param $requestedInterfaceVersion Version used for the requested source interface. The default is the latest 
                                         version of the interface.
+      @param $lang Language of the records to be returned by the search endpoint. Only the textual information
+                   of the requested language will be returned to the user. If no textual information is available
+                   for a record, for a requested language, then only non-textual information will be returned
+                   about the record.                                    
 
       @return returns NULL
     
@@ -316,7 +329,7 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
                        $aggregate_attributes = "", $attributesBooleanOperator = "and",
                        $includeAttributesList = "", $aggregate_attributes_object_type = "literal",
                        $aggregate_attributes_nb = 10, $resultsLocationAggregator = "",
-                       $interface='default', $requestedInterfaceVersion="")
+                       $interface='default', $requestedInterfaceVersion="", $lang="en")
   {
     parent::__construct();
  
@@ -333,6 +346,8 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
     $this->aggregateAttributesObjectType = $aggregate_attributes_object_type;
     $this->aggregateAttributesNb = $aggregate_attributes_nb;
     $this->resultsLocationAggregator = explode(",", $resultsLocationAggregator);
+    $this->lang = $lang;
+    
     
     if(strtolower($interface) == "default")
     {
@@ -432,6 +447,18 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
       $this->conneg->setError($this->errorMessenger->_301->id, $this->errorMessenger->ws,
         $this->errorMessenger->_301->name, $this->errorMessenger->_301->description, "",
         $this->errorMessenger->_301->level);
+
+      return;      
+    }
+
+    if(array_search($this->lang, $this->supportedLanguages) === FALSE)
+    {
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_307->name);
+      $this->conneg->setError($this->errorMessenger->_307->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_307->name, $this->errorMessenger->_307->description, "",
+        $this->errorMessenger->_307->level);
 
       return;      
     }

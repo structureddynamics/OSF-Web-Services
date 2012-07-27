@@ -104,6 +104,14 @@ if(isset($_POST['inference']))
   $inference = $_POST['inference'];
 }
 
+// Language of the returned results
+$lang = "en";
+
+if(isset($_POST['lang']))
+{
+  $lang = $_POST['lang'];
+}
+
 // Include aggregates
 $include_aggregates = "false";
 
@@ -209,7 +217,7 @@ elseif(isset($_SERVER['PHP_SELF']))
 $ws_s = new Search($query, $types, $attributes, $datasets, $items, $page, $inference, $include_aggregates, 
                    $registered_ip, $requester_ip, $distanceFilter, $rangeFilter, $aggregate_attributes, 
                    $attributesBooleanOperator, $includeAttributesList,$aggregateAttributesObjectType,
-                   $aggregateAttributesNb, $resultsLocationAggregator, $interface, $version);
+                   $aggregateAttributesNb, $resultsLocationAggregator, $interface, $version, $lang);
 
 $ws_s->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                  (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

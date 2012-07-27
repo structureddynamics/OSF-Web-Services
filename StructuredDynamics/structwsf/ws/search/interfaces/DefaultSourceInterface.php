@@ -278,25 +278,25 @@
               switch($attribute)
               {
                 case Namespaces::$iron."prefLabel":
-                  $attribute = "prefLabel";
+                  $attribute = "prefLabel_".$this->ws->lang;
                   $coreAttr = TRUE;
                   
                   // Check if we are performing an autocompletion task on the pref label
                   $label = urldecode($attributeValue[1]);
                   if(substr($label, strlen($label) - 2) == "**")
                   {
-                    $attribute = "prefLabelAutocompletion";
+                    $attribute = "prefLabelAutocompletion_".$this->ws->lang;
                     $attributeValue[1] = urlencode(str_replace(" ", "\\ ", substr($label, 0, strlen($label) -1)));
                   }
                 break;
                 
                 case Namespaces::$iron."altLabel":
-                  $attribute = "altLabel";
+                  $attribute = "altLabel_".$this->ws->lang;
                   $coreAttr = TRUE;
                 break;
                 
                 case Namespaces::$iron."description":
-                  $attribute = "description";
+                  $attribute = "description_".$this->ws->lang;
                   $coreAttr = TRUE;
                 break;
                 
@@ -391,14 +391,14 @@
                     $empty = FALSE;
                   }
 
-                  if(array_search(urlencode($attribute."_attr"), $indexedFields) !== FALSE)
+                  if(array_search(urlencode($attribute."_attr_".$this->ws->lang), $indexedFields) !== FALSE)
                   {
                     if($addOR)
                     {
                       $solrQuery .= " OR ";
                     }
                     
-                    $solrQuery .= "(".urlencode(urlencode($attribute))."_attr:".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
+                    $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_".$this->ws->lang.":".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
                     $addOR = TRUE;
                     $empty = FALSE;
                   }
@@ -576,14 +576,14 @@
                     $empty = FALSE;
                   }
 
-                  if(array_search(urlencode($attribute."_attr_obj"), $indexedFields) !== FALSE)
+                  if(array_search(urlencode($attribute."_attr_obj_".$this->ws->lang), $indexedFields) !== FALSE)
                   {
                     if($addOR)
                     {
                       $solrQuery .= " OR ";
                     }
                     
-                    $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj:".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
+                    $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj_".$this->ws->lang.":".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
                     $addOR = TRUE;
                     $empty = FALSE;
                   }
@@ -660,26 +660,26 @@
                     $empty = FALSE;
                   }
 
-                  if(array_search(urlencode($attribute."_attr"), $indexedFields) !== FALSE)
+                  if(array_search(urlencode($attribute."_attr_".$this->ws->lang), $indexedFields) !== FALSE)
                   {
                     if($addOR)
                     {
                       $solrQuery .= " OR ";
                     }
                     
-                    $solrQuery .= "(".urlencode(urlencode($attribute))."_attr:".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
+                    $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_".$this->ws->lang.":".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
                     $addOR = TRUE;
                     $empty = FALSE;
                   }
 
-                  if(array_search(urlencode($attribute."_attr_obj"), $indexedFields) !== FALSE)
+                  if(array_search(urlencode($attribute."_attr_obj_".$this->ws->lang), $indexedFields) !== FALSE)
                   {
                     if($addOR)
                     {
                       $solrQuery .= " OR ";
                     }
                     
-                    $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj:".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
+                    $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj_".$this->ws->lang.":".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
                     $addOR = TRUE;
                     $empty = FALSE;
                   }
@@ -802,15 +802,15 @@
           
           foreach($this->ws->includeAttributesList as $atl)
           {
-            $solrQuery .= urlencode(urlencode($atl))."_attr ";
-            $solrQuery .= urlencode(urlencode($atl))."_attr_obj ";
+            $solrQuery .= urlencode(urlencode($atl))."_attr_".$this->ws->lang." ";
+            $solrQuery .= urlencode(urlencode($atl))."_attr_obj_".$this->ws->lang." ";
             $solrQuery .= urlencode(urlencode($atl))."_attr_obj_uri ";
           }
           
           // Also add the core attributes to the mixte
-          $solrQuery .= "prefLabel ";
-          $solrQuery .= "altLabel ";
-          $solrQuery .= "description ";
+          $solrQuery .= "prefLabel_".$this->ws->lang." ";
+          $solrQuery .= "altLabel_".$this->ws->lang." ";
+          $solrQuery .= "description_".$this->ws->lang." ";
           $solrQuery .= "lat ";
           $solrQuery .= "long ";
           $solrQuery .= "polygonCoordinates ";
@@ -822,7 +822,7 @@
           $solrQuery .= "prefURL ";
           $solrQuery .= "geohash ";
           $solrQuery .= "inferred_type ";
-          $solrQuery .= "prefLabelAutocompletion";
+          $solrQuery .= "prefLabelAutocompletion_".$this->ws->lang."";
           
         }
         
@@ -830,7 +830,8 @@
         $solrQuery = str_replace("fq= OR ", "fq=", $solrQuery);      
         $solrQuery = str_replace("fq= AND ", "fq=", $solrQuery);      
 
-        file_put_contents("/tmp/solr.query", $solrQuery);
+        // Set the default field of the search
+        $solrQuery .= "&df=all_text_".$this->ws->lang;
         
         $resultset = $solr->select($solrQuery);
 
@@ -964,7 +965,7 @@
           }                
 
           // get records preferred label
-          $resultPrefLabelURI = $xpath->query("arr[@name='prefLabel']/str", $result);
+          $resultPrefLabelURI = $xpath->query("arr[@name='prefLabel_".$this->ws->lang."']/str", $result);
 
           if($resultPrefLabelURI->length > 0)
           {
@@ -972,7 +973,7 @@
           }
 
           // get records aternative labels
-          $resultAltLabelURI = $xpath->query("arr[@name='altLabel']/str", $result);
+          $resultAltLabelURI = $xpath->query("arr[@name='altLabel_".$this->ws->lang."']/str", $result);
 
           for($i = 0; $i < $resultAltLabelURI->length; ++$i) 
           {
@@ -1036,7 +1037,7 @@
           }           
 
           // get records description
-          $resultDescriptionURI = $xpath->query("arr[@name='description']/str", $result);
+          $resultDescriptionURI = $xpath->query("arr[@name='description_".$this->ws->lang."']/str", $result);
 
           if($resultDescriptionURI->length > 0)
           {
@@ -1060,7 +1061,7 @@
             {
               $attributeType = substr($attribute, $pos, strlen($attribute) - $pos);
             }
-            elseif(($pos = stripos($attribute, "_attr")) !== FALSE)
+            elseif(($pos = stripos($attribute, "_attr_".$this->ws->lang)) !== FALSE)
             {
               $attributeType = substr($attribute, $pos, strlen($attribute) - $pos);
             }
@@ -1070,7 +1071,7 @@
 
             switch($attributeType)
             {
-              case "_attr":
+              case "_attr_".$this->ws->lang:
                 $values = $property->getElementsByTagName("str");
 
                 foreach($values as $value)
@@ -1106,7 +1107,7 @@
                 }
               break;
 
-              case "_attr_obj":
+              case "_attr_obj_".$this->ws->lang:
                 $values = $property->getElementsByTagName("str");
 
                 foreach($values as $value)
@@ -1137,7 +1138,7 @@
               case "_reify_attr":
               case "_reify_attr_obj":
               case "_reify_obj":
-              case "_reify_value": break;
+              case "_reify_value_".$this->ws->lang: break;
             }
           }
         

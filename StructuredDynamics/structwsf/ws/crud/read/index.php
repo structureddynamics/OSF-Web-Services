@@ -78,6 +78,18 @@ elseif(isset($_POST['include_linksback']))
   $include_linksback = $_POST['include_linksback'];
 }
 
+// Language of the record to return
+$lang = "en";
+
+if(isset($_GET['lang']))
+{
+  $lang = $_GET['lang'];
+}
+elseif(isset($_POST['lang']))
+{
+  $lang = $_POST['lang'];
+}
+
 // Include the reference of the resources that links to this resource
 $include_reification = "";
 
@@ -147,7 +159,7 @@ elseif(isset($_SERVER['PHP_SELF']))
 }
 
 $ws_cr = new CrudRead($uri, $dataset, $include_linksback, $include_reification, $registered_ip, 
-                      $requester_ip, $include_attributes_list, $interface, $version);
+                      $requester_ip, $include_attributes_list, $interface, $version, $lang);
 
 $ws_cr->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                   (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

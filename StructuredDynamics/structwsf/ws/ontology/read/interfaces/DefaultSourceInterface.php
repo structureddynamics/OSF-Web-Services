@@ -29,6 +29,8 @@
       {
         $onto = new OWLOntology($ontologyUri, $OwlApiSession, TRUE);
         
+        $onto->setLanguage($this->ws->lang);
+        
         $this->populateClassHierarchy("http://www.w3.org/2002/07/owl#Thing", $onto, $ontologyUri, $classHierarchy);
       }  
       
@@ -44,6 +46,8 @@
       foreach($ontologiesUri as $ontologyUri)
       {
         $onto = new OWLOntology($ontologyUri, $OwlApiSession, TRUE);
+        
+        $onto->setLanguage($this->ws->lang);                        
         
         $this->populatePropertyHierarchy("http://www.w3.org/2002/07/owl#topObjectProperty", $onto, $ontologyUri, $propertyHierarchy, FALSE);
         $this->populatePropertyHierarchy("http://www.w3.org/2002/07/owl#topDataProperty", $onto, $ontologyUri, $propertyHierarchy, TRUE);
@@ -274,6 +278,8 @@
         try
         {
           $ontology = new OWLOntology($this->ws->ontologyUri, $this->ws->OwlApiSession, TRUE);   
+          
+          $ontology->setLanguage($this->ws->lang);
         }
         catch(Exception $e)
         {

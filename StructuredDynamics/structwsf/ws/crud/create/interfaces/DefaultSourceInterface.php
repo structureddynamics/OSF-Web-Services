@@ -700,7 +700,9 @@
                         
                         $property = $propertyHierarchy->getProperty($predicate);
 
-                        if(is_array($property->range) && array_search("http://www.w3.org/2001/XMLSchema#dateTime", $property->range) !== FALSE)
+                        if(is_array($property->range) && 
+                           array_search("http://www.w3.org/2001/XMLSchema#dateTime", $property->range) !== FALSE &&
+                           $this->safeDate($value["value"]) != "")
                         {
                           $add .= "<field name=\"" . urlencode($predicate) . "_attr_date\">" . $this->ws->xmlEncode($this->safeDate($value["value"]))
                             . "</field>";

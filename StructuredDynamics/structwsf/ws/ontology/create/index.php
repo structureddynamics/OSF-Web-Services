@@ -202,7 +202,7 @@ if($ws_ontologycreate->isLoggingEnabled())
 {
   $logger = new Logger("ontology_create", 
                        $requester_ip,
-                       "?ontology=" . substr($ontology, 0, 64) . 
+                       "?ontology=" . substr($ontologyUri, 0, 64) . 
                        "&mime=" . $mime . 
                        "&registered_ip=" . $registered_ip . 
                        "&requester_ip=$requester_ip",

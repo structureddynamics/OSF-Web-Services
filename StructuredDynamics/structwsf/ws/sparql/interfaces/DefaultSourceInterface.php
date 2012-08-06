@@ -5,6 +5,7 @@
   use \StructuredDynamics\structwsf\framework\Namespaces;  
   use \StructuredDynamics\structwsf\ws\framework\SourceInterface;
   use \StructuredDynamics\structwsf\framework\Subject;
+  use \StructuredDynamics\structwsf\ws\auth\validator\AuthValidator;
 
   class DefaultSourceInterface extends SourceInterface
   {

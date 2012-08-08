@@ -839,7 +839,7 @@
         $domResultset = new DomDocument("1.0", "utf-8");
 
         $domResultset->loadXML($resultset);
-
+        
         $xpath = new DOMXPath($domResultset);
 
         // Get the number of results
@@ -1061,14 +1061,14 @@
             {
               $attributeType = substr($attribute, $pos, strlen($attribute) - $pos);
             }
-            elseif(($pos = stripos($attribute, "_attr_".$this->ws->lang)) !== FALSE)
+            elseif(($pos = stripos($attribute, "_attr")) !== FALSE)
             {
               $attributeType = substr($attribute, $pos, strlen($attribute) - $pos);
             }
 
             // Get the URI of the attribute
             $attributeURI = urldecode(str_replace($attributeType, "", $attribute));
-
+            
             switch($attributeType)
             {
               case "_attr_".$this->ws->lang:
@@ -1141,7 +1141,7 @@
               case "_reify_value_".$this->ws->lang: break;
             }
           }
-        
+
           foreach($objectPropertyUris as $attributeUri => $objectUris)
           {
             foreach($objectUris as $key => $objectUri)

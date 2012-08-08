@@ -5,6 +5,7 @@
   use \StructuredDynamics\structwsf\framework\Namespaces;  
   use \StructuredDynamics\structwsf\ws\framework\SourceInterface;
   use \Exception;
+  use \java;
   
   class DefaultSourceInterface extends SourceInterface
   {

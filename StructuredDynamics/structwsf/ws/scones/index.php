@@ -129,7 +129,7 @@ if($ws_scones->isLoggingEnabled())
 {
   $logger = new Logger("scones", 
                        $requester_ip,
-                       "?document=" . md5($documents) . 
+                       "?document=" . md5($document) . 
                        "&docmime=" . $docmime . 
                        "&application=" . $application . 
                        "&registered_ip=" . $registered_ip . 

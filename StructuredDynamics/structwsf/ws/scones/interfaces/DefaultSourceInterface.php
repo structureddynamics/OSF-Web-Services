@@ -6,6 +6,7 @@
   use \StructuredDynamics\structwsf\ws\framework\SourceInterface;
   use \Exception;
   use \java;
+  use \SimpleXMLElement;
   
   class DefaultSourceInterface extends SourceInterface
   {
@@ -23,11 +24,11 @@
     */
     public function fixNamedEntitiesNamespaces()
     {
-      $annotatedNeXML = new SimpleXMLElement($this->annotatedDocument);
+      $annotatedNeXML = new SimpleXMLElement($this->ws->annotatedDocument);
 
       foreach($annotatedNeXML->xpath('//AnnotationSet') as $annotationSet) 
       {
-        if((string) $annotationSet['Name'] == $this->config_ini["gate"]["neAnnotationSetName"])
+        if((string) $annotationSet['Name'] == $this->ws->config_ini["gate"]["neAnnotationSetName"])
         {
           foreach($annotationSet->Annotation as $annotation) 
           {
@@ -54,7 +55,7 @@
         $processed = FALSE;
         
         // Get accessible sessions (threads) from the running Scones instance
-        while($processed === FALSE) // Continue until we get a free running thread
+        while($processed === FALSE) // Continue until we get a free running thread      
         {
           for($i = 1; $i <= $this->ws->config_ini["gate"]["nbSessions"]; $i++)
           {
@@ -72,12 +73,26 @@
               if($this->ws->isValidIRI($this->ws->document))            
               {
                 // Create the Gate document from the URL
-                $document = $gateFactory->newDocument(new java("java.net.URL", $this->ws->document));
+                try 
+                {
+                  $document = $gateFactory->newDocument(new java("java.net.URL", $this->ws->document));
+                } 
+                catch (Exception $e) 
+                {
+                  $this->ws->SconesSession->put("session".$i."_used", FALSE);
+                }  
               }
               else
               {
                 // Create the Gate document from the text document
-                $document = $gateFactory->newDocument(new java("java.lang.String", $this->ws->document));
+                try 
+                {
+                  $document = $gateFactory->newDocument(new java("java.lang.String", $this->ws->document));
+                } 
+                catch (Exception $e) 
+                {
+                  $this->ws->SconesSession->put("session".$i."_used", FALSE);
+                }                                  
               }
               
               // Create the corpus

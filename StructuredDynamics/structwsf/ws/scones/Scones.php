@@ -46,7 +46,7 @@ class Scones extends \StructuredDynamics\structwsf\ws\framework\WebService
   private $SconesSession;
   
   /** The annotated document by Scones. */
-  private $annotatedDocument = "";
+  public $annotatedDocument = "";
   
   /** Supported MIME serializations by this web service */
   public static $supportedSerializations = array ("text/xml", "text/*", "*/xml", "*/*");

@@ -236,8 +236,6 @@ class Search extends WebService
 
     $this->distanceFilter = $distanceFilter;
     $this->rangeFilter = $rangeFilter;
-    $this->distance = $distance;
-    $this->distanceType = $distanceType;
     
     $this->requester_ip = $requester_ip;
 

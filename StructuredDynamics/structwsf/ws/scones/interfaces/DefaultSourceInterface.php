@@ -65,7 +65,7 @@
               $this->ws->SconesSession->put("session".$i."_used", TRUE);
               
               // Process the incoming article
-              $corpus = $this->ws->SconesSession->get("session".$i."_instance")->getCorpus();
+              //$corpus = $this->ws->SconesSession->get("session".$i."_instance")->getCorpus();
 
               $document;
               $gateFactory = java("gate.Factory");
@@ -80,6 +80,13 @@
                 catch (Exception $e) 
                 {
                   $this->ws->SconesSession->put("session".$i."_used", FALSE);
+                  
+                  $this->ws->SconesSession->get("session".$i."_instance")->cleanup();
+                  
+                  unset($document);
+                  unset($gateFactory);                  
+                  
+                  return;
                 }  
               }
               else
@@ -92,6 +99,13 @@
                 catch (Exception $e) 
                 {
                   $this->ws->SconesSession->put("session".$i."_used", FALSE);
+                  
+                  $this->ws->SconesSession->get("session".$i."_instance")->cleanup();
+                  
+                  unset($document);
+                  unset($gateFactory);                  
+                  
+                  return;
                 }                                  
               }
               
@@ -116,9 +130,21 @@
               
               // output the XML document
               $this->ws->annotatedDocument =  $document->toXML();
+
+              $this->ws->SconesSession->get("session".$i."_instance")->cleanup();
+              
+              // Unload the document from the corpus
+              $corpus->unloadDocument($document);
+              
+              // Cleanup the corpus
+              //$corpus->cleanup();
               
               // Empty the corpus
               $corpus->clear();
+              
+              unset($corpus);
+              unset($document);
+              unset($gateFactory);
               
               // Stop the thread seeking process
               $processed = TRUE;

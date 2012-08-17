@@ -386,12 +386,12 @@
 
             // Get the description of the classes, properties and named individuals of this ontology.
                       
-            // Check the size of the Ontology file to import. If the size is bigger than 6MB, then we will
+            // Check the size of the Ontology file to import. If the size is bigger than 8MB, then we will
             // use another method that incurs some Virtuoso indexing. If it is the case, you have to make sure
             // that Virtuoso is properly configured so that it can access (DirsAllowed Virtuoso config option)
             // the folder where the ontology file has been saved.
 
-            if(filesize($this->ws->ontologyUri) > 6000000)
+            if(filesize($this->ws->ontologyUri) > 8000000)
             {
               $sliceSize = 100;          
 

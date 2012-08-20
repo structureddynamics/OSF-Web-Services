@@ -589,7 +589,7 @@ class OWLOntology
   *  
   * @author Frederick Giasson, Structured Dynamics LLC.
   */
-  public function getSubClassesUri($uri, $direct = false)
+  public function getSubClassesUri($uri, $direct = FALSE)
   {    
     // Create a class object.
     $class = $this->owlDataFactory->getOWLClass(java("org.semanticweb.owlapi.model.IRI")->create($uri));
@@ -600,7 +600,7 @@ class OWLOntology
     {
       try
       {
-        $subClasses = $this->reasoner->getSubClasses($class, $direct); 
+        $subClasses = $this->reasoner->getSubClasses($class, (boolean)$direct); 
         $subClasses = $subClasses->getFlattened();
       }
       catch(Exception $e)
@@ -632,7 +632,7 @@ class OWLOntology
   *  
   * @author Frederick Giasson, Structured Dynamics LLC.
   */
-  public function getSuperClassesUri($uri, $direct = false)
+  public function getSuperClassesUri($uri, $direct = FALSE)
   {
     // Create a class object.
     $class = $this->owlDataFactory->getOWLClass(java("org.semanticweb.owlapi.model.IRI")->create($uri));
@@ -641,7 +641,7 @@ class OWLOntology
     
     if($this->useReasoner)
     {
-      $superClasses = $this->reasoner->getSuperClasses($class, $direct); 
+      $superClasses = $this->reasoner->getSuperClasses($class, (boolean)$direct); 
       $superClasses = $superClasses->getFlattened();
     } 
     else
@@ -810,7 +810,7 @@ class OWLOntology
     {
       try
       {
-        $subClasses = $this->reasoner->getSubClasses($class, $direct); 
+        $subClasses = $this->reasoner->getSubClasses($class, (boolean)$direct); 
         $subClasses = $subClasses->getFlattened();
       }
       catch(Exception $e)
@@ -975,7 +975,7 @@ class OWLOntology
   *  
   * @author Frederick Giasson, Structured Dynamics LLC.
   */
-  public function getSuperClassesDescription($uri, $direct = false)
+  public function getSuperClassesDescription($uri, $direct = FALSE)
   {
     // Create a class object.
     $class = $this->owlDataFactory->getOWLClass(java("org.semanticweb.owlapi.model.IRI")->create($uri));
@@ -984,7 +984,7 @@ class OWLOntology
     
     if($this->useReasoner)
     {
-      $superClasses = $this->reasoner->getSuperClasses($class, $direct); 
+      $superClasses = $this->reasoner->getSuperClasses($class, (boolean)$direct); 
       $superClasses = $superClasses->getFlattened();
     } 
     else
@@ -1185,7 +1185,7 @@ class OWLOntology
       
       if($this->useReasoner)
       {
-        $subProperties = $this->reasoner->getSubDataProperties($property, $direct); 
+        $subProperties = $this->reasoner->getSubDataProperties($property, (boolean)$direct); 
       } 
       else
       {
@@ -1199,7 +1199,7 @@ class OWLOntology
       
       if($this->useReasoner)
       {
-        $subProperties = $this->reasoner->getSubObjectProperties($property, $direct); 
+        $subProperties = $this->reasoner->getSubObjectProperties($property, (boolean)$direct); 
       } 
       else
       {
@@ -1263,7 +1263,7 @@ class OWLOntology
       
       if($this->useReasoner)
       {
-        $subProperties = $this->reasoner->getSubDataProperties($property, $direct); 
+        $subProperties = $this->reasoner->getSubDataProperties($property, (boolean)$direct); 
       } 
       else
       {
@@ -1277,7 +1277,7 @@ class OWLOntology
       
       if($this->useReasoner)
       {
-        $subProperties = $this->reasoner->getSubObjectProperties($property, $direct); 
+        $subProperties = $this->reasoner->getSubObjectProperties($property, (boolean)$direct); 
       } 
       else
       {
@@ -1329,7 +1329,7 @@ class OWLOntology
       
       if($this->useReasoner)
       {
-        $superProperties = $this->reasoner->getSuperDataProperties($property, $direct); 
+        $superProperties = $this->reasoner->getSuperDataProperties($property, (boolean)$direct); 
       } 
       else
       {
@@ -1343,7 +1343,7 @@ class OWLOntology
       
       if($this->useReasoner)
       {
-        $superProperties = $this->reasoner->getSuperObjectProperties($property, $direct); 
+        $superProperties = $this->reasoner->getSuperObjectProperties($property, (boolean)$direct); 
       } 
       else
       {
@@ -1435,7 +1435,7 @@ class OWLOntology
       
       if($this->useReasoner)
       {
-        $superProperties = $this->reasoner->getSuperDataProperties($property, $direct); 
+        $superProperties = $this->reasoner->getSuperDataProperties($property, (boolean)$direct); 
       } 
       else
       {
@@ -1449,7 +1449,7 @@ class OWLOntology
       
       if($this->useReasoner)
       {
-        $superProperties = $this->reasoner->getSuperObjectProperties($property, $direct); 
+        $superProperties = $this->reasoner->getSuperObjectProperties($property, (boolean)$direct); 
       } 
       else
       {
@@ -2681,7 +2681,7 @@ class OWLOntology
   *  
   * @author Frederick Giasson, Structured Dynamics LLC.
   */
-  public function getNamedIndividualsUri($classUri = "all", $direct = true, $limit = -1, $offset = 0)
+  public function getNamedIndividualsUri($classUri = "all", $direct = TRUE, $limit = -1, $offset = 0)
   {
     // Create a class object.
     $individuals;
@@ -2692,7 +2692,7 @@ class OWLOntology
 
       if($this->useReasoner)
       {
-        $individuals = $this->reasoner->getInstances($class, $direct); 
+        $individuals = $this->reasoner->getInstances($class, (boolean)$direct); 
         $individuals = $individuals->getFlattened();
       } 
       else
@@ -2769,7 +2769,7 @@ class OWLOntology
   *  
   * @author Frederick Giasson, Structured Dynamics LLC.
   */  
-  public function getNamedIndividualsDescription($classUri = "all", $direct = true, $limit = -1, $offset = 0, $list = FALSE)
+  public function getNamedIndividualsDescription($classUri = "all", $direct = TRUE, $limit = -1, $offset = 0, $list = FALSE)
   {
     $namedIndividuals;
     if($classUri != "all")
@@ -2778,7 +2778,7 @@ class OWLOntology
 
       if($this->useReasoner)
       {
-        $namedIndividuals = $this->reasoner->getInstances($class, $direct); 
+        $namedIndividuals = $this->reasoner->getInstances($class, (boolean)$direct); 
         $namedIndividuals = $namedIndividuals->getFlattened();
       } 
       else

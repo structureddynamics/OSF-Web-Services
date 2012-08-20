@@ -1217,7 +1217,6 @@ class OWLOntology
     else
     {
       $property = $this->owlDataFactory->getOWLObjectProperty(java("org.semanticweb.owlapi.model.IRI")->create($uri));
-      $subProperties = $this->reasoner->getSubObjectProperties($property, $direct); 
       
       if($this->useReasoner)
       {
@@ -1303,7 +1302,6 @@ class OWLOntology
     else
     {
       $property = $this->owlDataFactory->getOWLObjectProperty(java("org.semanticweb.owlapi.model.IRI")->create($uri));
-      $subProperties = $this->reasoner->getSubObjectProperties($property, $direct); 
       
       if($this->useReasoner)
       {
@@ -1378,7 +1376,6 @@ class OWLOntology
     else
     {
       $property = $this->owlDataFactory->getOWLObjectProperty(java("org.semanticweb.owlapi.model.IRI")->create($uri));
-      $superProperties = $this->reasoner->getSubObjectProperties($property, $direct); 
       
       if($this->useReasoner)
       {
@@ -1484,7 +1481,6 @@ class OWLOntology
     else
     {
       $property = $this->owlDataFactory->getOWLObjectProperty(java("org.semanticweb.owlapi.model.IRI")->create($uri));
-      $superProperties = $this->reasoner->getSubObjectProperties($property, $direct); 
       
       if($this->useReasoner)
       {

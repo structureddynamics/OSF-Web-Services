@@ -1244,6 +1244,14 @@ class OWLOntology
       {
         $subPropertyUri = (string)java_values($subProperty->toStringID());
       
+        if($subPropertyUri == "_BOTTOM_DATA_PROPERTY_" ||
+           $subPropertyUri == Namespaces::$owl."bottomDataProperty" ||
+           $subPropertyUri == "_BOTTOM_OBJECT_PROPERTY_" ||
+           $subPropertyUri == Namespaces::$owl."bottomObjectProperty")
+        {
+          continue;
+        }         
+      
         array_push($propertyDescription, $subPropertyUri);
       }
     }    
@@ -1321,12 +1329,21 @@ class OWLOntology
          java_instanceof($subProperty, java("org.semanticweb.owlapi.model.OWLAnnotationProperty")))      
       {
         $subPropertyUri = (string)java_values($subProperty->toStringID());
+        
+        if($subPropertyUri == "_BOTTOM_DATA_PROPERTY_" ||
+           $subPropertyUri == Namespaces::$owl."bottomDataProperty" ||
+           $subPropertyUri == "_BOTTOM_OBJECT_PROPERTY_" ||
+           $subPropertyUri == Namespaces::$owl."bottomObjectProperty")
+        {
+          continue;
+        }
+        
         $propertyDescription[$subPropertyUri] = array();
         
         $propertyDescription[$subPropertyUri] = $this->_getPropertyDescription($subProperty);
       }
     }
-    
+
     return($propertyDescription);
   }  
   

@@ -52,10 +52,7 @@ class OWLOntology
   private $manager;
   
   /**
-  * Pellet reasoner object
-  * 
-  * **Java variable type:** com.clarkparsia.pellet.owlapiv3.PelletReasonerFactory
-  * @see http://hermit-reasoner.com/download/0.9.3/owlapi/javadoc/org/semanticweb/reasonerfactory/pellet/PelletReasonerFactory.html
+  * Reasoner object
   *  
   * @author Frederick Giasson, Structured Dynamics LLC.
   */
@@ -87,6 +84,15 @@ class OWLOntology
   * **Java variable type:** boolean
   */
   private $useReasoner = TRUE;  
+  
+  /**
+  * Reasoner to use for this OWLAPI instance. Supported reasoners are:
+  * 
+  *   (1) pellet
+  *   (2) hermit
+  *   (3) factpp
+  */
+  private $reasonerToUse = "pellet";
   
   /**
   * Language to use to return the annotations
@@ -179,21 +185,30 @@ class OWLOntology
        is_null(java_values($OwlApiSession->get($this->getReasonerSessionID($uri)))) ||
        array_search($this->getReasonerSessionID($uri), $register) === FALSE) 
     {
-      // Create the reasoner for this ontology (Pellet)
+      // Create the reasoner for this ontology
 
       // Pellet    
-      $PelletReasonnerFactory = java("com.clarkparsia.pellet.owlapiv3.PelletReasonerFactory");
-      $PelletReasonnerFactory = $PelletReasonnerFactory->getInstance();
-      $this->reasoner = $PelletReasonnerFactory->createNonBufferingReasoner($this->ontology);
-      $this->manager->addOntologyChangeListener($this->reasoner);
+      if($this->reasonerToUse == "pellet")
+      {
+        $PelletReasonnerFactory = java("com.clarkparsia.pellet.owlapiv3.PelletReasonerFactory");
+        $PelletReasonnerFactory = $PelletReasonnerFactory->getInstance();
+        $this->reasoner = $PelletReasonnerFactory->createNonBufferingReasoner($this->ontology);
+        $this->manager->addOntologyChangeListener($this->reasoner);
+      }
       
       // HermiT
-      // $this->reasoner = new java("org.semanticweb.HermiT.Reasoner", $this->ontology);
+      if($this->reasonerToUse == "hermit")
+      {
+        $this->reasoner = new java("org.semanticweb.HermiT.Reasoner", $this->ontology);
+      }
                                          
       // Fact++
-      //$FactppReasonnerFactory= new java("uk.ac.manchester.cs.factplusplus.owlapiv3.FaCTPlusPlusReasonerFactory");
-      //$this->reasoner = $FactppReasonnerFactory->createNonBufferingReasoner($this->ontology);
-      //$this->manager->addOntologyChangeListener($this->reasoner);
+      if($this->reasonerToUse == "factpp")
+      {
+        $FactppReasonnerFactory= new java("uk.ac.manchester.cs.factplusplus.owlapiv3.FaCTPlusPlusReasonerFactory");
+        $this->reasoner = $FactppReasonnerFactory->createNonBufferingReasoner($this->ontology);
+        $this->manager->addOntologyChangeListener($this->reasoner);
+      }
       
       // Persist this ontology
       if(!is_null($OwlApiSession))
@@ -4045,11 +4060,27 @@ class OWLOntology
   }
   
   /**
-  * Start using the reasoner for the subsequent OWLOntology functions calls.
+  * Specifies that we want to use the Pellet reasoner
   */
-  public function useReasoner()
+  public function usePelletReasoner()
   {
-    $this->useReasoner = TRUE;
+    $this->reasonerToUse = "pellet";
+  }
+  
+  /**
+  * Specifies that we want to use the Hermit reasoner
+  */
+  public function useHermitReasoner()
+  {
+    $this->reasonerToUse = "hermit";
+  }
+  
+  /**
+  * Specifies that we want to use the FaCT++ reasoner
+  */
+  public function useFactppReasoner()
+  {
+    $this->reasonerToUse = "factpp";
   }
   
   /**
@@ -4059,6 +4090,14 @@ class OWLOntology
   {
     $this->useReasoner = FALSE;
   }
+  
+  /**
+  * Start using the reasoner for the subsequent OWLOntology functions calls.
+  */
+  public function useReasoner()
+  {
+    $this->useReasoner = TRUE;
+  }  
   
   public function getBaseUri()
   {

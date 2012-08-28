@@ -214,6 +214,19 @@
           try
           {
             $ontology = new OWLOntology($this->ws->ontologyUri, $OwlApiSession, FALSE);
+            
+            if(strtolower($this->ws->owlapiReasoner) == "pellet")                        
+            {
+              $ontology->usePelletReasoner();
+            }
+            elseif(strtolower($this->ws->owlapiReasoner) == "hermit")
+            {
+              $ontology->useHermitReasoner();
+            }
+            elseif(strtolower($this->ws->owlapiReasoner) == "factpp")
+            {
+              $ontology->useFactppReasoner();
+            }        
           }
           catch(Exception $e)
           {           

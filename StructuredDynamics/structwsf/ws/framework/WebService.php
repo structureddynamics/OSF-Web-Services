@@ -133,6 +133,9 @@ abstract class WebService
   /** Number of sessions (threads) to use in parallel */
   protected $owlapiNbSessions;
   
+  /** The OWLAPI reasoner to use */
+  protected $owlapiReasoner = "pellet";
+  
   /** URL where the Java Bridge can be accessed from this server */
   protected $owlapiBridgeURI;
   
@@ -365,11 +368,17 @@ abstract class WebService
     {
       $this->owlapiNbSessions = $network_ini["owlapi"]["nb_sessions"];
     } 
+    
     if(isset($network_ini["owlapi"]["bridge_uri"]))
     {
       $this->owlapiBridgeURI = $network_ini["owlapi"]["bridge_uri"];
     } 
 
+    if(isset($network_ini["owlapi"]["reasoner"]))
+    {
+      $this->owlapiReasoner = $network_ini["owlapi"]["reasoner"];
+    } 
+    
     if(isset($network_ini["geo"]["geoenabled"]))
     {
       if(strtolower($network_ini["geo"]["geoenabled"]) == "true" || $network_ini["geo"]["geoenabled"] == "1")

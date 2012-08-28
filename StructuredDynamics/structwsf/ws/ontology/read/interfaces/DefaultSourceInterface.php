@@ -31,6 +31,19 @@
         
         $onto->setLanguage($this->ws->lang);
         
+        if(strtolower($this->ws->owlapiReasoner) == "pellet")                        
+        {
+          $onto->usePelletReasoner();
+        }
+        elseif(strtolower($this->ws->owlapiReasoner) == "hermit")
+        {
+          $onto->useHermitReasoner();
+        }
+        elseif(strtolower($this->ws->owlapiReasoner) == "factpp")
+        {
+          $onto->useFactppReasoner();
+        }        
+        
         $this->populateClassHierarchy("http://www.w3.org/2002/07/owl#Thing", $onto, $ontologyUri, $classHierarchy);
       }  
       
@@ -47,7 +60,20 @@
       {
         $onto = new OWLOntology($ontologyUri, $OwlApiSession, TRUE);
         
-        $onto->setLanguage($this->ws->lang);                        
+        $onto->setLanguage($this->ws->lang);
+        
+        if(strtolower($this->ws->owlapiReasoner) == "pellet")                        
+        {
+          $onto->usePelletReasoner();
+        }
+        elseif(strtolower($this->ws->owlapiReasoner) == "hermit")
+        {
+          $onto->useHermitReasoner();
+        }
+        elseif(strtolower($this->ws->owlapiReasoner) == "factpp")
+        {
+          $onto->useFactppReasoner();
+        }
         
         $this->populatePropertyHierarchy("http://www.w3.org/2002/07/owl#topObjectProperty", $onto, $ontologyUri, $propertyHierarchy, FALSE);
         $this->populatePropertyHierarchy("http://www.w3.org/2002/07/owl#topDataProperty", $onto, $ontologyUri, $propertyHierarchy, TRUE);
@@ -280,6 +306,20 @@
           $ontology = new OWLOntology($this->ws->ontologyUri, $this->ws->OwlApiSession, TRUE);   
           
           $ontology->setLanguage($this->ws->lang);
+          
+          if(strtolower($this->ws->owlapiReasoner) == "pellet")                        
+          {
+            $ontology->usePelletReasoner();
+          }
+          elseif(strtolower($this->ws->owlapiReasoner) == "hermit")
+          {
+            $ontology->useHermitReasoner();
+          }
+          elseif(strtolower($this->ws->owlapiReasoner) == "factpp")
+          {
+            $ontology->useFactppReasoner();
+          }
+          
         }
         catch(Exception $e)
         {

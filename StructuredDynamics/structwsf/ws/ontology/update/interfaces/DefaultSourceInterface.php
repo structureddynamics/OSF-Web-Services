@@ -36,6 +36,19 @@
       try
       {
         $this->ws->ontology = new OWLOntology($this->ws->ontologyUri, $this->OwlApiSession, TRUE);
+        
+        if(strtolower($this->ws->owlapiReasoner) == "pellet")                        
+        {
+          $this->ws->ontology->usePelletReasoner();
+        }
+        elseif(strtolower($this->ws->owlapiReasoner) == "hermit")
+        {
+          $this->ws->ontology->useHermitReasoner();
+        }
+        elseif(strtolower($this->ws->owlapiReasoner) == "factpp")
+        {
+          $this->ws->ontology->useFactppReasoner();
+        }        
       }
       catch(Exception $e)
       {

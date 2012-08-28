@@ -65,8 +65,6 @@
               $this->ws->SconesSession->put("session".$i."_used", TRUE);
               
               // Process the incoming article
-              //$corpus = $this->ws->SconesSession->get("session".$i."_instance")->getCorpus();
-
               $document;
               $gateFactory = java("gate.Factory");
               
@@ -80,11 +78,6 @@
                 catch (Exception $e) 
                 {
                   $this->ws->SconesSession->put("session".$i."_used", FALSE);
-                  
-                  $this->ws->SconesSession->get("session".$i."_instance")->cleanup();
-                  
-                  unset($document);
-                  unset($gateFactory);                  
                   
                   return;
                 }  
@@ -100,52 +93,39 @@
                 {
                   $this->ws->SconesSession->put("session".$i."_used", FALSE);
                   
-                  $this->ws->SconesSession->get("session".$i."_instance")->cleanup();
-                  
-                  unset($document);
-                  unset($gateFactory);                  
-                  
                   return;
                 }                                  
               }
               
-              // Create the corpus
-              $corpus = $gateFactory->newCorpus(new java("java.lang.String", "Scones Corpus"));
-              
-              // Add the document to the corpus
-              $corpus->add($document);
-              
-              // Add the corpus to the corpus controler (the application)
-              $this->ws->SconesSession->get("session".$i."_instance")->setCorpus($corpus);
-              
               // Execute the pipeline
               try 
               {
+                // Create the corpus
+                $corpus = $this->ws->SconesSession->get("session".$i."_instance")->getCorpus();  
+                
+                // Add the document to the corpus
+                $corpus->add($document);
+                
+                // Execute the pipeline
                 $this->ws->SconesSession->get("session".$i."_instance")->execute();        
+                
+                // output the XML document
+                $this->ws->annotatedDocument =  $document->toXML();
               } 
               catch (Exception $e) 
               {
                 $this->ws->SconesSession->put("session".$i."_used", FALSE);
-              }            
+              }              
               
-              // output the XML document
-              $this->ws->annotatedDocument =  $document->toXML();
-
-              $this->ws->SconesSession->get("session".$i."_instance")->cleanup();
+              // Remove the document from the copus AND from the Gate application
+              $isRemoved = $corpus->remove($document);         
               
-              // Unload the document from the corpus
-              $corpus->unloadDocument($document);
+              $corpus->unloadDocument($document);         
+                           
+              $gateFactory->deleteResource($document);
               
-              // Cleanup the corpus
-              //$corpus->cleanup();
-              
-              // Empty the corpus
               $corpus->clear();
-              
-              unset($corpus);
-              unset($document);
-              unset($gateFactory);
-              
+                            
               // Stop the thread seeking process
               $processed = TRUE;
               

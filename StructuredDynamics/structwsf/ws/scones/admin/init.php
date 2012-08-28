@@ -48,22 +48,16 @@
     // Initialize GATE
     $Gate->init();
    
-    $sessions = array();  
-
-//    $docs = array("document #1", "document #2", "document #3");
-    
     for($i = 1; $i <= $config_ini["gate"]["nbSessions"]; $i++)
     {   
       // Load the corpus pipeline from the application (XGAPP) file.
       $corpusController = $PersistenceManager->loadObjectFromFile(
                       new java("java.io.File", $config_ini["gate"]["applicationFile"]));   
- 
+
       // Initialize and save sessions
       $SconesSession->put("session".$i."_used", FALSE);    
       $SconesSession->put("session".$i."_instance", $corpusController);    
     }
-
-    $SconesSession->put("sessions", $sessions);     
     
     $SconesSession->put("initialized", TRUE);      
     

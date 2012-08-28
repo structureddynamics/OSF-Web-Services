@@ -180,14 +180,12 @@ class OWLOntology
       $this->manager->addOntologyChangeListener($this->reasoner);
       
       // HermiT
-      //$this->reasoner = new java("org.semanticweb.HermiT.Reasoner", $this->ontology);
+      // $this->reasoner = new java("org.semanticweb.HermiT.Reasoner", $this->ontology);
                                          
-      // Fact++ (Currently NOT WORKING)
-      //$FactppReasonnerFactory= new java("uk.ac.manchester.cs.factplusplus.owlapiv3.FaCTPlusPlusReasonerFactory", $this->ontology);
-      //$FactppReasonnerFactory = $FactppReasonnerFactory->getInstance();
+      // Fact++
+      //$FactppReasonnerFactory= new java("uk.ac.manchester.cs.factplusplus.owlapiv3.FaCTPlusPlusReasonerFactory");
       //$this->reasoner = $FactppReasonnerFactory->createNonBufferingReasoner($this->ontology);
       //$this->manager->addOntologyChangeListener($this->reasoner);
-      
       
       // Persist this ontology
       if(!is_null($OwlApiSession))

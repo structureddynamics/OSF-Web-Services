@@ -65,6 +65,12 @@ class Namespaces
   public static $aggr = "http://purl.org/ontology/aggregate#";
   public static $xsd = "http://www.w3.org/2001/XMLSchema#";
 
+  public static $nhccn = "http://purl.org/ontology/nhccn#";
+  public static $doha = "http://purl.org/ontology/doha#";
+  public static $vann = "http://purl.org/vocab/vann/";
+  public static $vs = "http://www.w3.org/2003/06/sw-vocab-status/ns#";
+  
+  
   /**
   * Get the list of all properties's URI normally used to refer
   * to a label for a record

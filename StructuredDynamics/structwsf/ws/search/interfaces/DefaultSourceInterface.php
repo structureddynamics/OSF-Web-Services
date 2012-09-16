@@ -1069,6 +1069,11 @@
             // Get the URI of the attribute
             $attributeURI = urldecode(str_replace($attributeType, "", $attribute));
             
+            if($attributeURI == Namespaces::$rdf."type")
+            {
+              continue;
+            }
+            
             switch($attributeType)
             {
               case "_attr_".$this->ws->lang:

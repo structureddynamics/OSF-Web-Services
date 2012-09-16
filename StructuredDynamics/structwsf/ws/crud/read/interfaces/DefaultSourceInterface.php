@@ -35,7 +35,6 @@
         }
         
         $subjects = array();
-
         foreach($uris as $key => $u)
         {
           // Decode potentially encoded ";" character.
@@ -136,16 +135,17 @@
           
           $g = "";
           
-          $subjects[$u] = Array("type" => Array(),
-                                "prefLabel" => "",
-                                "altLabel" => Array(),
-                                "prefURL" => "",
-                                "description" => "");
-
-          $nbTriples = 0;                              
-                                
           while(odbc_fetch_row($resultset))
           {
+            if(!isset($subjects[$u]))
+            {
+              $subjects[$u] = Array("type" => Array(),
+                                    "prefLabel" => "",
+                                    "altLabel" => Array(),
+                                    "prefURL" => "",
+                                    "description" => "");              
+            }
+          
             $p = odbc_result($resultset, 1);
             
             $o = $this->ws->db->odbc_getPossibleLongResult($resultset, 2);
@@ -231,15 +231,11 @@
                     array_push($subjects[$u][$p], Array("value" => $o, 
                                                         "lang" => (isset($olang) ? $olang : ""),
                                                         "type" => "rdfs:Literal"));
-                                                        
-                    $nbTriples++;
                   }
                   else
                   {
                     array_push($subjects[$u][$p], Array("uri" => $o, 
                                                         "type" => ""));
-                                                        
-                    $nbTriples++;
                   }
                 }
               }
@@ -265,32 +261,16 @@
                   array_push($subjects[$u][$p], Array("value" => $o, 
                                                       "lang" => (isset($olang) ? $olang : ""),
                                                       "type" => "rdfs:Literal"));
-                                                        
-                  $nbTriples++;
                 }
                 else
                 {
                   array_push($subjects[$u][$p], Array("uri" => $o, 
                                                       "type" => ""));
-                                                        
-                  $nbTriples++;
                 }
               }
             }
           }
 
-          if($nbTriples <= 0)
-          {
-            $this->ws->conneg->setStatus(400);
-            $this->ws->conneg->setStatusMsg("Bad Request");
-            $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_300->name);
-            $this->ws->conneg->setError($this->ws->errorMessenger->_300->id, $this->ws->errorMessenger->ws,
-              $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, "",
-              $this->ws->errorMessenger->_300->level);
-
-            return;
-          }
-          
           // Assigning the Dataset relationship
           if($g != "")
           {         
@@ -329,7 +309,7 @@
                 $this->ws->db->build_sparql_query("select ?s ?p $d where {graph ?g{?s ?p <" . $u . ">.}}", array ('s', 'p'),
                   FALSE);
             }
-
+              
             $resultset = $this->ws->db->query($query);
 
             if(odbc_error())
@@ -411,7 +391,7 @@
                         }
                       }";
             }
-
+          
             $query = $this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
               array ('rei_p', 'rei_o', 'p', 'o'), FALSE);
 
@@ -462,8 +442,20 @@
             unset($resultset);
           }
         }
-        
-        $this->ws->rset->setResultset(Array("unspecified" => $subjects));
+
+        if(count($subjects) <= 0)
+        {
+          $this->ws->conneg->setStatus(400);
+          $this->ws->conneg->setStatusMsg("Bad Request");
+          $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_300->name);
+          $this->ws->conneg->setError($this->ws->errorMessenger->_300->id, $this->ws->errorMessenger->ws,
+            $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, "",
+            $this->ws->errorMessenger->_300->level);
+        }
+        else
+        {
+          $this->ws->rset->setResultset(Array("unspecified" => $subjects));
+        }
       }      
     }
   }

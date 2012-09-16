@@ -186,6 +186,11 @@
             {
               if($p == Namespaces::$rdf."type")
               {
+                if(array_search($o, $subjects[$u]["type"]) !== FALSE)
+                {
+                  continue;
+                }
+                
                 array_push($subjects[$u]["type"], $o);
               }
               else
@@ -243,7 +248,10 @@
             {
               if($p == Namespaces::$rdf."type")
               {
-                array_push($subjects[$u]["type"], $o);
+                if(array_search($o, $subjects[$u]["type"]) === FALSE)
+                {
+                  array_push($subjects[$u]["type"], $o);
+                }
               }
               else
               {

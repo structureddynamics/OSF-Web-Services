@@ -144,6 +144,58 @@ class Resultset
   }
   
   /**
+  * Get all the subjects defined in this resultset.
+  * 
+  * @return An array of Subject objects
+  * 
+  * @author Frederick Giasson, Structured Dynamics LLC.
+  */
+  public function getSubjects()
+  {
+    $subjects = array();
+    
+    foreach($this->resultset as $dataset => $subjects)
+    {
+      foreach($subjects as $uri => $s)
+      {
+        $subject = new Subject($uri);
+        
+        $subject->setSubject($s);
+        
+        array_push($subjects, $subject);
+      }      
+    }
+    
+    return($subjects);
+  }  
+  
+  /**
+  * Get a subject by its URI
+  * 
+  * @param mixed $uri URI of the subject to get from the resultset.
+  * @return Subject instance that match the input URI. Returns FALSE if no subject
+  *         match the input URI.
+  */
+  public function getSubjectByUri($uri)
+  {
+    foreach($this->resultset as $dataset => $subjects)
+    {
+      foreach($subjects as $suri => $s)
+      {
+        if($suri == $uri)
+        {
+          $subject = new Subject($uri);
+          $subject->setSubject($s);
+          
+          return($subject);
+        }
+      }
+    }
+    
+    return(FALSE);
+  }
+  
+  /**
   * Get the array internal description of the resultset 
   * 
   * @author Frederick Giasson, Structured Dynamics LLC.
@@ -1420,7 +1472,10 @@ class Subject
   */
   public function setSubject($description)
   {
-    $this->description = $description;
+    if(is_array($description))
+    {
+      $this->description = $description;  
+    }
   }
 
   /**
@@ -1435,7 +1490,10 @@ class Subject
   {
     if(isset($this->description["type"]) && is_array($this->description["type"]))
     {
-      array_push($this->description["type"], $type);
+      if(array_search($type, $this->description["type"]) === FALSE)
+      {
+        array_push($this->description["type"], $type);
+      }
     }
     else
     {
@@ -1560,6 +1618,197 @@ class Subject
     }   
     
     array_push($this->description[$attribute], $val);
+  }  
+  
+  /**
+  * Get all the types of this subject
+  * 
+  * @return Returns an array of types URIs.
+  *         returns an empty array if there is none.
+  * 
+  * @author Frederick Giasson, Structured Dynamics LLC.
+  */
+  function getTypes()
+  {
+    if(isset($this->description["type"]))
+    {
+      return($this->description["type"]);
+    }
+    
+    return(array());
+  }
+
+  /**
+  * Get the preferred label of this subject
+  * 
+  * @return Returns the preferred label. Returns an empty string if there is none.
+  * 
+  * @author Frederick Giasson, Structured Dynamics LLC.
+  */
+  function getPrefLabel()
+  {
+    if(isset($this->description["prefLabel"]))
+    {
+      return($this->description["prefLabel"]);
+    }
+    
+    return("");
+  }    
+
+  /**
+  * Get all the alternative labels of this subject
+  * 
+  * @return Returns an array of alternative labels. Returns an empty
+  *         array is there is none.
+  * 
+  * @author Frederick Giasson, Structured Dynamics LLC.
+  */
+  function getAltLabels()
+  {
+    if(isset($this->description["altLabel"]))
+    {
+      return($this->description["altLabel"]);
+    }
+    
+    return(array());
+  }
+
+  
+  /**
+  * Get the preferred URL of this subject
+  * 
+  * @return Returns the preferred URL. Returns an empty string if there is none.
+  * 
+  * @author Frederick Giasson, Structured Dynamics LLC.
+  */
+  function getPrefURL()
+  {
+    if(isset($this->description["prefURL"]))
+    {
+      return($this->description["prefURL"]);
+    }
+    
+    return("");
+  }   
+  
+  /**
+  * Get the description of this subject
+  * 
+  * @return Returns the description. Returns an empty string if there is none.
+  * 
+  * @author Frederick Giasson, Structured Dynamics LLC.
+  */
+  function getDescription()
+  {
+    if(isset($this->description["description"]))
+    {
+      return($this->description["description"]);
+    }
+    
+    return("");
+  }      
+  
+  /**
+  * Get the URI of all the object properties that describes this subject
+  * 
+  * @return Array of object property URIs
+  * 
+  */
+  function getObjectPropertiesUri()
+  {
+    $uris = array();
+    
+    foreach($this->description as $uri => $property)
+    {
+      if(isset($property[0]["uri"]))
+      {
+        array_push($uris, $uri);
+      }
+    }
+    
+    return($uris);
+  }
+  
+  /**
+  * Get the URI of all the data properties that describes this subject
+  * 
+  * @return Array of data property URIs
+  * 
+  */
+  function getDataPropertiesUri()
+  {
+    $uris = array();
+    
+    foreach($this->description as $uri => $property)
+    {
+      if(isset($property[0]["value"]))
+      {
+        array_push($uris, $uri);
+      }
+    }
+    
+    return($uris);
+  } 
+  
+  /**
+  *  Get the values of an object property. 
+  * 
+  *  The values are turned as an array of values which has this structure:
+  *
+  *  Array(
+  *    Array(
+  *      "uri" => "some uri",
+  *      "type" => "optional type of the referenced URI",
+  *      "reify" => Array(
+  *      "reification-attribute-uri" => Array("value of the reification statement"),
+  *      "more-reification-attribute-uri" => ...
+  *    ), 
+  *  )
+  * 
+  * @param mixed $propertyUri
+  * @return mixed
+  */
+  function getObjectPropertyValues($propertyUri)
+  {
+    if(isset($this->description[$propertyUri]))
+    {
+      return($this->description[$propertyUri]);
+    }
+    else
+    {
+      return(FALSE);
+    }
+  }  
+  
+  /**
+  *  Get the values of a data property. 
+  * 
+  *  The values are turned as an array of values which has this structure:
+  *
+  * Array(
+  *   Array(
+  *     "value" => "some value",
+  *     "lang" => "language string of the value",
+  *     "type" => "type of the value"
+  *   ),
+  *   Array(
+  *     ...
+  *   )
+  * )
+  * 
+  * @param mixed $propertyUri
+  * @return mixed
+  */
+  function getDataPropertyValues($propertyUri)
+  {
+    if(isset($this->description[$propertyUri]))
+    {
+      return($this->description[$propertyUri]);
+    }
+    else
+    {
+      return(FALSE);
+    }
   }  
 }
 

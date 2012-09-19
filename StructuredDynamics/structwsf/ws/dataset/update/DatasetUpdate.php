@@ -336,17 +336,20 @@ class DatasetUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServic
     }
     else
     {
-      array_push($contribs, $this->contributors);
-    }
+      if($this->contributors != "")
+      {
+        array_push($contribs, $this->contributors);
+      }
+    }    
 
     foreach($contribs as $contrib)
     {
-      if(!$this->isValidIRI($contrib))
+      if($contrib != "-delete-" && !$this->isValidIRI($contrib))
       {
         $this->conneg->setStatus(400);
         $this->conneg->setStatusMsg("Bad Request");
         $this->conneg->setStatusMsgExt($this->errorMessenger->_204->name);
-        $this->conneg->setError($this->errorMessenger->_204->id, $this->errorMessenger->ws,
+        $this->conneg->setError($this->errorMessenger->_204->id, $this->contributors."--".$this->errorMessenger->ws,
           $this->errorMessenger->_204->name, $this->errorMessenger->_204->description, "",
           $this->errorMessenger->_204->level);
 

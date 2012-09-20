@@ -14,6 +14,15 @@ namespace StructuredDynamics\structwsf\framework;
 use \SimpleXMLElement;
 
 use \StructuredDynamics\structwsf\framework\Namespaces;
+use \StructuredDynamics\structwsf\ws\converter\irjson\ConverterIrJSON;
+use \StructuredDynamics\structwsf\ws\converter\irjson\Dataset;
+use \StructuredDynamics\structwsf\ws\converter\irjson\InstanceRecord;
+use \StructuredDynamics\structwsf\ws\converter\irjson\irJSONParser;
+use \StructuredDynamics\structwsf\ws\converter\irjson\LinkageSchema;
+use \StructuredDynamics\structwsf\ws\converter\irjson\StructureSchema;
+use \StructuredDynamics\structwsf\ws\converter\common\CommonParser;
+use \StructuredDynamics\structwsf\ws\converter\common\ConverterCommON;
+
 
 /** 
 * Internal Resultset representation of structWSF results
@@ -894,17 +903,6 @@ class Resultset
   */   
   public function getResultsetIronJSON()
   {
-    include_once($this->wsf_base_path."WebService.php");
-    include_once($this->wsf_base_path."Conneg.php");
-    include_once($this->wsf_base_path."ProcessorXML.php");    
-    
-    include_once($this->wsf_base_path."converter/irjson/ConverterIrJSON.php");
-    include_once($this->wsf_base_path."converter/irjson/Dataset.php");
-    include_once($this->wsf_base_path."converter/irjson/InstanceRecord.php");
-    include_once($this->wsf_base_path."converter/irjson/LinkageSchema.php");
-    include_once($this->wsf_base_path."converter/irjson/StructureSchema.php");
-    include_once($this->wsf_base_path."converter/irjson/irJSONParser.php");
-    
     $ws_irv = new ConverterIrJSON($this->getResultsetXML(), "text/xml", "true", "self", "self");
 
     $ws_irv->pipeline_conneg("application/iron+json", "", "text/xml", "");
@@ -937,13 +935,6 @@ class Resultset
   */     
   public function getResultsetIronCOMMON()
   {
-    include_once($this->wsf_base_path."WebService.php");
-    include_once($this->wsf_base_path."Conneg.php");
-    include_once($this->wsf_base_path."ProcessorXML.php");
-    
-    include_once($this->wsf_base_path."converter/common/ConverterCommON.php");
-    include_once($this->wsf_base_path."converter/common/CommonParser.php");
-    
     $ws_irc = new ConverterCommON($this->getResultsetXML(), "text/xml", "true", "self", "self");
 
     $ws_irc->pipeline_conneg("application/iron+csv", "", "text/xml", "");

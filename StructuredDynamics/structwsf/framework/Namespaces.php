@@ -18,36 +18,21 @@ namespace StructuredDynamics\structwsf\framework;
 */
 class Namespaces
 {
-  public static $address = "http://schemas.talis.com/2005/address/schema#";
-  public static $asn = "http://purl.org/ASN/schema/core/";
-  public static $bibo = "http://purl.org/ontology/bibo/";
-  public static $bio = "http://purl.org/vocab/bio/0.1/";
-  public static $bkn = "http://purl.org/ontology/bkn#";
-  public static $bkn_temp = "http://purl.org/ontology/bkn/temp#";
-  public static $bkn_base = "http://purl.org/ontology/bkn/base/";
-  public static $cc = "http://creativecommons.org/ns#";
-  public static $cyc = "http://sw.cyc.com/2006/07/27/cyc/";
   public static $dc = "http://purl.org/dc/elements/1.1/";
   public static $dcam = "http://purl.org/dc/dcam/";
   public static $dcterms = "http://purl.org/dc/terms/";
   public static $dctype = "http://purl.org/dc/dcmitype/";
-  public static $doap = "http://usefulinc.com/ns/doap#";
-  public static $eor = "http://dublincore.org/2000/03/13/eor#";
-  public static $event = "http://purl.org/NET/c4dm/event.owl#";
+  public static $cc = "http://creativecommons.org/ns#";
   public static $foaf = "http://xmlns.com/foaf/0.1/";
-  public static $frbr = "http://purl.org/vocab/frbr/core#";
+  public static $doap = "http://usefulinc.com/ns/doap#";
   public static $geo = "http://www.w3.org/2003/01/geo/wgs84_pos#";
-  public static $geonames = "http://www.geonames.org/ontology#";
-  public static $gem = "http://purl.org/gem/elements/";
-  public static $gemq = "http://purl.org/gem/qualifiers/";
+  public static $geoname = "http://www.geonames.org/ontology#";
+  public static $bio = "http://purl.org/vocab/bio/0.1/";
+  public static $bibo = "http://purl.org/ontology/bibo/";
   public static $iron = "http://purl.org/ontology/iron#";
-  public static $loc = "http://www.loc.gov/loc.terms/relators/";
-  public static $mo = "http://purl.org/ontology/mo/";
   public static $owl = "http://www.w3.org/2002/07/owl#";
-  public static $po = "http://purl.org/ontology/po/";
   public static $rdf = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
   public static $rdfs = "http://www.w3.org/2000/01/rdf-schema#";
-  public static $rss = "http://purl.org/rss/1.0/";
   public static $sioc = "http://rdfs.org/sioc/ns#";
   public static $skos_2004 = "http://www.w3.org/2004/02/skos/core#";
   public static $skos_2008 = "http://www.w3.org/2008/05/skos#";
@@ -55,21 +40,13 @@ class Namespaces
   public static $umbel_ac = "http://umbel.org/umbel/ac/";
   public static $umbel_sc = "http://umbel.org/umbel/sc/";
   public static $umbel_rc = "http://umbel.org/umbel/rc/";
-  public static $geoname = "http://www.geonames.org/ontology#";
-  public static $peg = "http://purl.org/ontology/peg#";
-  public static $muni = "http://purl.org/ontology/muni#";
-  public static $dbpedia_ont = "http://dbpedia.org/ontology/";
   public static $sco = "http://purl.org/ontology/sco#";
   public static $void = "http://rdfs.org/ns/void#";
   public static $wsf = "http://purl.org/ontology/wsf#";
   public static $aggr = "http://purl.org/ontology/aggregate#";
   public static $xsd = "http://www.w3.org/2001/XMLSchema#";
-
-  public static $nhccn = "http://purl.org/ontology/nhccn#";
-  public static $doha = "http://purl.org/ontology/doha#";
   public static $vann = "http://purl.org/vocab/vann/";
-  public static $vs = "http://www.w3.org/2003/06/sw-vocab-status/ns#";
-  
+  public static $vs = "http://www.w3.org/2003/06/sw-vocab-status/ns#";  
   
   /**
   * Get the list of all properties's URI normally used to refer
@@ -145,15 +122,113 @@ class Namespaces
     // Save the URI of the class or property passed in parameter
     $resource = substr($uri, $pos, strlen($uri) - $pos);    
   
-    foreach(get_class_vars('\StructuredDynamics\structwsf\framework\Namespaces') as $prefix => $u)    
+    foreach(Namespaces::getNamespaces() as $prefix => $uri)    
     {    
-      if($onto == Namespaces::$$prefix)
+      if($onto == $uri)
       {
         return($prefix.":".$resource);
       }
     }
     
     return($uri);
+  }
+  
+  /**                                        
+  * Get the prefix representing the ontology where a URI come from.
+  * For example, "http://xmlns.com/foaf/0.1/Person" would return "foaf"
+  * 
+  * @param mixed $uri URI to get the prefix from
+  * 
+  * @author Frederick Giasson, Structured Dynamics LLC.
+  */
+  public static function getPrefix($uri)
+  {
+    // Find the base URI of the ontology
+    $pos = strripos($uri, "#");
+
+    if ($pos === FALSE)
+    {
+      $pos = strripos($uri, "/");
+    }
+
+    if ($pos !== FALSE)
+    {
+      $pos++;
+    }
+
+    // Save the URI of the ontology
+    $onto = substr($uri, 0, $pos);
+
+    // Save the URI of the class or property passed in parameter
+    $resource = substr($uri, $pos, strlen($uri) - $pos);    
+  
+    foreach(Namespaces::getNamespaces() as $prefix => $uri)    
+    {    
+      if($onto == $uri)
+      {
+        return($prefix);
+      }
+    }
+    
+    return("");
+  }   
+  
+  /**
+  * Get the URI related to a prix
+  * 
+  * @param $prefix Prefix for which you want its related URI
+  * 
+  * @return Return the URI of the prefix.
+  */
+  public static function getUri($prefix)
+  {
+    $namespaces = Namespaces::getNamespaces();
+    
+    return($namespaces[$prefix]);
+  }
+  
+  /**
+  * Get an array of prefixes<->namespaces
+  * 
+  * @return return an associative array of namespace prefixes and their base URI
+  */
+  public static function getNamespaces()
+  {
+    $coreNamespaces = get_class_vars('\StructuredDynamics\structwsf\framework\Namespaces');
+    
+    // Read custom namespaces
+    $namespaces = array();
+    
+    if(($handle = fopen(realpath(dirname(__FILE__))."/namespaces.csv", "r")) !== FALSE) 
+    {
+      while(($namespace = fgetcsv($handle)) !== FALSE) 
+      {
+        // Only keep valie IRI
+        if(Namespaces::isValidIRI($namespace[1]))
+        {
+          $namespaces[$namespace[0]] = $namespace[1];
+        }
+      }
+      
+      fclose($handle);
+    } 
+    
+    $namespaces += $coreNamespaces;   
+    
+    return($namespaces);
+  }  
+  
+  /** Check if a given IRI is valid.
+              
+      @param $iri The IRI to validate
+
+      @return returns true if the IRI is valid, false otherwise.
+      
+      @see http://stackoverflow.com/questions/4713216/what-is-the-rfc-complicant-and-working-regular-expression-to-check-if-a-string-i
+  */  
+  public static function isValidIRI($iri)
+  {
+    return((bool) preg_match('/^[a-z](?:[-a-z0-9\+\.])*:(?:\/\/(?:(?:%[0-9a-f][0-9a-f]|[-a-z0-9\._~\x{A0}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFEF}\x{10000}-\x{1FFFD}\x{20000}-\x{2FFFD}\x{30000}-\x{3FFFD}\x{40000}-\x{4FFFD}\x{50000}-\x{5FFFD}\x{60000}-\x{6FFFD}\x{70000}-\x{7FFFD}\x{80000}-\x{8FFFD}\x{90000}-\x{9FFFD}\x{A0000}-\x{AFFFD}\x{B0000}-\x{BFFFD}\x{C0000}-\x{CFFFD}\x{D0000}-\x{DFFFD}\x{E1000}-\x{EFFFD}!\$&\'\(\)\*\+,;=:])*@)?(?:\[(?:(?:(?:[0-9a-f]{1,4}:){6}(?:[0-9a-f]{1,4}:[0-9a-f]{1,4}|(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(?:\.(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){3})|::(?:[0-9a-f]{1,4}:){5}(?:[0-9a-f]{1,4}:[0-9a-f]{1,4}|(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(?:\.(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){3})|(?:[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){4}(?:[0-9a-f]{1,4}:[0-9a-f]{1,4}|(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(?:\.(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){3})|(?:[0-9a-f]{1,4}:[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){3}(?:[0-9a-f]{1,4}:[0-9a-f]{1,4}|(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(?:\.(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){3})|(?:(?:[0-9a-f]{1,4}:){0,2}[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){2}(?:[0-9a-f]{1,4}:[0-9a-f]{1,4}|(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(?:\.(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){3})|(?:(?:[0-9a-f]{1,4}:){0,3}[0-9a-f]{1,4})?::[0-9a-f]{1,4}:(?:[0-9a-f]{1,4}:[0-9a-f]{1,4}|(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(?:\.(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){3})|(?:(?:[0-9a-f]{1,4}:){0,4}[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:[0-9a-f]{1,4}|(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(?:\.(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){3})|(?:(?:[0-9a-f]{1,4}:){0,5}[0-9a-f]{1,4})?::[0-9a-f]{1,4}|(?:(?:[0-9a-f]{1,4}:){0,6}[0-9a-f]{1,4})?::)|v[0-9a-f]+[-a-z0-9\._~!\$&\'\(\)\*\+,;=:]+)\]|(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(?:\.(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){3}|(?:%[0-9a-f][0-9a-f]|[-a-z0-9\._~\x{A0}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFEF}\x{10000}-\x{1FFFD}\x{20000}-\x{2FFFD}\x{30000}-\x{3FFFD}\x{40000}-\x{4FFFD}\x{50000}-\x{5FFFD}\x{60000}-\x{6FFFD}\x{70000}-\x{7FFFD}\x{80000}-\x{8FFFD}\x{90000}-\x{9FFFD}\x{A0000}-\x{AFFFD}\x{B0000}-\x{BFFFD}\x{C0000}-\x{CFFFD}\x{D0000}-\x{DFFFD}\x{E1000}-\x{EFFFD}!\$&\'\(\)\*\+,;=@])*)(?::[0-9]*)?(?:\/(?:(?:%[0-9a-f][0-9a-f]|[-a-z0-9\._~\x{A0}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFEF}\x{10000}-\x{1FFFD}\x{20000}-\x{2FFFD}\x{30000}-\x{3FFFD}\x{40000}-\x{4FFFD}\x{50000}-\x{5FFFD}\x{60000}-\x{6FFFD}\x{70000}-\x{7FFFD}\x{80000}-\x{8FFFD}\x{90000}-\x{9FFFD}\x{A0000}-\x{AFFFD}\x{B0000}-\x{BFFFD}\x{C0000}-\x{CFFFD}\x{D0000}-\x{DFFFD}\x{E1000}-\x{EFFFD}!\$&\'\(\)\*\+,;=:@]))*)*|\/(?:(?:(?:(?:%[0-9a-f][0-9a-f]|[-a-z0-9\._~\x{A0}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFEF}\x{10000}-\x{1FFFD}\x{20000}-\x{2FFFD}\x{30000}-\x{3FFFD}\x{40000}-\x{4FFFD}\x{50000}-\x{5FFFD}\x{60000}-\x{6FFFD}\x{70000}-\x{7FFFD}\x{80000}-\x{8FFFD}\x{90000}-\x{9FFFD}\x{A0000}-\x{AFFFD}\x{B0000}-\x{BFFFD}\x{C0000}-\x{CFFFD}\x{D0000}-\x{DFFFD}\x{E1000}-\x{EFFFD}!\$&\'\(\)\*\+,;=:@]))+)(?:\/(?:(?:%[0-9a-f][0-9a-f]|[-a-z0-9\._~\x{A0}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFEF}\x{10000}-\x{1FFFD}\x{20000}-\x{2FFFD}\x{30000}-\x{3FFFD}\x{40000}-\x{4FFFD}\x{50000}-\x{5FFFD}\x{60000}-\x{6FFFD}\x{70000}-\x{7FFFD}\x{80000}-\x{8FFFD}\x{90000}-\x{9FFFD}\x{A0000}-\x{AFFFD}\x{B0000}-\x{BFFFD}\x{C0000}-\x{CFFFD}\x{D0000}-\x{DFFFD}\x{E1000}-\x{EFFFD}!\$&\'\(\)\*\+,;=:@]))*)*)?|(?:(?:(?:%[0-9a-f][0-9a-f]|[-a-z0-9\._~\x{A0}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFEF}\x{10000}-\x{1FFFD}\x{20000}-\x{2FFFD}\x{30000}-\x{3FFFD}\x{40000}-\x{4FFFD}\x{50000}-\x{5FFFD}\x{60000}-\x{6FFFD}\x{70000}-\x{7FFFD}\x{80000}-\x{8FFFD}\x{90000}-\x{9FFFD}\x{A0000}-\x{AFFFD}\x{B0000}-\x{BFFFD}\x{C0000}-\x{CFFFD}\x{D0000}-\x{DFFFD}\x{E1000}-\x{EFFFD}!\$&\'\(\)\*\+,;=:@]))+)(?:\/(?:(?:%[0-9a-f][0-9a-f]|[-a-z0-9\._~\x{A0}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFEF}\x{10000}-\x{1FFFD}\x{20000}-\x{2FFFD}\x{30000}-\x{3FFFD}\x{40000}-\x{4FFFD}\x{50000}-\x{5FFFD}\x{60000}-\x{6FFFD}\x{70000}-\x{7FFFD}\x{80000}-\x{8FFFD}\x{90000}-\x{9FFFD}\x{A0000}-\x{AFFFD}\x{B0000}-\x{BFFFD}\x{C0000}-\x{CFFFD}\x{D0000}-\x{DFFFD}\x{E1000}-\x{EFFFD}!\$&\'\(\)\*\+,;=:@]))*)*|(?!(?:%[0-9a-f][0-9a-f]|[-a-z0-9\._~\x{A0}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFEF}\x{10000}-\x{1FFFD}\x{20000}-\x{2FFFD}\x{30000}-\x{3FFFD}\x{40000}-\x{4FFFD}\x{50000}-\x{5FFFD}\x{60000}-\x{6FFFD}\x{70000}-\x{7FFFD}\x{80000}-\x{8FFFD}\x{90000}-\x{9FFFD}\x{A0000}-\x{AFFFD}\x{B0000}-\x{BFFFD}\x{C0000}-\x{CFFFD}\x{D0000}-\x{DFFFD}\x{E1000}-\x{EFFFD}!\$&\'\(\)\*\+,;=:@])))(?:\?(?:(?:%[0-9a-f][0-9a-f]|[-a-z0-9\._~\x{A0}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFEF}\x{10000}-\x{1FFFD}\x{20000}-\x{2FFFD}\x{30000}-\x{3FFFD}\x{40000}-\x{4FFFD}\x{50000}-\x{5FFFD}\x{60000}-\x{6FFFD}\x{70000}-\x{7FFFD}\x{80000}-\x{8FFFD}\x{90000}-\x{9FFFD}\x{A0000}-\x{AFFFD}\x{B0000}-\x{BFFFD}\x{C0000}-\x{CFFFD}\x{D0000}-\x{DFFFD}\x{E1000}-\x{EFFFD}!\$&\'\(\)\*\+,;=:@])|[\x{E000}-\x{F8FF}\x{F0000}-\x{FFFFD}|\x{100000}-\x{10FFFD}\/\?])*)?(?:\#(?:(?:%[0-9a-f][0-9a-f]|[-a-z0-9\._~\x{A0}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFEF}\x{10000}-\x{1FFFD}\x{20000}-\x{2FFFD}\x{30000}-\x{3FFFD}\x{40000}-\x{4FFFD}\x{50000}-\x{5FFFD}\x{60000}-\x{6FFFD}\x{70000}-\x{7FFFD}\x{80000}-\x{8FFFD}\x{90000}-\x{9FFFD}\x{A0000}-\x{AFFFD}\x{B0000}-\x{BFFFD}\x{C0000}-\x{CFFFD}\x{D0000}-\x{DFFFD}\x{E1000}-\x{EFFFD}!\$&\'\(\)\*\+,;=:@])|[\/\?])*)?$/iu', $iri));
   }
 }
 

@@ -1366,9 +1366,9 @@ class Resultset
       // The URI got prefixed
       $pieces = explode(":", $prefixedUri);
       
-      if(!isset($this->prefixes[Namespaces::$$pieces[0]]))
+      if(!isset($this->prefixes[Namespaces::getUri($pieces[0])]))
       {
-        $this->prefixes[Namespaces::$$pieces[0]] = $pieces[0];
+        $this->prefixes[Namespaces::getUri($pieces[0])] = $pieces[0];
       }
       
       return($prefixedUri);
@@ -1697,7 +1697,7 @@ class Subject
     }
     
     return("");
-  }      
+  }  
   
   /**
   * Get the URI of all the object properties that describes this subject

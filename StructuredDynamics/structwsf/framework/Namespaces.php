@@ -199,7 +199,7 @@ class Namespaces
     // Read custom namespaces
     $namespaces = array();
     
-    if(($handle = fopen(realpath(dirname(__FILE__))."/namespaces.csv", "r")) !== FALSE) 
+    if(($handle = @fopen(realpath(dirname(__FILE__))."/namespaces.csv", "r")) !== FALSE) 
     {
       while(($namespace = fgetcsv($handle)) !== FALSE) 
       {

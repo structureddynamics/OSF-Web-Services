@@ -203,10 +203,14 @@ class Namespaces
     {
       while(($namespace = fgetcsv($handle)) !== FALSE) 
       {
-        // Only keep valie IRI
-        if(Namespaces::isValidIRI($namespace[1]))
+        // Ensure we have two columns
+        if(count($namespace) == 2)
         {
-          $namespaces[$namespace[0]] = $namespace[1];
+          // Only keep valie IRI
+          if(Namespaces::isValidIRI($namespace[1]))
+          {
+            $namespaces[$namespace[0]] = $namespace[1];
+          }
         }
       }
       

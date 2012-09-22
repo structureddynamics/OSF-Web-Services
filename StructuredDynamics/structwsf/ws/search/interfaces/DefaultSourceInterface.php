@@ -339,7 +339,7 @@
                   $coreAttr = TRUE;
                 break;
                 
-                case Namespaces::$geonames."locatedIn":
+                case Namespaces::$geoname."locatedIn":
                   $attribute = "located_in";
                   $coreAttr = TRUE;
                 break;
@@ -1033,7 +1033,7 @@
 
           if($resultLocatedIn->length > 0)
           {
-            $subject->setObjectAttribute(Namespaces::$geonames."locatedIn", $resultLocatedIn->item(0)->nodeValue);
+            $subject->setObjectAttribute(Namespaces::$geoname."locatedIn", $resultLocatedIn->item(0)->nodeValue);
           }           
 
           // get records description

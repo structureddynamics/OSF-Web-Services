@@ -680,14 +680,14 @@
               }                
               
               // Check if there is any geonames:locatedIn assertion for that resource.
-              if(isset($resourceIndex[$subject][Namespaces::$geonames."locatedIn"]))
+              if(isset($resourceIndex[$subject][Namespaces::$geoname."locatedIn"]))
               {  
                 $add .= "<field name=\"located_in\">". 
-                           $this->ws->xmlEncode($resourceIndex[$subject][Namespaces::$geonames."locatedIn"][0]["value"]). 
+                           $this->ws->xmlEncode($resourceIndex[$subject][Namespaces::$geoname."locatedIn"][0]["value"]). 
                         "</field>";                           
                         
 
-                $add .= "<field name=\"" . urlencode($this->ws->xmlEncode(Namespaces::$geonames . "locatedIn")) . "_attr_facets\">" . $this->ws->xmlEncode($resourceIndex[$subject][Namespaces::$geonames."locatedIn"][0]["value"])
+                $add .= "<field name=\"" . urlencode($this->ws->xmlEncode(Namespaces::$geoname . "locatedIn")) . "_attr_facets\">" . $this->ws->xmlEncode($resourceIndex[$subject][Namespaces::$geoname."locatedIn"][0]["value"])
                   . "</field>";                                                 
               }
               

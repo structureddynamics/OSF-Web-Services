@@ -122,9 +122,9 @@ class Namespaces
     // Save the URI of the class or property passed in parameter
     $resource = substr($uri, $pos, strlen($uri) - $pos);    
   
-    foreach(Namespaces::getNamespaces() as $prefix => $uri)    
+    foreach(Namespaces::getNamespaces() as $prefix => $u)    
     {    
-      if($onto == $uri)
+      if($onto == $u)
       {
         return($prefix.":".$resource);
       }

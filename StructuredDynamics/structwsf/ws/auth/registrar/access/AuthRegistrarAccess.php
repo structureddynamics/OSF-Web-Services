@@ -52,7 +52,7 @@ class AuthRegistrarAccess extends \StructuredDynamics\structwsf\ws\framework\Web
   /** URI of the access to update if action=update */
   private $target_access_uri = "";
 
-  /** Type of action to perform: (1) create (2) delete_target (3) delete_all (4) update */
+  /** Type of action to perform: (1) create (2) delete_target (3) delete_specific (4) delete_all (5) update */
   private $action = "";
 
   /** Error messages of this web service */
@@ -136,6 +136,12 @@ class AuthRegistrarAccess extends \StructuredDynamics\structwsf\ws\framework\Web
                           "level": "Fatal",
                           "name": "Source Interface\'s version not compatible with the web service endpoint\'s",
                           "description": "The version of the source interface you requested is not compatible with the one of the web service endpoint. Please contact the system administrator such that he updates the source interface to make it compatible with the new endpoint version."
+                        },
+                        "_307": {
+                          "id": "WS-AUTH-REGISTRAR-ACCESS-307",
+                          "level": "Fatal",
+                          "name": "Can\'t delete access record",
+                          "description": "Can\'t delete the specific access record specified in this query"
                         }                            
                       }';
 
@@ -179,9 +185,10 @@ class AuthRegistrarAccess extends \StructuredDynamics\structwsf\ws\framework\Web
       @param $ws_uris A list of ";" separated Web services URI accessible by this access  definition
       @param $dataset URI of the target dataset of this access  description
       @param $action One of:  (1)"create (default)": Create a new access description
-                                (2) "delete_target": Delete a target access description for a specific IP address and a specific dataset
-                                (3) "delete_all": Delete all access descriptions for a target dataset
-                                (4) "update": Update an existing access description 
+                              (2) "delete_target": Delete target access permissions records for a specific IP address and a specific dataset. This deletes all the access permissions of a user for a target dataset. 
+                              (3) "delete_specific": Delete a specific access permissions records
+                              (4) "delete_all": Delete all access descriptions for a target dataset
+                              (5) "update": Update an existing access description 
       @param $target_access_uri Target URI of the access resource to update. Only used when param4 = update
       @param $registered_ip Target IP address registered in the WSF
       @param $requester_ip IP address of the requester
@@ -333,7 +340,8 @@ class AuthRegistrarAccess extends \StructuredDynamics\structwsf\ws\framework\Web
       AuthRegistrarAccess::$supportedSerializations);
 
     if(strtolower($this->action) != "create" && strtolower($this->action) != "delete_target"
-      && strtolower($this->action) != "delete_all" && strtolower($this->action) != "update")
+      && strtolower($this->action) != "delete_all" && strtolower($this->action) != "update"
+      && strtolower($this->action) != "delete_specific")
     {
       $this->conneg->setStatus(400);
       $this->conneg->setStatusMsg("Bad Request");
@@ -346,7 +354,8 @@ class AuthRegistrarAccess extends \StructuredDynamics\structwsf\ws\framework\Web
 
 
     // Check for errors
-    if($this->registered_ip == "" && strtolower($this->action) != "delete_all")
+    if($this->registered_ip == "" && strtolower($this->action) != "delete_all" &&
+       strtolower($this->action) != "delete_specific")
     {
       $this->conneg->setStatus(400);
       $this->conneg->setStatusMsg("Bad Request");
@@ -357,7 +366,8 @@ class AuthRegistrarAccess extends \StructuredDynamics\structwsf\ws\framework\Web
       return;
     }
 
-    if(strtolower($this->action) != "delete_target" && strtolower($this->action) != "delete_all")
+    if(strtolower($this->action) != "delete_target" && strtolower($this->action) != "delete_all" && 
+       strtolower($this->action) != "delete_specific" )
     {
       // Only need this information for create/update
       if($this->crud == "")
@@ -373,7 +383,8 @@ class AuthRegistrarAccess extends \StructuredDynamics\structwsf\ws\framework\Web
       }
     }
 
-    if(strtolower($this->action) != "delete_target" && strtolower($this->action) != "delete_all")
+    if(strtolower($this->action) != "delete_target" && strtolower($this->action) != "delete_all" && 
+       strtolower($this->action) != "delete_specific" )
     {
       // Only need this information for create/update
       if(count($this->ws_uris) <= 0 || $this->ws_uris[0] == "")
@@ -388,7 +399,7 @@ class AuthRegistrarAccess extends \StructuredDynamics\structwsf\ws\framework\Web
       }
     }
 
-    if($this->dataset == "")
+    if($this->dataset == "" && strtolower($this->action) != "delete_specific")
     {
       $this->conneg->setStatus(400);
       $this->conneg->setStatusMsg("Bad Request");
@@ -399,7 +410,8 @@ class AuthRegistrarAccess extends \StructuredDynamics\structwsf\ws\framework\Web
       return;
     }
 
-    if(strtolower($this->action) == "update" && $this->target_access_uri == "")
+    if((strtolower($this->action) == "update" || strtolower($this->action) == "delete_specific") 
+       && $this->target_access_uri == "")
     {
       $this->conneg->setStatus(400);
       $this->conneg->setStatusMsg("Bad Request");

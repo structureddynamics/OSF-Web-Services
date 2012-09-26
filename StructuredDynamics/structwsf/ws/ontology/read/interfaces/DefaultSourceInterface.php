@@ -207,28 +207,103 @@
     
     public function manageIronPrefixes($uri, &$prefixes)
     {
-      if(strripos($uri, "#") !== FALSE)
+      if(strrpos($uri, "#") !== FALSE)
       {
-        $p = substr($uri, strripos($uri, "/") + 1, strripos($uri, "#") - (strripos($uri, "/") + 1));
+        $p = substr($uri, strrpos($uri, "/") + 1, strrpos($uri, "#") - (strrpos($uri, "/") + 1));
         
         $p = preg_replace("/[^A-Za-z0-9]/", "-", $p);
         
         if(!isset($prefixes[$p]))
         {
-          $prefixes[$p] = substr($uri, 0, strripos($uri, "#") + 1);
+          // Check if the first character is numeric. If it is, 
+          // we have to use a non-numeric character first.
+          if(is_numeric(substr($p, 0, 1)))
+          {
+            $p = "sd".$p;
+          }
+          
+          $baseUri = substr($uri, 0, strrpos($uri, "#") + 1);
+        
+          if(!isset($prefixes[$p]))
+          {
+            $prefixes[$p] = $baseUri;
+          }
+          else
+          {
+            // Check to make sure that the $baseUri is already defined for this prefix.
+            // otherwise it means that two different ontology were trying to use the
+            // same prefix.
+            
+            // Make sure the base uri doesn't already have another prefix
+            if(array_search($baseUri, $prefixes) === FALSE)
+            {
+              // Find a new distinct prefix for the baseUri.
+              if($prefixes[$p] != $baseUri)
+              {
+                for($i = 0; $i < 256; $i++)
+                {
+                  if(!isset($prefixes[$p.$i]))
+                  {
+                    $p = $p.$i;
+                    
+                    $prefixes[$p] = $baseUri;
+                    
+                    break;
+                  }
+                }                        
+              }
+            }
+          }                    
         }
       }
-      elseif(strripos($uri, "/") !== FALSE)
+      elseif(strrpos($uri, "/") !== FALSE)
       {
-        $uriMod = substr($uri, 0, strripos($uri, "/", strripos($uri, "/")));
+        // http://www.agls.gov.au/agls/terms/availability
         
-        $p = substr($uriMod, strripos($uriMod, "/") + 1);
+        $uriMod = substr($uri, 0, strrpos($uri, "/", strrpos($uri, "/")));
+        
+        $p = substr($uriMod, strrpos($uriMod, "/") + 1);
 
         $p = preg_replace("/[^A-Za-z0-9]/", "-", $p);
+
+        // Check if the first character is numeric. If it is, 
+        // we have to use a non-numeric character first.
+        if(is_numeric(substr($p, 0, 1)))
+        {
+          $p = "sd".$p;
+        }
+        
+        $baseUri = substr($uri, 0, strrpos($uri, "/", strrpos($uri, "/")) + 1);
         
         if(!isset($prefixes[$p]))
         {
-          $prefixes[$p] = substr($uri, 0, strripos($uri, "/", strripos($uri, "/")) + 1);
+          $prefixes[$p] = $baseUri;
+        }
+        else
+        {
+          // Check to make sure that the $baseUri is already defined for this prefix.
+          // otherwise it means that two different ontology were trying to use the
+          // same prefix.
+          
+          // Make sure the base uri doesn't already have another prefix
+          if(array_search($baseUri, $prefixes) === FALSE)
+          {
+            // Find a new distinct prefix for the baseUri.
+            if($prefixes[$p] != $baseUri)
+            {
+              for($i = 0; $i < 256; $i++)
+              {
+                if(!isset($prefixes[$p.$i]))
+                {
+                  $p = $p.$i;
+                  
+                  $prefixes[$p] = $baseUri;
+                  
+                  break;
+                }
+              }                        
+            }
+          }
         }
       }
     }     

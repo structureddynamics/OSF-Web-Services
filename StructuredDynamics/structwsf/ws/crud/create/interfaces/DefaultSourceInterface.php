@@ -356,6 +356,10 @@
                     . "</field>";
                   
                 }
+                
+                // Use the first defined type to add the the single-valued fiedl in the Solr schema.
+                // This will be used to enabled sorting on (the first) type
+                $add .= "<field name=\"type_single_valued\">" . $this->ws->xmlEncode($resourceIndex[$subject]["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"][0]["value"]) . "</field>";
 
                 // get the preferred and alternative labels for this resource
                 $prefLabelFound = array();
@@ -407,7 +411,7 @@
                         $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$iron . "prefLabel") . "</field>";
                         
                         $add .= "<field name=\"" . urlencode($this->ws->xmlEncode(Namespaces::$iron . "prefLabel")) . "_attr_facets\">" . $this->ws->xmlEncode($value["value"])
-                          . "</field>";
+                          . "</field>";                          
                       }
                       else
                       {         
@@ -629,6 +633,27 @@
                     $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$geo."alt") . "</field>";
                   }                
                 }
+                
+                $filename = rtrim($this->ws->ontological_structure_folder, "/") . "/propertyHierarchySerialized.srz";
+                
+                $file = fopen($filename, "r");
+                $propertyHierarchy = fread($file, filesize($filename));
+                $propertyHierarchy = unserialize($propertyHierarchy);                        
+                fclose($file);
+                
+                if($propertyHierarchy === FALSE)
+                {
+                  $this->ws->conneg->setStatus(500);   
+                  $this->ws->conneg->setStatusMsg("Internal Error");
+                  $this->ws->conneg->setError($this->ws->errorMessenger->_310->id, $this->ws->errorMessenger->ws,
+                    $this->ws->errorMessenger->_310->name, $this->ws->errorMessenger->_310->description, "",
+                    $this->ws->errorMessenger->_310->level);
+                  return;
+                }       
+                
+                // When a property appears in this array, it means that it is already
+                // used in the Solr document we are creating
+                $usedSingleValuedProperties = array();         
 
                 // Get properties with the type of the object
                 foreach($resourceIndex[$subject] as $predicate => $values)
@@ -681,48 +706,88 @@
                         }
                         
                         // Check the datatype of the datatype property
-                        $filename = rtrim($this->ws->ontological_structure_folder, "/") . "/propertyHierarchySerialized.srz";
-                        
-                        $file = fopen($filename, "r");
-                        $propertyHierarchy = fread($file, filesize($filename));
-                        $propertyHierarchy = unserialize($propertyHierarchy);                        
-                        fclose($file);
-                        
-                        if($propertyHierarchy === FALSE)
-                        {
-                          $this->ws->conneg->setStatus(500);   
-                          $this->ws->conneg->setStatusMsg("Internal Error");
-                          $this->ws->conneg->setError($this->ws->errorMessenger->_310->id, $this->ws->errorMessenger->ws,
-                            $this->ws->errorMessenger->_310->name, $this->ws->errorMessenger->_310->description, "",
-                            $this->ws->errorMessenger->_310->level);
-                          return;
-                        }                         
-                        
                         $property = $propertyHierarchy->getProperty($predicate);
 
                         if(is_array($property->range) && 
                            array_search("http://www.w3.org/2001/XMLSchema#dateTime", $property->range) !== FALSE &&
                            $this->safeDate($value["value"]) != "")
                         {
-                          $add .= "<field name=\"" . urlencode($predicate) . "_attr_date\">" . $this->ws->xmlEncode($this->safeDate($value["value"]))
-                            . "</field>";
+                          // Check if the property is defined as a cardinality of maximum 1
+                          // If it doesn't we consider it a multi-valued field, otherwise
+                          // we use the single-valued version of the field.
+                          if($property->cardinality == 1 || $property->maxCardinality == 1)
+                          {
+                            if(array_search($predicate, $usedSingleValuedProperties) === FALSE)
+                            {
+                              $add .= "<field name=\"" . urlencode($predicate) . "_attr_date_single_valued\">" . $this->ws->xmlEncode($this->safeDate($value["value"])) . "</field>";
+                              
+                              $usedSingleValuedProperties[] = $predicate;
+                            }                            
+                          }
+                          else
+                          {
+                            $add .= "<field name=\"" . urlencode($predicate) . "_attr_date\">" . $this->ws->xmlEncode($this->safeDate($value["value"])) . "</field>";
+                          }
                         }
                         elseif(is_array($property->range) && array_search("http://www.w3.org/2001/XMLSchema#int", $property->range) !== FALSE ||
                                is_array($property->range) && array_search("http://www.w3.org/2001/XMLSchema#integer", $property->range) !== FALSE)
                         {
-                          $add .= "<field name=\"" . urlencode($predicate) . "_attr_int\">" . $this->ws->xmlEncode($value["value"])
-                            . "</field>";
+                          // Check if the property is defined as a cardinality of maximum 1
+                          // If it doesn't we consider it a multi-valued field, otherwise
+                          // we use the single-valued version of the field.
+                          if($property->cardinality == 1 || $property->maxCardinality == 1)
+                          {                          
+                            if(array_search($predicate, $usedSingleValuedProperties) === FALSE)
+                            {
+                              $add .= "<field name=\"" . urlencode($predicate) . "_attr_int_single_valued\">" . $this->ws->xmlEncode($value["value"]) . "</field>";
+                              
+                              $usedSingleValuedProperties[] = $predicate;
+                            }                          
+                          }
+                          else
+                          {
+                            $add .= "<field name=\"" . urlencode($predicate) . "_attr_int\">" . $this->ws->xmlEncode($value["value"]) . "</field>";
+                          }
                         }
                         elseif(is_array($property->range) && array_search("http://www.w3.org/2001/XMLSchema#float", $property->range) !== FALSE)
                         {
-                          $add .= "<field name=\"" . urlencode($predicate) . "_attr_float\">" . $this->ws->xmlEncode($value["value"])
-                            . "</field>";
+                          // Check if the property is defined as a cardinality of maximum 1
+                          // If it doesn't we consider it a multi-valued field, otherwise
+                          // we use the single-valued version of the field.
+                          if($property->cardinality == 1 || $property->maxCardinality == 1)
+                          {
+                            if(array_search($predicate, $usedSingleValuedProperties) === FALSE)
+                            {
+                              $add .= "<field name=\"" . urlencode($predicate) . "_attr_float_single_valued\">" . $this->ws->xmlEncode($value["value"]) . "</field>";
+                              
+                              $usedSingleValuedProperties[] = $predicate;
+                            }
+                          }
+                          else
+                          {
+                            $add .= "<field name=\"" . urlencode($predicate) . "_attr_float\">" . $this->ws->xmlEncode($value["value"]) . "</field>";
+                          }
                         }
                         else
                         {
                           // By default, the datatype used is a literal/string
-                          $add .= "<field name=\"" . urlencode($predicate) . "_attr_".$lang."\">" . $this->ws->xmlEncode($value["value"])
-                            . "</field>";                          
+                          
+                          // Check if the property is defined as a cardinality of maximum 1
+                          // If it doesn't we consider it a multi-valued field, otherwise
+                          // we use the single-valued version of the field.
+                          if($property->cardinality == 1 || $property->maxCardinality == 1)
+                          {
+                            if(array_search($predicate, $usedSingleValuedProperties) === FALSE)
+                            {
+                              $add .= "<field name=\"" . urlencode($predicate) . "_attr_".$lang."_single_valued\">" . $this->ws->xmlEncode($value["value"]) . "</field>";                          
+                              
+                              $usedSingleValuedProperties[] = $predicate;
+                            }
+                          }
+                          else
+                          {
+                            $add .= "<field name=\"" . urlencode($predicate) . "_attr_".$lang."\">" . $this->ws->xmlEncode($value["value"]) . "</field>";                          
+                          }
                         }
                         
                         $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode($predicate) . "</field>";
@@ -862,15 +927,30 @@
                           }
                         }
 
+                        $property = $propertyHierarchy->getProperty($predicate);
+                        
                         if($labels != "")
                         {
-                          $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_".$lang."\">" . $this->ws->xmlEncode($labels)
-                            . "</field>";
-                          $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_uri\">"
-                            . $this->ws->xmlEncode($value["value"]) . "</field>";
+                          // Check if the property is defined as a cardinality of maximum 1
+                          // If it doesn't we consider it a multi-valued field, otherwise
+                          // we use the single-valued version of the field.
+                          if($property->cardinality == 1 || $property->maxCardinality == 1)
+                          {                          
+                            if(array_search($predicate, $usedSingleValuedProperties) === FALSE)
+                            {
+                              $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_".$lang."_single_valued\">" . $this->ws->xmlEncode($labels) . "</field>";
+                              
+                              $usedSingleValuedProperties[] = $predicate;
+                            }
+                          }
+                          else
+                          {
+                            $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_".$lang."\">" . $this->ws->xmlEncode($labels) . "</field>";
+                          }
+                          
+                          $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_uri\">" . $this->ws->xmlEncode($value["value"]) . "</field>";
                           $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode($predicate) . "</field>";
-                          $add .= "<field name=\"" . urlencode($predicate) . "_attr_facets\">" . $this->ws->xmlEncode($labels)
-                            . "</field>";                        
+                          $add .= "<field name=\"" . urlencode($predicate) . "_attr_facets\">" . $this->ws->xmlEncode($labels) . "</field>";                        
                         }
                         else
                         {
@@ -892,13 +972,26 @@
                             }
                           }
                           
-                          $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_".$lang."\">" . $this->ws->xmlEncode($temporaryLabel)
-                            . "</field>";
-                          $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_uri\">"
-                            . $this->ws->xmlEncode($value["value"]) . "</field>";
+                          // Check if the property is defined as a cardinality of maximum 1
+                          // If it doesn't we consider it a multi-valued field, otherwise
+                          // we use the single-valued version of the field.
+                          if($property->cardinality == 1 || $property->maxCardinality == 1)
+                          {
+                            if(array_search($predicate, $usedSingleValuedProperties) === FALSE)
+                            {
+                              $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_".$lang."_single_valued\">" . $this->ws->xmlEncode($temporaryLabel) . "</field>";
+                              
+                              $usedSingleValuedProperties[] = $predicate;
+                            }
+                          }
+                          else
+                          {
+                            $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_".$lang."\">" . $this->ws->xmlEncode($temporaryLabel) . "</field>";
+                          }
+                          
+                          $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_uri\">" . $this->ws->xmlEncode($value["value"]) . "</field>";
                           $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode($predicate) . "</field>";
-                          $add .= "<field name=\"" . urlencode($predicate) . "_attr_facets\">" . $this->ws->xmlEncode($temporaryLabel)
-                            . "</field>";
+                          $add .= "<field name=\"" . urlencode($predicate) . "_attr_facets\">" . $this->ws->xmlEncode($temporaryLabel) . "</field>";
                         }
 
                         /* 

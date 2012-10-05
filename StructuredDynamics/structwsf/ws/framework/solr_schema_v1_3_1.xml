@@ -45,7 +45,7 @@
     that avoids logging every request
 -->
 
-<schema name="structWSF-1.3" version="1.0">
+<schema name="structWSF-1.3.1" version="1.0">
   <!-- attribute "name" is the name of this schema and is only used for display purposes.
        Applications should change this to reflect the nature of the search collection.
        version="x.y" is Solr's version number for the schema syntax and semantics.  It should
@@ -894,51 +894,57 @@
    -->
 
    <!-- Unique ID of the Solr document across any solr core and/or shards -->
-   <field name="uid" type="string" indexed="true" stored="true" required="true" multivalued="false" />
+   <field name="uid" type="string" indexed="true" stored="true" required="true" multiValued="false" />
    
    <!-- URI of the record represented by this Solr document -->
-   <field name="uri" type="string" indexed="true" stored="true" required="true" multivalued="false" />
+   <field name="uri" type="string" indexed="true" stored="true" required="true" multiValued="false" />
    
    <!-- Dataset provenance of the record -->
-   <field name="dataset" type="string" indexed="true" stored="true" required="true" multivalued="false" />
+   <field name="dataset" type="string" indexed="true" stored="true" required="true" multiValued="false" />
 
    <!-- Types of the record -->
    <field name="type" type="string" indexed="true" stored="true" multiValued="true"/>
+   <field name="type_single_valued" type="string" indexed="true" stored="false" multiValued="false"/>
    
    <!-- Inferred types of the record -->
    <field name="inferred_type" type="string" indexed="true" stored="true" multiValued="true"/>
    
    <!-- English preferred label of the record -->
-   <field name="prefLabel_en" type="text_en" indexed="true" stored="true" multivalued="false"/>
+   <field name="prefLabel_en" type="text_en" indexed="true" stored="true" multiValued="false"/>
    
    <!-- Preferred label of the record, in English, and unmodified for autocompletion purposes -->
-   <field name="prefLabelAutocompletion_en" type="lowercase" indexed="true" stored="false" multivalued="false"/>
+   <field name="prefLabelAutocompletion_en" type="lowercase" indexed="true" stored="false" multiValued="false"/>
    
    <!-- Alternative labels of the record, in English -->
    <field name="altLabel_en" type="text_en" indexed="true" stored="true" multiValued="true"/>
    
    <!-- Short description of the record, in English -->
-   <field name="description_en" type="text_en" indexed="true" stored="true" multivalued="false"/>
+   <field name="description_en" type="text_en" indexed="true" stored="true" multiValued="true"/>
    
    <!-- Preferred URL of a webpage that talks about this record, or gives additional information about it -->
-   <field name="prefURL" type="string" indexed="true" stored="true" multivalued="false"/>
+   <field name="prefURL" type="string" indexed="true" stored="true" multiValued="false"/>
 
    
    <!-- Used to create attribute/key pairs that were not previously created in this schema -->
    
    <!-- Value of the attribute defined by the dynamic field -->
-   <dynamicField name="*_attr_en"  type="text_en"  indexed="true"  stored="true" multiValued="true"/>   
+   <dynamicField name="*_attr_en" type="text_en"  indexed="true"  stored="true" multiValued="true"/>   
+   <dynamicField name="*_attr_en_single_valued" type="text_en" indexed="true" stored="true" multiValued="false"/>   
 
    <!-- These dynamic fields are used when the datatype of a value of a property is
         specified. That way, we are able to perform special filters, based on the
     data types such as dates. -->
-   <dynamicField name="*_attr_date"  type="date"  indexed="true"  stored="true" multiValued="true"/>   
-   <dynamicField name="*_attr_float"  type="float"  indexed="true"  stored="true" multiValued="true"/>   
-   <dynamicField name="*_attr_int"  type="int"  indexed="true"  stored="true" multiValued="true"/>   
+   <dynamicField name="*_attr_date"  type="date" indexed="true"  stored="true" multiValued="true"/>   
+   <dynamicField name="*_attr_date_single_valued" type="date" indexed="true" stored="true" multiValued="false"/>
+   <dynamicField name="*_attr_float"  type="float" indexed="true"  stored="true" multiValued="true"/>   
+   <dynamicField name="*_attr_float_single_valued" type="float" indexed="true" stored="true" multiValued="false"/>
+   <dynamicField name="*_attr_int"  type="int" indexed="true"  stored="true" multiValued="true"/>   
+   <dynamicField name="*_attr_int_single_valued" type="int" indexed="true" stored="true" multiValued="false"/>
    
    <!-- Label (value) representing the record referenced by its URI (only used if the 
         value of that property is a URI: a reference to another record -->
    <dynamicField name="*_attr_obj_en"  type="text_en"  indexed="true"  stored="true" multiValued="true"/>   
+   <dynamicField name="*_attr_obj_en_single_valued"  type="text_en"  indexed="true"  stored="true" multiValued="true"/>   
    
    <!-- URI value of the attribute defined by the dynamic field -->
    <dynamicField name="*_attr_obj_uri"  type="text_general"  indexed="true"  stored="true" multiValued="true"/>   

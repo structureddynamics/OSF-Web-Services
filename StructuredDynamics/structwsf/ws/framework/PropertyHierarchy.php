@@ -333,6 +333,15 @@ class propertyNode
   
   /** Specifies where this property is defined in the ontology structure (mainly: the dataset URI of the ontology)  */
   public $isDefinedBy = "";  
+  
+  /** Specifies the minimum cardinality of the property */
+  public $minCardinality =  -1;
+  
+  /** Specifies the maximum cardinality of the property */
+  public $maxCardinality = -1;
+  
+  /** Specifies the absolute cardinality of the property */
+  public $cardinality = -1;
 
   /** Constructor
 

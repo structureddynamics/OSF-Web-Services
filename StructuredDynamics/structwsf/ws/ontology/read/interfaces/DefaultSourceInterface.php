@@ -353,6 +353,24 @@
         
         $propertyHierarchy->properties[$subProperty]->range = $rangeClasses;
         
+        // Add minimum cardinality
+        if(isset($description[Namespaces::$sco."minCadinality"]))
+        {
+          $propertyHierarchy->properties[$subProperty]->minCardinality = $description[Namespaces::$sco."minCadinality"][0]["value"];
+        }
+        
+        // Add maximum cardinality
+        if(isset($description[Namespaces::$sco."maxCadinality"]))
+        {
+          $propertyHierarchy->properties[$subProperty]->maxCardinality = $description[Namespaces::$sco."maxCadinality"][0]["value"];
+        }
+        
+        // Add absolute cardinality
+        if(isset($description[Namespaces::$sco."cardinality"]))
+        {
+          $propertyHierarchy->properties[$subProperty]->cardinality = $description[Namespaces::$sco."cardinality"][0]["value"];
+        }
+        
         // Dig into the structure...
         $this->populatePropertyHierarchy($subProperty, $ontology, $ontologyUri, $propertyHierarchy, $isDataProperty);
       }
@@ -953,6 +971,18 @@
                       $schema .= "<shortLabel>".$this->ws->xmlEncode($value["value"])."</shortLabel>";
                     break;
                     
+                    case Namespaces::$sco."minCardinality":
+                      $schema .= "<minCardinality>".$this->ws->xmlEncode($value["value"])."</minCardinality>";
+                    break;
+                    
+                    case Namespaces::$sco."maxCardinality":
+                      $schema .= "<maxCardinality>".$this->ws->xmlEncode($value["value"])."</maxCardinality>";
+                    break;
+                                        
+                    case Namespaces::$sco."cardinality":
+                      $schema .= "<cardinality>".$this->ws->xmlEncode($value["value"])."</cardinality>";
+                    break;
+                    
                     case Namespaces::$sco."orderingValue":
                       $schema .= "<orderingValue>".$this->ws->xmlEncode($value["value"])."</orderingValue>";
                     break;  
@@ -1039,6 +1069,18 @@
                     case Namespaces::$sco."shortLabel":
                       $schema .= "<shortLabel>".$this->ws->xmlEncode($value["value"])."</shortLabel>";
                     break;
+                    
+                    case Namespaces::$sco."minCardinality":
+                      $schema .= "<minCardinality>".$this->ws->xmlEncode($value["value"])."</minCardinality>";
+                    break;
+                    
+                    case Namespaces::$sco."maxCardinality":
+                      $schema .= "<maxCardinality>".$this->ws->xmlEncode($value["value"])."</maxCardinality>";
+                    break;
+                                        
+                    case Namespaces::$sco."cardinality":
+                      $schema .= "<cardinality>".$this->ws->xmlEncode($value["value"])."</cardinality>";
+                    break;                  
                     
                     case Namespaces::$sco."unitType":
                       $this->manageIronPrefixes($value["uri"], $prefixes);
@@ -1149,6 +1191,18 @@
                     $schema .= '"shortLabel": [';
                   break;
                   
+                  case Namespaces::$sco."minCardinality":
+                    $schema .= '"minCardinality": [';
+                  break;
+                  
+                  case Namespaces::$sco."maxCardinality":
+                    $schema .= '"maxCardinality": [';
+                  break;
+                  
+                  case Namespaces::$sco."cardinality":
+                    $schema .= '"cardinality": [';
+                  break;
+                  
                   case Namespaces::$sco."color":
                     $schema .= '"color": [';
                   break;
@@ -1201,6 +1255,18 @@
                     break;
                     
                     case Namespaces::$sco."shortLabel":
+                      $schema .= '"'.$this->ws->jsonEncode($value["value"]).'",';
+                    break;
+                    
+                    case Namespaces::$sco."minCardinality":
+                      $schema .= '"'.$this->ws->jsonEncode($value["value"]).'",';
+                    break;
+                    
+                    case Namespaces::$sco."maxCardinality":
+                      $schema .= '"'.$this->ws->jsonEncode($value["value"]).'",';
+                    break;
+                    
+                    case Namespaces::$sco."cardinality":
                       $schema .= '"'.$this->ws->jsonEncode($value["value"]).'",';
                     break;
                     
@@ -1291,7 +1357,19 @@
                   
                   case Namespaces::$sco."shortLabel":
                     $schema .= '"shortLabel": [';
+                  break;    
+                    
+                  case Namespaces::$sco."minCardinality":
+                    $schema .= '"'.$this->ws->jsonEncode($value["value"]).'",';
                   break;
+                  
+                  case Namespaces::$sco."maxCardinality":
+                    $schema .= '"'.$this->ws->jsonEncode($value["value"]).'",';
+                  break;
+                  
+                  case Namespaces::$sco."cardinality":
+                    $schema .= '"'.$this->ws->jsonEncode($value["value"]).'",';
+                  break;                  
                   
                   case Namespaces::$sco."orderingValue":
                     $schema .= '"orderingValue": [';
@@ -1351,6 +1429,18 @@
                     break;
                     
                     case Namespaces::$sco."shortLabel":
+                      $schema .= '"'.$this->ws->jsonEncode($value["value"]).'",';
+                    break;
+                                        
+                    case Namespaces::$sco."minCardinality":
+                      $schema .= '"'.$this->ws->jsonEncode($value["value"]).'",';
+                    break;
+                    
+                    case Namespaces::$sco."maxCardinality":
+                      $schema .= '"'.$this->ws->jsonEncode($value["value"]).'",';
+                    break;
+                    
+                    case Namespaces::$sco."cardinality":
                       $schema .= '"'.$this->ws->jsonEncode($value["value"]).'",';
                     break;
                     

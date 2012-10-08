@@ -75,7 +75,7 @@ class Error
     switch($this->mime)
     {
       case "application/json":
-        $error = "  {
+        $error = "{
                   \"id\": \"" . $this->jsonEncode($this->id) . "\",
                   \"webservice\": \"" . $this->jsonEncode($this->webservice) . "\",
                   \"name\": \"" . $this->jsonEncode($this->name) . "\",

@@ -189,7 +189,7 @@ class AuthLister extends \StructuredDynamics\structwsf\ws\framework\WebService
     
     if(strtolower($interface) == "default")
     {
-      $this->interface = "DefaultSourceInterface";
+      $this->interface = $this->default_interfaces["auth_lister"];
     }
     else
     {

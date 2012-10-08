@@ -241,7 +241,7 @@ class AuthRegistrarAccess extends \StructuredDynamics\structwsf\ws\framework\Web
     
     if(strtolower($interface) == "default")
     {
-      $this->interface = "DefaultSourceInterface";
+      $this->interface = $this->default_interfaces["auth_registrar_access"];
     }
     else
     {

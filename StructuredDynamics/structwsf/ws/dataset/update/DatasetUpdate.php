@@ -205,7 +205,7 @@ class DatasetUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServic
     
     if(strtolower($interface) == "default")
     {
-      $this->interface = "DefaultSourceInterface";
+      $this->interface = $this->default_interfaces["dataset_update"];
     }
     else
     {

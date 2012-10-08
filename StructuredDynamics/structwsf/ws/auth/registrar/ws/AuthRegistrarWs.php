@@ -184,7 +184,7 @@ class AuthRegistrarWs extends \StructuredDynamics\structwsf\ws\framework\WebServ
     
     if(strtolower($interface) == "default")
     {
-      $this->interface = "DefaultSourceInterface";
+      $this->interface = $this->default_interfaces["auth_registrar_ws"];
     }
     else
     {

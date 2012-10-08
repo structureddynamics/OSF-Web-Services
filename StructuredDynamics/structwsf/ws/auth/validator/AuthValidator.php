@@ -207,7 +207,7 @@ class AuthValidator extends \StructuredDynamics\structwsf\ws\framework\WebServic
     
     if(strtolower($interface) == "default")
     {
-      $this->interface = "DefaultSourceInterface";
+      $this->interface = $this->default_interfaces["auth_validator"];
     }
     else
     {

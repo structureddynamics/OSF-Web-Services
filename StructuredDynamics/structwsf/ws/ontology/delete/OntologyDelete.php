@@ -171,7 +171,7 @@ class OntologyDelete extends \StructuredDynamics\structwsf\ws\framework\WebServi
     
     if(strtolower($interface) == "default")
     {
-      $this->interface = "DefaultSourceInterface";
+      $this->interface = $this->default_interfaces["ontology_delete"];
     }
     else
     {

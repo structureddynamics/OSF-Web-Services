@@ -194,7 +194,7 @@ class DatasetRead extends \StructuredDynamics\structwsf\ws\framework\WebService
     
     if(strtolower($interface) == "default")
     {
-      $this->interface = "DefaultSourceInterface";
+      $this->interface = $this->default_interfaces["dataset_read"];
     }
     else
     {

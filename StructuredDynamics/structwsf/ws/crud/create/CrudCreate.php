@@ -205,7 +205,7 @@ class CrudCreate extends \StructuredDynamics\structwsf\ws\framework\WebService
     
     if(strtolower($interface) == "default")
     {
-      $this->interface = "DefaultSourceInterface";
+      $this->interface = $this->default_interfaces["crud_create"];
     }
     else
     {

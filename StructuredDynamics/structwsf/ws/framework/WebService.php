@@ -117,6 +117,12 @@ abstract class WebService
    *          This folder path has to end with a slash "/".
    */
   protected $fields_index_folder = "/tmp/";
+  
+  /**
+  * The list of default interfaces to use for each web service endpoints.
+  * These are defined in the netowork.ini configuation file
+  */
+  protected $default_interfaces = array();
 
   /** The URI of the Authentication Registrar web service */
   protected $uri;
@@ -434,6 +440,187 @@ abstract class WebService
     {
       $this->solr_auto_commit = TRUE;
     }
+    
+    if(isset($network_ini["default-interfaces"]["auth_lister"]))  
+    {
+      $this->default_interfaces["auth_lister"] = $network_ini["default-interfaces"]["auth_lister"];
+    }    
+    else
+    {
+      $this->default_interfaces["auth_lister"] = "DefaultSourceInterface";
+    }
+    
+    if(isset($network_ini["default-interfaces"]["auth_registrar_access"]))  
+    {
+      $this->default_interfaces["auth_registrar_access"] = $network_ini["default-interfaces"]["auth_registrar_access"];
+    }    
+    else
+    {
+      $this->default_interfaces["auth_registrar_access"] = "DefaultSourceInterface";
+    }
+    
+    if(isset($network_ini["default-interfaces"]["auth_registrar_ws"]))  
+    {
+      $this->default_interfaces["auth_registrar_ws"] = $network_ini["default-interfaces"]["auth_registrar_ws"];
+    }    
+    else
+    {
+      $this->default_interfaces["auth_registrar_ws"] = "DefaultSourceInterface";
+    }
+    
+    if(isset($network_ini["default-interfaces"]["auth_validator"]))  
+    {
+      $this->default_interfaces["auth_validator"] = $network_ini["default-interfaces"]["auth_validator"];
+    }    
+    else
+    {
+      $this->default_interfaces["auth_validator"] = "DefaultSourceInterface";
+    }
+    
+    if(isset($network_ini["default-interfaces"]["crud_create"]))  
+    {
+      $this->default_interfaces["crud_create"] = $network_ini["default-interfaces"]["crud_create"];
+    }    
+    else
+    {
+      $this->default_interfaces["crud_create"] = "DefaultSourceInterface";
+    }
+    
+    if(isset($network_ini["default-interfaces"]["crud_read"]))  
+    {
+      $this->default_interfaces["crud_read"] = $network_ini["default-interfaces"]["crud_read"];
+    }    
+    else
+    {
+      $this->default_interfaces["crud_read"] = "DefaultSourceInterface";
+    }
+    
+    if(isset($network_ini["default-interfaces"]["crud_delete"]))  
+    {
+      $this->default_interfaces["crud_delete"] = $network_ini["default-interfaces"]["crud_delete"];
+    }    
+    else
+    {
+      $this->default_interfaces["crud_delete"] = "DefaultSourceInterface";
+    }
+    
+    if(isset($network_ini["default-interfaces"]["crud_update"]))  
+    {
+      $this->default_interfaces["crud_update"] = $network_ini["default-interfaces"]["crud_update"];
+    }    
+    else
+    {
+      $this->default_interfaces["crud_update"] = "DefaultSourceInterface";
+    }
+    
+    if(isset($network_ini["default-interfaces"]["dataset_create"]))  
+    {
+      $this->default_interfaces["dataset_create"] = $network_ini["default-interfaces"]["dataset_create"];
+    }    
+    else
+    {
+      $this->default_interfaces["dataset_create"] = "DefaultSourceInterface";
+    }
+    
+    if(isset($network_ini["default-interfaces"]["dataset_read"]))  
+    {
+      $this->default_interfaces["dataset_read"] = $network_ini["default-interfaces"]["dataset_read"];
+    }    
+    else
+    {
+      $this->default_interfaces["dataset_read"] = "DefaultSourceInterface";
+    }
+    
+    if(isset($network_ini["default-interfaces"]["dataset_update"]))  
+    {
+      $this->default_interfaces["dataset_update"] = $network_ini["default-interfaces"]["dataset_update"];
+    }    
+    else
+    {
+      $this->default_interfaces["dataset_update"] = "DefaultSourceInterface";
+    }
+    
+    if(isset($network_ini["default-interfaces"]["dataset_delete"]))  
+    {
+      $this->default_interfaces["dataset_delete"] = $network_ini["default-interfaces"]["dataset_delete"];
+    }    
+    else
+    {
+      $this->default_interfaces["dataset_delete"] = "DefaultSourceInterface";
+    }
+    
+    if(isset($network_ini["default-interfaces"]["ontology_create"]))  
+    {
+      $this->default_interfaces["ontology_create"] = $network_ini["default-interfaces"]["ontology_create"];
+    }    
+    else
+    {
+      $this->default_interfaces["ontology_create"] = "DefaultSourceInterface";
+    }
+    
+    if(isset($network_ini["default-interfaces"]["ontology_read"]))  
+    {
+      $this->default_interfaces["ontology_read"] = $network_ini["default-interfaces"]["ontology_read"];
+    }    
+    else
+    {
+      $this->default_interfaces["ontology_read"] = "DefaultSourceInterface";
+    }
+    
+    if(isset($network_ini["default-interfaces"]["ontology_update"]))  
+    {
+      $this->default_interfaces["ontology_update"] = $network_ini["default-interfaces"]["ontology_update"];
+    }    
+    else
+    {
+      $this->default_interfaces["ontology_update"] = "DefaultSourceInterface";
+    }
+    
+    if(isset($network_ini["default-interfaces"]["ontology_delete"]))  
+    {
+      $this->default_interfaces["ontology_delete"] = $network_ini["default-interfaces"]["ontology_delete"];
+    }    
+    else
+    {
+      $this->default_interfaces["ontology_delete"] = "DefaultSourceInterface";
+    }
+    
+    if(isset($network_ini["default-interfaces"]["scones"]))  
+    {
+      $this->default_interfaces["scones"] = $network_ini["default-interfaces"]["scones"];
+    }    
+    else
+    {
+      $this->default_interfaces["scones"] = "DefaultSourceInterface";
+    }
+    
+    if(isset($network_ini["default-interfaces"]["search"]))  
+    {
+      $this->default_interfaces["search"] = $network_ini["default-interfaces"]["search"];
+    }    
+    else
+    {
+      $this->default_interfaces["search"] = "DefaultSourceInterface";
+    }
+    
+    if(isset($network_ini["default-interfaces"]["sparql"]))  
+    {
+      $this->default_interfaces["sparql"] = $network_ini["default-interfaces"]["sparql"];
+    }    
+    else
+    {
+      $this->default_interfaces["sparql"] = "DefaultSourceInterface";
+    }
+    
+    if(isset($network_ini["default-interfaces"]["tracker_create"]))  
+    {
+      $this->default_interfaces["tracker_create"] = $network_ini["default-interfaces"]["tracker_create"];
+    }    
+    else
+    {
+      $this->default_interfaces["tracker_create"] = "DefaultSourceInterface";
+    }
+    
 
     // This handler is defined for the fatal script errors. If a script can't be finished because a fatal error
     // occured, then the handleFatalPhpError function is used to return the error message to the requester.

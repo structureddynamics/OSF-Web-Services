@@ -93,7 +93,7 @@ class Error
 
       case "text/xml":
       default:
-        $error = "  <?xml version=\"1.0\" encoding=\"utf-8\"?>
+        $error = "<?xml version=\"1.0\" encoding=\"utf-8\"?>
                 <error>
                   <id>" . $this->xmlEncode($this->id) . "</id>
                   <webservice>" . $this->xmlEncode($this->webservice) . "</webservice>

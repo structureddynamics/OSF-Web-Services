@@ -286,7 +286,7 @@
                   if(substr($label, strlen($label) - 2) == "**")
                   {
                     $attribute = "prefLabelAutocompletion_".$this->ws->lang;
-                    $attributeValue[1] = urlencode(str_replace(" ", "\\ ", substr($label, 0, strlen($label) -1)));
+                    $attributeValue[1] = urlencode(strtolower(str_replace(" ", "\\ ", substr($label, 0, strlen($label) -1))));
                   }
                 break;
                 

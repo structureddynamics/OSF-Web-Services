@@ -144,6 +144,13 @@ if(isset($_POST['range_filter']))
   $rangeFilter = $_POST['range_filter'];
 }
 
+$resultsLocationAggregator = "";
+
+if(isset($_POST['results_location_aggregator']))
+{
+  $resultsLocationAggregator = $_POST['results_location_aggregator'];
+}
+
 // Attributes URIs list to include in the returned resultset.
 $includeAttributesList = "";
 
@@ -210,7 +217,7 @@ elseif(isset($_SERVER['PHP_SELF']))
 $ws_s = new Search($query, $types, $attributes, $datasets, $items, $page, $inference, $include_aggregates, 
                    $registered_ip, $requester_ip, $distanceFilter, $rangeFilter, $aggregate_attributes, 
                    $attributesBooleanOperator, $includeAttributesList,$aggregateAttributesObjectType,
-                   $aggregateAttributesNb);
+                   $aggregateAttributesNb, $resultsLocationAggregator);
 
 $ws_s->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                  (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

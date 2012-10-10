@@ -88,6 +88,8 @@ class Search extends WebService
             "top-left-lat;top-left-long;bottom-right-lat;bottom-right-long;".
   */
   private $rangeFilter;
+  
+  private $resultsLocationAggregator;
 
   /*! @brief Include aggregates to the resultset */
   public $includeAggregates = array();
@@ -192,7 +194,7 @@ class Search extends WebService
                        $registered_ip, $requester_ip, $distanceFilter = "", $rangeFilter = "", 
                        $aggregate_attributes = "", $attributesBooleanOperator = "and",
                        $includeAttributesList = "", $aggregate_attributes_object_type = "literal",
-                       $aggregate_attributes_nb = 10)
+                       $aggregate_attributes_nb = 10, $resultsLocationAggregator = "")
   {
     parent::__construct();
  
@@ -206,6 +208,7 @@ class Search extends WebService
     $this->attributesBooleanOperator = strtoupper($attributesBooleanOperator);
     $this->aggregateAttributesObjectType = $aggregate_attributes_object_type;
     $this->aggregateAttributesNb = $aggregate_attributes_nb;
+    $this->resultsLocationAggregator = explode(",", $resultsLocationAggregator);
     
     if($includeAttributesList != "")
     {
@@ -669,12 +672,23 @@ class Search extends WebService
           $queryParam = urlencode($this->query);
         }        
       }
+
+      $distanceQueryRevelencyBooster = "";
+      
+      if($this->geoEnabled && isset($this->resultsLocationAggregator[0]) && 
+         isset($this->resultsLocationAggregator[1]) && ($this->distanceFilter || $this->rangeFilter))
+      {
+        // Here, "^0" is added to zero-out the boost (revelency) value of the keyword
+        // in this query, we simply want to aggregate the results related to their
+        // distance of the center point.
+        $distanceQueryRevelencyBooster = '^0 AND _val_:"recip(dist(2, lat, long, '.$this->resultsLocationAggregator[0].', '.$this->resultsLocationAggregator[1].'), 1, 1, 0)"^100';  
+      }
       
       if(strtolower($this->datasets) == "all")
       {
         $datasetList = "";
 
-        $solrQuery = "q=$queryParam&start=" . $this->page . "&rows=" . $this->items
+        $solrQuery = "q=$queryParam$distanceQueryRevelencyBooster&start=" . $this->page . "&rows=" . $this->items
           . (strtolower($this->includeAggregates) == "true" ? "&facet=true&facet.sort=count&facet.limit=-1&facet.field=type" .
           "&facet.field=attribute" . (strtolower($this->inference) == "on" ? "&facet.field=inferred_type" : "") . "&" .
           "facet.field=dataset&facet.mincount=1" : "");
@@ -695,7 +709,7 @@ class Search extends WebService
       {
         $datasets = explode(";", $this->datasets);
 
-        $solrQuery = "q=$queryParam&start=" . $this->page . "&rows=" . $this->items
+        $solrQuery = "q=$queryParam$distanceQueryRevelencyBooster&start=" . $this->page . "&rows=" . $this->items
           . (strtolower($this->includeAggregates) == "true" ? "&facet=true&facet.sort=count&facet.limit=-1&facet.field=type" .
           "&facet.field=attribute" . (strtolower($this->inference) == "on" ? "&facet.field=inferred_type" : "") . "&" .
           "facet.field=dataset&facet.mincount=1" : "");
@@ -782,7 +796,7 @@ class Search extends WebService
                 if(substr($label, strlen($label) - 2) == "**")
                 {
                   $attribute = "prefLabelAutocompletion";
-                  $attributeValue[1] = urlencode(str_replace(" ", "\\ ", substr($label, 0, strlen($label) -1)));
+                  $attributeValue[1] = urlencode(strtolower(str_replace(" ", "\\ ", substr($label, 0, strlen($label) -1))));
                 }
               break;
               
@@ -1307,7 +1321,7 @@ class Search extends WebService
         // First check if there is a polygonCoordinates pr a polylineCoordinates attribute for that record
         // If there is one, then we simply ignore the lat/long coordinates since they come from these
         // attributes and that we don't want to duplicate that information.
-        $skipLatLong == FALSE;
+        $skipLatLong = FALSE;
         
         $resultPolygonCoordinates = $xpath->query("arr[@name='polygonCoordinates']/str", $result);
         

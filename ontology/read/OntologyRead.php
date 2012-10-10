@@ -1294,6 +1294,10 @@ class OntologyRead extends WebService
                   $schema .= '"shortLabel": [';
                 break;
                 
+                case Namespaces::$sco."color":
+                  $schema .= '"color": [';
+                break;
+                
                 case Namespaces::$sco."mapMarkerImageUrl":
                   $schema .= '"mapMarkerImageUrl": [';
                 break;
@@ -1345,6 +1349,10 @@ class OntologyRead extends WebService
                     $schema .= '"'.parent::jsonEncode($value["value"]).'",';
                   break;
                   
+                  case Namespaces::$sco."color":
+                    $schema .= '"'.parent::jsonEncode($value["value"]).'",';
+                  break;
+                  
                   case Namespaces::$sco."mapMarkerImageUrl":
                     $schema .= '"'.parent::jsonEncode($value["value"]).'",';
                   break;
@@ -1363,6 +1371,7 @@ class OntologyRead extends WebService
                 case Namespaces::$sco."displayControl":
                 case Namespaces::$sco."ignoredBy":
                 case Namespaces::$sco."shortLabel":
+                case Namespaces::$sco."color":
                 case Namespaces::$sco."mapMarkerImageUrl":
                 case Namespaces::$sco."relationBrowserNodeType":
                   $schema = rtrim($schema, ",");     

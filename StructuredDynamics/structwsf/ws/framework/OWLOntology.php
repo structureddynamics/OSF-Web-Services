@@ -4101,7 +4101,7 @@ class OWLOntology
   
   public function getBaseUri()
   {
-    $uri = (string)java_values($this->ontology->getOntologyID()->getDefaultDocumentIRI()->toString()); 
+    $uri = (string)java_values($this->ontology->getOntologyID()->getOntologyIRI()->toString()); 
     
     if(substr($uri, (strlen($uri) - 1), 1) == "/")
     {

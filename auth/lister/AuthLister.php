@@ -186,7 +186,7 @@ class AuthLister extends WebService
   */
   protected function validateQuery()
   {
-    // publicly accessible users)
+    // publicly accessible users
     if($this->mode != "dataset" && $this->mode != "access_user")
     {
       $ws_av = new AuthValidator($this->requester_ip, $this->wsf_graph, $this->uri);

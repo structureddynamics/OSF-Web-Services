@@ -112,6 +112,14 @@ if(isset($_POST['lang']))
   $lang = $_POST['lang'];
 }
 
+// Sorting criterias
+$sort = "";
+
+if(isset($_POST['sort']))
+{
+  $sort = $_POST['sort'];
+}
+
 // Include aggregates
 $include_aggregates = "false";
 
@@ -217,7 +225,8 @@ elseif(isset($_SERVER['PHP_SELF']))
 $ws_s = new Search($query, $types, $attributes, $datasets, $items, $page, $inference, $include_aggregates, 
                    $registered_ip, $requester_ip, $distanceFilter, $rangeFilter, $aggregate_attributes, 
                    $attributesBooleanOperator, $includeAttributesList,$aggregateAttributesObjectType,
-                   $aggregateAttributesNb, $resultsLocationAggregator, $interface, $version, $lang);
+                   $aggregateAttributesNb, $resultsLocationAggregator, $interface, $version, $lang,
+                   $sort);
 
 $ws_s->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                  (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

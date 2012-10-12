@@ -114,6 +114,9 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
   
   /** Language of the records to return. */
   public $lang = "en";
+  
+  /** Sorting criterias */
+  public $sort = array();
 
   /** Supported serialization mime types by this Web service */
   public static $supportedSerializations =
@@ -177,6 +180,12 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
                           "level": "Fatal",
                           "name": "Language not supported by the endpoint",
                           "description": "The language you requested for you query is currently not supported by the endpoint. Please use another one and re-send your query."
+                        },
+                        "_308": {
+                          "id": "WS-SEARCH-308",
+                          "level": "Fatal",
+                          "name": "Sort property is multi-valued",
+                          "description": "The sort property you provided is multi-valued. Only single-valued properties can be sorted in a search query. You can make sure you have a single valued property by defining it with a sco:maxCardinality of 1."
                         }
                       }';
 
@@ -318,7 +327,15 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
       @param $lang Language of the records to be returned by the search endpoint. Only the textual information
                    of the requested language will be returned to the user. If no textual information is available
                    for a record, for a requested language, then only non-textual information will be returned
-                   about the record.                                    
+                   about the record.
+      @param $sort Sorting criterias for this query. Sort can be used for "type", "dataset", "uri", "preflabel", 
+                   "score" or any other url-encoded attribute URIs that are defined with a maximum cardinality
+                   of 1. Sorting fields needs to be followed by a space character and a direction "desc" or "asc". 
+                   Multiple sorting criterias can be added by splitting them with ";". Here is an example of 
+                   query using sort to sort by type: "type desc". Here is an example of sort that sort by 
+                   type and dataset: "type desc; dataset asc". Here is an example of a sort that sort with 
+                   a custom attribute: "http%3A%2F%2Fpurl.org%2Fontology%2Firon%23prefURL desc". By default
+                   the sorting order is "asc".
 
       @return returns NULL
     
@@ -329,7 +346,8 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
                        $aggregate_attributes = "", $attributesBooleanOperator = "and",
                        $includeAttributesList = "", $aggregate_attributes_object_type = "literal",
                        $aggregate_attributes_nb = 10, $resultsLocationAggregator = "",
-                       $interface='default', $requestedInterfaceVersion="", $lang="en")
+                       $interface = 'default', $requestedInterfaceVersion = "", $lang = "en",
+                       $sort = "")
   {
     parent::__construct();
  
@@ -351,7 +369,7 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
     
     if(strtolower($interface) == "default")
     {
-      $this->interface = "DefaultSourceInterface";
+      $this->interface = $this->default_interfaces["search"];
     }
     else
     {
@@ -416,6 +434,46 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
         $this->registered_ip = $requester_ip;
       }
     }
+    
+    $this->sort = $sort;
+    
+    if($this->sort != "")
+    {
+      $sortingCriterias = array();
+      
+      $sorts = explode(";", $this->sort);
+      
+      foreach($sorts as $s)
+      {
+        $s = trim($s);
+        
+        $parts = explode(" ", $s);
+        
+        $parts[0] = urldecode($parts[0]);
+        
+        if(!isset($parts[1]))
+        {
+          $parts[1] = "asc";
+        }
+        else
+        {
+          $parts[1] = strtolower($parts[1]);
+          
+          if($parts[1] != "asc" && $parts[1] != "desc")
+          {
+            $parts[1] = "asc";
+          }
+        }
+        
+        $sortingCriterias[$parts[0]]  = $parts[1];
+      }
+      
+      $this->sort = $sortingCriterias;
+    }
+    else
+    {
+      $this->sort = array();
+    }
 
     $this->uri = $this->wsf_base_url . "/wsf/ws/search/";
     $this->title = "Search Web Service";
@@ -461,6 +519,51 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
         $this->errorMessenger->_307->level);
 
       return;      
+    }
+    
+    if(count($this->sort) > 0)
+    {
+      // Make sure that all the sorting criterias are single valued. 
+      foreach($this->sort as $sortProperty => $order)
+      {    
+        $lSortProperty = strtolower($sortProperty);
+        
+        if($lSortProperty != "uri" &&
+           $lSortProperty != "type" &&
+           $lSortProperty != "dataset" &&
+           $lSortProperty != "preflabel" &&
+           $lSortProperty != "score")
+        {
+          $indexedFields = array();
+          
+          if(file_exists($this->fields_index_folder."fieldsIndex.srz"))
+          {
+            $indexedFields = unserialize(file_get_contents($this->fields_index_folder."fieldsIndex.srz"));
+          }
+                
+          // Make sure there is a single-valued field in Solr defined
+          // for this property
+          
+          // We have to detect if the fields are existing in Solr, otherwise Solr will throw
+          // "undefined fields" errors, and there is no way to ignore them and process
+          // the query anyway.
+          if(array_search(urlencode($sortProperty)."_attr_date_single_valued", $indexedFields) === FALSE &&
+             array_search(urlencode($sortProperty)."_attr_float_single_valued", $indexedFields) === FALSE &&
+             array_search(urlencode($sortProperty)."_attr_int_single_valued", $indexedFields) === FALSE &&
+             array_search(urlencode($sortProperty)."_attr_obj_".$this->lang."_single_valued", $indexedFields) === FALSE &&
+             array_search(urlencode($sortProperty)."_attr_".$this->lang."_single_valued", $indexedFields) === FALSE)
+          {          
+            $this->conneg->setStatus(400);
+            $this->conneg->setStatusMsg("Bad Request");
+            $this->conneg->setStatusMsgExt($this->errorMessenger->_308->name);
+            $this->conneg->setError($this->errorMessenger->_308->id, $this->errorMessenger->ws,
+            $this->errorMessenger->_308->name, $this->errorMessenger->_308->description, "",
+            $this->errorMessenger->_308->level);          
+            
+            return;
+          }
+        }
+      }
     }
     
     // Here we can have a performance problem when "dataset = all" if we perform the authentication using AuthValidator.

@@ -31,7 +31,7 @@
     }    
     
     public function processInterface()
-    {
+    {  
       // Make sure there was no conneg error prior to this process call
       if($this->ws->conneg->getStatus() == 200)
       {
@@ -348,6 +348,17 @@
               // A filtering value as been defined for this attribute.
               $val = urldecode($attributeValue[1]);
               
+              // If it is not a core attribute, check if we have to make that attribute
+              // single-valued. We check that by checking if a single_valued version
+              // of that field is currently used in the Solr index.              
+              $singleValuedDesignator = "";
+              
+              if(!$coreAttr &&                  
+                 array_search(urlencode($attribute."_attr_".$this->ws->lang."_single_valued"), $indexedFields) !== FALSE)
+              {
+                $singleValuedDesignator = "_single_valued";
+              }
+              
               if($nbProcessed == 0)
               {
                 if($coreAttr)
@@ -391,19 +402,19 @@
                     $empty = FALSE;
                   }
 
-                  if(array_search(urlencode($attribute."_attr_".$this->ws->lang), $indexedFields) !== FALSE)
+                  if(array_search(urlencode($attribute."_attr_".$this->ws->lang.$singleValuedDesignator), $indexedFields) !== FALSE)
                   {
                     if($addOR)
                     {
                       $solrQuery .= " OR ";
                     }
                     
-                    $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_".$this->ws->lang.":".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
+                    $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_".$this->ws->lang.$singleValuedDesignator.":".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
                     $addOR = TRUE;
                     $empty = FALSE;
                   }
 
-                  if(array_search(urlencode($attribute."_attr_int"), $indexedFields) !== FALSE)
+                  if(array_search(urlencode($attribute."_attr_int".$singleValuedDesignator), $indexedFields) !== FALSE)
                   {                  
                     if($addOR)
                     {
@@ -412,7 +423,7 @@
                     
                     if(is_numeric($val))
                     {
-                      $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_int:".$val.")";                      
+                      $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_int".$singleValuedDesignator.":".$val.")";                      
                     }
                     else
                     {
@@ -447,7 +458,7 @@
                         }
                       } 
                       
-                      $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_int:".urlencode("[".$numbers[0]." TO ".$numbers[1]."]").")";
+                      $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_int".$singleValuedDesignator.":".urlencode("[".$numbers[0]." TO ".$numbers[1]."]").")";
                     }
                       
                       
@@ -455,7 +466,7 @@
                     $empty = FALSE;
                   }   
                   
-                  if(array_search(urlencode($attribute."_attr_float"), $indexedFields) !== FALSE)
+                  if(array_search(urlencode($attribute."_attr_float".$singleValuedDesignator), $indexedFields) !== FALSE)
                   {                  
                     if($addOR)
                     {
@@ -464,7 +475,7 @@
                           
                     if(is_numeric($val))
                     {
-                      $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_float:".$val.")";
+                      $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_float".$singleValuedDesignator.":".$val.")";
                     }
                     else
                     {                    
@@ -499,13 +510,13 @@
                         }
                       } 
                       
-                      $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_float:".urlencode("[".$numbers[0]." TO ".$numbers[1]."]").")";
+                      $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_float".$singleValuedDesignator.":".urlencode("[".$numbers[0]." TO ".$numbers[1]."]").")";
                     }
                     $addOR = TRUE;
                     $empty = FALSE;
                   }
                   
-                  if(array_search(urlencode($attribute."_attr_date"), $indexedFields) !== FALSE)
+                  if(array_search(urlencode($attribute."_attr_date".$singleValuedDesignator), $indexedFields) !== FALSE)
                   {
                     if($addOR)
                     {
@@ -571,19 +582,19 @@
                       }                       
                     }
                     
-                    $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_date:".urlencode("[".$dateFrom." TO ".$dateTo)."]".")";
+                    $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_date".$singleValuedDesignator.":".urlencode("[".$dateFrom." TO ".$dateTo)."]".")";
                     $addOR = TRUE;
                     $empty = FALSE;
                   }
 
-                  if(array_search(urlencode($attribute."_attr_obj_".$this->ws->lang), $indexedFields) !== FALSE)
+                  if(array_search(urlencode($attribute."_attr_obj_".$this->ws->lang.$singleValuedDesignator), $indexedFields) !== FALSE)
                   {
                     if($addOR)
                     {
                       $solrQuery .= " OR ";
                     }
                     
-                    $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj_".$this->ws->lang.":".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
+                    $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj_".$this->ws->lang.$singleValuedDesignator.":".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
                     $addOR = TRUE;
                     $empty = FALSE;
                   }
@@ -660,26 +671,26 @@
                     $empty = FALSE;
                   }
 
-                  if(array_search(urlencode($attribute."_attr_".$this->ws->lang), $indexedFields) !== FALSE)
+                  if(array_search(urlencode($attribute."_attr_".$this->ws->lang.$singleValuedDesignator), $indexedFields) !== FALSE)
                   {
                     if($addOR)
                     {
                       $solrQuery .= " OR ";
                     }
                     
-                    $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_".$this->ws->lang.":".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
+                    $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_".$this->ws->lang.$singleValuedDesignator.":".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
                     $addOR = TRUE;
                     $empty = FALSE;
                   }
 
-                  if(array_search(urlencode($attribute."_attr_obj_".$this->ws->lang), $indexedFields) !== FALSE)
+                  if(array_search(urlencode($attribute."_attr_obj_".$this->ws->lang.$singleValuedDesignator), $indexedFields) !== FALSE)
                   {
                     if($addOR)
                     {
                       $solrQuery .= " OR ";
                     }
                     
-                    $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj_".$this->ws->lang.":".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
+                    $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj_".$this->ws->lang.$singleValuedDesignator.":".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
                     $addOR = TRUE;
                     $empty = FALSE;
                   }
@@ -823,7 +834,6 @@
           $solrQuery .= "geohash ";
           $solrQuery .= "inferred_type ";
           $solrQuery .= "prefLabelAutocompletion_".$this->ws->lang."";
-          
         }
         
         // Remove possible left-over introduced by the procedure above for some rare usecases.
@@ -833,6 +843,64 @@
         // Set the default field of the search
         $solrQuery .= "&df=all_text_".$this->ws->lang;
         
+        // The the sorting parameter
+        if(count($this->ws->sort) > 0)
+        {  
+          $indexedFields = array();
+          
+          if(file_exists($this->ws->fields_index_folder."fieldsIndex.srz"))
+          {
+            $indexedFields = unserialize(file_get_contents($this->ws->fields_index_folder."fieldsIndex.srz"));
+          
+            $solrQuery .= "&sort=";
+            
+            foreach($this->ws->sort as $sortProperty => $order)
+            {
+              $lSortProperty = strtolower($sortProperty);
+              
+              if($lSortProperty == "preflabel")
+              {
+                $sortProperty = "prefLabel_".$this->ws->lang;
+              }
+              else if($lSortProperty == "type")
+              {
+                $sortProperty = "type_single_valued";
+              }
+              else if( $lSortProperty != "uri" &&
+                       $lSortProperty != "dataset" &&
+                       $lSortProperty != "score")
+              {              
+                $uSortProperty = urlencode($sortProperty);
+                
+                if(array_search($uSortProperty."_attr_date_single_valued", $indexedFields) !== FALSE)
+                {
+                  $sortProperty = urlencode($uSortProperty)."_attr_date_single_valued";
+                }
+                else if(array_search($uSortProperty."_attr_float_single_valued", $indexedFields) !== FALSE)
+                {
+                  $sortProperty = urlencode($uSortProperty)."_attr_float_single_valued";
+                }
+                else if(array_search($uSortProperty."_attr_int_single_valued", $indexedFields) !== FALSE)
+                {
+                  $sortProperty = urlencode($uSortProperty)."_attr_int_single_valued";
+                }
+                else if(array_search($uSortProperty."_attr_obj_".$this->ws->lang."_single_valued", $indexedFields) !== FALSE)
+                {
+                  $sortProperty = urlencode($uSortProperty)."_attr_obj_".$this->ws->lang."_single_valued";
+                }
+                else if(array_search($uSortProperty."_attr_".$this->ws->lang."_single_valued", $indexedFields) !== FALSE)
+                {
+                  $sortProperty = urlencode($uSortProperty)."_attr_".$this->ws->lang."_single_valued";
+                }                             
+              }
+              
+              $solrQuery .= $sortProperty." ".$order.",";
+            }
+            
+            $solrQuery = rtrim($solrQuery, ",");
+          }
+        }
+
         $resultset = $solr->select($solrQuery);
 
         // Create the internal representation of the resultset.      
@@ -941,7 +1009,7 @@
         foreach($resultsDom as $result)
         {
           // get URI
-          $resultURI = $xpath->query("arr[@name='uri']/str", $result);
+          $resultURI = $xpath->query("str[@name='uri']", $result);
 
           $uri = "";
 
@@ -957,7 +1025,7 @@
           $subject = new Subject($uri);
           
           // get Dataset URI
-          $resultDatasetURI = $xpath->query("arr[@name='dataset']/str", $result);
+          $resultDatasetURI = $xpath->query("str[@name='dataset']", $result);
 
           if($resultDatasetURI->length > 0)
           {
@@ -965,7 +1033,7 @@
           }                
 
           // get records preferred label
-          $resultPrefLabelURI = $xpath->query("arr[@name='prefLabel_".$this->ws->lang."']/str", $result);
+          $resultPrefLabelURI = $xpath->query("str[@name='prefLabel_".$this->ws->lang."']", $result);
 
           if($resultPrefLabelURI->length > 0)
           {
@@ -1044,7 +1112,7 @@
             $subject->setDescription($resultDescriptionURI->item(0)->nodeValue);
           }
 
-          // Get all dynamic fields attributes.
+          // Get all dynamic fields attributes that are multi-valued
           $resultProperties = $xpath->query("arr", $result);
 
           $objectPropertyLabels = array();
@@ -1055,17 +1123,8 @@
             $attribute = $property->getAttribute("name");
 
             // Check what kind of attribute it is
-            $attributeType = "";
-
-            if(($pos = stripos($attribute, "_reify")) !== FALSE)
-            {
-              $attributeType = substr($attribute, $pos, strlen($attribute) - $pos);
-            }
-            elseif(($pos = stripos($attribute, "_attr")) !== FALSE)
-            {
-              $attributeType = substr($attribute, $pos, strlen($attribute) - $pos);
-            }
-
+            $attributeType = $this->getSolrAttributeType($attribute);
+            
             // Get the URI of the attribute
             $attributeURI = urldecode(str_replace($attributeType, "", $attribute));
             
@@ -1073,7 +1132,7 @@
             {
               continue;
             }
-            
+
             switch($attributeType)
             {
               case "_attr_".$this->ws->lang:
@@ -1093,7 +1152,7 @@
                   $subject->setDataAttribute($attributeURI, $value->nodeValue, Datasetypes::$date);
                 }
               break;
-
+              
               case "_attr_int":
                 $values = $property->getElementsByTagName("int");
 
@@ -1146,7 +1205,83 @@
               case "_reify_value_".$this->ws->lang: break;
             }
           }
+          
+          // Get all dynamic fields attributes that are single-valued and for which the value is a string
+          $resultProperties = $xpath->query("str", $result);
 
+          foreach($resultProperties as $property)
+          {
+            $attribute = $property->getAttribute("name");
+
+            // Check what kind of attribute it is
+            $attributeType = $this->getSolrAttributeType($attribute);
+            
+            // Get the URI of the attribute
+            $attributeURI = urldecode(str_replace($attributeType, "", $attribute));
+
+            if($attributeType == "_attr_".$this->ws->lang."_single_valued")
+            {
+              $subject->setDataAttribute($attributeURI, $property->nodeValue);
+            }
+          }          
+          
+          // Get all dynamic fields attributes that are single-valued and for which the value is a date
+          $resultProperties = $xpath->query("date", $result);
+
+          foreach($resultProperties as $property)
+          {
+            $attribute = $property->getAttribute("name");
+
+            // Check what kind of attribute it is
+            $attributeType = $this->getSolrAttributeType($attribute);
+            
+            // Get the URI of the attribute
+            $attributeURI = urldecode(str_replace($attributeType, "", $attribute));
+            
+            if($attributeType == "_attr_date_single_valued")
+            {
+              $subject->setDataAttribute($attributeURI, $value->nodeValue, Datasetypes::$date);
+            }
+          }          
+          
+          // Get all dynamic fields attributes that are single-valued and for which the value is a integer
+          $resultProperties = $xpath->query("int", $result);
+
+          foreach($resultProperties as $property)
+          {
+            $attribute = $property->getAttribute("name");
+
+            // Check what kind of attribute it is
+            $attributeType = $this->getSolrAttributeType($attribute);
+            
+            // Get the URI of the attribute
+            $attributeURI = urldecode(str_replace($attributeType, "", $attribute));
+            
+            if($attributeType == "_attr_int_single_valued")
+            {
+              $subject->setDataAttribute($attributeURI, $value->nodeValue, Datasetypes::$date);
+            }
+          } 
+          
+          // Get all dynamic fields attributes that are single-valued and for which the value is a float
+          $resultProperties = $xpath->query("float", $result);
+
+          foreach($resultProperties as $property)
+          {
+            $attribute = $property->getAttribute("name");
+
+            // Check what kind of attribute it is
+            $attributeType = $this->getSolrAttributeType($attribute);
+            
+            // Get the URI of the attribute
+            $attributeURI = urldecode(str_replace($attributeType, "", $attribute));
+            
+            if($attributeType == "_attr_float_single_valued")
+            {
+              $subject->setDataAttribute($attributeURI, $value->nodeValue, Datasetypes::$date);
+            }
+          } 
+          
           foreach($objectPropertyUris as $attributeUri => $objectUris)
           {
             foreach($objectUris as $key => $objectUri)
@@ -1179,6 +1314,20 @@
           $this->ws->rset->addSubject($subject, $resultDatasetURI->item(0)->nodeValue);
         }
       }     
+    }
+    
+    private function getSolrAttributeType($attribute)
+    {
+      if(($pos = stripos($attribute, "_reify")) !== FALSE)
+      {
+        return(substr($attribute, $pos, strlen($attribute) - $pos));
+      }
+      elseif(($pos = stripos($attribute, "_attr")) !== FALSE)
+      {
+        return(substr($attribute, $pos, strlen($attribute) - $pos));
+      }
+      
+      return("");
     }
   }
 ?>

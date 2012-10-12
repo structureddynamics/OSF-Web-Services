@@ -48,6 +48,13 @@ class Namespaces
   public static $vann = "http://purl.org/vocab/vann/";
   public static $vs = "http://www.w3.org/2003/06/sw-vocab-status/ns#";  
   
+  private $namespaces = array();
+  
+  function __construct()
+  {
+    $this->namespaces = $this->getNamespaces();  
+  }  
+  
   /**
   * Get the list of all properties's URI normally used to refer
   * to a label for a record
@@ -101,7 +108,7 @@ class Namespaces
   * 
   * @author Frederick Giasson, Structured Dynamics LLC.
   */
-  public static function getPrefixedUri($uri)
+  public function getPrefixedUri($uri)
   {
     // Find the base URI of the ontology
     $pos = strripos($uri, "#");
@@ -122,7 +129,7 @@ class Namespaces
     // Save the URI of the class or property passed in parameter
     $resource = substr($uri, $pos, strlen($uri) - $pos);    
   
-    foreach(Namespaces::getNamespaces() as $prefix => $u)    
+    foreach($this->namespaces as $prefix => $u)    
     {    
       if($onto == $u)
       {
@@ -141,7 +148,7 @@ class Namespaces
   * 
   * @author Frederick Giasson, Structured Dynamics LLC.
   */
-  public static function getPrefix($uri)
+  public function getPrefix($uri)
   {
     // Find the base URI of the ontology
     $pos = strripos($uri, "#");
@@ -162,7 +169,7 @@ class Namespaces
     // Save the URI of the class or property passed in parameter
     $resource = substr($uri, $pos, strlen($uri) - $pos);    
   
-    foreach(Namespaces::getNamespaces() as $prefix => $uri)    
+    foreach($this->namespaces as $prefix => $uri)    
     {    
       if($onto == $uri)
       {
@@ -180,11 +187,9 @@ class Namespaces
   * 
   * @return Return the URI of the prefix.
   */
-  public static function getUri($prefix)
+  public function getUri($prefix)
   {
-    $namespaces = Namespaces::getNamespaces();
-    
-    return($namespaces[$prefix]);
+    return($this->namespaces[$prefix]);
   }
   
   /**

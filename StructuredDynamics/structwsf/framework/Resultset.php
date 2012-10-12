@@ -108,6 +108,9 @@ class Resultset
   
   /** Folder where the structWSF instance is installed */
   private $wsf_base_path = "/usr/share/structwsf";
+  
+  /** Namespaces object instance */
+  private $namespaces;
 
   /**
   * Constructor
@@ -118,6 +121,8 @@ class Resultset
   */
   function __construct($wsf_base_path = "/usr/share/structwsf/") 
   { 
+    $this->namespaces = new Namespaces();
+    
     $this->wsf_base_path = rtrim($wsf_base_path, "/")."/";
   }
 
@@ -1311,7 +1316,7 @@ class Resultset
       return($uri);
     }  
     
-    $prefixedUri = Namespaces::getPrefixedUri($uri);
+    $prefixedUri = $this->namespaces->getPrefixedUri($uri);
     
     if($prefixedUri == $uri)
     {
@@ -1366,9 +1371,9 @@ class Resultset
       // The URI got prefixed
       $pieces = explode(":", $prefixedUri);
       
-      if(!isset($this->prefixes[Namespaces::getUri($pieces[0])]))
+      if(!isset($this->prefixes[$this->namespaces->getUri($pieces[0])]))
       {
-        $this->prefixes[Namespaces::getUri($pieces[0])] = $pieces[0];
+        $this->prefixes[$this->namespaces->getUri($pieces[0])] = $pieces[0];
       }
       
       return($prefixedUri);

@@ -173,15 +173,25 @@
           //$distanceQueryRevelencyBooster = '^0 AND _val_:"recip(dist(2, lat, long, '.$this->ws->resultsLocationAggregator[0].', '.$this->ws->resultsLocationAggregator[1].'), 1, 1, 0)"^100';  
           $distanceQueryRevelencyBooster = '^0 AND _val_:"recip(geodist(geohash, '.$this->ws->resultsLocationAggregator[0].', '.$this->ws->resultsLocationAggregator[1].'), 1, 1, 0)"^100';  
         }
+
+        $solrQuery = "q=".$queryParam.$distanceQueryRevelencyBooster.
+                     "&start=" . $this->ws->page . 
+                     "&rows=" . $this->ws->items .
+                     (strtolower($this->ws->includeAggregates) == "true" ? 
+                        "&facet=true".
+                        "&facet.sort=count".
+                        "&facet.limit=-1".
+                        "&facet.field=type".
+                        "&facet.field=attribute" . 
+                         (strtolower($this->ws->inference) == "on" ?  
+                            "&facet.field=inferred_type" 
+                         : "") .
+                        "&facet.field=dataset&facet.mincount=1" 
+                     : "");
         
         if(strtolower($this->ws->datasets) == "all")
         {
           $datasetList = "";
-
-          $solrQuery = "q=$queryParam$distanceQueryRevelencyBooster&start=" . $this->ws->page . "&rows=" . $this->ws->items
-            . (strtolower($this->ws->includeAggregates) == "true" ? "&facet=true&facet.sort=count&facet.limit=-1&facet.field=type" .
-            "&facet.field=attribute" . (strtolower($this->ws->inference) == "on" ? "&facet.field=inferred_type" : "") . "&" .
-            "facet.field=dataset&facet.mincount=1" : "");
 
           foreach($accessibleDatasets as $key => $dataset)
           {
@@ -198,11 +208,6 @@
         else
         {
           $datasets = explode(";", $this->ws->datasets);
-
-          $solrQuery = "q=$queryParam$distanceQueryRevelencyBooster&start=" . $this->ws->page . "&rows=" . $this->ws->items
-            . (strtolower($this->ws->includeAggregates) == "true" ? "&facet=true&facet.sort=count&facet.limit=-1&facet.field=type" .
-            "&facet.field=attribute" . (strtolower($this->ws->inference) == "on" ? "&facet.field=inferred_type" : "") . "&" .
-            "facet.field=dataset&facet.mincount=1" : "");
 
           $solrQuery .= "&fq=dataset:%22%22";
 
@@ -250,20 +255,250 @@
           }
         }
         
+        if($this->ws->extendedFilters != "")
+        {
+          // Get the fields (attributes) from the extended attributes query
+          preg_match_all("/([#%\.A-Za-z0-9_\-\[\]]+):[\(\"#%\.A-Za-z0-9_\-]+/Uim", $this->ws->extendedFilters, $matches);
+          
+          $attributes = $matches[1];
+
+          $indexedFields = array();
+          
+          if(file_exists($this->ws->fields_index_folder."fieldsIndex.srz"))
+          {
+            $indexedFields = unserialize(file_get_contents($this->ws->fields_index_folder."fieldsIndex.srz"));
+          }
+          
+          $attributes = array_unique($attributes);
+
+          foreach($attributes as $attribute)
+          {
+            $attribute = urldecode($attribute);
+             
+            if($attribute == "dataset")
+            {
+              // Make sure the user has access to this dataset
+              
+              // Get all the dataset values referenced in the extended filters
+              $usedDatasets = array();
+              
+              preg_match_all("/dataset:[\"(](.*)[\")]/Uim", $this->ws->extendedFilters, $matches);
+              
+              $usedDatasets = array_merge($usedDatasets, $matches[1]);
+
+              preg_match_all("/dataset:([^\"()]*)[\s\$)]+/Uim", $this->ws->extendedFilters, $matches);
+
+              $usedDatasets = array_merge($usedDatasets, $matches[1]);
+              
+              $usedDatasets = array_unique($usedDatasets);
+              
+              // Make sure that all defined dataset extended filters are accessible to the requester
+              foreach($usedDatasets as $key => $usedDataset)
+              {
+                // Unescape values (remove "\" from the Solr query)
+                $usedDataset = str_replace('\\', '', $usedDataset);
+
+                if(array_search($usedDataset, $accessibleDatasets) === FALSE)
+                {
+                  $this->ws->conneg->setStatus(400);
+                  $this->ws->conneg->setStatusMsg("Bad Request");
+                  $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_309->name);
+                  $this->ws->conneg->setError($this->ws->errorMessenger->_309->id, $this->ws->errorMessenger->ws,
+                    $this->ws->errorMessenger->_309->name, $this->ws->errorMessenger->_309->description, "Unaccessible dataset: ".$usedDataset,
+                    $this->ws->errorMessenger->_309->level);
+                  return;
+                }
+              }
+            }
+            
+            // Fix the reference to some of the core attributes
+            $isCoreAttribute = FALSE;
+            $coreAttribute = "";
+            
+            switch(strtolower($attribute))
+            {
+              case "dataset":
+                $coreAttribute = "dataset";
+                $isCoreAttribute = TRUE;
+              break;  
+              
+              case "preflabel":
+              case Namespaces::$iron."prefLabel":
+                $coreAttribute = "prefLabel_".$this->ws->lang;
+                $isCoreAttribute = TRUE;
+              break;
+              
+              case "altlabel":
+              case Namespaces::$iron."altLabel":
+                $coreAttribute = "altLabel_".$this->ws->lang;
+                $isCoreAttribute = TRUE;
+              break;
+              
+              case "description":
+              case Namespaces::$iron."description":
+                $coreAttribute = "description_".$this->ws->lang;
+                $isCoreAttribute = TRUE;
+              break;
+              
+              case "lat":
+              case Namespaces::$geo."lat":
+                if(!is_numeric(urldecode($attributeValue[1])))
+                {
+                  // If the value is not numeric, we skip that attribute/value. 
+                  // Otherwise an exception will be raised by Solr.
+                  continue;
+                }
+                              
+                $coreAttribute = "lat";
+                $isCoreAttribute = TRUE;
+              break;
+              
+              case "long":
+              case Namespaces::$geo."long":
+                if(!is_numeric(urldecode($attributeValue[1])))
+                {
+                  // If the value is not numeric, we skip that attribute/value. 
+                  // Otherwise an exception will be raised by Solr.
+                  continue;
+                }
+                
+                $coreAttribute = "long";
+                $isCoreAttribute = TRUE;
+              break;
+              
+              case "polygoncoordinates":
+              case Namespaces::$sco."polygonCoordinates":              
+                $coreAttribute = "polygonCoordinates";
+                $isCoreAttribute = TRUE;
+              break;
+              
+              case "polylinecoordinates":
+              case Namespaces::$sco."polylineCoordinates":
+                $coreAttribute = "polylineCoordinates";
+                $isCoreAttribute = TRUE;
+              break;
+              
+              case "type":
+              case Namespaces::$rdf."type":
+                $coreAttribute = "type";
+                $isCoreAttribute = TRUE;
+              break;
+              
+              case "inferred_type":
+                $coreAttribute = "inferred_type";
+                $isCoreAttribute = TRUE;
+              break;
+                          
+              case "located_in":
+              case Namespaces::$geoname."locatedIn":
+                $coreAttribute = "located_in";
+                $isCoreAttribute = TRUE;
+              break;
+            }
+            
+            // If it is not a core attribute, check if we have to make that attribute
+            // single-valued. We check that by checking if a single_valued version
+            // of that field is currently used in the Solr index.              
+            $singleValuedDesignator = "";
+
+            if(!$isCoreAttribute &&                  
+               array_search(urlencode($attribute."_attr_".$this->ws->lang."_single_valued"), $indexedFields) !== FALSE)
+            {
+              $singleValuedDesignator = "_single_valued";
+            }  
+            
+            $attributeFound = FALSE;
+            
+            // Get the Solr field ID for this attribute
+            if($isCoreAttribute)
+            {
+              $attribute = urlencode($attribute);
+              
+              $this->ws->extendedFilters = str_replace($attribute, $coreAttribute, $this->ws->extendedFilters);
+              
+              $attributeFound = TRUE;
+            }
+            else
+            {
+              // Check if it is an object property, and check if the pattern of this object property
+              // is using URIs as values
+              $valuesAsURI = FALSE;
+              
+              if(stripos($attribute, "[uri]") !== FALSE)
+              {
+                $valuesAsURI = TRUE;
+                $attribute = str_replace("[uri]", "", $attribute);
+              }
+              
+              $attribute = urlencode($attribute);
+    
+              if(array_search($attribute."_attr_".$this->ws->lang.$singleValuedDesignator, $indexedFields) !== FALSE && $valuesAsURI === FALSE)
+              {              
+                $this->ws->extendedFilters = str_replace($attribute, urlencode($attribute)."_attr_".$this->ws->lang.$singleValuedDesignator, $this->ws->extendedFilters);
+              
+                $attributeFound = TRUE;
+              }
+              elseif(array_search($attribute."_attr_date".$singleValuedDesignator, $indexedFields) !== FALSE)
+              {              
+                $this->ws->extendedFilters = str_replace($attribute, urlencode($attribute)."_attr_date".$singleValuedDesignator, $this->ws->extendedFilters);
+              
+                $attributeFound = TRUE;
+              }
+              elseif(array_search($attribute."_attr_int".$singleValuedDesignator, $indexedFields) !== FALSE)
+              {              
+                $this->ws->extendedFilters = str_replace($attribute, urlencode($attribute)."_attr_int".$singleValuedDesignator, $this->ws->extendedFilters);
+              
+                $attributeFound = TRUE;
+              }
+              elseif(array_search($attribute."_attr_float".$singleValuedDesignator, $indexedFields) !== FALSE)
+              {              
+                $this->ws->extendedFilters = str_replace($attribute, urlencode($attribute)."_attr_float".$singleValuedDesignator, $this->ws->extendedFilters);
+              
+                $attributeFound = TRUE;
+              }
+              elseif(array_search($attribute."_attr_obj_".$this->ws->lang.$singleValuedDesignator, $indexedFields) !== FALSE)
+              {      
+                // Check if the value of that filter is a URI or not.
+                if($valuesAsURI)
+                {
+                  $this->ws->extendedFilters = str_replace($attribute."[uri]:", urlencode($attribute)."_attr_obj_uri:", $this->ws->extendedFilters);  
+                } 
+                else
+                {
+                  $this->ws->extendedFilters = str_replace($attribute.":", urlencode($attribute)."_attr_obj_".$this->ws->lang.$singleValuedDesignator.":", $this->ws->extendedFilters);
+                }                                       
+              
+                $attributeFound = TRUE;
+              }
+            }
+            
+            if($attributeFound === FALSE)
+            {
+              $this->ws->conneg->setStatus(400);
+                $this->ws->conneg->setStatusMsg("Bad Request");
+                $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_310->name);
+                $this->ws->conneg->setError($this->ws->errorMessenger->_310->id, $this->ws->errorMessenger->ws,
+                  $this->ws->errorMessenger->_310->name, $this->ws->errorMessenger->_310->description, "Undefined filter: ".urldecode($attribute),
+                  $this->ws->errorMessenger->_310->level);
+                return;              
+            }
+          }
+          
+          $solrQuery .= "&fq=".$this->ws->extendedFilters;
+        }
+        
         if($this->ws->attributes != "all")
         {                    
           // Lets include the information to facet per type.
           $attributes = explode(";", $this->ws->attributes);
 
           $nbProcessed = 0;
+
+          $indexedFields = array();          
           
           if(file_exists($this->ws->fields_index_folder."fieldsIndex.srz"))
           {
             $indexedFields = unserialize(file_get_contents($this->ws->fields_index_folder."fieldsIndex.srz"));
-          }
-          else
-          {
-            $indexedFields = array();
           }
 
           foreach($attributes as $attribute)
@@ -271,6 +506,13 @@
             $attributeValue = explode("::", $attribute);
             $attribute = urldecode($attributeValue[0]);
 
+            // Skip possible "dataset" field request. This is handled bia the "dataset" parameter
+            // of this web service endpoint.
+            if($attribute == "dataset")
+            {
+              continue;
+            }
+            
             if(isset($attributeValue[1]) && $attributeValue[1] != "")
             {
               // Fix the reference to some of the core attributes
@@ -900,7 +1142,7 @@
             $solrQuery = rtrim($solrQuery, ",");
           }
         }
-
+        file_put_contents("/tmp/search.log", $solrQuery);
         $resultset = $solr->select($solrQuery);
 
         // Create the internal representation of the resultset.      
@@ -1308,7 +1550,7 @@
             if($resultTypes->item($i)->nodeValue != "-")
             {
               $subject->setType($resultTypes->item($i)->nodeValue);
-            }
+            }  
           }
           
           $this->ws->rset->addSubject($subject, $resultDatasetURI->item(0)->nodeValue);

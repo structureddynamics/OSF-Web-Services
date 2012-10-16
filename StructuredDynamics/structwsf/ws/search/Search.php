@@ -117,6 +117,9 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
   
   /** Sorting criterias */
   public $sort = array();
+  
+  /** Extended filters which uses the full grouping syntax composed of: AND, OR, NO, (, ) */
+  public $extendedFilters = "";
 
   /** Supported serialization mime types by this Web service */
   public static $supportedSerializations =
@@ -186,6 +189,18 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
                           "level": "Fatal",
                           "name": "Sort property is multi-valued",
                           "description": "The sort property you provided is multi-valued. Only single-valued properties can be sorted in a search query. You can make sure you have a single valued property by defining it with a sco:maxCardinality of 1."
+                        },
+                        "_309": {
+                          "id": "WS-SEARCH-309",
+                          "level": "Fatal",
+                          "name": "A dataset defined in the extended filters is not accessible",
+                          "description": "A dataset that you defined in one of your extended filters is not accessible to you. Make sure you only use datasets for which you have access to."
+                        },
+                        "_310": {
+                          "id": "WS-SEARCH-310",
+                          "level": "Fatal",
+                          "name": "Filter not available in your extended filters query",
+                          "description": "A filtering criteria you defined for this extended filters query is not avaible or defined in the system. Please remove or change that filter."
                         }
                       }';
 
@@ -336,6 +351,30 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
                    type and dataset: "type desc; dataset asc". Here is an example of a sort that sort with 
                    a custom attribute: "http%3A%2F%2Fpurl.org%2Fontology%2Firon%23prefURL desc". By default
                    the sorting order is "asc".
+      @param $extendedFilters Extended filters are used to define more complex search filtered searches. This
+                              parameter uses a more complex syntax which enable the grouping of filter criterias
+                              and the usage of the AND, OR and NOT boolean operators. The grouping is done with
+                              the parenthesis. Each filter is composed of a url-encoded attribute URI to use 
+                              as filters, followed by a colomn and the value to filter with. The full lucene
+                              syntax can be used to define the value to filter. If all values are required, the
+                              "*" (start) operator should be used as the value. If the value of an attribute
+                              needs to be considered a URI, then the "[uri]" syntax should be added at the end
+                              of the attribute filter like: 
+                              "http%3A%2F%2Fpurl.org%2Fontology%2Ffoo%23friend[uri]:http://bar.com/my-friend-uri".
+                              That way, the value of that attribute filter will be handled as a URI. There are
+                              a series of core attributes that can be used without specifying their full URI:
+                              dataset, type, inferred_type, prefLabel, altLabel, lat, long, description, polygonCoordinates,
+                              polylineCoordinates and located in. The extended filters are not a replacement to 
+                              the attributes, types and datasets filtering parameters, they are an extension of it.
+                              Subsequent filtering criterias can be defined in the extended filtering parameter.
+                              The resolution logic by the Search endpoint is: 
+                              attributes AND datasets AND types AND extended-filters.
+                              An example of such an extended query is:
+                              (http%3A%2F%2Fpurl.org%2Fontology%2Firon%23prefLabel:cancer AND NOT (breast OR ovarian)) 
+                              AND (http%3A%2F%2Fpurl.org%2Fontology%2Fnhccn%23useGroupSignificant[uri]:
+                              (http\://purl.org/ontology/doha#liver_cancer OR 
+                              http\://purl.org/ontology/doha#cancers_by_histologic_type)) AND 
+                              dataset:"file://localhost/data/ontologies/files/doha.owl"
 
       @return returns NULL
     
@@ -347,7 +386,7 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
                        $includeAttributesList = "", $aggregate_attributes_object_type = "literal",
                        $aggregate_attributes_nb = 10, $resultsLocationAggregator = "",
                        $interface = 'default', $requestedInterfaceVersion = "", $lang = "en",
-                       $sort = "")
+                       $sort = "", $extendedFilters = "")
   {
     parent::__construct();
  
@@ -365,6 +404,8 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
     $this->aggregateAttributesNb = $aggregate_attributes_nb;
     $this->resultsLocationAggregator = explode(",", $resultsLocationAggregator);
     $this->lang = $lang;
+    
+    $this->extendedFilters = $extendedFilters;
     
     
     if(strtolower($interface) == "default")

@@ -72,6 +72,14 @@ if(isset($_POST['attributes']))
   $attributes = $_POST['attributes'];
 }
 
+// Extended Filters
+$extendedFilters = "";
+
+if(isset($_POST['extended_filters']))
+{
+  $extendedFilters = $_POST['extended_filters'];
+}
+
 // Filtering types
 $datasets = "all";
 
@@ -226,7 +234,7 @@ $ws_s = new Search($query, $types, $attributes, $datasets, $items, $page, $infer
                    $registered_ip, $requester_ip, $distanceFilter, $rangeFilter, $aggregate_attributes, 
                    $attributesBooleanOperator, $includeAttributesList,$aggregateAttributesObjectType,
                    $aggregateAttributesNb, $resultsLocationAggregator, $interface, $version, $lang,
-                   $sort);
+                   $sort, $extendedFilters);
 
 $ws_s->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                  (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

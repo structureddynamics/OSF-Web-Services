@@ -28,7 +28,61 @@
       $string = str_replace($match, $replace, $string);
 
       return $string;
-    }    
+    }  
+    
+    private function escapeURIValue($uri)
+    {
+      $match = array(':');
+      $replace = array('\\:');
+      $uri = str_replace($match, $replace, $uri);
+
+      return $uri;
+    }  
+    
+    /**
+    * Arrange a value before adding it to a Solr query. If some characters that belongs to the
+    * Lucene query syntax are used, then we return the string without modifying anything. Otherwise
+    * we clean it a bit to only keep the alpha-numeric characters and a few other ones.
+    * 
+    * @param mixed $string The string to arrange
+    */
+    private function arrangeSolrValue($string)
+    {
+      if(!$this->isUsingLuceneSyntax($string))
+      {
+        return(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $string));  
+      }
+
+      // If the string is using some character from the lucene syntax, then we keep the string 
+      // intact.
+      return($string);  
+    }
+
+    /**
+    * Check if a string is using some characters that belongs to the Lucene query syntax
+    *     
+    * @param mixed $string String value to check
+    */
+    private function isUsingLuceneSyntax($string)
+    {
+      $specialChars = array('"', 'AND', 'OR', '?', '*', '~', '+', '-', 'NOT', '&&', '||', '!', '^',
+                            '(', ')', '{', '}', '[', ']', '*', '?', ':', '\\');      
+      
+      foreach($specialChars as $char)
+      {
+        if(($pos = strpos($string, $char)) !== FALSE)
+        {
+          // Make sure that the character is not escaped
+          if(substr($string, $pos - 1, 1) != '\\')
+          {
+            return(TRUE);
+            break;          
+          }
+        }
+      }      
+      
+      return(FALSE);
+    }  
     
     public function processInterface()
     {  
@@ -133,26 +187,13 @@
         
         $queryParam = "*:*";
         
-        $specialChars = array('"', 'AND', 'OR', '?', '*', '~', '+', '-', 'NOT', '&&', '||', '!', '^');
-        
         if($this->ws->query != "")
         {      
           /* 
             Check if characters of the Solr query language is used for this query. If some does, we *only* take
             them to create the query.
           */
-          $useLuceneSyntax = FALSE;
-          
-          foreach($specialChars as $char)
-          {
-            if(strpos($this->ws->query, $char) !== FALSE)
-            {
-              $useLuceneSyntax = TRUE;
-              break;          
-            }
-          }
-          
-          if(!$useLuceneSyntax)
+          if(!$this->isUsingLuceneSyntax($this->ws->query))
           {
             $queryParam = "%22" . urlencode(implode(" +", explode(" ", $this->escapeSolrValue($this->ws->query)))) . "%22~5";
           }
@@ -623,244 +664,13 @@
                     break;
                     
                     default:
-                      $solrQuery .= "&fq=(".$attribute.":".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
+                      $solrQuery .= "&fq=(".$attribute.":".urlencode($this->arrangeSolrValue($val)).")";
                     break;
                   }
                 }
                 else
                 {
-                  $solrQuery .= "&fq=(";
-                  
-                  $addOR = FALSE;
-                  $empty = TRUE;                
-                  
-                  // We have to detect if the fields are existing in Solr, otherwise Solr will throw
-                  // "undefined fields" errors, and there is no way to ignore them and process
-                  // the query anyway.
-                  if(array_search(urlencode($attribute), $indexedFields) !== FALSE)
-                  {
-                    $solrQuery .= "(".urlencode(urlencode($attribute)).":".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";  
-                    $addOR = TRUE;
-                    $empty = FALSE;
-                  }
-
-                  if(array_search(urlencode($attribute."_attr_".$this->ws->lang.$singleValuedDesignator), $indexedFields) !== FALSE)
-                  {
-                    if($addOR)
-                    {
-                      $solrQuery .= " OR ";
-                    }
-                
-                    $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_".$this->ws->lang.$singleValuedDesignator.":".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
-                    $addOR = TRUE;
-                    $empty = FALSE;
-                  }
-
-                  if(array_search(urlencode($attribute."_attr_int".$singleValuedDesignator), $indexedFields) !== FALSE)
-                  {                  
-                    if($addOR)
-                    {
-                      $solrQuery .= " OR ";
-                    }
-                
-                    if(is_numeric($val))
-                    {
-                      $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_int".$singleValuedDesignator.":".$val.")";                      
-                    }
-                    else
-                    {
-                      // Extract the FROM and TO numbers range
-                      $numbers = explode(" TO ", trim(str_replace(" to ", " TO ", $val), "[]"));
-                  
-                      if($numbers[0] != "*")
-                      {
-                        if(!is_numeric($numbers[0]))
-                        {
-                          $this->ws->conneg->setStatus(400);
-                          $this->ws->conneg->setStatusMsg("Bad Request");
-                          $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_306->name);
-                          $this->ws->conneg->setError($this->ws->errorMessenger->_306->id, $this->ws->errorMessenger->ws,
-                            $this->ws->errorMessenger->_306->name, $this->ws->errorMessenger->_306->description, "",
-                            $this->ws->errorMessenger->_306->level);
-                          return;
-                        }
-                      }
-                      
-                      if($numbers[1] != "*")
-                      {
-                        if(!is_numeric($numbers[1]))
-                        {
-                          $this->ws->conneg->setStatus(400);
-                          $this->ws->conneg->setStatusMsg("Bad Request");
-                          $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_306->name);
-                          $this->ws->conneg->setError($this->ws->errorMessenger->_306->id, $this->ws->errorMessenger->ws,
-                            $this->ws->errorMessenger->_306->name, $this->ws->errorMessenger->_306->description, "",
-                            $this->ws->errorMessenger->_306->level);
-                          return;
-                        }
-                      } 
-                      
-                      $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_int".$singleValuedDesignator.":".urlencode("[".$numbers[0]." TO ".$numbers[1]."]").")";
-                    }
-                      
-                      
-                    $addOR = TRUE;
-                    $empty = FALSE;
-                  }   
-                  
-                  if(array_search(urlencode($attribute."_attr_float".$singleValuedDesignator), $indexedFields) !== FALSE)
-                  {                  
-                    if($addOR)
-                    {
-                      $solrQuery .= " OR ";
-                    }
-                          
-                    if(is_numeric($val))
-                    {
-                      $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_float".$singleValuedDesignator.":".$val.")";
-                    }
-                    else
-                    {                    
-                      // Extract the FROM and TO numbers range
-                      $numbers = explode(" TO ", trim(str_replace(" to ", " TO ", $val), "[]"));
-                      
-                      if($numbers[0] != "*")
-                      {
-                        if(!is_numeric($numbers[0]))
-                        {
-                          $this->ws->conneg->setStatus(400);
-                          $this->ws->conneg->setStatusMsg("Bad Request");
-                          $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_306->name);
-                          $this->ws->conneg->setError($this->ws->errorMessenger->_306->id, $this->ws->errorMessenger->ws,
-                            $this->ws->errorMessenger->_306->name, $this->ws->errorMessenger->_306->description, "",
-                            $this->ws->errorMessenger->_306->level);
-                          return;
-                        }
-                      }
-                      
-                      if($numbers[1] != "*")
-                      {
-                        if(!is_numeric($numbers[1]))
-                        {
-                          $this->ws->conneg->setStatus(400);
-                          $this->ws->conneg->setStatusMsg("Bad Request");
-                          $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_306->name);
-                          $this->ws->conneg->setError($this->ws->errorMessenger->_306->id, $this->ws->errorMessenger->ws,
-                            $this->ws->errorMessenger->_306->name, $this->ws->errorMessenger->_306->description, "",
-                            $this->ws->errorMessenger->_306->level);
-                          return;
-                        }
-                      } 
-                      
-                      $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_float".$singleValuedDesignator.":".urlencode("[".$numbers[0]." TO ".$numbers[1]."]").")";
-                    }
-                    $addOR = TRUE;
-                    $empty = FALSE;
-                  }
-                  
-                  if(array_search(urlencode($attribute."_attr_date".$singleValuedDesignator), $indexedFields) !== FALSE)
-                  {
-                    if($addOR)
-                    {
-                      $solrQuery .= " OR ";
-                    }
-                    
-                    $dateFrom = "";
-                    $dateTo = "NOW";
-                    
-                    // Check if it is a range query
-                    if(substr($val, 0, 1) == "[" && substr($val, strlen($val) - 1, 1) == "]")
-                    {
-                      // Extract the FROM and TO dates range
-                      $dates = explode(" TO ", trim(str_replace(" to ", " TO ", $val), "[]"));
-                      
-                      if($dates[0] != "*")
-                      {
-                        $dateFrom = $this->safeDate($dates[0]);
-                        
-                        if($dateFrom === FALSE)
-                        {
-                          $this->ws->conneg->setStatus(400);
-                          $this->ws->conneg->setStatusMsg("Bad Request");
-                          $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_305->name);
-                          $this->ws->conneg->setError($this->ws->errorMessenger->_305->id, $this->ws->errorMessenger->ws,
-                            $this->ws->errorMessenger->_305->name, $this->ws->errorMessenger->_305->description, "",
-                            $this->ws->errorMessenger->_305->level);
-                          return;
-                        }
-                      }
-                      
-                      if($dates[1] != "*")
-                      {
-                        $dateTo = $this->safeDate($dates[1]);
-                        
-                        if($dateTo === FALSE)
-                        {
-                          $this->ws->conneg->setStatus(400);
-                          $this->ws->conneg->setStatusMsg("Bad Request");
-                          $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_305->name);
-                          $this->ws->conneg->setError($this->ws->errorMessenger->_305->id, $this->ws->errorMessenger->ws,
-                            $this->ws->errorMessenger->_305->name, $this->ws->errorMessenger->_305->description, "",
-                            $this->ws->errorMessenger->_305->level);
-                          return;
-                        }                        
-                      }
-                    }
-                    else
-                    {
-                      // If no range is defined, we consider the input date to be the initial date to use
-                      // until now.
-                      $dateFrom = $this->safeDate($val);
-                      
-                      if($dateFrom === FALSE)
-                      {
-                        $this->ws->conneg->setStatus(400);
-                        $this->ws->conneg->setStatusMsg("Bad Request");
-                        $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_305->name);
-                        $this->ws->conneg->setError($this->ws->errorMessenger->_305->id, $this->ws->errorMessenger->ws,
-                          $this->ws->errorMessenger->_305->name, $this->ws->errorMessenger->_305->description, "",
-                          $this->ws->errorMessenger->_305->level);
-                        return;
-                      }                       
-                    }
-                    
-                    $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_date".$singleValuedDesignator.":".urlencode("[".$dateFrom." TO ".$dateTo)."]".")";
-                    $addOR = TRUE;
-                    $empty = FALSE;
-                  }
-
-                  if(array_search(urlencode($attribute."_attr_obj_".$this->ws->lang.$singleValuedDesignator), $indexedFields) !== FALSE)
-                  {
-                    if($addOR)
-                    {
-                      $solrQuery .= " OR ";
-                    }
-                    
-                    $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj_".$this->ws->lang.$singleValuedDesignator.":".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
-                    $addOR = TRUE;
-                    $empty = FALSE;
-                  }
-                  
-                  if(array_search(urlencode($attribute."_attr_obj_uri"), $indexedFields) !== FALSE)
-                  {
-                    if($addOR)
-                    {
-                      $solrQuery .= " OR ";
-                    }
-                    
-                    $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj_uri:".urlencode($this->escapeSolrValue($val)).")";
-                    $addOR = TRUE;
-                    $empty = FALSE;
-                  }                
-                  
-                  if($empty)
-                  {
-                    $solrQuery = substr($solrQuery, 0, strlen($solrQuery) - 1);
-                  }
-                  else
-                  {
-                    $solrQuery .= ")";                
-                  }                
+                  $solrQuery .= "&fq=(";              
                 }
               }
               else
@@ -884,7 +694,7 @@
                     break;
                     
                     default:
-                      $solrQuery .= " ".$this->ws->attributesBooleanOperator." (".$attribute.":".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
+                      $solrQuery .= " ".$this->ws->attributesBooleanOperator." (".$attribute.":".urlencode($this->arrangeSolrValue($val)).")";
                     break;
                   }                
                   
@@ -899,56 +709,249 @@
                   {
                     $solrQuery .= "(";
                   }
+                }
+              }            
+
+              $addOR = FALSE;
+              $empty = TRUE;                
+              
+              // We have to detect if the fields are existing in Solr, otherwise Solr will throw
+              // "undefined fields" errors, and there is no way to ignore them and process
+              // the query anyway.
+              if(array_search(urlencode($attribute), $indexedFields) !== FALSE)
+              {
+                $solrQuery .= "(".urlencode(urlencode($attribute)).":".urlencode($this->arrangeSolrValue($val)).")";  
+                $addOR = TRUE;
+                $empty = FALSE;
+              }
+
+              if(array_search(urlencode($attribute."_attr_".$this->ws->lang.$singleValuedDesignator), $indexedFields) !== FALSE)
+              {
+                if($addOR)
+                {
+                  $solrQuery .= " OR ";
+                }
+                
+                $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_".$this->ws->lang.$singleValuedDesignator.":".urlencode($this->arrangeSolrValue($val)).")";
+                $addOR = TRUE;
+                $empty = FALSE;
+              }
+
+              if(array_search(urlencode($attribute."_attr_int".$singleValuedDesignator), $indexedFields) !== FALSE)
+              {                  
+                if($addOR)
+                {
+                  $solrQuery .= " OR ";
+                }
+                
+                if(is_numeric($val))
+                {
+                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_int".$singleValuedDesignator.":".$val.")";                      
+                }
+                else
+                {
+                  // Extract the FROM and TO numbers range
+                  $numbers = explode(" TO ", trim(str_replace(" to ", " TO ", $val), "[]"));
                   
-                  $addOR = FALSE;
-                  $empty = TRUE;
+                  if($numbers[0] != "*")
+                  {
+                    if(!is_numeric($numbers[0]))
+                    {
+                      $this->ws->conneg->setStatus(400);
+                      $this->ws->conneg->setStatusMsg("Bad Request");
+                      $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_306->name);
+                      $this->ws->conneg->setError($this->ws->errorMessenger->_306->id, $this->ws->errorMessenger->ws,
+                        $this->ws->errorMessenger->_306->name, $this->ws->errorMessenger->_306->description, "",
+                        $this->ws->errorMessenger->_306->level);
+                      return;
+                    }
+                  }
                   
-                  // We have to detect if the fields are existing in Solr, otherwise Solr will throw
-                  // "undefined fields" errors, and there is no way to ignore them and process
-                  // the query anyway.
-                  if(array_search(urlencode($attribute), $indexedFields) !== FALSE)
+                  if($numbers[1] != "*")
                   {
-                    $solrQuery .= "(".urlencode(urlencode($attribute)).":".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
-                    $addOR = TRUE;
-                    $empty = FALSE;
-                  }
-
-                  if(array_search(urlencode($attribute."_attr_".$this->ws->lang.$singleValuedDesignator), $indexedFields) !== FALSE)
-                  {
-                    if($addOR)
+                    if(!is_numeric($numbers[1]))
                     {
-                      $solrQuery .= " OR ";
+                      $this->ws->conneg->setStatus(400);
+                      $this->ws->conneg->setStatusMsg("Bad Request");
+                      $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_306->name);
+                      $this->ws->conneg->setError($this->ws->errorMessenger->_306->id, $this->ws->errorMessenger->ws,
+                        $this->ws->errorMessenger->_306->name, $this->ws->errorMessenger->_306->description, "",
+                        $this->ws->errorMessenger->_306->level);
+                      return;
                     }
-                    
-                    $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_".$this->ws->lang.$singleValuedDesignator.":".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
-                    $addOR = TRUE;
-                    $empty = FALSE;
-                  }
-
-                  if(array_search(urlencode($attribute."_attr_obj_".$this->ws->lang.$singleValuedDesignator), $indexedFields) !== FALSE)
+                  } 
+                  
+                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_int".$singleValuedDesignator.":".urlencode("[".$numbers[0]." TO ".$numbers[1]."]").")";
+                }
+                  
+                  
+                $addOR = TRUE;
+                $empty = FALSE;
+              }   
+              
+              if(array_search(urlencode($attribute."_attr_float".$singleValuedDesignator), $indexedFields) !== FALSE)
+              {                  
+                if($addOR)
+                {
+                  $solrQuery .= " OR ";
+                }
+                      
+                if(is_numeric($val))
+                {
+                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_float".$singleValuedDesignator.":".$val.")";
+                }
+                else
+                {                    
+                  // Extract the FROM and TO numbers range
+                  $numbers = explode(" TO ", trim(str_replace(" to ", " TO ", $val), "[]"));
+                  
+                  if($numbers[0] != "*")
                   {
-                    if($addOR)
+                    if(!is_numeric($numbers[0]))
                     {
-                      $solrQuery .= " OR ";
+                      $this->ws->conneg->setStatus(400);
+                      $this->ws->conneg->setStatusMsg("Bad Request");
+                      $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_306->name);
+                      $this->ws->conneg->setError($this->ws->errorMessenger->_306->id, $this->ws->errorMessenger->ws,
+                        $this->ws->errorMessenger->_306->name, $this->ws->errorMessenger->_306->description, "",
+                        $this->ws->errorMessenger->_306->level);
+                      return;
                     }
-                    
-                    $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj_".$this->ws->lang.$singleValuedDesignator.":".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
-                    $addOR = TRUE;
-                    $empty = FALSE;
                   }
-
-                  if(array_search(urlencode($attribute."_attr_obj_uri"), $indexedFields) !== FALSE)
+                  
+                  if($numbers[1] != "*")
                   {
-                    if($addOR)
+                    if(!is_numeric($numbers[1]))
                     {
-                      $solrQuery .= " OR ";
+                      $this->ws->conneg->setStatus(400);
+                      $this->ws->conneg->setStatusMsg("Bad Request");
+                      $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_306->name);
+                      $this->ws->conneg->setError($this->ws->errorMessenger->_306->id, $this->ws->errorMessenger->ws,
+                        $this->ws->errorMessenger->_306->name, $this->ws->errorMessenger->_306->description, "",
+                        $this->ws->errorMessenger->_306->level);
+                      return;
                     }
+                  } 
+                  
+                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_float".$singleValuedDesignator.":".urlencode("[".$numbers[0]." TO ".$numbers[1]."]").")";
+                }
+                $addOR = TRUE;
+                $empty = FALSE;
+              }
+              
+              if(array_search(urlencode($attribute."_attr_date".$singleValuedDesignator), $indexedFields) !== FALSE)
+              {
+                if($addOR)
+                {
+                  $solrQuery .= " OR ";
+                }
+                
+                $dateFrom = "";
+                $dateTo = "NOW";
+                
+                // Check if it is a range query
+                if(substr($val, 0, 1) == "[" && substr($val, strlen($val) - 1, 1) == "]")
+                {
+                  // Extract the FROM and TO dates range
+                  $dates = explode(" TO ", trim(str_replace(" to ", " TO ", $val), "[]"));
+                  
+                  if($dates[0] != "*")
+                  {
+                    $dateFrom = $this->safeDate($dates[0]);
                     
-                    $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj_uri:".urlencode($this->escapeSolrValue($val)).")";
-                    $addOR = TRUE;
-                    $empty = FALSE;
+                    if($dateFrom === FALSE)
+                    {
+                      $this->ws->conneg->setStatus(400);
+                      $this->ws->conneg->setStatusMsg("Bad Request");
+                      $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_305->name);
+                      $this->ws->conneg->setError($this->ws->errorMessenger->_305->id, $this->ws->errorMessenger->ws,
+                        $this->ws->errorMessenger->_305->name, $this->ws->errorMessenger->_305->description, "",
+                        $this->ws->errorMessenger->_305->level);
+                      return;
+                    }
                   }
+                  
+                  if($dates[1] != "*")
+                  {
+                    $dateTo = $this->safeDate($dates[1]);
+                    
+                    if($dateTo === FALSE)
+                    {
+                      $this->ws->conneg->setStatus(400);
+                      $this->ws->conneg->setStatusMsg("Bad Request");
+                      $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_305->name);
+                      $this->ws->conneg->setError($this->ws->errorMessenger->_305->id, $this->ws->errorMessenger->ws,
+                        $this->ws->errorMessenger->_305->name, $this->ws->errorMessenger->_305->description, "",
+                        $this->ws->errorMessenger->_305->level);
+                      return;
+                    }                        
+                  }
+                }
+                else
+                {
+                  // If no range is defined, we consider the input date to be the initial date to use
+                  // until now.
+                  $dateFrom = $this->safeDate($val);
+                  
+                  if($dateFrom === FALSE)
+                  {
+                    $this->ws->conneg->setStatus(400);
+                    $this->ws->conneg->setStatusMsg("Bad Request");
+                    $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_305->name);
+                    $this->ws->conneg->setError($this->ws->errorMessenger->_305->id, $this->ws->errorMessenger->ws,
+                      $this->ws->errorMessenger->_305->name, $this->ws->errorMessenger->_305->description, "",
+                      $this->ws->errorMessenger->_305->level);
+                    return;
+                  }                       
+                }
+                
+                $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_date".$singleValuedDesignator.":".urlencode("[".$dateFrom." TO ".$dateTo)."]".")";
+                $addOR = TRUE;
+                $empty = FALSE;
+              }
 
+              if(array_search(urlencode($attribute."_attr_obj_".$this->ws->lang.$singleValuedDesignator), $indexedFields) !== FALSE)
+              {
+                if($addOR)
+                {
+                  $solrQuery .= " OR ";
+                }
+                
+                $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj_".$this->ws->lang.$singleValuedDesignator.":".urlencode($this->escapeSolrValue($val)).")";
+                $addOR = TRUE;
+                $empty = FALSE;
+              }
+              
+              if(array_search(urlencode($attribute."_attr_obj_uri"), $indexedFields) !== FALSE)
+              {
+                if($addOR)
+                {
+                  $solrQuery .= " OR ";
+                }
+                
+                $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj_uri:".urlencode($this->escapeSolrValue($val)).")";
+                $addOR = TRUE;
+                $empty = FALSE;
+              }   
+              
+              if($nbProcessed == 0)
+              {
+                if(!$coreAttr)
+                {
+                  if($empty)
+                  {
+                    $solrQuery = substr($solrQuery, 0, strlen($solrQuery) - 1);
+                  }
+                  else
+                  {
+                    $solrQuery .= ")";                
+                  }                
+                }
+              }
+              else
+              {
+                if(!$coreAttr)
+                {
                   if(substr($solrQuery, strlen($solrQuery) - 4) != "fq=(")
                   {
                     if($empty)
@@ -966,6 +969,7 @@
                   }
                 }
               }            
+                            
             }
             else
             {
@@ -1147,7 +1151,7 @@
             $solrQuery = rtrim($solrQuery, ",");
           }
         }
-        file_put_contents("/tmp/search.log", $solrQuery);
+
         $resultset = $solr->select($solrQuery);
 
         // Create the internal representation of the resultset.      

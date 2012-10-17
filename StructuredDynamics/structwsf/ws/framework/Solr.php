@@ -162,7 +162,7 @@ class Solr
     
     $data = curl_exec($ch);
 
-    if(curl_errno($ch))
+    if(curl_errno($ch) || strpos($data, "<title>Error 400 null</title>"))
     {
       return FALSE;
     }

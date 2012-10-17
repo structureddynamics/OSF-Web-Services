@@ -1153,6 +1153,17 @@
         }
 
         $resultset = $solr->select($solrQuery);
+        
+        if($resultset === FALSE)
+        {
+          $this->ws->conneg->setStatus(400);
+          $this->ws->conneg->setStatusMsg("Bad Request");
+          $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_311->name);
+          $this->ws->conneg->setError($this->ws->errorMessenger->_311->id, $this->ws->errorMessenger->ws,
+            $this->ws->errorMessenger->_311->name, $this->ws->errorMessenger->_311->description, "",
+            $this->ws->errorMessenger->_311->level);
+          return;          
+        }
 
         // Create the internal representation of the resultset.      
         $domResultset = new DomDocument("1.0", "utf-8");

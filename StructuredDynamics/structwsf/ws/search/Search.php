@@ -201,6 +201,12 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
                           "level": "Fatal",
                           "name": "Filter not available in your extended filters query",
                           "description": "A filtering criteria you defined for this extended filters query is not avaible or defined in the system. Please remove or change that filter."
+                        },
+                        "_311": {
+                          "id": "WS-SEARCH-311",
+                          "level": "Fatal",
+                          "name": "Query not valid",
+                          "description": "The search query you provided is not valid, and returns no result. We can\'t say where the error is coming from, but there is one, probably one with the syntax used."
                         }
                       }';
 

@@ -650,7 +650,7 @@
                     {
                       $solrQuery .= " OR ";
                     }
-                    
+                
                     $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_".$this->ws->lang.$singleValuedDesignator.":".urlencode(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $val)).")";
                     $addOR = TRUE;
                     $empty = FALSE;
@@ -662,7 +662,7 @@
                     {
                       $solrQuery .= " OR ";
                     }
-                    
+                
                     if(is_numeric($val))
                     {
                       $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_int".$singleValuedDesignator.":".$val.")";                      
@@ -671,7 +671,7 @@
                     {
                       // Extract the FROM and TO numbers range
                       $numbers = explode(" TO ", trim(str_replace(" to ", " TO ", $val), "[]"));
-                      
+                  
                       if($numbers[0] != "*")
                       {
                         if(!is_numeric($numbers[0]))
@@ -1050,32 +1050,37 @@
         
         // Only return these fields in the resultset
         if(count($this->ws->includeAttributesList) > 0)
-        {
-          $solrQuery .= "&fl=";
-          
-          foreach($this->ws->includeAttributesList as $atl)
+        { 
+          if(strtolower($this->ws->includeAttributesList[0]) == "none")
           {
-            $solrQuery .= urlencode(urlencode($atl))."_attr_".$this->ws->lang." ";
-            $solrQuery .= urlencode(urlencode($atl))."_attr_obj_".$this->ws->lang." ";
-            $solrQuery .= urlencode(urlencode($atl))."_attr_obj_uri ";
+            $solrQuery .= "&fl=";
+            $solrQuery .= "uri ";
+            $solrQuery .= "type ";
+            $solrQuery .= "inferred_type ";
+            $solrQuery .= "dataset ";
+            $solrQuery .= "prefLabelAutocompletion_".$this->ws->lang."";
           }
-          
-          // Also add the core attributes to the mixte
-          $solrQuery .= "prefLabel_".$this->ws->lang." ";
-          $solrQuery .= "altLabel_".$this->ws->lang." ";
-          $solrQuery .= "description_".$this->ws->lang." ";
-          $solrQuery .= "lat ";
-          $solrQuery .= "long ";
-          $solrQuery .= "polygonCoordinates ";
-          $solrQuery .= "polylineCoordinates ";
-          $solrQuery .= "type ";
-          $solrQuery .= "uri ";
-          $solrQuery .= "locatedIn ";
-          $solrQuery .= "dataset ";
-          $solrQuery .= "prefURL ";
-          $solrQuery .= "geohash ";
-          $solrQuery .= "inferred_type ";
-          $solrQuery .= "prefLabelAutocompletion_".$this->ws->lang."";
+          else
+          {
+            $solrQuery .= "&fl=";
+            
+            foreach($this->ws->includeAttributesList as $atl)
+            {
+              if($atl != "none")
+              {
+                $solrQuery .= urlencode(urlencode($atl))."_attr_".$this->ws->lang." ";
+                $solrQuery .= urlencode(urlencode($atl))."_attr_obj_".$this->ws->lang." ";
+                $solrQuery .= urlencode(urlencode($atl))."_attr_obj_uri ";
+              }
+            }
+            
+            // Also add the core attributes to the mixte
+            $solrQuery .= "uri ";
+            $solrQuery .= "type ";
+            $solrQuery .= "inferred_type ";
+            $solrQuery .= "dataset ";
+            $solrQuery .= "prefLabelAutocompletion_".$this->ws->lang."";
+          }
         }
         
         // Remove possible left-over introduced by the procedure above for some rare usecases.

@@ -27,12 +27,21 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
 
   /** List of attributes to filter */
   private $attributes = "";
+  
+  /** List of attributes boosting rules */
+  private $attributesBoost = "";
 
   /** List of types to filter */
   private $types = "";
 
+  /** List of types boosting rules */
+  private $typesBoost = "";
+
   /** List of datasets to search */
   private $datasets = "";
+  
+  /** List of datasets boosting rules */
+  private $datasetsBoost = "";
 
   /** Number of items to return per page */
   private $items = "";
@@ -381,6 +390,37 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
                               (http\://purl.org/ontology/doha#liver_cancer OR 
                               http\://purl.org/ontology/doha#cancers_by_histologic_type)) AND 
                               dataset:"file://localhost/data/ontologies/files/doha.owl"
+      @param $typesBoost Modifying the score of the results returned by the Search endpoint by boosting the results 
+                         that have that type, and boosting it by the modifier weight that boost the overall 
+                         scoring algorithm. The types URI to boost are url-encoded and separated by semi-colomns. The
+                         boosting factor is delemited with a "^" character at the end of the encoded type's URI
+                         followed by the boosting factor. Boosting a type only impacts the scoring/relevancy of the
+                         returned results. This doesn't affect what is returned by the endpoint in any ways, so this 
+                         won't restrict results to be returned by the endpoint. Here is an example of two boosted types: 
+                         urlencode(type-uri-1)^30;urlencode(type-uri-2)^300
+      @param $attributesBoost Modifying the score of the results returned by the Search endpoint by boosting the results 
+                              that have these attribute(s) or these attribute(s)/value(s), and boosting it by the 
+                              modifier weight that boost the overall scoring algorithm. This parameter is used to boost
+                              the relevancy of the returned records if they are described with a particular attribute 
+                              URI, or if they are described with a particular attribute URI and a particual value for
+                              that attribute. The attributes URI to boost are url-encoded and separated by semi-colomns. 
+                              If a value is specified for this attribute, then it will be seperated with the attribute
+                              URI by two colomns "::" followed by the url-encoded value. Then the boosting factor is 
+                              delemited with a "^" character at the end of the encoded attribute's URI, or the encoded
+                              value followed by the boosting factor. Boosting a attribute/value only impacts the 
+                              scoring/relevancy of the returned results. This doesn't affect what is returned by the 
+                              endpoint in any ways, so this won't restrict results to be returned by the endpoint.
+                              Here is an example of a boosted attribute URI and another booster attribute URI with
+                              a particular value: 
+                              urlencode(attribute-uri-1)^30;urlencode(attribute-uri-2)::urlencode(some values)^300
+      @param $datasetsBoost Modifying the score of the results returned by the Search endpoint by boosting the results 
+                            that belongs to that dataset, and boosting it by the modifier weight that boost the overall 
+                            scoring algorithm. The datasets URI to boost are url-encoded and separated by semi-colomns. The
+                            boosting factor is delemited with a "^" character at the end of the encoded dataset's URI
+                            followed by the boosting factor. Boosting a type only impacts the scoring/relevancy of the
+                            returned results. This doesn't affect what is returned by the endpoint in any ways, so this 
+                            won't restrict results to be returned by the endpoint.Here is an example of two boosted 
+                            datasets: urlencode(dataset-uri-1)^30;urlencode(dataset-uri-2)^300
 
       @return returns NULL
     
@@ -392,7 +432,8 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
                        $includeAttributesList = "", $aggregate_attributes_object_type = "literal",
                        $aggregate_attributes_nb = 10, $resultsLocationAggregator = "",
                        $interface = 'default', $requestedInterfaceVersion = "", $lang = "en",
-                       $sort = "", $extendedFilters = "")
+                       $sort = "", $extendedFilters = "", $typesBoost = "", $attributesBoost = "",
+                       $datasetsBoost = "")
   {
     parent::__construct();
  
@@ -413,6 +454,9 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
     
     $this->extendedFilters = $extendedFilters;
     
+    $this->typesBoost = $typesBoost;
+    $this->attributesBoost = $attributesBoost;
+    $this->datasetsBoost = $datasetsBoost;
     
     if(strtolower($interface) == "default")
     {

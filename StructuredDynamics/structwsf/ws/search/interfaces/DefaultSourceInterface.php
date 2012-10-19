@@ -84,6 +84,78 @@
       return(FALSE);
     }  
     
+    private function isCoreAttribute($attribute, &$coreAttributeField)
+    {
+      switch(strtolower($attribute))
+      {
+        case "dataset":
+          $coreAttributeField = "dataset";
+          return(TRUE);
+        break;  
+        
+        case "preflabel":
+        case Namespaces::$iron."prefLabel":
+          $coreAttributeField = "prefLabel_".$this->ws->lang;
+          return(TRUE);
+        break;
+        
+        case "altlabel":
+        case Namespaces::$iron."altLabel":
+          $coreAttributeField = "altLabel_".$this->ws->lang;
+          return(TRUE);
+        break;
+        
+        case "description":
+        case Namespaces::$iron."description":
+          $coreAttributeField = "description_".$this->ws->lang;
+          return(TRUE);
+        break;
+        
+        case "lat":
+        case Namespaces::$geo."lat":
+          $coreAttributeField = "lat";
+          return(TRUE);
+        break;
+        
+        case "long":
+        case Namespaces::$geo."long":
+          $coreAttributeField = "long";
+          return(TRUE);
+        break;
+        
+        case "polygoncoordinates":
+        case Namespaces::$sco."polygonCoordinates":              
+          $coreAttributeField = "polygonCoordinates";
+          return(TRUE);
+        break;
+        
+        case "polylinecoordinates":
+        case Namespaces::$sco."polylineCoordinates":
+          $coreAttributeField = "polylineCoordinates";
+          return(TRUE);
+        break;
+        
+        case "type":
+        case Namespaces::$rdf."type":
+          $coreAttributeField = "type";
+          return(TRUE);
+        break;
+        
+        case "inferred_type":
+          $coreAttributeField = "inferred_type";
+          return(TRUE);
+        break;
+                    
+        case "located_in":
+        case Namespaces::$geoname."locatedIn":
+          $coreAttributeField = "located_in";
+          return(TRUE);
+        break;
+      }      
+      
+      return(FALSE);
+    }
+    
     public function processInterface()
     {  
       // Make sure there was no conneg error prior to this process call
@@ -214,8 +286,168 @@
           //$distanceQueryRevelencyBooster = '^0 AND _val_:"recip(dist(2, lat, long, '.$this->ws->resultsLocationAggregator[0].', '.$this->ws->resultsLocationAggregator[1].'), 1, 1, 0)"^100';  
           $distanceQueryRevelencyBooster = '^0 AND _val_:"recip(geodist(geohash, '.$this->ws->resultsLocationAggregator[0].', '.$this->ws->resultsLocationAggregator[1].'), 1, 1, 0)"^100';  
         }
+        
+        $boostingRules = "";
+        if($this->ws->typesBoost != "" ||
+           $this->ws->attributesBoost != "" ||
+           $this->ws->datasetsBoost != "")
+        {
+           $boostingRules .= " OR (";
+                      
+           // Types boosting rules
+           if($this->ws->typesBoost != "")
+           {
+             $boostRules = explode(";", $this->ws->typesBoost);
+             
+             foreach($boostRules as $key => $rule)
+             {
+               $boost = explode("^", $rule);
+               
+               $type = str_replace(array("%3B", "%5E"), array(";", "^"), $boost[0]);
+               $modifier = $boost[1];
+               
+               if($key > 0)
+               {
+                  $boostingRules .= " OR ";
+               }
+               
+               $boostingRules .= 'type:"'.urlencode($type).'"^'.$modifier;
+             }
+           }
 
-        $solrQuery = "q=".$queryParam.$distanceQueryRevelencyBooster.
+           // Datasets boosting rules
+           if($this->ws->datasetsBoost != "")
+           {
+             $boostRules = explode(";", $this->ws->datasetsBoost);
+             
+             foreach($boostRules as $key => $rule)
+             {
+               $boost = explode("^", $rule);
+               
+               $dataset = str_replace(array("%3B", "%5E"), array(";", "^"), $boost[0]);
+               $modifier = $boost[1];
+               
+               if($key > 0)
+               {
+                  $boostingRules .= " OR ";
+               }
+               
+               $boostingRules .= 'dataset:"'.urlencode($dataset).'"^'.$modifier;
+             }
+           }
+
+           // Attributes & Attributes/values boosting rules
+           if($this->ws->attributesBoost != "")
+           {
+             $boostRules = explode(";", $this->ws->attributesBoost);
+             
+             foreach($boostRules as $key => $rule)
+             {
+               $isAttributeValue = FALSE;
+               
+               if(strpos($rule, '::') !== FALSE)
+               {
+                 $isAttributeValue = TRUE;
+               }
+               
+               $boost = explode("^", $rule);
+               
+               $attribute = str_replace(array("%3B", "%5E"), array(";", "^"), $boost[0]);
+               $modifier = $boost[1];
+               
+               if($key > 0)
+               {
+                  $boostingRules .= " OR ";
+               }
+               
+               if($isAttributeValue)
+               {
+                 $attribute = explode("::", $attribute);
+                 
+                 $attributeValue = $attribute[1];
+                 $attribute = $attribute[0];
+                 
+                 $indexedFields = array();
+
+                 if(file_exists($this->ws->fields_index_folder."fieldsIndex.srz"))
+                 {
+                   $indexedFields = unserialize(file_get_contents($this->ws->fields_index_folder."fieldsIndex.srz"));
+                 }                 
+                 
+                 // Fix the reference to some of the core attributes                 
+                 $isCoreAttribute = $this->isCoreAttribute($attribute, $attribute);
+                  
+                 // If it is not a core attribute, check if we have to make that attribute
+                 // single-valued. We check that by checking if a single_valued version
+                 // of that field is currently used in the Solr index.              
+                 $singleValuedDesignator = "";
+
+                 if(!$isCoreAttribute &&                  
+                    array_search(urlencode($attribute."_attr_".$this->ws->lang."_single_valued"), $indexedFields) !== FALSE)
+                 {
+                   $singleValuedDesignator = "_single_valued";
+                 }  
+                  
+                 $attributeFound = FALSE;
+                  
+                 // Get the Solr field ID for this attribute
+                 if(!$isCoreAttribute)
+                 {
+                   // Check if it is an object property, and check if the pattern of this object property
+                   // is using URIs as values
+                   $valuesAsURI = FALSE;
+                   
+                   if(stripos($attribute, "[uri]") !== FALSE)
+                   {
+                     $valuesAsURI = TRUE;
+                     $attribute = str_replace("[uri]", "", $attribute);
+                   }
+                    
+                   $attribute = urlencode($attribute);
+                   
+                   if(array_search($attribute."_attr_".$this->ws->lang.$singleValuedDesignator, $indexedFields) !== FALSE && $valuesAsURI === FALSE)
+                   {              
+                     $attribute = urlencode($attribute)."_attr_".$this->ws->lang.$singleValuedDesignator;
+                   }
+                   elseif(array_search($attribute."_attr_date".$singleValuedDesignator, $indexedFields) !== FALSE)
+                   {              
+                     $attribute = urlencode($attribute)."_attr_date".$singleValuedDesignator;
+                   }
+                   elseif(array_search($attribute."_attr_int".$singleValuedDesignator, $indexedFields) !== FALSE)
+                   {              
+                     $attribute = urlencode($attribute)."_attr_int".$singleValuedDesignator;
+                   }
+                   elseif(array_search($attribute."_attr_float".$singleValuedDesignator, $indexedFields) !== FALSE)
+                   {              
+                     $attribute = urlencode($attribute)."_attr_float".$singleValuedDesignator;
+                   }
+                   elseif(array_search($attribute."_attr_obj_".$this->ws->lang.$singleValuedDesignator, $indexedFields) !== FALSE)
+                   {      
+                     // Check if the value of that filter is a URI or not.
+                     if($valuesAsURI)
+                     {
+                       $attribute = urlencode($attribute)."_attr_obj_uri";  
+                     } 
+                     else
+                     {
+                       $attribute = urlencode($attribute)."_attr_obj_".$this->ws->lang.$singleValuedDesignator;
+                     }                                       
+                   }                    
+                 }                 
+                 
+                 $boostingRules .= $attribute.':"'.urlencode($attributeValue).'"^'.$modifier;
+               }
+               else
+               {
+                 $boostingRules .= 'attribute:"'.urlencode($attribute).'"^'.$modifier;
+               }
+             }
+           }
+           
+           $boostingRules .= ")";
+        }
+
+        $solrQuery = "q=".$queryParam.$distanceQueryRevelencyBooster.$boostingRules.
                      "&start=" . $this->ws->page . 
                      "&rows=" . $this->ws->items .
                      (strtolower($this->ws->includeAggregates) == "true" ? 
@@ -353,89 +585,9 @@
             }
             
             // Fix the reference to some of the core attributes
-            $isCoreAttribute = FALSE;
             $coreAttribute = "";
             
-            switch(strtolower($attribute))
-            {
-              case "dataset":
-                $coreAttribute = "dataset";
-                $isCoreAttribute = TRUE;
-              break;  
-              
-              case "preflabel":
-              case Namespaces::$iron."prefLabel":
-                $coreAttribute = "prefLabel_".$this->ws->lang;
-                $isCoreAttribute = TRUE;
-              break;
-              
-              case "altlabel":
-              case Namespaces::$iron."altLabel":
-                $coreAttribute = "altLabel_".$this->ws->lang;
-                $isCoreAttribute = TRUE;
-              break;
-              
-              case "description":
-              case Namespaces::$iron."description":
-                $coreAttribute = "description_".$this->ws->lang;
-                $isCoreAttribute = TRUE;
-              break;
-              
-              case "lat":
-              case Namespaces::$geo."lat":
-                if(!is_numeric(urldecode($attributeValue[1])))
-                {
-                  // If the value is not numeric, we skip that attribute/value. 
-                  // Otherwise an exception will be raised by Solr.
-                  continue;
-                }
-                              
-                $coreAttribute = "lat";
-                $isCoreAttribute = TRUE;
-              break;
-              
-              case "long":
-              case Namespaces::$geo."long":
-                if(!is_numeric(urldecode($attributeValue[1])))
-                {
-                  // If the value is not numeric, we skip that attribute/value. 
-                  // Otherwise an exception will be raised by Solr.
-                  continue;
-                }
-                
-                $coreAttribute = "long";
-                $isCoreAttribute = TRUE;
-              break;
-              
-              case "polygoncoordinates":
-              case Namespaces::$sco."polygonCoordinates":              
-                $coreAttribute = "polygonCoordinates";
-                $isCoreAttribute = TRUE;
-              break;
-              
-              case "polylinecoordinates":
-              case Namespaces::$sco."polylineCoordinates":
-                $coreAttribute = "polylineCoordinates";
-                $isCoreAttribute = TRUE;
-              break;
-              
-              case "type":
-              case Namespaces::$rdf."type":
-                $coreAttribute = "type";
-                $isCoreAttribute = TRUE;
-              break;
-              
-              case "inferred_type":
-                $coreAttribute = "inferred_type";
-                $isCoreAttribute = TRUE;
-              break;
-                          
-              case "located_in":
-              case Namespaces::$geoname."locatedIn":
-                $coreAttribute = "located_in";
-                $isCoreAttribute = TRUE;
-              break;
-            }
+            $isCoreAttribute = $this->isCoreAttribute($attribute, $coreAttribute);
             
             // If it is not a core attribute, check if we have to make that attribute
             // single-valued. We check that by checking if a single_valued version
@@ -557,13 +709,13 @@
             if(isset($attributeValue[1]) && $attributeValue[1] != "")
             {
               // Fix the reference to some of the core attributes
-              $coreAttr = FALSE;
-              switch($attribute)
+              $coreAttr = $this->isCoreAttribute($attribute, $attribute);
+              
+              // Special handling for some core attributes
+              switch($attributeValue[0])
               {
+                case "prefLabel":
                 case Namespaces::$iron."prefLabel":
-                  $attribute = "prefLabel_".$this->ws->lang;
-                  $coreAttr = TRUE;
-                  
                   // Check if we are performing an autocompletion task on the pref label
                   $label = urldecode($attributeValue[1]);
                   if(substr($label, strlen($label) - 2) == "**")
@@ -572,17 +724,8 @@
                     $attributeValue[1] = urlencode(strtolower(str_replace(" ", "\\ ", substr($label, 0, strlen($label) -1))));
                   }
                 break;
-                
-                case Namespaces::$iron."altLabel":
-                  $attribute = "altLabel_".$this->ws->lang;
-                  $coreAttr = TRUE;
-                break;
-                
-                case Namespaces::$iron."description":
-                  $attribute = "description_".$this->ws->lang;
-                  $coreAttr = TRUE;
-                break;
-                
+
+                case "lat":
                 case Namespaces::$geo."lat":
                   if(!is_numeric(urldecode($attributeValue[1])))
                   {
@@ -590,11 +733,9 @@
                     // Otherwise an exception will be raised by Solr.
                     continue;
                   }
-                                
-                  $attribute = "lat";
-                  $coreAttr = TRUE;
                 break;
-                
+
+                case "long":                
                 case Namespaces::$geo."long":
                   if(!is_numeric(urldecode($attributeValue[1])))
                   {
@@ -602,29 +743,6 @@
                     // Otherwise an exception will be raised by Solr.
                     continue;
                   }
-                  
-                  $attribute = "long";
-                  $coreAttr = TRUE;
-                break;
-                
-                case Namespaces::$sco."polygonCoordinates":              
-                  $attribute = "polygonCoordinates";
-                  $coreAttr = TRUE;
-                break;
-                
-                case Namespaces::$sco."polylineCoordinates":
-                  $attribute = "polylineCoordinates";
-                  $coreAttr = TRUE;
-                break;
-                
-                case Namespaces::$rdf."type":
-                  $attribute = "type";
-                  $coreAttr = TRUE;
-                break;
-                
-                case Namespaces::$geoname."locatedIn":
-                  $attribute = "located_in";
-                  $coreAttr = TRUE;
                 break;
               }            
 

@@ -56,6 +56,15 @@ if(isset($_POST['types']))
   $types = $_POST['types'];
 }
 
+// Types boost
+$typesBoost = "";
+
+if(isset($_POST['types_boost']))
+{
+  $typesBoost = $_POST['types_boost'];
+}
+
+
 // Global boolean operator
 $attributesBooleanOperator = "and";
 
@@ -72,6 +81,14 @@ if(isset($_POST['attributes']))
   $attributes = $_POST['attributes'];
 }
 
+// Attributes boost
+$attributesBoost = "";
+
+if(isset($_POST['attributes_boost']))
+{
+  $attributesBoost = $_POST['attributes_boost'];
+}
+
 // Extended Filters
 $extendedFilters = "";
 
@@ -80,12 +97,20 @@ if(isset($_POST['extended_filters']))
   $extendedFilters = $_POST['extended_filters'];
 }
 
-// Filtering types
+// Filtering datasets
 $datasets = "all";
 
 if(isset($_POST['datasets']))
 {
   $datasets = $_POST['datasets'];
+}
+
+// Datasets boost
+$datasetsBoost = "";
+
+if(isset($_POST['datasets_boost']))
+{
+  $datasetsBoost = $_POST['datasets_boost'];
 }
 
 // Number of items to return
@@ -234,7 +259,7 @@ $ws_s = new Search($query, $types, $attributes, $datasets, $items, $page, $infer
                    $registered_ip, $requester_ip, $distanceFilter, $rangeFilter, $aggregate_attributes, 
                    $attributesBooleanOperator, $includeAttributesList,$aggregateAttributesObjectType,
                    $aggregateAttributesNb, $resultsLocationAggregator, $interface, $version, $lang,
-                   $sort, $extendedFilters);
+                   $sort, $extendedFilters, $typesBoost, $attributesBoost, $datasetsBoost);
 
 $ws_s->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                  (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

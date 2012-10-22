@@ -396,7 +396,7 @@
           Validate all graphs of the query. If one of the graph is not accessible to the system, we just return
           and error for this SPARQL query.  
         */
-        if(registered_ip != requester_ip)
+        if($this->ws->registered_ip != $this->ws->requester_ip)
         {
           foreach($graphs as $graph)
           {

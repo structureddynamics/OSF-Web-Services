@@ -86,7 +86,7 @@
     
     private function isCoreAttribute($attribute, &$coreAttributeField)
     {
-      switch(strtolower($attribute))
+      switch($attribute)
       {
         case "dataset":
           $coreAttributeField = "dataset";
@@ -94,12 +94,14 @@
         break;  
         
         case "preflabel":
+        case "prefLabel":
         case Namespaces::$iron."prefLabel":
           $coreAttributeField = "prefLabel_".$this->ws->lang;
           return(TRUE);
         break;
         
         case "altlabel":
+        case "altLabel":
         case Namespaces::$iron."altLabel":
           $coreAttributeField = "altLabel_".$this->ws->lang;
           return(TRUE);
@@ -124,12 +126,14 @@
         break;
         
         case "polygoncoordinates":
+        case "polygonCoordinates":
         case Namespaces::$sco."polygonCoordinates":              
           $coreAttributeField = "polygonCoordinates";
           return(TRUE);
         break;
         
         case "polylinecoordinates":
+        case "polylineCoordinates":
         case Namespaces::$sco."polylineCoordinates":
           $coreAttributeField = "polylineCoordinates";
           return(TRUE);
@@ -293,6 +297,8 @@
            $this->ws->datasetsBoost != "")
         {
            $boostingRules .= " OR (";
+           
+           $insertOR = FALSE;
                       
            // Types boosting rules
            if($this->ws->typesBoost != "")
@@ -312,7 +318,14 @@
                }
                
                $boostingRules .= 'type:"'.urlencode($type).'"^'.$modifier;
+               
+               if(strtolower($this->ws->inference) == "on")
+               {
+                 $boostingRules .= 'OR inferred_type:"'.urlencode($type).'"^'.$modifier;
+               }
              }
+             
+             $insertOR = TRUE;
            }
 
            // Datasets boosting rules
@@ -322,6 +335,11 @@
              
              foreach($boostRules as $key => $rule)
              {
+               if($key == 0 && $insertOR)
+               {
+                 $boostingRules .= " OR ";
+               }
+               
                $boost = explode("^", $rule);
                
                $dataset = str_replace(array("%3B", "%5E"), array(";", "^"), $boost[0]);
@@ -334,6 +352,8 @@
                
                $boostingRules .= 'dataset:"'.urlencode($dataset).'"^'.$modifier;
              }
+             
+             $insertOR = TRUE;
            }
 
            // Attributes & Attributes/values boosting rules
@@ -343,6 +363,11 @@
              
              foreach($boostRules as $key => $rule)
              {
+               if($key == 0 && $insertOR)
+               {
+                 $boostingRules .= " OR ";
+               }
+               
                $isAttributeValue = FALSE;
                
                if(strpos($rule, '::') !== FALSE)
@@ -712,7 +737,7 @@
               $coreAttr = $this->isCoreAttribute($attribute, $attribute);
               
               // Special handling for some core attributes
-              switch($attributeValue[0])
+              switch(urldecode($attributeValue[0]))
               {
                 case "prefLabel":
                 case Namespaces::$iron."prefLabel":
@@ -1035,7 +1060,7 @@
                   $solrQuery .= " OR ";
                 }
                 
-                $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj_".$this->ws->lang.$singleValuedDesignator.":".urlencode($this->escapeSolrValue($val)).")";
+                $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj_".$this->ws->lang.$singleValuedDesignator.":".urlencode($val).")";
                 $addOR = TRUE;
                 $empty = FALSE;
               }
@@ -1047,7 +1072,7 @@
                   $solrQuery .= " OR ";
                 }
                 
-                $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj_uri:".urlencode($this->escapeSolrValue($val)).")";
+                $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj_uri:".urlencode($this->escapeURIValue($val)).")";
                 $addOR = TRUE;
                 $empty = FALSE;
               }   
@@ -1165,8 +1190,8 @@
         {
           foreach($this->ws->aggregateAttributes as $attribute)
           {
-            $solrQuery .= "&facet.field=".urlencode($attribute);
-            $solrQuery .= "&f.".urlencode($attribute).".facet.limit=".$this->ws->aggregateAttributesNb;
+            $solrQuery .= "&facet.field=".urlencode(urlencode($attribute));
+            $solrQuery .= "&f.".urlencode(urlencode($attribute)).".facet.limit=".$this->ws->aggregateAttributesNb;
           }
         }
         
@@ -1269,7 +1294,7 @@
             $solrQuery = rtrim($solrQuery, ",");
           }
         }
-
+file_put_contents("/tmp/search.log", $solrQuery);
         $resultset = $solr->select($solrQuery);
         
         if($resultset === FALSE)
@@ -1360,7 +1385,7 @@
         // Set all the attributes/values aggregates
         foreach($this->ws->aggregateAttributes as $attribute)
         {
-          $founds = $xpath->query("//*/lst[@name='facet_fields']//lst[@name='$attribute']/int");
+          $founds = $xpath->query("//*/lst[@name='facet_fields']//lst[@name='".urlencode($attribute)."']/int");
 
           foreach($founds as $found)
           {

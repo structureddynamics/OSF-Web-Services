@@ -1294,7 +1294,7 @@
             $solrQuery = rtrim($solrQuery, ",");
           }
         }
-file_put_contents("/tmp/search.log", $solrQuery);
+
         $resultset = $solr->select($solrQuery);
         
         if($resultset === FALSE)

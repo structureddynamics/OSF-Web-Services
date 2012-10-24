@@ -484,9 +484,13 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
         {
           $aas[$i] = $aas[$i]."_attr_obj_uri";
         }
-        else // "literal" and all other unknown type
+        elseif($this->aggregateAttributesObjectType == "literal")
         {
           $aas[$i] = $aas[$i]."_attr_facets";
+        }
+        elseif($this->aggregateAttributesObjectType == "uriliteral")
+        {
+          $aas[$i] = $aas[$i]."_attr_uri_label_facets";
         }
       }
       

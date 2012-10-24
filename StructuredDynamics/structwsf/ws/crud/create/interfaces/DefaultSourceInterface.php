@@ -951,6 +951,7 @@
                           $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_uri\">" . $this->ws->xmlEncode($value["value"]) . "</field>";
                           $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode($predicate) . "</field>";
                           $add .= "<field name=\"" . urlencode($predicate) . "_attr_facets\">" . $this->ws->xmlEncode($labels) . "</field>";                        
+                          $add .= "<field name=\"" . urlencode($predicate) . "_attr_uri_label_facets\">" . $this->ws->xmlEncode($value["value"]) .'::'. $this->ws->xmlEncode($labels) . "</field>";                        
                         }
                         else
                         {
@@ -992,6 +993,7 @@
                           $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_uri\">" . $this->ws->xmlEncode($value["value"]) . "</field>";
                           $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode($predicate) . "</field>";
                           $add .= "<field name=\"" . urlencode($predicate) . "_attr_facets\">" . $this->ws->xmlEncode($temporaryLabel) . "</field>";
+                          $add .= "<field name=\"" . urlencode($predicate) . "_attr_uri_label_facets\">" . $this->ws->xmlEncode($value["value"]) .'::'. $this->ws->xmlEncode($temporaryLabel) . "</field>";                        
                         }
 
                         /* 

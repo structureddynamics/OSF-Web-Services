@@ -1391,15 +1391,22 @@
           {
             $subject = new Subject($this->ws->uri . "aggregate/" . md5(microtime()));
             $subject->setType(Namespaces::$aggr."Aggregate");
-            $subject->setObjectAttribute(Namespaces::$aggr."property", str_replace(array("_attr_facets", "_attr_obj_uri"), "", urldecode($attribute)));
+            $subject->setObjectAttribute(Namespaces::$aggr."property", str_replace(array("_attr_uri_label_facets","_attr_facets", "_attr_obj_uri"), "", urldecode($attribute)));
             
             if($this->ws->aggregateAttributesObjectType == "uri")
             {          
               $subject->setObjectAttribute(Namespaces::$aggr."object", $found->attributes->getNamedItem("name")->nodeValue);
             }
-            else
+            elseif($this->ws->aggregateAttributesObjectType == "literal")
             {
               $subject->setDataAttribute(Namespaces::$aggr."object", $found->attributes->getNamedItem("name")->nodeValue);
+            }
+            elseif($this->ws->aggregateAttributesObjectType == "uriliteral")
+            {
+              $values = explode("::", $found->attributes->getNamedItem("name")->nodeValue);
+              
+              $subject->setObjectAttribute(Namespaces::$aggr."object", $values[0]);
+              $subject->setDataAttribute(Namespaces::$aggr."object", $values[1]);
             }
             
             $subject->setDataAttribute(Namespaces::$aggr."count", $found->nodeValue);

@@ -947,7 +947,7 @@
    <dynamicField name="*_attr_obj_en_single_valued"  type="text_en"  indexed="true"  stored="true" multiValued="true"/>   
    
    <!-- URI value of the attribute defined by the dynamic field -->
-   <dynamicField name="*_attr_obj_uri"  type="text_general"  indexed="true"  stored="true" multiValued="true"/>   
+   <dynamicField name="*_attr_obj_uri"  type="string"  indexed="true"  stored="true" multiValued="true"/>   
 
    <!-- Unmodified version of the values of the attributes used for faceting purposes -->
    <dynamicField name="*_attr_facets"  type="string"  indexed="true"  stored="false" multiValued="true"/>      

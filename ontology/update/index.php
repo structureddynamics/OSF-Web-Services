@@ -179,7 +179,7 @@ switch(strtolower($function))
       $advancedIndexation = TRUE;
     }
   
-    $ws_ontologyupdate->updateEntityUri($parameters["olduri"], $parameters["newuri"]);
+    $ws_ontologyupdate->updateEntityUri($parameters["olduri"], $parameters["newuri"], $advancedIndexation);
   break;
   
 

@@ -105,9 +105,9 @@ if(isset($_GET['registered_ip']))
 {
   $registered_ip = $_GET['registered_ip'];
 }
-elseif(isset($_POST['include_attributes_list']))
+elseif(isset($_POST['registered_ip']))
 {
-  $registered_ip = $_GET['include_attributes_list'];
+  $registered_ip = $_POST['registered_ip'];
 }
 
 $mtime = microtime();

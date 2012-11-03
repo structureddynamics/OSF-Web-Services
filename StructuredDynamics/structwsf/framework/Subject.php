@@ -236,18 +236,44 @@ class Subject
   /**
   * Get the preferred label of this subject
   *
-  * @return Returns the preferred label. Returns an empty string if there is none.
+  * @param $force Force a preferred to be returned. If this parameter is TRUE (default) then
+  *               in the worsecase, getPrefLabel() will return the subject's URI fragment
+  *               as the pref label if nothing else is defined for it.
+  * 
+  * @return Returns the preferred label. Returns an empty string if there is none and if $force is FALSE.
   *
   * @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function getPrefLabel()
+  function getPrefLabel($force = TRUE)
   {
     if(isset($this->description["prefLabel"]))
     {
       return($this->description["prefLabel"]);
     }
 
-    return("");
+    if($force)
+    {
+      // Else, return URI's ending
+      $pos = strripos($this->uri, "#");
+
+      if($pos === FALSE)
+      {
+        $pos = strripos($this->uri, "/");
+      }
+
+      if($pos !== FALSE)
+      {
+        $pos++;
+      }
+
+      $label = substr($this->uri, $pos, strlen($this->uri) - $pos);    
+      
+      return($label);
+    }
+    else
+    {
+      return("");
+    }
   }
 
   /**

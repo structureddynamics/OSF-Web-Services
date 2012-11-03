@@ -79,6 +79,43 @@ class Namespaces
         Namespaces::$skos_2008 . "altLabel",
         Namespaces::$geoname."name"));
   }  
+
+  /**
+  * Get the list of all properties's URI normally used to refer
+  * to a preferred label for a record
+  * 
+  * @author Frederick Giasson, Structured Dynamics LLC.
+  */
+  public static function getPrefLabelProperties()
+  {
+    return(array(
+        Namespaces::$iron . "prefLabel",
+        Namespaces::$dcterms . "title",
+        Namespaces::$dc . "title",
+        Namespaces::$doap . "name",
+        Namespaces::$foaf . "name",
+        Namespaces::$rdfs . "label",
+        Namespaces::$skos_2004 . "prefLabel",
+        Namespaces::$skos_2008 . "prefLabel",
+        Namespaces::$geoname."name"));
+  }  
+
+  /**
+  * Get the list of all properties's URI normally used to refer
+  * to an alternative label for a record
+  * 
+  * @author Frederick Giasson, Structured Dynamics LLC.
+  */
+  
+  public static function getAltLabelProperties()
+  {
+    return(array(
+        Namespaces::$iron . "altLabel",
+        Namespaces::$foaf . "givenName",
+        Namespaces::$foaf . "family_name",
+        Namespaces::$skos_2004 . "altLabel",
+        Namespaces::$skos_2008 . "altLabel"));
+  }  
           
   /**
   * Get the list of all properties's URI normally used to refer
@@ -140,6 +177,33 @@ class Namespaces
     return($uri);
   }
   
+  
+  /**
+  * Get the unprefixed version of a URI. 
+  * For example, "foaf:Person" would become "http://xmlns.com/foaf/0.1/Person"
+  * 
+  * @param mixed $prefixedUri Prefixed URI
+  * 
+  * @author Frederick Giasson, Structured Dynamics LLC.
+  */
+  public function getUnprefixedUri($prefixedUri)
+  {
+    $pos = strripos($prefixedUri, ":");
+    
+    if(!$pos)
+    {
+      return(FALSE);
+    }
+
+    $prefix = substr($prefixedUri, 0, $pos);
+    $fragment = substr($prefixedUri, $pos + 1);
+    
+    $baseUri = $this->getUri($prefix);
+    
+    return($baseUri . $fragment);
+  }
+    
+  
   /**                                        
   * Get the prefix representing the ontology where a URI come from.
   * For example, "http://xmlns.com/foaf/0.1/Person" would return "foaf"
@@ -189,7 +253,12 @@ class Namespaces
   */
   public function getUri($prefix)
   {
-    return($this->namespaces[$prefix]);
+    if(isset($this->namespaces[$prefix]))
+    {
+      return($this->namespaces[$prefix]);
+    }
+    
+    return(FALSE);
   }
   
   /**

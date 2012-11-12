@@ -138,18 +138,25 @@ class Resultset
   */
   public function addSubject($subject, $dataset = "")
   {
-    if($dataset == "")
+    if(get_class($subject) == 'Subject')
     {
-      $dataset = "unspecified";
-    }
-    
-    $uri = $subject->getUri();
-    
-    if(!isset($this->resultset[$dataset][$uri]))
-    {
-      $this->resultset[$dataset][$uri] = $subject->getSubject();
+      if($dataset == "")
+      {
+        $dataset = "unspecified";
+      }
       
-      return(TRUE);
+      $uri = $subject->getUri();
+      
+      if(!isset($this->resultset[$dataset][$uri]))
+      {
+        $this->resultset[$dataset][$uri] = $subject->getSubject();
+        
+        return(TRUE);
+      }
+      else
+      {
+        return(FALSE);
+      }
     }
     else
     {

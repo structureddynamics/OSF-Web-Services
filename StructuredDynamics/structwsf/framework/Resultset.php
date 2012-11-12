@@ -138,7 +138,7 @@ class Resultset
   */
   public function addSubject($subject, $dataset = "")
   {
-    if(get_class($subject) == 'Subject')
+    if(get_class($subject) == 'StructuredDynamics\structwsf\framework\Subject')
     {
       if($dataset == "")
       {

@@ -1118,6 +1118,7 @@
             $subject = new Subject($this->ws->ontologyUri);
             $subject->setType("owl:Ontology");
             $subject->setDataAttribute(Namespaces::$wsf."serializedIronXMLSchema", str_replace(array ("\\", "&", "<", ">"), array ("%5C", "&amp;", "&lt;", "&gt;"), $schema));
+            
             $this->ws->rset->addSubject($subject);          
             
   /*
@@ -1191,18 +1192,6 @@
                     $schema .= '"shortLabel": [';
                   break;
                   
-                  case Namespaces::$sco."minCardinality":
-                    $schema .= '"minCardinality": [';
-                  break;
-                  
-                  case Namespaces::$sco."maxCardinality":
-                    $schema .= '"maxCardinality": [';
-                  break;
-                  
-                  case Namespaces::$sco."cardinality":
-                    $schema .= '"cardinality": [';
-                  break;
-                  
                   case Namespaces::$sco."color":
                     $schema .= '"color": [';
                   break;
@@ -1255,18 +1244,6 @@
                     break;
                     
                     case Namespaces::$sco."shortLabel":
-                      $schema .= '"'.$this->ws->jsonEncode($value["value"]).'",';
-                    break;
-                    
-                    case Namespaces::$sco."minCardinality":
-                      $schema .= '"'.$this->ws->jsonEncode($value["value"]).'",';
-                    break;
-                    
-                    case Namespaces::$sco."maxCardinality":
-                      $schema .= '"'.$this->ws->jsonEncode($value["value"]).'",';
-                    break;
-                    
-                    case Namespaces::$sco."cardinality":
                       $schema .= '"'.$this->ws->jsonEncode($value["value"]).'",';
                     break;
                     
@@ -1359,18 +1336,6 @@
                     $schema .= '"shortLabel": [';
                   break;    
                     
-                  case Namespaces::$sco."minCardinality":
-                    $schema .= '"'.$this->ws->jsonEncode($value["value"]).'",';
-                  break;
-                  
-                  case Namespaces::$sco."maxCardinality":
-                    $schema .= '"'.$this->ws->jsonEncode($value["value"]).'",';
-                  break;
-                  
-                  case Namespaces::$sco."cardinality":
-                    $schema .= '"'.$this->ws->jsonEncode($value["value"]).'",';
-                  break;                  
-                  
                   case Namespaces::$sco."orderingValue":
                     $schema .= '"orderingValue": [';
                   break;  
@@ -1384,6 +1349,18 @@
                 {
                   switch($predicate)
                   {
+                    case Namespaces::$sco."minCardinality":
+                      $schema .= '"minCardinality": "'.$this->ws->jsonEncode($value["value"]).'",';
+                    break;
+                    
+                    case Namespaces::$sco."maxCardinality":
+                      $schema .= '"maxCardinality": "'.$this->ws->jsonEncode($value["value"]).'",';
+                    break;
+                    
+                    case Namespaces::$sco."cardinality":
+                      $schema .= '"cardinality": "'.$this->ws->jsonEncode($value["value"]).'",';
+                    break;                          
+                    
                     case Namespaces::$rdfs."domain":
                       $this->manageIronPrefixes($value["uri"], $prefixes);
                       
@@ -1429,18 +1406,6 @@
                     break;
                     
                     case Namespaces::$sco."shortLabel":
-                      $schema .= '"'.$this->ws->jsonEncode($value["value"]).'",';
-                    break;
-                                        
-                    case Namespaces::$sco."minCardinality":
-                      $schema .= '"'.$this->ws->jsonEncode($value["value"]).'",';
-                    break;
-                    
-                    case Namespaces::$sco."maxCardinality":
-                      $schema .= '"'.$this->ws->jsonEncode($value["value"]).'",';
-                    break;
-                    
-                    case Namespaces::$sco."cardinality":
                       $schema .= '"'.$this->ws->jsonEncode($value["value"]).'",';
                     break;
                     

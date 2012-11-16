@@ -354,15 +354,15 @@
         $propertyHierarchy->properties[$subProperty]->range = $rangeClasses;
         
         // Add minimum cardinality
-        if(isset($description[Namespaces::$sco."minCadinality"]))
+        if(isset($description[Namespaces::$sco."minCardinality"]))
         {
-          $propertyHierarchy->properties[$subProperty]->minCardinality = $description[Namespaces::$sco."minCadinality"][0]["value"];
+          $propertyHierarchy->properties[$subProperty]->minCardinality = $description[Namespaces::$sco."minCardinality"][0]["value"];
         }
         
         // Add maximum cardinality
-        if(isset($description[Namespaces::$sco."maxCadinality"]))
+        if(isset($description[Namespaces::$sco."maxCardinality"]))
         {
-          $propertyHierarchy->properties[$subProperty]->maxCardinality = $description[Namespaces::$sco."maxCadinality"][0]["value"];
+          $propertyHierarchy->properties[$subProperty]->maxCardinality = $description[Namespaces::$sco."maxCardinality"][0]["value"];
         }
         
         // Add absolute cardinality

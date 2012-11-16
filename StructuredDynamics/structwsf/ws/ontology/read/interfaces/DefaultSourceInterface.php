@@ -1117,7 +1117,7 @@
             
             $subject = new Subject($this->ws->ontologyUri);
             $subject->setType("owl:Ontology");
-            $subject->setDataAttribute(Namespaces::$wsf."serializedIronXMLSchema", str_replace(array ("\\", "&", "<", ">"), array ("%5C", "&amp;", "&lt;", "&gt;"), $schema));
+            $subject->setDataAttribute(Namespaces::$wsf."serializedIronXMLSchema", str_replace('&amp;', '&amp;amp;', str_replace(array ("\\", "&", "<", ">"), array ("%5C", "&amp;", "&lt;", "&gt;"), $schema)));
             
             $this->ws->rset->addSubject($subject);          
             

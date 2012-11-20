@@ -8,7 +8,9 @@
 
 */
 
-class Datasetypes
+namespace StructuredDynamics\structwsf\framework;
+
+class Datatypes
 {
   public static $uri = "xsd:anyURI";
   public static $literal = "rdfs:Literal";

@@ -8,6 +8,8 @@
 
 */
 
+namespace StructuredDynamics\structwsf\framework;
+
 /*
   As suggested ni RDF RFC 4646, these are the ISO639-1 language codes
 */

@@ -110,7 +110,7 @@ class PropertyHierarchy
     else
     {
       // Otherwise we have a new node to add to the structure.
-      $newProperty = new PropertyNode($property, $superProperty);
+      $newProperty = new PropertyNode($property, "");
       $this->properties[$property] = $newProperty;
 
       $superProperty = $this->properties[$subPropertyOf];

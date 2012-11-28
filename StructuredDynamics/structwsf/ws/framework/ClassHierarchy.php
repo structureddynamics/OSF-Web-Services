@@ -111,7 +111,7 @@ class ClassHierarchy
     else
     {
       // Otherwise we have a new node to add to the structure.
-      $newClass = new ClassNode($class, $superClass);
+      $newClass = new ClassNode($class, "");
       $this->classes[$class] = $newClass;
 
       $superClass = $this->classes[$subClassOf];

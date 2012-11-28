@@ -8,7 +8,7 @@
   use \StructuredDynamics\structwsf\ws\framework\Solr;
   use \StructuredDynamics\structwsf\framework\Subject;
   use \StructuredDynamics\structwsf\ws\auth\lister\AuthLister;
-  use \StructuredDynamics\structwsf\framework\Datasetypes;
+  use \StructuredDynamics\structwsf\framework\Datatypes;
   use \DOMDocument;
   use \DOMXPath;  
   
@@ -1561,7 +1561,7 @@
 
                 foreach($values as $value)
                 {
-                  $subject->setDataAttribute($attributeURI, $value->nodeValue, Datasetypes::$date);
+                  $subject->setDataAttribute($attributeURI, $value->nodeValue, Datatypes::$date);
                 }
               break;
               
@@ -1570,7 +1570,7 @@
 
                 foreach($values as $value)
                 {
-                  $subject->setDataAttribute($attributeURI, $value->nodeValue, Datasetypes::$int);
+                  $subject->setDataAttribute($attributeURI, $value->nodeValue, Datatypes::$int);
                 }
               break;
 
@@ -1579,7 +1579,7 @@
 
                 foreach($values as $value)
                 {
-                  $subject->setDataAttribute($attributeURI, $value->nodeValue, Datasetypes::$float);
+                  $subject->setDataAttribute($attributeURI, $value->nodeValue, Datatypes::$float);
                 }
               break;
 
@@ -1652,7 +1652,7 @@
             
             if($attributeType == "_attr_date_single_valued")
             {
-              $subject->setDataAttribute($attributeURI, $value->nodeValue, Datasetypes::$date);
+              $subject->setDataAttribute($attributeURI, $value->nodeValue, Datatypes::$date);
             }
           }          
           
@@ -1671,7 +1671,7 @@
             
             if($attributeType == "_attr_int_single_valued")
             {
-              $subject->setDataAttribute($attributeURI, $value->nodeValue, Datasetypes::$date);
+              $subject->setDataAttribute($attributeURI, $value->nodeValue, Datatypes::$date);
             }
           } 
           
@@ -1690,7 +1690,7 @@
             
             if($attributeType == "_attr_float_single_valued")
             {
-              $subject->setDataAttribute($attributeURI, $value->nodeValue, Datasetypes::$date);
+              $subject->setDataAttribute($attributeURI, $value->nodeValue, Datatypes::$date);
             }
           } 
           

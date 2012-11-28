@@ -252,7 +252,9 @@ class Sparql extends \StructuredDynamics\structwsf\ws\framework\WebService
   {
     parent::__destruct();
 
-    if(isset($this->db))
+    // If we are in pipeline mode, then we *don't* close the ODBC connection.
+    // If we are *not* then we have to close the connection.
+    if(isset($this->db) && !$this->isInPipelineMode)
     {
       @$this->db->close();
     }
@@ -397,8 +399,12 @@ class Sparql extends \StructuredDynamics\structwsf\ws\framework\WebService
       @author Frederick Giasson, Structured Dynamics LLC.
   */
   public function pipeline_conneg($accept, $accept_charset, $accept_encoding, $accept_language)
-    { $this->ws_conneg($accept, $accept_charset, $accept_encoding, $accept_language); }
-
+  {     
+    $this->ws_conneg($accept, $accept_charset, $accept_encoding, $accept_language); 
+    
+    $this->isInPipelineMode = TRUE;
+  }
+  
   /** Returns the response HTTP header status
 
       @return returns the response HTTP header status

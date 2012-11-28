@@ -162,6 +162,12 @@ abstract class WebService
       @see http://techwiki.openstructs.org/index.php/Internal_Resultset_Array */
   protected $rset;
   
+  /**
+  * Determines if the WebService instance is in pipeline mode or if it got directly
+  * called as a web service endpoint.
+  */
+  protected $isInPipelineMode = FALSE;
+  
   /** 
   * Version of the Web Service Endpoint API  
   * 
@@ -665,7 +671,7 @@ abstract class WebService
       @author Frederick Giasson, Structured Dynamics LLC.
   */
   protected function serializations()
-  {
+  {      
     switch($this->conneg->getMime())
     {
       case "text/xml":
@@ -706,7 +712,7 @@ abstract class WebService
       @author Frederick Giasson, Structured Dynamics LLC.
   */
   public function ws_respond($content)
-  {
+  {                                                                                             
     // First send the header of the request
     $this->conneg->respond();
 
@@ -719,7 +725,40 @@ abstract class WebService
       // web service endpoint. 
       ob_clean();
       
-      echo $content;
+      if(empty($content))
+      {
+        switch($this->conneg->getMime())
+        {
+          case "application/rdf+xml":
+          case "application/xhtml+rdfa":
+          case "text/rdf+n3":
+          case "text/xml":
+          case "text/html":
+          case "application/sparql-results+xml":
+          case "application/rdf+n3":
+            echo '<resultset />';
+          break;
+
+          case "application/sparql-results+json":
+          case "application/json":
+          case "application/iron+json":
+          case "application/bib+json":
+          case "application/rdf+json":
+            echo '{"resultset": {}}';
+          break;
+
+          case "text/tsv":
+          case "text/csv":
+          case "application/iron+csv":
+          case "application/x-bibtex":
+            echo ' ';
+          break;          
+        }
+      }
+      else
+      {
+        echo $content;  
+      }      
     }
 
     $this->__destruct();

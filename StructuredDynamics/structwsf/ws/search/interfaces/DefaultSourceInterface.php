@@ -1540,6 +1540,13 @@
             // Get the URI of the attribute
             $attributeURI = urldecode(str_replace($attributeType, "", $attribute));
             
+            // Exclude the attributes that have to be ignored by the Search endpoint
+            // when creating the new resultset.
+            if(array_search($attributeURI, $this->ws->searchExcludedAttributes) !== FALSE)
+            {
+              continue;
+            }
+            
             if($attributeURI == Namespaces::$rdf."type")
             {
               continue;

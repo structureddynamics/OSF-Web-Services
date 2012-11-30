@@ -155,6 +155,13 @@ abstract class WebService
   */
   protected $supportedLanguages = array("en");
   
+  /**
+  * Exclude a list of properties to be returned by the Search web service endpoint. 
+  * All these attributes will be created, updated and returned by Solr, but they won't
+  * be returned in the Search web service endpoint resultset.
+  */
+  protected $searchExcludedAttributes = array();
+  
   /** Name of the source interface to use for this web service query */
   protected $interface = "default";
 
@@ -399,6 +406,11 @@ abstract class WebService
       }      
     } 
     
+    if(isset($network_ini["search"]["exclude_attributes"]))  
+    {
+      $this->searchExcludedAttributes = $network_ini["search"]["exclude_attributes"];
+    }
+
     if(isset($network_ini["lang"]["supported_languages"]))  
     {
       $this->supportedLanguages = $network_ini["lang"]["supported_languages"];

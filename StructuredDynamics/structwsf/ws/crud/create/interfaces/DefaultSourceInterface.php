@@ -879,7 +879,7 @@
                         // If it is an object property, we want to bind labels of the resource referenced by that
                         // object property to the current resource. That way, if we have "paul" -- know --> "bob", and the
                         // user send a seach query for "bob", then "paul" will be returned as well.
-                        $query = $this->ws->db->build_sparql_query("select ?p ?o from <" . $this->ws->dataset . "> where {<"
+                        $query = $this->ws->db->build_sparql_query("select ?p ?o where {<"
                           . $value["value"] . "> ?p ?o.}", array ('p', 'o'), FALSE);
 
                         $resultset3 = $this->ws->db->query($query);
@@ -917,18 +917,9 @@
                         {
                           $newFields = TRUE;
                         }
-                        
-                        // Let's check if this URI refers to a know class record in the ontological structure.
-                        if($labels == "")                                                                                       
-                        {
-                          if(isset($classHierarchy->classes[$value["value"]]))
-                          {
-                            $labels .= $classHierarchy->classes[$value["value"]]->label." ";
-                          }
-                        }
 
                         $property = $propertyHierarchy->getProperty($predicate);
-                        
+
                         if($labels != "")
                         {
                           // Check if the property is defined as a cardinality of maximum 1

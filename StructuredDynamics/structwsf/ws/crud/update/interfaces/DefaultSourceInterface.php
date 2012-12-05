@@ -948,7 +948,7 @@
                     // If it is an object property, we want to bind labels of the resource referenced by that
                     // object property to the current resource. That way, if we have "paul" -- know --> "bob", and the
                     // user send a seach query for "bob", then "paul" will be returned as well.
-                    $query = $this->ws->db->build_sparql_query("select ?p ?o from <" . $this->ws->dataset . "> where {<"
+                    $query = $this->ws->db->build_sparql_query("select ?p ?o where {<"
                       . $value["value"] . "> ?p ?o.}", array ('p', 'o'), FALSE);
 
                     $resultset3 = $this->ws->db->query($query);
@@ -987,41 +987,32 @@
                       $newFields = TRUE;
                     }
                     
-                    // Let's check if this URI refers to a know class record in the ontological structure.
-                    if($labels == "")                                                                                       
+                    $property = $propertyHierarchy->getProperty($predicate);
+                    
+                    if($labels != "")
                     {
-                      if(isset($classHierarchy->classes[$value["value"]]))
-                      {
-                        $labels .= $classHierarchy->classes[$value["value"]]->label." ";
-                      }
-                    }
-
-                        $property = $propertyHierarchy->getProperty($predicate);
-                        
-                        if($labels != "")
+                      // Check if the property is defined as a cardinality of maximum 1
+                      // If it doesn't we consider it a multi-valued field, otherwise
+                      // we use the single-valued version of the field.
+                      if($property->cardinality == 1 || $property->maxCardinality == 1)
+                      {                          
+                        if(array_search($predicate, $usedSingleValuedProperties) === FALSE)
                         {
-                          // Check if the property is defined as a cardinality of maximum 1
-                          // If it doesn't we consider it a multi-valued field, otherwise
-                          // we use the single-valued version of the field.
-                          if($property->cardinality == 1 || $property->maxCardinality == 1)
-                          {                          
-                            if(array_search($predicate, $usedSingleValuedProperties) === FALSE)
-                            {
-                              $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_".$lang."_single_valued\">" . $this->ws->xmlEncode($labels) . "</field>";
-                              
-                              $usedSingleValuedProperties[] = $predicate;
-                            }
-                          }
-                          else
-                          {
-                            $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_".$lang."\">" . $this->ws->xmlEncode($labels) . "</field>";
-                          }
+                          $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_".$lang."_single_valued\">" . $this->ws->xmlEncode($labels) . "</field>";
                           
-                          $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_uri\">" . $this->ws->xmlEncode($value["value"]) . "</field>";
-                          $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode($predicate) . "</field>";
-                          $add .= "<field name=\"" . urlencode($predicate) . "_attr_facets\">" . $this->ws->xmlEncode($labels) . "</field>";                        
-                          $add .= "<field name=\"" . urlencode($predicate) . "_attr_uri_label_facets\">" . $this->ws->xmlEncode($value["value"]) .'::'. $this->ws->xmlEncode($labels) . "</field>";                        
+                          $usedSingleValuedProperties[] = $predicate;
                         }
+                      }
+                      else
+                      {
+                        $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_".$lang."\">" . $this->ws->xmlEncode($labels) . "</field>";
+                      }
+                      
+                      $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_uri\">" . $this->ws->xmlEncode($value["value"]) . "</field>";
+                      $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode($predicate) . "</field>";
+                      $add .= "<field name=\"" . urlencode($predicate) . "_attr_facets\">" . $this->ws->xmlEncode($labels) . "</field>";                        
+                      $add .= "<field name=\"" . urlencode($predicate) . "_attr_uri_label_facets\">" . $this->ws->xmlEncode($value["value"]) .'::'. $this->ws->xmlEncode($labels) . "</field>";                        
+                    }
                     else
                     {
                       // If no label is found, we may want to manipulate the ending of the URI to create
@@ -1042,28 +1033,28 @@
                         }
                       }
                           
-                          // Check if the property is defined as a cardinality of maximum 1
-                          // If it doesn't we consider it a multi-valued field, otherwise
-                          // we use the single-valued version of the field.
-                          if($property->cardinality == 1 || $property->maxCardinality == 1)
-                          {
-                            if(array_search($predicate, $usedSingleValuedProperties) === FALSE)
-                            {
-                              $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_".$lang."_single_valued\">" . $this->ws->xmlEncode($temporaryLabel) . "</field>";
-                              
-                              $usedSingleValuedProperties[] = $predicate;
-                            }
-                          }
-                          else
-                          {
-                            $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_".$lang."\">" . $this->ws->xmlEncode($temporaryLabel) . "</field>";
-                          }
+                      // Check if the property is defined as a cardinality of maximum 1
+                      // If it doesn't we consider it a multi-valued field, otherwise
+                      // we use the single-valued version of the field.
+                      if($property->cardinality == 1 || $property->maxCardinality == 1)
+                      {
+                        if(array_search($predicate, $usedSingleValuedProperties) === FALSE)
+                        {
+                          $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_".$lang."_single_valued\">" . $this->ws->xmlEncode($temporaryLabel) . "</field>";
                           
-                          $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_uri\">" . $this->ws->xmlEncode($value["value"]) . "</field>";
-                          $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode($predicate) . "</field>";
-                          $add .= "<field name=\"" . urlencode($predicate) . "_attr_facets\">" . $this->ws->xmlEncode($temporaryLabel) . "</field>";
-                          $add .= "<field name=\"" . urlencode($predicate) . "_attr_uri_label_facets\">" . $this->ws->xmlEncode($value["value"]) .'::'. $this->ws->xmlEncode($temporaryLabel) . "</field>";                        
+                          $usedSingleValuedProperties[] = $predicate;
                         }
+                      }
+                      else
+                      {
+                        $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_".$lang."\">" . $this->ws->xmlEncode($temporaryLabel) . "</field>";
+                      }
+                      
+                      $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_uri\">" . $this->ws->xmlEncode($value["value"]) . "</field>";
+                      $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode($predicate) . "</field>";
+                      $add .= "<field name=\"" . urlencode($predicate) . "_attr_facets\">" . $this->ws->xmlEncode($temporaryLabel) . "</field>";
+                      $add .= "<field name=\"" . urlencode($predicate) . "_attr_uri_label_facets\">" . $this->ws->xmlEncode($value["value"]) .'::'. $this->ws->xmlEncode($temporaryLabel) . "</field>";                        
+                    }
 
                     /* 
                       Check if there is a reification statement for that triple. If there is one, we index it in the 

@@ -296,7 +296,7 @@
            $this->ws->attributesBoost != "" ||
            $this->ws->datasetsBoost != "")
         {
-           $boostingRules .= " OR (";
+           $boostingRules .= " OR (".$queryParam." AND (";
            
            $insertOR = FALSE;
                       
@@ -469,7 +469,7 @@
              }
            }
            
-           $boostingRules .= ")";
+           $boostingRules .= "))";
         }
 
         $solrQuery = "q=".$queryParam.$distanceQueryRevelencyBooster.$boostingRules.

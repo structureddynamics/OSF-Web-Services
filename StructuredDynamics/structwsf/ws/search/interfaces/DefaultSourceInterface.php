@@ -50,13 +50,13 @@
     {
       if(!$this->isUsingLuceneSyntax($string))
       {
-        return(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $string));  
+        return(preg_replace("/[^A-Za-z0-9\.\s\*\\]/", " ", $string));  
       }
 
       // If the string is using some character from the lucene syntax, then we keep the string 
       // intact.
       return($string);  
-    }
+    }                    
 
     /**
     * Check if a string is using some characters that belongs to the Lucene query syntax
@@ -82,7 +82,7 @@
       }      
       
       return(FALSE);
-    }  
+    } 
     
     private function isCoreAttribute($attribute, &$coreAttributeField)
     {
@@ -837,7 +837,7 @@
                     break;
                     
                     default:
-                      $solrQuery .= " ".$this->ws->attributesBooleanOperator." (".$attribute.":".urlencode($this->arrangeSolrValue($val)).")";
+                      $solrQuery .= " ".$this->ws->attributesBooleanOperator." (".$attribute.":".urlencode($this->escapeSolrValue($this->arrangeSolrValue($val))).")";
                     break;
                   }                
                   
@@ -863,7 +863,7 @@
               // the query anyway.
               if(array_search(urlencode($attribute), $indexedFields) !== FALSE)
               {
-                $solrQuery .= "(".urlencode(urlencode($attribute)).":".urlencode($this->arrangeSolrValue($val)).")";  
+                $solrQuery .= "(".urlencode(urlencode($attribute)).":".urlencode($this->escapeSolrValue($this->arrangeSolrValue($val))).")";  
                 $addOR = TRUE;
                 $empty = FALSE;
               }
@@ -875,7 +875,7 @@
                   $solrQuery .= " OR ";
                 }
                 
-                $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_".$this->ws->lang.$singleValuedDesignator.":".urlencode($this->arrangeSolrValue($val)).")";
+                $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_".$this->ws->lang.$singleValuedDesignator.":".urlencode($this->escapeSolrValue($this->arrangeSolrValue($val))).")";
                 $addOR = TRUE;
                 $empty = FALSE;
               }
@@ -1060,7 +1060,7 @@
                   $solrQuery .= " OR ";
                 }
                 
-                $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj_".$this->ws->lang.$singleValuedDesignator.":".urlencode($val).")";
+                $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj_".$this->ws->lang.$singleValuedDesignator.":".urlencode($this->escapeSolrValue($val)).")";
                 $addOR = TRUE;
                 $empty = FALSE;
               }

@@ -50,7 +50,7 @@
     {
       if(!$this->isUsingLuceneSyntax($string))
       {
-        return(preg_replace("/[^A-Za-z0-9\.\s\*\\]/", " ", $string));  
+        return(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $string));  
       }
 
       // If the string is using some character from the lucene syntax, then we keep the string 

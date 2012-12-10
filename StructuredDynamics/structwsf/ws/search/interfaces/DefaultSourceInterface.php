@@ -321,7 +321,7 @@
                
                if(strtolower($this->ws->inference) == "on")
                {
-                 $boostingRules .= 'OR inferred_type:"'.urlencode($type).'"^'.$modifier;
+                 $boostingRules .= ' OR inferred_type:"'.urlencode($type).'"^'.$modifier;
                }
              }
              

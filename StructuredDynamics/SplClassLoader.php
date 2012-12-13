@@ -1,22 +1,24 @@
 <?php
 
+/*
+ Automatically register all the paths under:
+    /StructuredDynamics/structwsf/*
+
+ This means that all the classes for structWSF and the structWSF-PHP-API
+ will be automatically loaded.
+*/
 $wsf_folder = dirname(dirname(__FILE__));
 
-// Load the core structWSF framewotk
-$loader_core_framework = new SplClassLoader('StructuredDynamics\structwsf\framework', $wsf_folder);
-$loader_core_framework->register();
+$entries = scandir($wsf_folder.'/StructuredDynamics/structwsf/');
 
-// Load the PHPAPI web services wrappers
-$loader_phpapi_ws = new SplClassLoader('StructuredDynamics\structwsf\php\api\ws', $wsf_folder);
-$loader_phpapi_ws->register();
-
-// Load the PHPAPI framework
-$loader_phpapi_framework = new SplClassLoader('StructuredDynamics\structwsf\php\api\framework', $wsf_folder);
-$loader_phpapi_framework->register();
-
-// Load the structWSF web services framework
-$loader_structwsf = new SplClassLoader('StructuredDynamics\structwsf\ws', $wsf_folder);
-$loader_structwsf->register();
+foreach($entries as $entry)
+{
+  if($entry != '.' && $entry != '..' && is_dir($wsf_folder.'/StructuredDynamics/structwsf/'.$entry))
+  {
+    $loader_core_framework = new SplClassLoader('StructuredDynamics\structwsf\\'.$entry, $wsf_folder);
+    $loader_core_framework->register();
+  }
+}
 
 /**
  * SplClassLoader implementation that implements the technical interoperability

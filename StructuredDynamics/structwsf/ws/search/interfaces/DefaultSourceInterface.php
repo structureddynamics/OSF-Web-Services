@@ -1659,7 +1659,7 @@
             
             if($attributeType == "_attr_date_single_valued")
             {
-              $subject->setDataAttribute($attributeURI, $value->nodeValue, Datatypes::$date);
+              $subject->setDataAttribute($attributeURI, $property->nodeValue, Datatypes::$date);
             }
           }          
           
@@ -1678,7 +1678,7 @@
             
             if($attributeType == "_attr_int_single_valued")
             {
-              $subject->setDataAttribute($attributeURI, $value->nodeValue, Datatypes::$date);
+              $subject->setDataAttribute($attributeURI, $property->nodeValue, Datatypes::$int);
             }
           } 
           
@@ -1697,7 +1697,7 @@
             
             if($attributeType == "_attr_float_single_valued")
             {
-              $subject->setDataAttribute($attributeURI, $value->nodeValue, Datatypes::$date);
+              $subject->setDataAttribute($attributeURI, $property->nodeValue, Datatypes::$float);
             }
           } 
           

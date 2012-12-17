@@ -861,7 +861,7 @@
               // We have to detect if the fields are existing in Solr, otherwise Solr will throw
               // "undefined fields" errors, and there is no way to ignore them and process
               // the query anyway.
-              if(array_search(urlencode($attribute), $indexedFields) !== FALSE)
+              if(!$coreAttr && array_search(urlencode($attribute), $indexedFields) !== FALSE)
               {
                 $solrQuery .= "(".urlencode(urlencode($attribute)).":".urlencode($this->escapeSolrValue($this->arrangeSolrValue($val))).")";  
                 $addOR = TRUE;

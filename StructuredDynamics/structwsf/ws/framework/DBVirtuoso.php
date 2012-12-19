@@ -54,7 +54,7 @@ class DBVirtuoso
       
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  public function DBVirtuoso($username, $password, $dsn, $host)
+  public function __construct($username, $password, $dsn, $host)
   {
     $data_ini = parse_ini_file(WebService::$data_ini . "data.ini", TRUE);
 

@@ -18,21 +18,10 @@
 	// This variable as to be properly setuped in to have a properly working SID.
 	$sidDirectory = "";
 	
-	if(($hFile = @fopen($sidDirectory."server.sid", "x+")) === FALSE)
+	if(file_exists($sidDirectory."server.sid"))
 	{
 		// Read the SID
-		$hFile = fopen($sidDirectory."server.sid", "r");
-		
-		if($hFile) 
-		{
-		    while (!feof($hFile)) 
-			{
-		        $sid = fgets($hFile, 4096);
-		        break;
-		    }
-			
-		    fclose($hFile);
-		}		
+    $sid = file_get_contents($sidDirectory."server.sid");
 	}
 	else
 	{
@@ -40,10 +29,7 @@
 		$sid = md5(microtime());
 		
 		// Write the SID to the server.sid file
-		if(fwrite($hFile, $sid) === FALSE)
-		{
-			die;
-		}
+    file_put_contents($sidDirectory."server.sid", $sid);
 	}
 
 	echo $sid;

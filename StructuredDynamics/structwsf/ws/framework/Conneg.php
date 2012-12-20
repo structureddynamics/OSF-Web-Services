@@ -86,6 +86,10 @@ class Conneg
   */
   public function respond()
   {
+    // Make sure the output buffer is empty when we output the result of the 
+    // web service endpoint. 
+    ob_clean();    
+    
     header("HTTP/1.1 " . $this->status . " " . $this->statusMsg);
     header("Content-Type: " . $this->mime . "; charset=" . $this->charset);
     header("Content-Language: " . $this->lang);

@@ -9,6 +9,7 @@
 */
 
 namespace StructuredDynamics\structwsf\framework;
+use \StructuredDynamics\structwsf\framework\QuerierExtension;
 
 /**
 * Query a RESTFul web service endpoint
@@ -55,6 +56,9 @@ class WebServiceQuerier
   /** Internal error debug information of the queried web sevice */
   private $errorDebugInfo = "";
 
+  /** Pointer to an extension object to allow external code to interact with the querier */
+  private $extension = NULL;
+
   /** 
   * Internal error of the queried web service. The error doesn't necessarly come from the
   * queried web service endpoint in the case of a compound web service.
@@ -74,7 +78,7 @@ class WebServiceQuerier
   *    
   *   @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($url, $method, $mime, $parameters, $timeout = 0)
+  function __construct($url, $method, $mime, $parameters, $timeout = 0, $extension = NULL)
   {
     $this->url = $url;
     $this->method = $method;
@@ -82,6 +86,7 @@ class WebServiceQuerier
     //$this->parameters = $parameters . "&DBGSESSID=1@localhost:7869;d=1,p=0 ";      
     $this->mime = $mime;
     $this->timeout = $timeout;
+    $this->extension = ($extension === NULL) ? new QuerierExtension() : $extension;
 
     $this->queryWebService();
   }
@@ -97,7 +102,7 @@ class WebServiceQuerier
   {
     $ch = curl_init();
 
-    switch ($this->method)
+    switch (strtolower($this->method))
     {
       case "get":
         curl_setopt($ch, CURLOPT_URL, $this->url . "?" . $this->parameters);
@@ -126,7 +131,7 @@ class WebServiceQuerier
           curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
           curl_setopt($ch, CURLOPT_POST, 1);
           curl_setopt($ch, CURLOPT_POSTFIELDS, $this->parameters);
-          
+
           if ($this->timeout > 0)
           {
             curl_setopt($ch, CURLOPT_TIMEOUT, $this->timeout);
@@ -149,8 +154,11 @@ class WebServiceQuerier
         return FALSE;
       break;
     }
-
+    
+    $this->extension->alterQuery($this, $ch);
+    $this->extension->startQuery($this); 
     $xml_data = curl_exec($ch);
+    $this->extension->stopQuery($this, $xml_data);
 
     if ($xml_data === FALSE)
     {
@@ -166,12 +174,12 @@ class WebServiceQuerier
       $this->error = new QuerierError("HTTP-500", "Warning", $this->url, "Can't reach remote server",
         "Can't reach remote server (" . curl_error($ch) . ")", $data);
 
+      $this->extension->debugQueryReturn($this, $xml_data);
       return;
     }
 
     // Remove any possible "HTTP/1.1 100 Continue" message from the web server
     $xml_data = str_replace("HTTP/1.1 100 Continue\r\n\r\n", "", $xml_data);
-
     $header = substr($xml_data, 0, strpos($xml_data, "\r\n\r\n"));
 
     $data =
@@ -197,6 +205,7 @@ class WebServiceQuerier
       $ws = substr($ws, 0, strrpos($ws, "/") + 1);
 
       $this->error = new QuerierError("HTTP-500", "Fatal", $ws, "Parsing Error", "PHP Parsing Error", $data);
+      $this->extension->debugQueryReturn($this, $xml_data);
 
       return;
     }
@@ -216,6 +225,7 @@ class WebServiceQuerier
       $ws = substr($ws, 0, strrpos($ws, "/") + 1);
 
       $this->error = new QuerierError("HTTP-500", "Fatal", $ws, "Fatal Error", "PHP uncatched Fatal Error", $data);
+      return;
     }
 
     // We have to continue. Let fix this to 200 OK so that this never raise errors within the WSF
@@ -225,6 +235,7 @@ class WebServiceQuerier
       $this->queryStatusMessage = "OK";
       $this->queryStatusMessageDescription = "";
       $this->queryResultset = $data;
+      $this->extension->debugQueryReturn($this, $xml_data);
       return;
     }
 
@@ -236,7 +247,7 @@ class WebServiceQuerier
       ), "", $data);
 
       // XML error messages
-      if (strpos($this->queryStatusMessageDescription, "<error>"))
+      if (strpos($this->queryStatusMessageDescription, "<error>") !== FALSE)
       {
         preg_match("/.*<id>(.*)<\/id>.*/Uim", $this->queryStatusMessageDescription, $errorId);
         $errorId = $errorId[1];
@@ -256,10 +267,22 @@ class WebServiceQuerier
 
         preg_match("/.*<debugInformation>(.*)<\/debugInformation>.*/Uim", $this->queryStatusMessageDescription,
           $errorDebugInfo);
-        $errorDebugInfo = $errorDebugInfo[1];
+          
+        if(isset($errorDebugInfo[1]))
+        {
+          $errorDebugInfo = $errorDebugInfo[1];
+        }
 
         $this->error = new QuerierError($errorId, $errorLevel, $errorWS, $errorName, $errorDescription, $errorDebugInfo);
 
+        $this->extension->debugQueryReturn($this, $xml_data);
+        return;
+      }
+      else
+      {
+        $this->error = new QuerierError("HTTP-500", "Fatal", $this->url, "Fatal Error", "Unspecified Server Fatal Error", $data);
+
+        $this->extension->debugQueryReturn($this, $xml_data);
         return;
       }
 
@@ -270,6 +293,7 @@ class WebServiceQuerier
       $this->queryResultset = $data;
     }
 
+    $this->extension->debugQueryReturn($this, $xml_data);
     return;
   }
 
@@ -319,6 +343,69 @@ class WebServiceQuerier
   public function getResultset()
   {
     return $this->queryResultset;
+  }
+
+  /**
+  * Get the URL a query is made to
+  *
+  * @return returns the URL of the web service endpoint for the query
+  *
+  * @author Chris Johnson
+  */
+  public function getURL()
+  {
+    return $this->url;
+  }
+
+  /**
+  * Get the parameters a query is made with
+  *
+  * @return returns the parameters string for the query
+  *
+  * @author Chris Johnson
+  */
+  public function getParameters()
+  {
+    return $this->parameters;
+  }
+
+  /**
+  * Get the request method (ex. get, post) for the query
+  *
+  * @return returns the method for the query
+  *
+  * @author Chris Johnson
+  */
+  public function getMethod()
+  {
+    return $this->method;
+  }
+
+  /**
+  * Get the mime type a query is declared to accept
+  *
+  * @return returns the mime type the query will accept
+  *
+  * @author Chris Johnson
+  */
+  public function getMIME()
+  {
+    return $this->mime;
+  }
+
+  /**
+  * Display the error encountered, in the case of no errors
+  * were encountered, this is a no-op. This relies on the
+  * query extension to handle error display
+  *
+  * @author Chris Johnson
+  */
+  public function displayError()
+  {
+    if ($this->error)
+    {
+      $this->extension->displayError($this->error);
+    }
   }
 }
 

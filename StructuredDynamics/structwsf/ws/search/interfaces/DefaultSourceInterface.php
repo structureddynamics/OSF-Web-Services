@@ -271,7 +271,7 @@
           */
           if(!$this->isUsingLuceneSyntax($this->ws->query))
           {
-            $queryParam = "%22" . urlencode(implode(" +", explode(" ", $this->escapeSolrValue($this->ws->query)))) . "%22~5";
+            $queryParam = "%22" . urlencode(" +".implode(" +", explode(" ", $this->ws->query))) . "%22~5";
           }
           else
           {

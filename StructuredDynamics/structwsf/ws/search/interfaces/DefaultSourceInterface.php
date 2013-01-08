@@ -265,21 +265,8 @@
         
         if($this->ws->query != "")
         {      
-          /* 
-            Check if characters of the Solr query language is used for this query. If some does, we *only* take
-            them to create the query.
-          */
-          if(!$this->isUsingLuceneSyntax($this->ws->query))
-          {
-            $queryParam = "%22" . urlencode(" +".implode(" +", explode(" ", $this->ws->query))) . "%22~5";
-          }
-          else
-          {
-            $queryParam = urlencode($this->ws->query);
-          }
-          
           // Make sure to group this part of the query
-          $queryParam = '('.$queryParam.')';
+          $queryParam = '('.urlencode($this->ws->query).')';
         }
 
         $distanceQueryRevelencyBooster = "";

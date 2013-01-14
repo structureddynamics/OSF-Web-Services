@@ -1198,7 +1198,7 @@ class CrudUpdate extends WebService
                     $newFields = TRUE;
                   }                      
                   
-                  $query = $this->db->build_sparql_query("select ?p ?o from <" . $this->dataset . "> where {<"
+                  $query = $this->db->build_sparql_query("select ?p ?o where {<"
                     . $value["value"] . "> ?p ?o.}", array ('p', 'o'), FALSE);
 
                   $resultset3 = $this->db->query($query);

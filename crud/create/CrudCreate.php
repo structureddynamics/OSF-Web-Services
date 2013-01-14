@@ -793,7 +793,6 @@ class CrudCreate extends WebService
 
               // get the preferred and alternative labels for this resource
               $prefLabelFound = FALSE;
-
               foreach($labelProperties as $property)
               {
                 if(isset($resourceIndex[$subject][$property]) && !$prefLabelFound)
@@ -1118,7 +1117,7 @@ class CrudCreate extends WebService
                       // If it is an object property, we want to bind labels of the resource referenced by that
                       // object property to the current resource. That way, if we have "paul" -- know --> "bob", and the
                       // user send a seach query for "bob", then "paul" will be returned as well.
-                      $query = $this->db->build_sparql_query("select ?p ?o from <" . $this->dataset . "> where {<"
+                      $query = $this->db->build_sparql_query("select ?p ?o where {<"
                         . $value["value"] . "> ?p ?o.}", array ('p', 'o'), FALSE);
 
                       $resultset3 = $this->db->query($query);

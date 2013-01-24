@@ -375,7 +375,7 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
                               "*" (start) operator should be used as the value. If the value of an attribute
                               needs to be considered a URI, then the "[uri]" syntax should be added at the end
                               of the attribute filter like: 
-                              "http%3A%2F%2Fpurl.org%2Fontology%2Ffoo%23friend[uri]:http://bar.com/my-friend-uri".
+                              "http%3A%2F%2Fpurl.org%2Fontology%2Ffoo%23friend[uri]:http%3A%2F%2Fbar.com%2Fmy-friend-uri  ".
                               That way, the value of that attribute filter will be handled as a URI. There are
                               a series of core attributes that can be used without specifying their full URI:
                               dataset, type, inferred_type, prefLabel, altLabel, lat, long, description, polygonCoordinates,
@@ -387,9 +387,11 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
                               An example of such an extended query is:
                               (http%3A%2F%2Fpurl.org%2Fontology%2Firon%23prefLabel:cancer AND NOT (breast OR ovarian)) 
                               AND (http%3A%2F%2Fpurl.org%2Fontology%2Fnhccn%23useGroupSignificant[uri]:
-                              (http\://purl.org/ontology/doha#liver_cancer OR 
-                              http\://purl.org/ontology/doha#cancers_by_histologic_type)) AND 
+                              (http%3A%2F%2Fpurl.org%2Fontology%2Fdoha%23liver_cancer OR 
+                              http%3A%2F%2Fpurl.org%2Fontology%2Fdoha%23cancers_by_histologic_type)) AND 
                               dataset:"file://localhost/data/ontologies/files/doha.owl"
+                              Note: both the URI and the value (all kind of values: literals and URIs) need to be
+                                    URL encoded before being sent to the Search endpoint.                              
       @param $typesBoost Modifying the score of the results returned by the Search endpoint by boosting the results 
                          that have that type, and boosting it by the modifier weight that boost the overall 
                          scoring algorithm. The types URI to boost are url-encoded and separated by semi-colomns. The

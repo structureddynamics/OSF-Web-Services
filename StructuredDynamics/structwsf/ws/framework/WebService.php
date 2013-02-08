@@ -23,10 +23,10 @@ use \StructuredDynamics\structwsf\framework\Resultset;
 abstract class WebService
 {
   /** data.ini file folder */
-  public static $data_ini = "/data/";
+  public static $data_ini = "/usr/share/structwsf/StructuredDynamics/structwsf/ws/";
 
   /** network.ini file folder */
-  public static $network_ini = "/usr/share/structwsf/";
+  public static $network_ini = "/usr/share/structwsf/StructuredDynamics/structwsf/ws/";
 
   /** Main version of the Virtuoso server used by this structWSF instance (4, 5 or 6) */
   protected $virtuoso_main_version = "6";

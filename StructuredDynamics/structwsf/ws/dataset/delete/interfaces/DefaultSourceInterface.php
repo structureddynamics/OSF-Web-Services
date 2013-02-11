@@ -149,7 +149,7 @@
         }
 
         // Drop the entire graph
-        $query = "exst('select * from (sparql clear graph <" . $this->ws->datasetUri . ">) sub')";
+        $query = "sparql clear graph <" . $this->ws->datasetUri . ">";
 
         @$this->ws->db->query($query);
 
@@ -166,7 +166,7 @@
         }
 
         // Drop the reification graph related to this dataset
-        $query = "exst('select * from (sparql clear graph <" . $this->ws->datasetUri . "reification/>) sub')";
+        $query = "sparql clear graph <" . $this->ws->datasetUri . "reification/>";
 
         @$this->ws->db->query($query);
 

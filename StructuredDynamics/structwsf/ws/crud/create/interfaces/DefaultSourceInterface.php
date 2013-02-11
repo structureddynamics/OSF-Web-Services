@@ -10,6 +10,7 @@
   use \StructuredDynamics\structwsf\ws\framework\ClassNode;
   use \StructuredDynamics\structwsf\ws\framework\PropertyHierarchy;
   use \StructuredDynamics\structwsf\ws\framework\propertyNode;
+  use \StructuredDynamics\structwsf\ws\crud\read\CrudRead;
   
   class DefaultSourceInterface extends SourceInterface
   {
@@ -1078,6 +1079,9 @@
                 {
                   $superClasses = $classHierarchy->getSuperClasses($type);
 
+                  // Add the type to make the closure of the set of inferred types
+                  array_push($inferredTypes, $type);
+                  
                   foreach($superClasses as $sc)
                   {
                     if(array_search($sc->name, $inferredTypes) === FALSE)

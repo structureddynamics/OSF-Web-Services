@@ -914,6 +914,7 @@
 
               $schema .= "<description>".$this->ws->xmlEncode($this->getDescription($subject))."</description>";
               $schema .= "<prefLabel>".$this->ws->xmlEncode($this->getLabel($uri, $subject))."</prefLabel>";
+              $schema .= "<type>".Namespaces::$owl."DatatypeProperty</type>";
               
               foreach($subject as $predicate => $values)
               {
@@ -1002,6 +1003,100 @@
               
               $schema .= "</".$this->ironPrefixize($uri, $prefixes).">";
             }
+
+            $subjectTriples = $ontology->getPropertiesDescription(FALSE, FALSE, TRUE);
+
+            foreach($subjectTriples as $uri => $subject)
+            {
+              $this->manageIronPrefixes($uri, $prefixes);
+              
+              $schema .= "<".$this->ironPrefixize($uri, $prefixes).">";
+
+              $schema .= "<description>".$this->ws->xmlEncode($this->getDescription($subject))."</description>";
+              $schema .= "<prefLabel>".$this->ws->xmlEncode($this->getLabel($uri, $subject))."</prefLabel>";
+              $schema .= "<type>".Namespaces::$owl."AnnotationProperty</type>";
+              
+              foreach($subject as $predicate => $values)
+              {
+                foreach($values as $value)
+                {
+                  switch($predicate)
+                  {                   
+                    case Namespaces::$sco."displayControl":
+                    
+                      if(isset($value["uri"]))
+                      {
+                        $displayControl = substr($value["uri"], strripos($value["uri"], "#") + 1);
+                      }
+                      else
+                      {
+                        $displayControl = $value["value"];
+                      }
+                      
+                      $schema .= "<displayControl>".$this->ws->xmlEncode($displayControl)."</displayControl>";
+                    break;
+
+                    case Namespaces::$sco."ignoredBy":
+                    
+                      if(isset($value["uri"]))
+                      {
+                        $ignoredBy = substr($value["uri"], strripos($value["uri"], "#") + 1);
+                      }
+                      else
+                      {
+                        $ignoredBy = $value["value"];
+                      }
+                      
+                      $schema .= "<ignoredBy>".$this->ws->xmlEncode($ignoredBy)."</ignoredBy>";
+                    break;
+
+                    case Namespaces::$sco."comparableWith":
+                      $this->manageIronPrefixes($value["uri"], $prefixes);
+                      
+                      $schema .= "<comparableWith>".$this->ws->xmlEncode($this->ironPrefixize($value["uri"], $prefixes))."</comparableWith>";
+                    break;
+
+                    case Namespaces::$sco."unitType":
+                      $this->manageIronPrefixes($value["uri"], $prefixes);
+                      
+                      $schema .= "<unitType>".$this->ws->xmlEncode($this->ironPrefixize($value["uri"], $prefixes))."</unitType>";
+                    break;
+                    
+                    case Namespaces::$sco."shortLabel":
+                      $schema .= "<shortLabel>".$this->ws->xmlEncode($value["value"])."</shortLabel>";
+                    break;
+                    
+                    case Namespaces::$sco."minCardinality":
+                      $schema .= "<minCardinality>".$this->ws->xmlEncode($value["value"])."</minCardinality>";
+                    break;
+                    
+                    case Namespaces::$sco."maxCardinality":
+                      $schema .= "<maxCardinality>".$this->ws->xmlEncode($value["value"])."</maxCardinality>";
+                    break;
+                                        
+                    case Namespaces::$sco."cardinality":
+                      $schema .= "<cardinality>".$this->ws->xmlEncode($value["value"])."</cardinality>";
+                    break;
+                    
+                    case Namespaces::$sco."orderingValue":
+                      $schema .= "<orderingValue>".$this->ws->xmlEncode($value["value"])."</orderingValue>";
+                    break;  
+                    
+                    case Namespaces::$rdfs."subPropertyOf":
+                      $this->manageIronPrefixes($value["uri"], $prefixes);
+                      
+                      $schema .= "<subPropertyOf>".$this->ws->xmlEncode($this->ironPrefixize($value["uri"], $prefixes))."</subPropertyOf>";
+                    break;
+                    
+                    case Namespaces::$iron."allowedValue":
+                      $schema .= "<allowedValue><primitive>".$this->ws->xmlEncode($value["value"])."</primitive></allowedValue>";
+                    break;                  
+                  }
+                }
+              }
+              
+              $schema .= "</".$this->ironPrefixize($uri, $prefixes).">";
+            }
             
             $subjectTriples = $ontology->getPropertiesDescription(FALSE, TRUE);
 
@@ -1013,6 +1108,7 @@
 
               $schema .= "<description>".$this->ws->xmlEncode($this->getDescription($subject))."</description>";
               $schema .= "<prefLabel>".$this->ws->xmlEncode($this->getLabel($uri, $subject))."</prefLabel>";
+              $schema .= "<type>".Namespaces::$owl."ObjectProperty</type>";
               
               foreach($subject as $predicate => $values)
               {
@@ -1299,7 +1395,8 @@
               
               $schema .= '"description": "'.$this->ws->jsonEncode($this->getDescription($subject)).'",';
               $schema .= '"prefLabel": "'.$this->ws->jsonEncode($this->getLabel($uri, $subject)).'",';
-              
+              $schema .= '"type": "'.Namespaces::$owl.'DatatypeProperty",';
+                            
               foreach($subject as $predicate => $values)
               {             
                 switch($predicate)
@@ -1442,6 +1539,160 @@
               $schema .= "},";                 
             }
             
+            $subjectTriples = $ontology->getPropertiesDescription(FALSE, FALSE, TRUE);
+
+            foreach($subjectTriples as $uri => $subject)
+            {
+              $this->manageIronPrefixes($uri, $prefixes);
+              
+              $schema .= '"'.$this->ironPrefixize($uri, $prefixes).'": {';
+              
+              $schema .= '"description": "'.$this->ws->jsonEncode($this->getDescription($subject)).'",';
+              $schema .= '"prefLabel": "'.$this->ws->jsonEncode($this->getLabel($uri, $subject)).'",';
+              $schema .= '"type": "'.Namespaces::$owl.'AnnotationProperty",';
+              
+              foreach($subject as $predicate => $values)
+              {             
+                switch($predicate)
+                {
+                  case Namespaces::$iron."allowedValue":
+                    $schema .= '"allowedValue": {"primitive": "'.$this->ws->jsonEncode($value["value"]).'"},';
+                  break;                
+                  
+                  case Namespaces::$rdfs."subPropertyOf":
+                    $schema .= '"subPropertyOf": [';
+                  break;                
+                  
+                  case Namespaces::$rdfs."domain":
+                    $schema .= '"allowedType": [';
+                  break;
+                  
+                  case Namespaces::$sco."displayControl":
+                    $schema .= '"displayControl": [';
+                  break;
+                  
+                  case Namespaces::$sco."ignoredBy":
+                    $schema .= '"ignoredBy": [';
+                  break;
+
+                  case Namespaces::$sco."comparableWith":
+                    $schema .= '"comparableWith": [';
+                  break;
+
+                  case Namespaces::$sco."unitType":
+                    $schema .= '"unitType": [';
+                  break;
+                  
+                  case Namespaces::$sco."shortLabel":
+                    $schema .= '"shortLabel": [';
+                  break;    
+                    
+                  case Namespaces::$sco."orderingValue":
+                    $schema .= '"orderingValue": [';
+                  break;  
+                  
+                  case Namespaces::$rdfs."subPropertyOf":
+                    $schema .= '"subPropertyOf": [';
+                  break;
+                }              
+                
+                foreach($values as $value)
+                {
+                  switch($predicate)
+                  {
+                    case Namespaces::$sco."minCardinality":
+                      $schema .= '"minCardinality": "'.$this->ws->jsonEncode($value["value"]).'",';
+                    break;
+                    
+                    case Namespaces::$sco."maxCardinality":
+                      $schema .= '"maxCardinality": "'.$this->ws->jsonEncode($value["value"]).'",';
+                    break;
+                    
+                    case Namespaces::$sco."cardinality":
+                      $schema .= '"cardinality": "'.$this->ws->jsonEncode($value["value"]).'",';
+                    break;                          
+                    
+                    case Namespaces::$rdfs."domain":
+                      $this->manageIronPrefixes($value["uri"], $prefixes);
+                      
+                      $schema .= '"'.$this->ws->jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
+                    break;
+                    
+                    case Namespaces::$sco."displayControl":
+                      if(isset($value["uri"]))
+                      {
+                        $displayControl = substr($value["uri"], strripos($value["uri"], "#") + 1);
+                      }
+                      else
+                      {
+                        $displayControl = $value["value"];
+                      }
+                      
+                      $schema .= '"'.$this->ws->jsonEncode($displayControl).'",';
+                    break;
+                    
+                    case Namespaces::$sco."ignoredBy":
+                      if(isset($value["uri"]))
+                      {
+                        $ignoredBy = substr($value["uri"], strripos($value["uri"], "#") + 1);
+                      }
+                      else
+                      {
+                        $ignoredBy = $value["value"];
+                      }
+                      
+                      $schema .= '"'.$this->ws->jsonEncode($ignoredBy).'",';
+                    break;
+
+                    case Namespaces::$sco."comparableWith":
+                      $this->manageIronPrefixes($value["uri"], $prefixes);
+                      
+                      $schema .= '"'.$this->ws->jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
+                    break;
+
+                    case Namespaces::$sco."unitType":
+                      $this->manageIronPrefixes($value["uri"], $prefixes);
+                      
+                      $schema .= '"'.$this->ws->jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
+                    break;
+                    
+                    case Namespaces::$sco."shortLabel":
+                      $schema .= '"'.$this->ws->jsonEncode($value["value"]).'",';
+                    break;
+                    
+                    case Namespaces::$sco."orderingValue":
+                      $schema .= '"'.$this->ws->jsonEncode($value["value"]).'",';
+                    break;  
+                    
+                    case Namespaces::$rdfs."subPropertyOf":
+                      $this->manageIronPrefixes($value["uri"], $prefixes);
+                      
+                      $schema .= '"'.$this->ws->jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
+                    break;
+                  }
+                }
+                
+                switch($predicate)
+                {
+                  case Namespaces::$rdfs."domain":
+                  case Namespaces::$sco."displayControl":
+                  case Namespaces::$sco."ignoredBy":
+                  case Namespaces::$sco."comparableWith":
+                  case Namespaces::$sco."unitType":
+                  case Namespaces::$sco."shortLabel":
+                  case Namespaces::$sco."orderingValue":
+                  case Namespaces::$rdfs."subPropertyOf":
+                    $schema = rtrim($schema, ",");
+                    $schema .= '],';  
+                  break;
+                }               
+              }
+              
+              $schema = rtrim($schema, ",");
+              
+              $schema .= "},";                 
+            }            
+            
             $subjectTriples = $ontology->getPropertiesDescription(FALSE, TRUE);
 
             foreach($subjectTriples as $uri => $subject)
@@ -1452,7 +1703,8 @@
               
               $schema .= '"description": "'.$this->ws->jsonEncode($this->getDescription($subject)).'",';
               $schema .= '"prefLabel": "'.$this->ws->jsonEncode($this->getLabel($uri, $subject)).'",';
-              
+              $schema .= '"type": "'.Namespaces::$owl.'ObjectProperty",';
+                            
               foreach($subject as $predicate => $values)
               {
                 switch($predicate)

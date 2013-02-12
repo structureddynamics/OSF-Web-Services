@@ -115,7 +115,8 @@ class PropertyHierarchy
 
       $superProperty = $this->properties[$subPropertyOf];
 
-      array_push($superProperty->superPropertyOf, &$newProperty);
+      //array_push($superProperty->superPropertyOf, &$newProperty);
+      $this->array_push_ref($superProperty->superPropertyOf, $newProperty);
 
       array_push($newProperty->subPropertyOf, $superProperty);
     }
@@ -296,6 +297,28 @@ class PropertyHierarchy
 
     return (NULL);
   }
+  
+  function array_push_ref(&$target, &$value_array)
+  {
+    if(!is_array($target))
+    {
+      return FALSE;
+    }
+    
+    if(is_array($value_array))
+    {
+      foreach($value_array as $val)
+      {
+        $target[]=$val;
+      }
+    }
+    else
+    {
+      $target[] = $value_array;
+    }
+    
+    return TRUE;
+  }  
 }
 
 

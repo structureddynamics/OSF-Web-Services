@@ -116,11 +116,35 @@ class ClassHierarchy
 
       $superClass = $this->classes[$subClassOf];
 
-      array_push($superClass->superClassOf, &$newClass);
+      //array_push($superClass->superClassOf, &$newClass);
+      $this->array_push_ref($superClass->superClassOf, $newClass);
 
       array_push($newClass->subClassOf, $superClass);
     }
   }
+  
+  
+  function array_push_ref(&$target, &$value_array)
+  {
+    if(!is_array($target))
+    {
+      return FALSE;
+    }
+    
+    if(is_array($value_array))
+    {
+      foreach($value_array as $val)
+      {
+        $target[]=$val;
+      }
+    }
+    else
+    {
+      $target[] = $value_array;
+    }
+    
+    return TRUE;
+  }    
 
   /** Returns a list of references to the superclasses
 

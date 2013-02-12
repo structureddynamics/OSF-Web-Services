@@ -703,7 +703,7 @@ class Resultset
                 if($key > 0 && $type != "")
                 {               
                   $json .= '          { '."\n";            
-                  $json .= '            "rdfs:type": "'.$this->jsonEncode($type).'" '."\n";            
+                  $json .= '            "rdf:type": "'.$this->jsonEncode($type).'" '."\n";            
                   $json .= '          }, '."\n";            
                 }
               }

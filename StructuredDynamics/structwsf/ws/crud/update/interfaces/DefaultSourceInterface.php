@@ -8,6 +8,7 @@
   use \StructuredDynamics\structwsf\ws\framework\Solr;
   use \StructuredDynamics\structwsf\ws\framework\ClassHierarchy;
   use \StructuredDynamics\structwsf\ws\framework\ClassNode;
+  use \StructuredDynamics\structwsf\framework\WebServiceQuerier;  
   use \StructuredDynamics\structwsf\ws\framework\PropertyHierarchy;
   use \StructuredDynamics\structwsf\ws\framework\propertyNode;
   use \StructuredDynamics\structwsf\ws\crud\read\CrudRead;  

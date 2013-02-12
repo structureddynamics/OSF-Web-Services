@@ -10,6 +10,7 @@
   use \StructuredDynamics\structwsf\ws\framework\ClassNode;
   use \StructuredDynamics\structwsf\ws\framework\PropertyHierarchy;
   use \StructuredDynamics\structwsf\ws\framework\propertyNode;
+  use \StructuredDynamics\structwsf\framework\WebServiceQuerier;
   use \StructuredDynamics\structwsf\ws\crud\read\CrudRead;
   
   class DefaultSourceInterface extends SourceInterface

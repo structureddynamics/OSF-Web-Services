@@ -5,6 +5,8 @@
   use \StructuredDynamics\structwsf\framework\Namespaces;  
   use \StructuredDynamics\structwsf\ws\framework\SourceInterface;
   use \StructuredDynamics\structwsf\ws\framework\Solr;
+  use \StructuredDynamics\structwsf\ws\crud\read\CrudRead;  
+  use \StructuredDynamics\structwsf\framework\WebServiceQuerier;  
   
   class DefaultSourceInterface extends SourceInterface
   {

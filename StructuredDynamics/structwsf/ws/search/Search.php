@@ -129,6 +129,12 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
   
   /** Extended filters which uses the full grouping syntax composed of: AND, OR, NO, (, ) */
   public $extendedFilters = "";
+  
+  /** Restrict a search to a list of properties. We can add score boosting to these restricted properties */
+  public $searchRestrictions = array();
+  
+  /** Include results' score in the resultset */
+  public $includeScores = FALSE;
 
   /** Supported serialization mime types by this Web service */
   public static $supportedSerializations =
@@ -435,7 +441,7 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
                        $aggregate_attributes_nb = 10, $resultsLocationAggregator = "",
                        $interface = 'default', $requestedInterfaceVersion = "", $lang = "en",
                        $sort = "", $extendedFilters = "", $typesBoost = "", $attributesBoost = "",
-                       $datasetsBoost = "")
+                       $datasetsBoost = "", $searchRestrictions = array(), $includeScores = "false")
   {
     parent::__construct();
  
@@ -453,6 +459,14 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
     $this->aggregateAttributesNb = $aggregate_attributes_nb;
     $this->resultsLocationAggregator = explode(",", $resultsLocationAggregator);
     $this->lang = $lang;
+    
+    $this->searchRestrictions = $searchRestrictions;
+    
+    $this->includeScores = filter_var($includeScores, FILTER_VALIDATE_BOOLEAN, array('flags' => FILTER_NULL_ON_FAILURE));
+    if($this->includeScores === NULL)
+    {
+      $this->includeScores = FALSE;
+    }
     
     $this->extendedFilters = $extendedFilters;
     

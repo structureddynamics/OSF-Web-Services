@@ -265,8 +265,7 @@
         
         if($this->ws->query != "")
         {      
-          // Make sure to group this part of the query
-          $queryParam = '('.urlencode($this->ws->query).')';
+          $queryParam = urlencode($this->ws->query);
         }
 
         $distanceQueryRevelencyBooster = "";
@@ -286,17 +285,6 @@
            $this->ws->attributesBoost != "" ||
            $this->ws->datasetsBoost != "")
         {
-          if($queryParam != '')
-          {            
-            $boostingRules .= " OR (".$queryParam." AND (";
-          }
-          else
-          {
-            $boostingRules .= '(';
-          }
-
-          $insertOR = FALSE;
-                    
           // Types boosting rules
           if($this->ws->typesBoost != "")
           {
@@ -309,16 +297,11 @@
              $type = str_replace(array("%3B", "%5E"), array(";", "^"), $boost[0]);
              $modifier = $boost[1];
              
-             if($key > 0)
-             {
-                $boostingRules .= " OR ";
-             }
-             
-             $boostingRules .= 'type:"'.urlencode($type).'"^'.$modifier;
+             $boostingRules .= '&bq=type:"'.urlencode($type).'"^'.$modifier;
              
              if(strtolower($this->ws->inference) == "on")
              {
-               $boostingRules .= ' OR inferred_type:"'.urlencode($type).'"^'.$modifier;
+               $boostingRules .= '&bq=inferred_type:"'.urlencode($type).'"^'.$modifier;
              }
            }
            
@@ -332,22 +315,12 @@
            
            foreach($boostRules as $key => $rule)
            {
-             if($key == 0 && $insertOR)
-             {
-               $boostingRules .= " OR ";
-             }
-             
              $boost = explode("^", $rule);
              
              $dataset = str_replace(array("%3B", "%5E"), array(";", "^"), $boost[0]);
              $modifier = $boost[1];
              
-             if($key > 0)
-             {
-                $boostingRules .= " OR ";
-             }
-             
-             $boostingRules .= 'dataset:"'.urlencode($dataset).'"^'.$modifier;
+             $boostingRules .= '&bq=dataset:"'.urlencode($dataset).'"^'.$modifier;
            }
            
            $insertOR = TRUE;
@@ -360,11 +333,6 @@
            
            foreach($boostRules as $key => $rule)
            {
-             if($key == 0 && $insertOR)
-             {
-               $boostingRules .= " OR ";
-             }
-             
              $isAttributeValue = FALSE;
              
              if(strpos($rule, '::') !== FALSE)
@@ -376,11 +344,6 @@
              
              $attribute = str_replace(array("%3B", "%5E"), array(";", "^"), $boost[0]);
              $modifier = $boost[1];
-             
-             if($key > 0)
-             {
-                $boostingRules .= " OR ";
-             }
              
              if($isAttributeValue)
              {
@@ -457,26 +420,104 @@
                  }                    
                }                 
                
-               $boostingRules .= $attribute.':"'.urlencode($attributeValue).'"^'.$modifier;
+               $boostingRules .= '&bq='.$attribute.':"'.urlencode($attributeValue).'"^'.$modifier;
              }
              else
              {
-               $boostingRules .= 'attribute:"'.urlencode($attribute).'"^'.$modifier;
+               $boostingRules .= '&bq=attribute:"'.urlencode($attribute).'"^'.$modifier;
              }
             }
           }
+        }
+        
+        $restrictionRules = '';
+        
+        // Define properties restricted for search and their boost
+        if(!empty($this->ws->searchRestrictions))
+        {
+          $restrictionRules .= '&qf=';
+          
+          $restrictions = explode(';', $this->ws->searchRestrictions);
+          
+          foreach($restrictions as $restriction)
+          {
+            if(empty($restriction))
+            {
+              continue;
+            }
+            
+            $modifier = 1;
+            $attribute = $restriction;
+            
+            if(strpos($restriction, '^'))
+            {
+              $res = explode('^', $restriction);
+              
+              $modifier =  $res[1];
+              $attribute = $res[0];
+            }
+            
+            $indexedFields = array();
 
-          if($queryParam != '')
-          {
-            $boostingRules .= '))';
-          }
-          else
-          {
-            $boostingRules .= ')';
+            if(file_exists($this->ws->fields_index_folder."fieldsIndex.srz"))
+            {
+              $indexedFields = unserialize(file_get_contents($this->ws->fields_index_folder."fieldsIndex.srz"));
+            }                 
+
+            // Fix the reference to some of the core attributes                 
+            $isCoreAttribute = $this->isCoreAttribute($attribute, $attribute);
+
+            // If it is not a core attribute, check if we have to make that attribute
+            // single-valued. We check that by checking if a single_valued version
+            // of that field is currently used in the Solr index.              
+            $singleValuedDesignator = "";
+
+            if(!$isCoreAttribute &&                  
+               array_search(urlencode($attribute."_attr_".$this->ws->lang."_single_valued"), $indexedFields) !== FALSE)
+            {
+              $singleValuedDesignator = "_single_valued";
+            }  
+
+            $attributeFound = FALSE;
+
+            // Get the Solr field ID for this attribute
+            if(!$isCoreAttribute)
+            {
+             $attribute = urlencode($attribute);
+             
+             if(array_search($attribute."_attr_".$this->ws->lang.$singleValuedDesignator, $indexedFields) !== FALSE)
+             {              
+               $attribute = urlencode($attribute)."_attr_".$this->ws->lang.$singleValuedDesignator;
+             }
+             elseif(array_search($attribute."_attr_date".$singleValuedDesignator, $indexedFields) !== FALSE)
+             {              
+               $attribute = urlencode($attribute)."_attr_date".$singleValuedDesignator;
+             }
+             elseif(array_search($attribute."_attr_int".$singleValuedDesignator, $indexedFields) !== FALSE)
+             {              
+               $attribute = urlencode($attribute)."_attr_int".$singleValuedDesignator;
+             }
+             elseif(array_search($attribute."_attr_float".$singleValuedDesignator, $indexedFields) !== FALSE)
+             {              
+               $attribute = urlencode($attribute)."_attr_float".$singleValuedDesignator;
+             }
+             elseif(array_search($attribute."_attr_obj_".$this->ws->lang.$singleValuedDesignator, $indexedFields) !== FALSE)
+             {      
+               $attributeTmp = urlencode($attribute)."_attr_obj_uri";  
+               
+               $restrictionRules .= $attributeTmp.'^'.$modifier.' '; 
+               
+               $attribute = urlencode($attribute)."_attr_obj_".$this->ws->lang.$singleValuedDesignator;
+             }                    
+            }                 
+
+            $restrictionRules .= $attribute.'^'.$modifier.' ';            
           }
         }
+        
+        $restrictionRules = rtrim($restrictionRules);        
 
-        $solrQuery = "q=".$queryParam.$distanceQueryRevelencyBooster.$boostingRules.
+        $solrQuery = "q=".$queryParam.$distanceQueryRevelencyBooster.$boostingRules.$restrictionRules.
                      "&start=" . $this->ws->page . 
                      "&rows=" . $this->ws->items .
                      (strtolower($this->ws->includeAggregates) == "true" ? 
@@ -560,7 +601,7 @@
         if($this->ws->extendedFilters != "")
         {
           // Get the fields (attributes) from the extended attributes query
-          preg_match_all("/([#%\.A-Za-z0-9_\-\[\]]+):[\(\"#%\.A-Za-z0-9_\-]+/Uim", $this->ws->extendedFilters, $matches);
+          preg_match_all("/([#%\.A-Za-z0-9_\-\[\]]+):[\(\"#%\.A-Za-z0-9_\-\+*]+/Uim", $this->ws->extendedFilters, $matches);
           
           $attributes = $matches[1];
 
@@ -1298,7 +1339,15 @@
             $solrQuery = rtrim($solrQuery, ",");
           }
         }
-
+        
+        if(!empty($this->ws->includeScores))
+        {
+          $solrQuery .= '&fl='.urlencode('* score');
+        }
+        
+        // Specifies that the query parser is eDisMax
+        $solrQuery .= '&defType=edismax';
+		
         $resultset = $solr->select($solrQuery);
         
         if($resultset === FALSE)
@@ -1510,6 +1559,17 @@
             {
               $subject->setDataAttribute(Namespaces::$geo."long", $resultDescriptionLong->item(0)->nodeValue);
             }
+          }
+          
+          // Set possible score
+          if(!empty($this->ws->includeScores))
+          {          
+            $score = $xpath->query("float[@name='score']", $result);
+
+            if($score->length > 0)
+            {
+              $subject->setDataAttribute(Namespaces::$wsf."score", $score->item(0)->nodeValue);
+            }            
           }
           
           // get possible locatedIn URI(s)

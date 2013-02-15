@@ -214,6 +214,20 @@ if(isset($_POST['aggregate_attributes_object_nb']))
   $aggregateAttributesNb = $_POST['aggregate_attributes_object_nb'];
 }
 
+$searchRestrictions = array();
+
+if(isset($_POST['search_restrictions']))
+{
+  $searchRestrictions = $_POST['search_restrictions'];
+}
+
+$includeScores = "false";
+
+if(isset($_POST['include_scores']))
+{
+  $includeScores = $_POST['include_scores'];
+}
+ 
 
 // Optional IP
 $registered_ip = "";
@@ -259,7 +273,8 @@ $ws_s = new Search($query, $types, $attributes, $datasets, $items, $page, $infer
                    $registered_ip, $requester_ip, $distanceFilter, $rangeFilter, $aggregate_attributes, 
                    $attributesBooleanOperator, $includeAttributesList,$aggregateAttributesObjectType,
                    $aggregateAttributesNb, $resultsLocationAggregator, $interface, $version, $lang,
-                   $sort, $extendedFilters, $typesBoost, $attributesBoost, $datasetsBoost);
+                   $sort, $extendedFilters, $typesBoost, $attributesBoost, $datasetsBoost, $searchRestrictions,
+                   $includeScores);
 
 $ws_s->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                  (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

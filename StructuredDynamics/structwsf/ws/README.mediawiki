@@ -22,22 +22,17 @@ The general structWSF architecture is described in this [http://techwiki.openstr
 
 {|
 |-
-| [http://techwiki.openstructs.org/index.php/Open_Semantic_Framework_Installer Get started  quickly with structWSF by using the Open Semantic Framework Installer]
+| [https://github.com/structureddynamics/Open-Semantic-Framework-Installer Get started  quickly with structWSF by using the Open Semantic Framework Installer]
 | [[File:http://dev.openstructs.org/imgs/osf_installer.png]]
 |}
 
-Additionally, a complete [http://techwiki.openstructs.org/index.php/StructWSF_Installation_Guide installation manual] has been written. structWSF is based on an stack of open source projects. The creation of the stack, and its configuration can be a daunting task. However this manual does outline all the steps needed in order to successfully create a structWSF server instance. It is constantly improved based on user feedbacks and on new code that get commited to the Git source control.
-
 Additionally you can find debugging tips and support on the [http://groups.google.com/group/open-semantic-framework Mailing List]
-
-You also have access to an annex to this installation guide that shows you [http://techwiki.openstructs.org/index.php/Multi-structWSF_Server_Instance how you can install multiple
-structWSF instance on the same server].
 
 == Upgrading structWSF ==
 
-An existing structWSF instance can easily be upgrader using the [https://github.com/structureddynamics/structWSF-Upgrader structWSF Upgrader script]. Do follow the steps in the README.mediawiki file to upgrade an existing structWSF instance.
+An existing structWSF instance can easily be upgrader using the [https://github.com/structureddynamics/Open-Semantic-Framework-Installer OSF-Installer].
 
-Note: the version of the structWSF instance that should be minimally installed is v1.0a92. If you have an older version than that, then you will have to manually upgrade your version to the version v1.0a92 and then you will have to run the struct Upgrader script.
+Note: the version of the structWSF instance that should be minimally installed is version 2.0.0. If you have an older version than that, then you will have to manually upgrade your version to the version 2.0.0 and then you will have to run the OSF-Installer structWSF upgrader script.
 
 == structWSF Web Services ==
 
@@ -70,15 +65,9 @@ Here is a complete list of all the web service endpoints currently available in 
 
 == How to Use Web Services Endpoint ==
 
-As you saw, structWSF is a set of web services endpoints. The main way to interact with the system is by sending HTTP queries to any of the endpoints. [http://techwiki.openstructs.org/index.php/StructWSF_Web_Services_Tutorial A tutorial has been written that explains the basis principles of how to query the endpoints, and it also includes a series of basic usage explains].
+The easiest way to get started is to use the [https://github.com/structureddynamics/structWSF-PHP-API structWSF-PHP-API] to create and send queries to any structWSF web service endpoint.
 
-The second way to use structWSF is by using the API direct. Each endpoint is composed of an interface that get called via a HTTP query (the <code>index.php</code> files within each web service folder), and a Class that represents the actual web service. It is that API that you can directly use in any PHP scripts running on the server.
-
-== structXML ==
-
-[http://techwiki.openstructs.org/index.php/StructXML structXML] is a straightforward RDF serialization in [http://techwiki.openstructs.org/index.php/XML_Concept XML] format used for internal communications between structWSF Web services, the Flex [http://techwiki.openstructs.org/index.php/Category:Semantic_Component Semantic Components] and conStruct; this is the core format used to transmit information between any OSF component. In structWSF, any data is internally processed as structXML, and is then converted into several other formats (RDF+XML, RDF+N3, irJSON, commON, etc.). It is composed of subjects (records) that are defined with properties and values. Values can be "data" values such as literals or "object" values that are reference to other subjects.
-
-Ironically, structXML data can also be serialized in JSON. If someone request <code>text/xml</code> mime to a endpoint, he will get structXML serialized in XML from the endpoint. If someone request <code>application/json</code> mime to a endpoint, he will get structXML serialized in JSON from the endpoint.
+Another way is to redirectly send HTTP queries to any of the endpoints. [http://techwiki.openstructs.org/index.php/StructWSF_Web_Services_Tutorial A tutorial has been written that explains the basis principles of how to query the endpoints, and it also includes a series of basic usage explains].
 
 == Developers ==
 

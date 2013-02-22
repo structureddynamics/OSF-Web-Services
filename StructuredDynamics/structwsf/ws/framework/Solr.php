@@ -454,7 +454,10 @@ class Solr
 
       foreach($founds as $found)
       {
-        array_push($fields, $found->getAttribute("name"));
+        if($this->isFieldUsed($found->getAttribute("name")))
+        {
+          array_push($fields, $found->getAttribute("name"));
+        }
       } 
       
       $fields = array_unique($fields);
@@ -463,6 +466,59 @@ class Solr
     }    
     
     return TRUE;
+  }
+  
+  /**
+  * Sometimes, there can be orphan dynamic fields in the Solr index that does now disapear
+  * if we optimize the index. This function is used to make sure that there are documents
+  * that uses that field in the Solr index.
+  * 
+  * @param mixed $field
+  */
+  private function isFieldUsed($field)
+  {
+    $ch = curl_init();
+    
+    $headers = array( "Content-Type: text/xml" );    
+
+    curl_setopt($ch, CURLOPT_HEADER, 0);
+    curl_setopt($ch, CURLOPT_URL, $this->selectUrl);
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, 'q='.urlencode($field).':*');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+
+    $data = curl_exec($ch);
+
+    if(curl_errno($ch))
+    {
+      return(FALSE);
+    }
+    else
+    {      
+      $domResultset = new DomDocument("1.0", "utf-8");
+      $domResultset->loadXML($data);
+
+      $xpath = new DOMXPath($domResultset);
+      
+      $founds = $xpath->query("*[@numFound]");
+
+      foreach($founds as $found)
+      {
+        $nbResources = $found->attributes->getNamedItem("numFound")->nodeValue;
+        break;
+      }      
+      
+      if($nbResources > 0)
+      {
+        return(TRUE);
+      }
+      else
+      {
+        return(FALSE);
+      }
+    }    
+    
+    return(TRUE);
   }
 }
 
@@ -574,7 +630,7 @@ class SolrDocument
   
   /** Encode content to be included in XML files
 
-      @param $string The content string to be encoded
+      @param $string The content string to be encoded                                  
       
       @return returns the encoded string
     

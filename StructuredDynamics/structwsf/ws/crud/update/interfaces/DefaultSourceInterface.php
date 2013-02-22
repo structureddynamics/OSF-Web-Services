@@ -772,7 +772,11 @@
                        array_search(urlencode($predicate) . "_attr_".$lang, $indexedFields) === FALSE &&
                        array_search(urlencode($predicate) . "_attr_date", $indexedFields) === FALSE &&
                        array_search(urlencode($predicate) . "_attr_int", $indexedFields) === FALSE &&
-                       array_search(urlencode($predicate) . "_attr_float", $indexedFields) === FALSE)
+                       array_search(urlencode($predicate) . "_attr_float", $indexedFields) === FALSE &&
+                       array_search(urlencode($predicate) . "_attr_".$lang."_single_valued", $indexedFields) === FALSE &&
+                       array_search(urlencode($predicate) . "_attr_date_single_valued", $indexedFields) === FALSE &&
+                       array_search(urlencode($predicate) . "_attr_int_single_valued", $indexedFields) === FALSE &&
+                       array_search(urlencode($predicate) . "_attr_float_single_valued", $indexedFields) === FALSE)
                     {
                       $newFields = TRUE;
                     }
@@ -942,7 +946,10 @@
                     $lang = $this->ws->supportedLanguages[0];                        
                     
                     // Detect if the field currently exists in the fields index 
-                    if(!$newFields && array_search(urlencode($predicate) . "_attr", $indexedFields) === FALSE)
+                    if(!$newFields && 
+                       array_search(urlencode($predicate) . "_attr_obj_uri", $indexedFields) === FALSE &&
+                       array_search(urlencode($predicate) . "_attr_obj_".$lang, $indexedFields) === FALSE &&
+                       array_search(urlencode($predicate) . "_attr_obj_".$lang."_single_valued", $indexedFields) === FALSE)
                     {
                       $newFields = TRUE;
                     }                      
@@ -981,12 +988,6 @@
                       {
                         $labels .= $subjectTriples[$property][0] . " ";
                       }
-                    }
-                    
-                    // Detect if the field currently exists in the fields index 
-                    if(!$newFields && array_search(urlencode($predicate) . "_attr_obj_".$lang, $indexedFields) === FALSE)
-                    {
-                      $newFields = TRUE;
                     }
                     
                     $property = $propertyHierarchy->getProperty($predicate);

@@ -485,33 +485,32 @@
             {
              $attribute = urlencode($attribute);
              
+             /*
+              @NOTE: here we can only include fields that uses the "solr.StopFilterFactory" setting in their
+                     defined workflow. Otherwise, if a stopword is used in the search query, 0 results
+                     will always be returned with the eDisMax query parser.
+             */
+             
              if(array_search($attribute."_attr_".$this->ws->lang.$singleValuedDesignator, $indexedFields) !== FALSE)
              {              
                $attribute = urlencode($attribute)."_attr_".$this->ws->lang.$singleValuedDesignator;
-             }
-             elseif(array_search($attribute."_attr_date".$singleValuedDesignator, $indexedFields) !== FALSE)
-             {              
-               $attribute = urlencode($attribute)."_attr_date".$singleValuedDesignator;
-             }
-             elseif(array_search($attribute."_attr_int".$singleValuedDesignator, $indexedFields) !== FALSE)
-             {              
-               $attribute = urlencode($attribute)."_attr_int".$singleValuedDesignator;
-             }
-             elseif(array_search($attribute."_attr_float".$singleValuedDesignator, $indexedFields) !== FALSE)
-             {              
-               $attribute = urlencode($attribute)."_attr_float".$singleValuedDesignator;
+               $attributeFound = TRUE;
              }
              elseif(array_search($attribute."_attr_obj_".$this->ws->lang.$singleValuedDesignator, $indexedFields) !== FALSE)
              {      
-               $attributeTmp = urlencode($attribute)."_attr_obj_uri";  
-               
-               $restrictionRules .= $attributeTmp.'^'.$modifier.' '; 
-               
                $attribute = urlencode($attribute)."_attr_obj_".$this->ws->lang.$singleValuedDesignator;
+               $attributeFound = TRUE;
              }                    
+            }
+            else
+            {
+              $attributeFound = TRUE;
             }                 
 
-            $restrictionRules .= $attribute.'^'.$modifier.' ';            
+            if($attributeFound)
+            {
+              $restrictionRules .= $attribute.'^'.$modifier.' ';            
+            }            
           }
         }
         

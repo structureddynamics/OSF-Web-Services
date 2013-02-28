@@ -281,153 +281,204 @@
         }
         
         $boostingRules = "";
-        if($this->ws->typesBoost != "" ||
-           $this->ws->attributesBoost != "" ||
-           $this->ws->datasetsBoost != "")
+        
+        // Types boosting rules
+        if($this->ws->typesBoost != "")
         {
-          // Types boosting rules
-          if($this->ws->typesBoost != "")
-          {
-           $boostRules = explode(";", $this->ws->typesBoost);
+         $boostRules = explode(";", $this->ws->typesBoost);
+         
+         foreach($boostRules as $key => $rule)
+         {
+           $boost = explode("^", $rule);
            
-           foreach($boostRules as $key => $rule)
+           $type = str_replace(array("%3B", "%5E"), array(";", "^"), $boost[0]);
+           $modifier = $boost[1];
+           
+           $boostingRules .= '&bq=type:"'.urlencode($type).'"^'.$modifier;
+           
+           if(strtolower($this->ws->inference) == "on")
            {
-             $boost = explode("^", $rule);
-             
-             $type = str_replace(array("%3B", "%5E"), array(";", "^"), $boost[0]);
-             $modifier = $boost[1];
-             
-             $boostingRules .= '&bq=type:"'.urlencode($type).'"^'.$modifier;
-             
-             if(strtolower($this->ws->inference) == "on")
-             {
-               $boostingRules .= '&bq=inferred_type:"'.urlencode($type).'"^'.$modifier;
-             }
+             $boostingRules .= '&bq=inferred_type:"'.urlencode($type).'"^'.$modifier;
+           }
+         }
+         
+         $insertOR = TRUE;
+        }
+
+        // Datasets boosting rules
+        if($this->ws->datasetsBoost != "")
+        {
+         $boostRules = explode(";", $this->ws->datasetsBoost);
+         
+         foreach($boostRules as $key => $rule)
+         {
+           $boost = explode("^", $rule);
+           
+           $dataset = str_replace(array("%3B", "%5E"), array(";", "^"), $boost[0]);
+           $modifier = $boost[1];
+           
+           $boostingRules .= '&bq=dataset:"'.urlencode($dataset).'"^'.$modifier;
+         }
+         
+         $insertOR = TRUE;
+        }
+
+        // Attributes & Attributes/values boosting rules
+        if($this->ws->attributesBoost != "")
+        {
+         $boostRules = explode(";", $this->ws->attributesBoost);
+         
+         foreach($boostRules as $key => $rule)
+         {
+           $isAttributeValue = FALSE;
+           
+           if(strpos($rule, '::') !== FALSE)
+           {
+             $isAttributeValue = TRUE;
            }
            
-           $insertOR = TRUE;
-          }
-
-          // Datasets boosting rules
-          if($this->ws->datasetsBoost != "")
-          {
-           $boostRules = explode(";", $this->ws->datasetsBoost);
+           $boost = explode("^", $rule);
            
-           foreach($boostRules as $key => $rule)
+           $attribute = str_replace(array("%3B", "%5E"), array(";", "^"), $boost[0]);
+           $modifier = $boost[1];
+           
+           if($isAttributeValue)
            {
-             $boost = explode("^", $rule);
+             $attribute = explode("::", $attribute);
              
-             $dataset = str_replace(array("%3B", "%5E"), array(";", "^"), $boost[0]);
-             $modifier = $boost[1];
+             $attributeValue = $attribute[1];
+             $attribute = $attribute[0];
              
-             $boostingRules .= '&bq=dataset:"'.urlencode($dataset).'"^'.$modifier;
-           }
-           
-           $insertOR = TRUE;
-          }
+             $indexedFields = array();
 
-          // Attributes & Attributes/values boosting rules
-          if($this->ws->attributesBoost != "")
-          {
-           $boostRules = explode(";", $this->ws->attributesBoost);
-           
-           foreach($boostRules as $key => $rule)
-           {
-             $isAttributeValue = FALSE;
-             
-             if(strpos($rule, '::') !== FALSE)
+             if(file_exists($this->ws->fields_index_folder."fieldsIndex.srz"))
              {
-               $isAttributeValue = TRUE;
-             }
+               $indexedFields = unserialize(file_get_contents($this->ws->fields_index_folder."fieldsIndex.srz"));
+             }                 
              
-             $boost = explode("^", $rule);
-             
-             $attribute = str_replace(array("%3B", "%5E"), array(";", "^"), $boost[0]);
-             $modifier = $boost[1];
-             
-             if($isAttributeValue)
+             // Fix the reference to some of the core attributes                 
+             $isCoreAttribute = $this->isCoreAttribute($attribute, $attribute);
+              
+             // If it is not a core attribute, check if we have to make that attribute
+             // single-valued. We check that by checking if a single_valued version
+             // of that field is currently used in the Solr index.              
+             $singleValuedDesignator = "";
+
+             if(!$isCoreAttribute &&                  
+                array_search(urlencode($attribute."_attr_".$this->ws->lang."_single_valued"), $indexedFields) !== FALSE)
              {
-               $attribute = explode("::", $attribute);
+               $singleValuedDesignator = "_single_valued";
+             }  
+              
+             $attributeFound = FALSE;
+              
+             // Get the Solr field ID for this attribute
+             if(!$isCoreAttribute)
+             {
+               // Check if it is an object property, and check if the pattern of this object property
+               // is using URIs as values
+               $valuesAsURI = FALSE;
                
-               $attributeValue = $attribute[1];
-               $attribute = $attribute[0];
+               if(stripos($attribute, "[uri]") !== FALSE)
+               {
+                 $valuesAsURI = TRUE;
+                 $attribute = str_replace("[uri]", "", $attribute);
+               }
+                
+               $attribute = urlencode($attribute);
                
-               $indexedFields = array();
-
-               if(file_exists($this->ws->fields_index_folder."fieldsIndex.srz"))
-               {
-                 $indexedFields = unserialize(file_get_contents($this->ws->fields_index_folder."fieldsIndex.srz"));
-               }                 
-               
-               // Fix the reference to some of the core attributes                 
-               $isCoreAttribute = $this->isCoreAttribute($attribute, $attribute);
-                
-               // If it is not a core attribute, check if we have to make that attribute
-               // single-valued. We check that by checking if a single_valued version
-               // of that field is currently used in the Solr index.              
-               $singleValuedDesignator = "";
-
-               if(!$isCoreAttribute &&                  
-                  array_search(urlencode($attribute."_attr_".$this->ws->lang."_single_valued"), $indexedFields) !== FALSE)
-               {
-                 $singleValuedDesignator = "_single_valued";
-               }  
-                
-               $attributeFound = FALSE;
-                
-               // Get the Solr field ID for this attribute
-               if(!$isCoreAttribute)
-               {
-                 // Check if it is an object property, and check if the pattern of this object property
-                 // is using URIs as values
-                 $valuesAsURI = FALSE;
-                 
-                 if(stripos($attribute, "[uri]") !== FALSE)
+               if(array_search($attribute."_attr_".$this->ws->lang.$singleValuedDesignator, $indexedFields) !== FALSE && $valuesAsURI === FALSE)
+               {              
+                 $attribute = urlencode($attribute)."_attr_".$this->ws->lang.$singleValuedDesignator;
+               }
+               elseif(array_search($attribute."_attr_date".$singleValuedDesignator, $indexedFields) !== FALSE)
+               {              
+                 $attribute = urlencode($attribute)."_attr_date".$singleValuedDesignator;
+               }
+               elseif(array_search($attribute."_attr_int".$singleValuedDesignator, $indexedFields) !== FALSE)
+               {              
+                 $attribute = urlencode($attribute)."_attr_int".$singleValuedDesignator;
+               }
+               elseif(array_search($attribute."_attr_float".$singleValuedDesignator, $indexedFields) !== FALSE)
+               {              
+                 $attribute = urlencode($attribute)."_attr_float".$singleValuedDesignator;
+               }
+               elseif(array_search($attribute."_attr_obj_".$this->ws->lang.$singleValuedDesignator, $indexedFields) !== FALSE)
+               {      
+                 // Check if the value of that filter is a URI or not.
+                 if($valuesAsURI)
                  {
-                   $valuesAsURI = TRUE;
-                   $attribute = str_replace("[uri]", "", $attribute);
-                 }
-                  
-                 $attribute = urlencode($attribute);
-                 
-                 if(array_search($attribute."_attr_".$this->ws->lang.$singleValuedDesignator, $indexedFields) !== FALSE && $valuesAsURI === FALSE)
-                 {              
-                   $attribute = urlencode($attribute)."_attr_".$this->ws->lang.$singleValuedDesignator;
-                 }
-                 elseif(array_search($attribute."_attr_date".$singleValuedDesignator, $indexedFields) !== FALSE)
-                 {              
-                   $attribute = urlencode($attribute)."_attr_date".$singleValuedDesignator;
-                 }
-                 elseif(array_search($attribute."_attr_int".$singleValuedDesignator, $indexedFields) !== FALSE)
-                 {              
-                   $attribute = urlencode($attribute)."_attr_int".$singleValuedDesignator;
-                 }
-                 elseif(array_search($attribute."_attr_float".$singleValuedDesignator, $indexedFields) !== FALSE)
-                 {              
-                   $attribute = urlencode($attribute)."_attr_float".$singleValuedDesignator;
-                 }
-                 elseif(array_search($attribute."_attr_obj_".$this->ws->lang.$singleValuedDesignator, $indexedFields) !== FALSE)
-                 {      
-                   // Check if the value of that filter is a URI or not.
-                   if($valuesAsURI)
-                   {
-                     $attribute = urlencode($attribute)."_attr_obj_uri";  
-                   } 
-                   else
-                   {
-                     $attribute = urlencode($attribute)."_attr_obj_".$this->ws->lang.$singleValuedDesignator;
-                   }                                       
-                 }                    
-               }                 
-               
-               $boostingRules .= '&bq='.$attribute.':"'.urlencode($attributeValue).'"^'.$modifier;
-             }
-             else
-             {
-               $boostingRules .= '&bq=attribute:"'.urlencode($attribute).'"^'.$modifier;
-             }
-            }
+                   $attribute = urlencode($attribute)."_attr_obj_uri";  
+                 } 
+                 else
+                 {
+                   $attribute = urlencode($attribute)."_attr_obj_".$this->ws->lang.$singleValuedDesignator;
+                 }                                       
+               }                    
+             }                 
+             
+             $boostingRules .= '&bq='.$attribute.':"'.urlencode($attributeValue).'"^'.$modifier;
+           }
+           else
+           {
+             $boostingRules .= '&bq=attribute:"'.urlencode($attribute).'"^'.$modifier;
+           }
           }
+        }
+        
+        // Attributes phrases boosting rules
+        if($this->ws->attributesPhraseBoost != "")
+        {
+          $boostRules = explode(";", $this->ws->attributesPhraseBoost);
+
+          $indexedFields = array();
+
+          if(file_exists($this->ws->fields_index_folder."fieldsIndex.srz"))
+          {
+            $indexedFields = unserialize(file_get_contents($this->ws->fields_index_folder."fieldsIndex.srz"));
+          }             
+          
+          foreach($boostRules as $key => $rule)
+          {
+            if($rule == '')
+            {
+              continue;
+            }
+                        
+            $boost = explode("^", $rule);
+
+            $attribute = str_replace(array("%3B", "%5E"), array(";", "^"), $boost[0]);
+            $modifier = $boost[1];
+           
+            $isCoreAttribute = $this->isCoreAttribute($attribute, $attribute);
+           
+            $singleValuedDesignator = "";
+
+            if(!$isCoreAttribute)
+            {
+              if(array_search(urlencode($attribute."_attr_".$this->ws->lang."_single_valued"), $indexedFields) !== FALSE)
+            {
+              $singleValuedDesignator = "_single_valued";
+            }             
+           
+            if(array_search($attribute."_attr_".$this->ws->lang.$singleValuedDesignator, $indexedFields) !== FALSE && $valuesAsURI === FALSE)
+            {              
+              $attribute = str_replace($attribute, urlencode($attribute)."_attr_".$this->ws->lang.$singleValuedDesignator, $attribute);
+
+              $attributeFound = TRUE;
+            }
+            elseif(array_search($attribute."_attr_obj_".$this->ws->lang.$singleValuedDesignator, $indexedFields) !== FALSE)
+            {      
+              $attribute = str_replace($attribute.":", urlencode($attribute)."_attr_obj_".$this->ws->lang.$singleValuedDesignator.":", $attribute);
+
+              $attributeFound = TRUE;
+              }           
+            }           
+           
+            $boostingRules .= '&pf='.urlencode($attribute).'^'.$modifier;
+          }
+          
+          $boostingRules .= '&qs='.$this->ws->phraseBoostDistance;
         }
         
         $restrictionRules = '';
@@ -1344,9 +1395,35 @@
           $solrQuery .= '&fl='.urlencode('* score');
         }
         
+        // Specify the default search operator
+        if($this->ws->defaultOperator != 'and')
+        {
+          if(strpos($this->ws->defaultOperator, '::') !== FALSE)
+          {
+            $orOp = explode('::', $this->ws->defaultOperator .= '&q.op=AND');
+            
+            if($orOp[0] == 'or')
+            {
+              $solrQuery .= '&q.op=OR';
+              $solrQuery .= '&mm='.$orOp[1];
+            }
+          }
+          else
+          {
+            if($this->ws->defaultOperator == 'or')
+            {
+              $solrQuery .= '&q.op=OR';
+            }
+          }
+        }
+        else
+        {
+          $solrQuery .= '&q.op=AND';
+        }
+        
         // Specifies that the query parser is eDisMax
         $solrQuery .= '&defType=edismax';
-		
+    
         $resultset = $solr->select($solrQuery);
         
         if($resultset === FALSE)

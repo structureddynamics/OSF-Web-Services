@@ -135,6 +135,15 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
   
   /** Include results' score in the resultset */
   public $includeScores = FALSE;
+  
+  /** Default search operator */
+  public $defaultOperator = 'and';
+  
+  /** Specifies attributes and boosting factors for phrase searches */
+  public $attributesPhraseBoost = '';
+  
+  /** Distance of the phrase searches. Used by the attributesPhraseBoost parameter. */
+  public $phraseBoostDistance = 0;
 
   /** Supported serialization mime types by this Web service */
   public static $supportedSerializations =
@@ -429,19 +438,43 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
                             returned results. This doesn't affect what is returned by the endpoint in any ways, so this 
                             won't restrict results to be returned by the endpoint.Here is an example of two boosted 
                             datasets: urlencode(dataset-uri-1)^30;urlencode(dataset-uri-2)^300
+      @param $defaultOperator Specifies what should be the default boleean operator to use in the search query. The two
+                              possible operators are: "and" and "or". If the "or" operator is used, you can optionally
+                              define the minimal number of words that should be present in the returned records. You 
+                              can define this value by seperating the "or" option with a double colon. For example,
+                              if the value of this parameter is "or::3", it means that for all queries, the OR operator
+                              will be used. However, even if the OR parameter is used, at least 3 terms of the ORed query
+                              should match the returned records. More complex behaviors can be defined, the full syntax
+                              is explained in this document: 
+                              http://lucene.apache.org/solr/4_1_0/solr-core/org/apache/solr/util/doc-files/min-should-match.html
+      @param $attributesPhraseBoost Consider the list of attribute(s) as phrases searches. The distance of the phrase searches
+                                    is specified by the $phraseBoostDistance parameter. The scoring of the documents is 
+                                    modified by the boosting factor specified for one of the field, depending if the query
+                                    match field with the proper specified distance. The attributes URI to boost are url-encoded 
+                                    and separated by semi-colomns. 
+                                    The boosting factor is delemited with a "^" character at the end of the encoded 
+                                    attribute's URI, or the encoded value followed by the boosting factor. Boosting a 
+                                    phrase attribute only impacts the scoring/relevancy of the returned results. This doesn't 
+                                    affect what is returned by the endpoint in any ways, so this won't restrict results to 
+                                    be returned by the endpoint. Here is an example of a boosted attribute URI and another 
+                                    booster attribute URI with a particular value: urlencode(attribute-uri-1)^30
+      @param $phraseBoostDistance Define the maximum distance between the keywords of the search query that is used
+                                  by the $attributesPhraseBoost parameter.
+      
 
       @return returns NULL
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
   function __construct($query, $types, $attributes, $datasets, $items, $page, $inference, $include_aggregates,
-                       $registered_ip, $requester_ip, $distanceFilter = "", $rangeFilter = "", 
-                       $aggregate_attributes = "", $attributesBooleanOperator = "and",
-                       $includeAttributesList = "", $aggregate_attributes_object_type = "literal",
-                       $aggregate_attributes_nb = 10, $resultsLocationAggregator = "",
-                       $interface = 'default', $requestedInterfaceVersion = "", $lang = "en",
-                       $sort = "", $extendedFilters = "", $typesBoost = "", $attributesBoost = "",
-                       $datasetsBoost = "", $searchRestrictions = array(), $includeScores = "false")
+                       $registered_ip, $requester_ip, $distanceFilter = '', $rangeFilter = '', 
+                       $aggregate_attributes = '', $attributesBooleanOperator = 'and',
+                       $includeAttributesList = '', $aggregate_attributes_object_type = 'literal',
+                       $aggregate_attributes_nb = 10, $resultsLocationAggregator = '',
+                       $interface = 'default', $requestedInterfaceVersion = '', $lang = 'en',
+                       $sort = '', $extendedFilters = '', $typesBoost = '', $attributesBoost = '',
+                       $datasetsBoost = '', $searchRestrictions = array(), $includeScores = 'false',
+                       $defaultOperator = 'and', $attributesPhraseBoost = '', $phraseBoostDistance = '3')
   {
     parent::__construct();
  
@@ -459,6 +492,9 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
     $this->aggregateAttributesNb = $aggregate_attributes_nb;
     $this->resultsLocationAggregator = explode(",", $resultsLocationAggregator);
     $this->lang = $lang;
+    $this->defaultOperator = strtolower($defaultOperator);
+    $this->attributesPhraseBoost = $attributesPhraseBoost;
+    $this->phraseBoostDistance = $phraseBoostDistance;
     
     $this->searchRestrictions = $searchRestrictions;
     

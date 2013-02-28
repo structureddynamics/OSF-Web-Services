@@ -227,7 +227,27 @@ if(isset($_POST['include_scores']))
 {
   $includeScores = $_POST['include_scores'];
 }
+
+$defaultOperator = 'and';
+
+if(isset($_POST['default_operator']))
+{
+  $defaultOperator = $_POST['default_operator'];
+}
+
+$attributesPhraseBoost = '';
+
+if(isset($_POST['attributes_phrase_boost']))
+{
+  $attributesPhraseBoost = $_POST['attributes_phrase_boost'];
+}
  
+$phraseBoostDistance = 0;
+
+if(isset($_POST['phrase_boost_distance']))
+{
+  $phraseBoostDistance = $_POST['phrase_boost_distance'];
+}
 
 // Optional IP
 $registered_ip = "";
@@ -274,7 +294,7 @@ $ws_s = new Search($query, $types, $attributes, $datasets, $items, $page, $infer
                    $attributesBooleanOperator, $includeAttributesList,$aggregateAttributesObjectType,
                    $aggregateAttributesNb, $resultsLocationAggregator, $interface, $version, $lang,
                    $sort, $extendedFilters, $typesBoost, $attributesBoost, $datasetsBoost, $searchRestrictions,
-                   $includeScores);
+                   $includeScores, $defaultOperator, $attributesPhraseBoost, $phraseBoostDistance);
 
 $ws_s->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                  (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

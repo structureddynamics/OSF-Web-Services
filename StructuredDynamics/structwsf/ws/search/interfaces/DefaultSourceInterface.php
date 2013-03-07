@@ -365,7 +365,10 @@
              $singleValuedDesignator = "";
 
              if(!$isCoreAttribute &&                  
-                array_search(urlencode($attribute."_attr_".$this->ws->lang."_single_valued"), $indexedFields) !== FALSE)
+                (array_search(urlencode($attribute."_attr_".$this->ws->lang."_single_valued"), $indexedFields) !== FALSE ||
+                 array_search(urlencode($attribute."_attr_date_single_valued"), $indexedFields) !== FALSE ||
+                 array_search(urlencode($attribute."_attr_int_single_valued"), $indexedFields) !== FALSE ||
+                 array_search(urlencode($attribute."_attr_float_single_valued"), $indexedFields) !== FALSE))
              {
                $singleValuedDesignator = "_single_valued";
              }  
@@ -457,21 +460,21 @@
             if(!$isCoreAttribute)
             {
               if(array_search(urlencode($attribute."_attr_".$this->ws->lang."_single_valued"), $indexedFields) !== FALSE)
-            {
-              $singleValuedDesignator = "_single_valued";
-            }             
-           
-            if(array_search($attribute."_attr_".$this->ws->lang.$singleValuedDesignator, $indexedFields) !== FALSE && $valuesAsURI === FALSE)
-            {              
-              $attribute = str_replace($attribute, urlencode($attribute)."_attr_".$this->ws->lang.$singleValuedDesignator, $attribute);
+              {
+                $singleValuedDesignator = "_single_valued";
+              }             
+             
+              if(array_search($attribute."_attr_".$this->ws->lang.$singleValuedDesignator, $indexedFields) !== FALSE && $valuesAsURI === FALSE)
+              {              
+                $attribute = str_replace($attribute, urlencode($attribute)."_attr_".$this->ws->lang.$singleValuedDesignator, $attribute);
 
-              $attributeFound = TRUE;
-            }
-            elseif(array_search($attribute."_attr_obj_".$this->ws->lang.$singleValuedDesignator, $indexedFields) !== FALSE)
-            {      
-              $attribute = str_replace($attribute.":", urlencode($attribute)."_attr_obj_".$this->ws->lang.$singleValuedDesignator.":", $attribute);
+                $attributeFound = TRUE;
+              }
+              elseif(array_search($attribute."_attr_obj_".$this->ws->lang.$singleValuedDesignator, $indexedFields) !== FALSE)
+              {      
+                $attribute = str_replace($attribute.":", urlencode($attribute)."_attr_obj_".$this->ws->lang.$singleValuedDesignator.":", $attribute);
 
-              $attributeFound = TRUE;
+                $attributeFound = TRUE;
               }           
             }           
            
@@ -524,7 +527,10 @@
             $singleValuedDesignator = "";
 
             if(!$isCoreAttribute &&                  
-               array_search(urlencode($attribute."_attr_".$this->ws->lang."_single_valued"), $indexedFields) !== FALSE)
+                (array_search(urlencode($attribute."_attr_".$this->ws->lang."_single_valued"), $indexedFields) !== FALSE ||
+                 array_search(urlencode($attribute."_attr_date_single_valued"), $indexedFields) !== FALSE ||
+                 array_search(urlencode($attribute."_attr_int_single_valued"), $indexedFields) !== FALSE ||
+                 array_search(urlencode($attribute."_attr_float_single_valued"), $indexedFields) !== FALSE))
             {
               $singleValuedDesignator = "_single_valued";
             }  
@@ -715,7 +721,10 @@
             $singleValuedDesignator = "";
 
             if(!$isCoreAttribute &&                  
-               array_search(urlencode($attribute."_attr_".$this->ws->lang."_single_valued"), $indexedFields) !== FALSE)
+                (array_search(urlencode($attribute."_attr_".$this->ws->lang."_single_valued"), $indexedFields) !== FALSE ||
+                 array_search(urlencode($attribute."_attr_date_single_valued"), $indexedFields) !== FALSE ||
+                 array_search(urlencode($attribute."_attr_int_single_valued"), $indexedFields) !== FALSE ||
+                 array_search(urlencode($attribute."_attr_float_single_valued"), $indexedFields) !== FALSE))
             {
               $singleValuedDesignator = "_single_valued";
             }  
@@ -875,7 +884,10 @@
               $singleValuedDesignator = "";
               
               if(!$coreAttr &&                  
-                 array_search(urlencode($attribute."_attr_".$this->ws->lang."_single_valued"), $indexedFields) !== FALSE)
+                 (array_search(urlencode($attribute."_attr_".$this->ws->lang."_single_valued"), $indexedFields) !== FALSE ||
+                  array_search(urlencode($attribute."_attr_date_single_valued"), $indexedFields) !== FALSE ||
+                  array_search(urlencode($attribute."_attr_int_single_valued"), $indexedFields) !== FALSE ||
+                  array_search(urlencode($attribute."_attr_float_single_valued"), $indexedFields) !== FALSE))
               {
                 $singleValuedDesignator = "_single_valued";
               }

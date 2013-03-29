@@ -2036,10 +2036,22 @@
                   break;
 
                   case "all":
+                    // @TODO: property handle possible punned properties (properties that have the same URI but that are of different property types)
                     $subjectTriples = array();
                     $subjectTriples = array_merge($subjectTriples, $ontology->getPropertiesDescription(TRUE, FALSE, FALSE, $limit, $offset));
                     $subjectTriples = array_merge($subjectTriples, $ontology->getPropertiesDescription(FALSE, TRUE, FALSE, $limit, $offset));
-                    $subjectTriples = array_merge($subjectTriples, $ontology->getPropertiesDescription(FALSE, FALSE, TRUE, $limit, $offset));
+                    
+                    // Check if the annotatio properties got punned. If they did, then ignore returning the annotation property.
+                    $annotationProperties = $ontology->getPropertiesDescription(FALSE, FALSE, TRUE, $limit, $offset);
+                    
+                    foreach($annotationProperties as $uri => $property)
+                    {
+                      if(!isset($subjectTriples[$uri]))  
+                      {
+                        $subjectTriples[$uri] = $property;
+                      }
+                    }
+                    
                     $this->ws->rset->setResultset(Array($this->ws->ontologyUri => $subjectTriples));
                   break;
                   

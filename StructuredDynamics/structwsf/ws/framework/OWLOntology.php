@@ -3764,17 +3764,44 @@ class OWLOntology
     // Create Literal Properties
     foreach($literalValues as $predicate => $values)
     {
-      foreach($values as $value)
+      // Make sure that if the predicate is defined as an annotation and/or a datatype property
+      // in the ontology that we create the proper instance for it.
+      $entities = $this->ontology->getEntitiesInSignature(java("org.semanticweb.owlapi.model.IRI")->create($predicate));
+      foreach($entities as $entity)
       {
-        $dataProperty = $this->owlDataFactory->getOWLDataProperty(java("org.semanticweb.owlapi.model.IRI")->create($predicate));
+        if(java_instanceof($entity, java("org.semanticweb.owlapi.model.OWLAnnotationProperty")))
+        {
+          foreach($values as $value)
+          {
+            $annotationProperty = $this->owlDataFactory->getOWLAnnotationProperty(java("org.semanticweb.owlapi.model.IRI")->create($predicate));
+            
+            $literalValue = $this->owlDataFactory->getOWLLiteral($value);
+
+            $annotationAxiom = $this->owlDataFactory->getOWLAnnotation($annotationProperty, $literalValue); 
+            
+            $addDataPropertyAxiom = $this->owlDataFactory->getOWLAnnotationAssertionAxiom($namedIndividual->getIRI(), $annotationAxiom);  
+
+            $addAxiom = new java("org.semanticweb.owlapi.model.AddAxiom", $this->ontology, $addDataPropertyAxiom);  
+            
+            $this->manager->applyChange($addAxiom);    
+          }
+        }
         
-        $literalValue = $this->owlDataFactory->getOWLLiteral($value);
-        
-        $addDataPropertyAxiom = $this->owlDataFactory->getOWLDataPropertyAssertionAxiom($dataProperty, $namedIndividual, $literalValue);  
-        
-        $addAxiom = new java("org.semanticweb.owlapi.model.AddAxiom", $this->ontology, $addDataPropertyAxiom);  
-        
-        $this->manager->applyChange($addAxiom);    
+        if(java_instanceof($entity, java("org.semanticweb.owlapi.model.OWLDataProperty")))
+        {
+          foreach($values as $value)
+          {
+            $dataProperty = $this->owlDataFactory->getOWLDataProperty(java("org.semanticweb.owlapi.model.IRI")->create($predicate));
+            
+            $literalValue = $this->owlDataFactory->getOWLLiteral($value);
+            
+            $addDataPropertyAxiom = $this->owlDataFactory->getOWLDataPropertyAssertionAxiom($dataProperty, $namedIndividual, $literalValue);  
+            
+            $addAxiom = new java("org.semanticweb.owlapi.model.AddAxiom", $this->ontology, $addDataPropertyAxiom);  
+            
+            $this->manager->applyChange($addAxiom);    
+          }
+        }
       }
     }  
     

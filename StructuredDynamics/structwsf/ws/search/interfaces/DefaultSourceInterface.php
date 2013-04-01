@@ -88,6 +88,11 @@
     {
       switch($attribute)
       {
+        case "uri":
+          $coreAttributeField = "uri";
+          return(TRUE);
+        break;  
+        
         case "dataset":
           $coreAttributeField = "dataset";
           return(TRUE);

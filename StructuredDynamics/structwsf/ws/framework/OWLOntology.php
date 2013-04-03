@@ -3108,6 +3108,11 @@ class OWLOntology
     // Create the new class
     $class = $this->owlDataFactory->getOWLClass(java("org.semanticweb.owlapi.model.IRI")->create($uri));
     
+    // Add the declaration axioms for this class into the ontology
+    $declarationAxioms = $this->owlDataFactory->getOWLDeclarationAxiom($class);
+    
+    $this->manager->addAxiom($this->ontology, $declarationAxioms);
+    
     // Create Object Properties
     foreach($objectValues as $predicate => $values)
     {
@@ -3226,6 +3231,11 @@ class OWLOntology
         $property = $this->owlDataFactory->getOWLAnnotationProperty(java("org.semanticweb.owlapi.model.IRI")->create($uri));
       break;      
     }
+    
+    // Add the declaration axioms for this class into the ontology
+    $declarationAxioms = $this->owlDataFactory->getOWLDeclarationAxiom($property);
+    
+    $this->manager->addAxiom($this->ontology, $declarationAxioms);    
     
     // Create Object Properties
     foreach($objectValues as $predicate => $values)
@@ -3748,6 +3758,11 @@ class OWLOntology
     // Create the new named individual
     $namedIndividual = $this->owlDataFactory->getOWLNamedIndividual(java("org.semanticweb.owlapi.model.IRI")->create($uri));
     
+    // Add the declaration axioms for this named individual into the ontology
+    $declarationAxioms = $this->owlDataFactory->getOWLDeclarationAxiom($namedIndividual);
+    
+    $this->manager->addAxiom($this->ontology, $declarationAxioms);    
+    
     // Add all the "types" axioms
     foreach($types as $type)
     {
@@ -4136,7 +4151,7 @@ class OWLOntology
     }
     else
     {
-      return($uri."#");
+      return(trim($uri, '#')."#");
     }    
   }
   

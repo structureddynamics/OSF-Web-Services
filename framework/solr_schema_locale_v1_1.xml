@@ -475,7 +475,7 @@
    <!-- Used to create attribute/key pairs that were not previously created in this schema -->
    <dynamicField name="*_attr"  type="text"  indexed="true"  stored="true" multiValued="true"/>   
    <dynamicField name="*_attr_obj"  type="text"  indexed="true"  stored="true" multiValued="true"/>   
-   <dynamicField name="*_attr_obj_uri"  type="text"  indexed="true"  stored="true" multiValued="true"/>   
+   <dynamicField name="*_attr_obj_uri"  type="string"  indexed="true"  stored="true" multiValued="true"/>   
 
    <dynamicField name="*_reify_obj"  type="text"  indexed="true"  stored="true" multiValued="true"/>   
    <dynamicField name="*_reify_value"  type="text"  indexed="true"  stored="true" multiValued="true"/>   

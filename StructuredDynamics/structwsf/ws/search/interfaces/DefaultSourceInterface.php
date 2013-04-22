@@ -1327,9 +1327,18 @@
             {
               if($atl != "none")
               {
-                $solrQuery .= urlencode(urlencode($atl))."_attr_".$this->ws->lang." ";
-                $solrQuery .= urlencode(urlencode($atl))."_attr_obj_".$this->ws->lang." ";
-                $solrQuery .= urlencode(urlencode($atl))."_attr_obj_uri ";
+                $isCoreAttribute = $this->isCoreAttribute($atl, $atl);
+                
+                if(!$isCoreAttribute)
+                {
+                  $solrQuery .= urlencode(urlencode($atl))."_attr_".$this->ws->lang." ";
+                  $solrQuery .= urlencode(urlencode($atl))."_attr_obj_".$this->ws->lang." ";
+                  $solrQuery .= urlencode(urlencode($atl))."_attr_obj_uri ";
+                }
+                else
+                {
+                  $solrQuery .= $atl." ";
+                }
               }
             }
             

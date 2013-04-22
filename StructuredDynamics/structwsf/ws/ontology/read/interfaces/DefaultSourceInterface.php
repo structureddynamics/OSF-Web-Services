@@ -928,6 +928,12 @@
                       $schema .= "<allowedType>".$this->ws->xmlEncode($this->ironPrefixize($value["uri"], $prefixes))."</allowedType>";
                     break;
                     
+                    case Namespaces::$rdfs."range":
+                      $this->manageIronPrefixes($value["uri"], $prefixes);
+                      
+                      $schema .= "<allowedValue><type>".$this->ws->xmlEncode($this->ironPrefixize($value["uri"], $prefixes))."</type></allowedValue>";
+                    break;                      
+                    
                     case Namespaces::$sco."displayControl":
                     
                       if(isset($value["uri"]))
@@ -1022,6 +1028,18 @@
                 {
                   switch($predicate)
                   {                   
+                    case Namespaces::$rdfs."domain":
+                      $this->manageIronPrefixes($value["uri"], $prefixes);
+                      
+                      $schema .= "<allowedType>".$this->ws->xmlEncode($this->ironPrefixize($value["uri"], $prefixes))."</allowedType>";
+                    break;
+                    
+                    case Namespaces::$rdfs."range":
+                      $this->manageIronPrefixes($value["uri"], $prefixes);
+                      
+                      $schema .= "<allowedValue><type>".$this->ws->xmlEncode($this->ironPrefixize($value["uri"], $prefixes))."</type></allowedValue>";
+                    break;                    
+                    
                     case Namespaces::$sco."displayControl":
                     
                       if(isset($value["uri"]))
@@ -1413,6 +1431,10 @@
                     $schema .= '"allowedType": [';
                   break;
                   
+                  case Namespaces::$rdfs."range":
+                    $schema .= '"allowedValue": [';
+                  break;                  
+                  
                   case Namespaces::$sco."displayControl":
                     $schema .= '"displayControl": [';
                   break;
@@ -1464,6 +1486,12 @@
                       $schema .= '"'.$this->ws->jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
                     break;
                     
+                    case Namespaces::$rdfs."range":
+                      $this->manageIronPrefixes($value["uri"], $prefixes);
+                      
+                      $schema .= '{ "type": "'.$this->ws->jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'"},';
+                    break;                    
+                                        
                     case Namespaces::$sco."displayControl":
                       if(isset($value["uri"]))
                       {
@@ -1521,6 +1549,7 @@
                 switch($predicate)
                 {
                   case Namespaces::$rdfs."domain":
+                  case Namespaces::$rdfs."range":
                   case Namespaces::$sco."displayControl":
                   case Namespaces::$sco."ignoredBy":
                   case Namespaces::$sco."comparableWith":
@@ -1555,6 +1584,14 @@
               {             
                 switch($predicate)
                 {
+                  case Namespaces::$rdfs."domain":
+                    $schema .= '"allowedType": [';
+                  break;
+                  
+                  case Namespaces::$rdfs."range":
+                    $schema .= '"allowedValue": [';
+                  break;                  
+                  
                   case Namespaces::$iron."allowedValue":
                     $schema .= '"allowedValue": {"primitive": "'.$this->ws->jsonEncode($value["value"]).'"},';
                   break;                
@@ -1562,10 +1599,6 @@
                   case Namespaces::$rdfs."subPropertyOf":
                     $schema .= '"subPropertyOf": [';
                   break;                
-                  
-                  case Namespaces::$rdfs."domain":
-                    $schema .= '"allowedType": [';
-                  break;
                   
                   case Namespaces::$sco."displayControl":
                     $schema .= '"displayControl": [';
@@ -1600,6 +1633,18 @@
                 {
                   switch($predicate)
                   {
+                    case Namespaces::$rdfs."domain":
+                      $this->manageIronPrefixes($value["uri"], $prefixes);
+                      
+                      $schema .= '"'.$this->ws->jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
+                    break;
+                    
+                    case Namespaces::$rdfs."range":
+                      $this->manageIronPrefixes($value["uri"], $prefixes);
+                      
+                      $schema .= '{ "type": "'.$this->ws->jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'"},';
+                    break;
+                                        
                     case Namespaces::$sco."minCardinality":
                       $schema .= '"minCardinality": "'.$this->ws->jsonEncode($value["value"]).'",';
                     break;
@@ -1611,12 +1656,6 @@
                     case Namespaces::$sco."cardinality":
                       $schema .= '"cardinality": "'.$this->ws->jsonEncode($value["value"]).'",';
                     break;                          
-                    
-                    case Namespaces::$rdfs."domain":
-                      $this->manageIronPrefixes($value["uri"], $prefixes);
-                      
-                      $schema .= '"'.$this->ws->jsonEncode($this->ironPrefixize($value["uri"], $prefixes)).'",';
-                    break;
                     
                     case Namespaces::$sco."displayControl":
                       if(isset($value["uri"]))
@@ -1675,6 +1714,7 @@
                 switch($predicate)
                 {
                   case Namespaces::$rdfs."domain":
+                  case Namespaces::$rdfs."range":
                   case Namespaces::$sco."displayControl":
                   case Namespaces::$sco."ignoredBy":
                   case Namespaces::$sco."comparableWith":

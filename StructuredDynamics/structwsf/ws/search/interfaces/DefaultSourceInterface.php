@@ -1375,7 +1375,7 @@
               
               if($lSortProperty == "preflabel")
               {
-                $sortProperty = "prefLabel_".$this->ws->lang;
+                $sortProperty = "prefLabelAutocompletion_".$this->ws->lang;
               }
               else if($lSortProperty == "type")
               {

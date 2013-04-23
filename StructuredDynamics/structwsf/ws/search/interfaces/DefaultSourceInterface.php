@@ -395,11 +395,7 @@
                 
                $attribute = urlencode($attribute);
                
-               if(array_search($attribute."_attr_".$this->ws->lang.$singleValuedDesignator, $indexedFields) !== FALSE && $valuesAsURI === FALSE)
-               {              
-                 $attribute = urlencode($attribute)."_attr_".$this->ws->lang.$singleValuedDesignator;
-               }
-               elseif(array_search($attribute."_attr_date".$singleValuedDesignator, $indexedFields) !== FALSE)
+               if(array_search($attribute."_attr_date".$singleValuedDesignator, $indexedFields) !== FALSE)
                {              
                  $attribute = urlencode($attribute)."_attr_date".$singleValuedDesignator;
                }
@@ -410,6 +406,10 @@
                elseif(array_search($attribute."_attr_float".$singleValuedDesignator, $indexedFields) !== FALSE)
                {              
                  $attribute = urlencode($attribute)."_attr_float".$singleValuedDesignator;
+               }
+               elseif(array_search($attribute."_attr_".$this->ws->lang.$singleValuedDesignator, $indexedFields) !== FALSE && $valuesAsURI === FALSE)
+               {              
+                 $attribute = urlencode($attribute)."_attr_".$this->ws->lang.$singleValuedDesignator;
                }
                elseif(array_search($attribute."_attr_obj_".$this->ws->lang.$singleValuedDesignator, $indexedFields) !== FALSE)
                {      
@@ -759,13 +759,7 @@
               
               $attribute = urlencode($attribute);
     
-              if(array_search($attribute."_attr_".$this->ws->lang.$singleValuedDesignator, $indexedFields) !== FALSE && $valuesAsURI === FALSE)
-              {              
-                $this->ws->extendedFilters = str_replace($attribute, urlencode($attribute)."_attr_".$this->ws->lang.$singleValuedDesignator, $this->ws->extendedFilters);
-              
-                $attributeFound = TRUE;
-              }
-              elseif(array_search($attribute."_attr_date".$singleValuedDesignator, $indexedFields) !== FALSE)
+              if(array_search($attribute."_attr_date".$singleValuedDesignator, $indexedFields) !== FALSE)
               {              
                 $this->ws->extendedFilters = str_replace($attribute, urlencode($attribute)."_attr_date".$singleValuedDesignator, $this->ws->extendedFilters);
               
@@ -780,6 +774,12 @@
               elseif(array_search($attribute."_attr_float".$singleValuedDesignator, $indexedFields) !== FALSE)
               {              
                 $this->ws->extendedFilters = str_replace($attribute, urlencode($attribute)."_attr_float".$singleValuedDesignator, $this->ws->extendedFilters);
+              
+                $attributeFound = TRUE;
+              }
+              elseif(array_search($attribute."_attr_".$this->ws->lang.$singleValuedDesignator, $indexedFields) !== FALSE && $valuesAsURI === FALSE)
+              {              
+                $this->ws->extendedFilters = str_replace($attribute, urlencode($attribute)."_attr_".$this->ws->lang.$singleValuedDesignator, $this->ws->extendedFilters);
               
                 $attributeFound = TRUE;
               }

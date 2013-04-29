@@ -1447,6 +1447,13 @@
           $solrQuery .= '&q.op=AND';
         }
         
+        
+        // Check if we enable the spellchecker
+        if($this->ws->spellcheck === TRUE)
+        {
+           $solrQuery .= '&spellcheck=true';
+        }
+        
         // Specifies that the query parser is eDisMax
         $solrQuery .= '&defType=edismax';
     
@@ -1458,7 +1465,7 @@
           $this->ws->conneg->setStatusMsg("Bad Request");
           $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_311->name);
           $this->ws->conneg->setError($this->ws->errorMessenger->_311->id, $this->ws->errorMessenger->ws,
-            $this->ws->errorMessenger->_311->name, $this->ws->errorMessenger->_311->description, "",
+            $this->ws->errorMessenger->_311->name, $this->ws->errorMessenger->_311->description, $solr->errorMessage,
             $this->ws->errorMessenger->_311->level);
           return;          
         }
@@ -1477,6 +1484,49 @@
         {
           $nbResources = $found->attributes->getNamedItem("numFound")->nodeValue;
           break;
+        }
+        
+        // If no results are returned, check if spellchecking was enabled, if it was then
+        // try to get the spell suggestions & the the collation
+        if($nbResources <= 0 && $this->ws->spellcheck === TRUE)
+        {
+          // Try to get the collation          
+          $collation = $xpath->query("//*/lst[@name='suggestions']//str[@name='collation']");
+          
+          if($collation->length > 0)
+          {
+            $collation = $collation->item(0)->nodeValue;
+          }
+          
+          $subject = new Subject($this->ws->uri . "suggestions/" . md5(microtime()));
+          $subject->setType(Namespaces::$wsf."SpellSuggestion");
+          $subject->setDataAttribute(Namespaces::$wsf."collation", $collation);
+          
+          $this->ws->rset->addSubject($subject);    
+
+          // Try to get the suggested terms
+          $suggestedWords = $xpath->query("//*/lst[@name='suggestions']/lst");
+          
+          foreach($suggestedWords as $sw)
+          {
+            $misspelledWord = $sw->getAttribute('name');
+            
+            $suggestion = $xpath->query("arr[@name='suggestion']/lst", $sw);
+            
+            foreach($suggestion as $word_frequency)
+            {
+              $word = $word_frequency->getElementsByTagName('str')->item(0)->nodeValue;
+              $frequency = $word_frequency->getElementsByTagName('int')->item(0)->nodeValue;
+              
+              $subject = new Subject($this->ws->uri . "suggestions/" . md5(microtime()));
+              $subject->setType(Namespaces::$wsf."SpellSuggestion");
+              $subject->setDataAttribute(Namespaces::$wsf."misspelledWord", $misspelledWord);
+              $subject->setDataAttribute(Namespaces::$wsf."suggestion", $word);
+              $subject->setDataAttribute(Namespaces::$wsf."frequency", $frequency);
+              
+              $this->ws->rset->addSubject($subject);                
+            }
+          }          
         }
 
         // Get all the "type" facets with their counts

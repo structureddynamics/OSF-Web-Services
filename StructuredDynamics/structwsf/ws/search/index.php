@@ -169,6 +169,14 @@ if(isset($_POST['aggregate_attributes']))
   $aggregate_attributes = $_POST['aggregate_attributes'];
 }
 
+// Include spellchecking suggestions
+$spellcheck = FALSE;
+
+if(isset($_POST['spellcheck']))
+{
+  $spellcheck = $_POST['spellcheck'];
+}
+
 // Distance Filter
 $distanceFilter = "";
 
@@ -294,7 +302,8 @@ $ws_s = new Search($query, $types, $attributes, $datasets, $items, $page, $infer
                    $attributesBooleanOperator, $includeAttributesList,$aggregateAttributesObjectType,
                    $aggregateAttributesNb, $resultsLocationAggregator, $interface, $version, $lang,
                    $sort, $extendedFilters, $typesBoost, $attributesBoost, $datasetsBoost, $searchRestrictions,
-                   $includeScores, $defaultOperator, $attributesPhraseBoost, $phraseBoostDistance);
+                   $includeScores, $defaultOperator, $attributesPhraseBoost, $phraseBoostDistance,
+                   $spellcheck);
 
 $ws_s->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                  (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

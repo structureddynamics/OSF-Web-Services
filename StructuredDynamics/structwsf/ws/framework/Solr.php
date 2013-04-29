@@ -37,6 +37,12 @@ class Solr
    */
   private $fieldIndexFolder;
   
+  /**
+  * The error message to display in case that that Solr returns an error. This value should be used
+  * when sendQuery() returns FALSE.
+  */
+  public $errorMessage = '';
+  
 
   /** Constructor
 
@@ -162,8 +168,22 @@ class Solr
     
     $data = curl_exec($ch);
 
-    if(curl_errno($ch) || strpos($data, "<title>Error 400 null</title>"))
+    if(curl_errno($ch) || 
+       strpos($data, "<title>Error 400 null</title>"))
     {
+      $this->errorMessage = 'The search query you provided is not valid, and returns no result. We can\'t say where the error is coming from, but there is one, probably one with the syntax used.';
+      return FALSE;
+    }
+    elseif(strpos($data, "<h2>HTTP ERROR 404</h2>"))
+    {
+      if(strpos($data, 'Specified dictionary does not exist'))
+      {
+        $this->errorMessage = 'Specified dictionary does not exist. Please make sure that the spellchecking is properly configured in the Solr instance.';
+      }
+      else
+      {
+        $this->errorMessage = htmlentities($data);
+      }
       return FALSE;
     }
     else

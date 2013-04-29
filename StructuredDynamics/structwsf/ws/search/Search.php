@@ -51,6 +51,9 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
 
   /** Enabling the inference engine */
   private $inference = "";
+  
+  /** Include spellchecking suggestions */
+  private $spellcheck = FALSE;
 
   /** IP of the requester */
   private $requester_ip = "";
@@ -229,8 +232,8 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
                         "_311": {
                           "id": "WS-SEARCH-311",
                           "level": "Fatal",
-                          "name": "Query not valid",
-                          "description": "The search query you provided is not valid, and returns no result. We can\'t say where the error is coming from, but there is one, probably one with the syntax used."
+                          "name": "Query failed",
+                          "description": "The query to the Solr server failed using these parameters."
                         }
                       }';
 
@@ -460,6 +463,11 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
                                     booster attribute URI with a particular value: urlencode(attribute-uri-1)^30
       @param $phraseBoostDistance Define the maximum distance between the keywords of the search query that is used
                                   by the $attributesPhraseBoost parameter.
+      @param $spellcheck Includes the spellchecking suggestions to the resultset in the case that the resultset is empty.
+                         The search endpoint will create a resultset with a single result. This result will be of 
+                         type "wsf:SpellSuggestion". The suggested query words will be returned with the property 
+                         "wsf:suggestion" and the "wsf:frequency" and the collated search would be returned with the 
+                         property "wsf:collation". Suggested terms can be ordered based on their frequency.
       
 
       @return returns NULL
@@ -474,7 +482,8 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
                        $interface = 'default', $requestedInterfaceVersion = '', $lang = 'en',
                        $sort = '', $extendedFilters = '', $typesBoost = '', $attributesBoost = '',
                        $datasetsBoost = '', $searchRestrictions = array(), $includeScores = 'false',
-                       $defaultOperator = 'and', $attributesPhraseBoost = '', $phraseBoostDistance = '3')
+                       $defaultOperator = 'and', $attributesPhraseBoost = '', $phraseBoostDistance = '3',
+                       $spellcheck = FALSE)
   {
     parent::__construct();
  
@@ -502,6 +511,12 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
     if($this->includeScores === NULL)
     {
       $this->includeScores = FALSE;
+    }
+    
+    $this->spellcheck = filter_var($spellcheck, FILTER_VALIDATE_BOOLEAN, array('flags' => FILTER_NULL_ON_FAILURE));
+    if($this->spellcheck === NULL)
+    {
+      $this->spellcheck = FALSE;
     }
     
     $this->extendedFilters = $extendedFilters;

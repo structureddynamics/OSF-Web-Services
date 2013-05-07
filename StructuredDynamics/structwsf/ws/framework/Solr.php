@@ -39,9 +39,16 @@ class Solr
   
   /**
   * The error message to display in case that that Solr returns an error. This value should be used
-  * when sendQuery() returns FALSE.
+  * when sendQuery() and sendContent() returns FALSE.
   */
   public $errorMessage = '';
+  
+  /**
+  * The error message to display in case that that Solr returns an error. This value should be used
+  * when sendQuery() and sendContent() returns FALSE. It contains the webpage returned by Solr
+  * which is used for debugging purposes.
+  */
+  public $errorMessageDebug = '';
   
 
   /** Constructor
@@ -172,6 +179,7 @@ class Solr
        strpos($data, "<title>Error 400 null</title>"))
     {
       $this->errorMessage = 'The search query you provided is not valid, and returns no result. We can\'t say where the error is coming from, but there is one, probably one with the syntax used.';
+      $this->errorMessageDebug = htmlentities($data);
       return FALSE;
     }
     elseif(strpos($data, "<h2>HTTP ERROR 404</h2>"))
@@ -182,13 +190,15 @@ class Solr
       }
       else
       {
-        $this->errorMessage = htmlentities($data);
+        $this->errorMessage = 'The search query you provided is not valid, and returns no result. We can\'t say where the error is coming from, but there is one, probably one with the syntax used.';
       }
+      
+      $this->errorMessageDebug = htmlentities($data);
       return FALSE;
     }
     else
     {
-      return ($data);
+      return($data);
     }
   }
 
@@ -402,17 +412,21 @@ class Solr
 
     if(curl_errno($ch))
     {
-      return false;
+      $this->errorMessage = 'The search query you provided is not valid, and returns no result. We can\'t say where the error is coming from, but there is one, probably one with the syntax used.';
+      $this->errorMessageDebug = htmlentities($data);
+      return(FALSE);
     }
     else
     {
       if(strstr($data, '<int name="status">0</int>'))
       {
-        return true;
+        return(TRUE);
       }
       else
       {
-        return false;
+        $this->errorMessage = 'Data couldn\'t be saved in Solr.';
+        $this->errorMessageDebug = htmlentities($data);
+        return(FALSE);
       }
     }
   }

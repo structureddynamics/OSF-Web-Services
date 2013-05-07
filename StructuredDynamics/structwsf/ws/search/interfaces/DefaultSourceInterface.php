@@ -1465,7 +1465,8 @@
           $this->ws->conneg->setStatusMsg("Bad Request");
           $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_311->name);
           $this->ws->conneg->setError($this->ws->errorMessenger->_311->id, $this->ws->errorMessenger->ws,
-            $this->ws->errorMessenger->_311->name, $this->ws->errorMessenger->_311->description, $solr->errorMessage,
+            $this->ws->errorMessenger->_311->name, $this->ws->errorMessenger->_311->description, 
+            $solr->errorMessage . '[Debugging information: ]'.$solr->errorMessageDebug,
             $this->ws->errorMessenger->_311->level);
           return;          
         }

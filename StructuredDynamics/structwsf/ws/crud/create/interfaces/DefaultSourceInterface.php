@@ -1105,7 +1105,8 @@
                   $this->ws->conneg->setStatus(500);
                   $this->ws->conneg->setStatusMsg("Internal Error");
                   $this->ws->conneg->setError($this->ws->errorMessenger->_303->id, $this->ws->errorMessenger->ws,
-                    $this->ws->errorMessenger->_303->name, $this->ws->errorMessenger->_303->description, "",
+                    $this->ws->errorMessenger->_303->name, $this->ws->errorMessenger->_303->description, 
+                    $solr->errorMessage . '[Debugging information: ]'.$solr->errorMessageDebug,
                     $this->ws->errorMessenger->_303->level);
                   return;
                 }
@@ -1118,7 +1119,8 @@
                   $this->ws->conneg->setStatus(500);
                   $this->ws->conneg->setStatusMsg("Internal Error");
                   $this->ws->conneg->setError($this->ws->errorMessenger->_304->id, $this->ws->errorMessenger->ws,
-                    $this->ws->errorMessenger->_304->name, $this->ws->errorMessenger->_304->description, "",
+                    $this->ws->errorMessenger->_304->name, $this->ws->errorMessenger->_304->description, 
+                    $solr->errorMessage . '[Debugging information: ]'.$solr->errorMessageDebug,
                     $this->ws->errorMessenger->_304->level);
                   return;
                 }

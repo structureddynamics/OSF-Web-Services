@@ -133,7 +133,7 @@ class CrudUpdate extends \StructuredDynamics\structwsf\ws\framework\WebService
                           "name": "Requested source interface not existing",
                           "description": "The source interface you requested is not existing for this web service endpoint."
                         },
-                        "_311: {
+                        "_311": {
                           "id": "WS-CRUD-UPDATE-311",
                           "level": "Fatal",
                           "name": "Can\'t parse the propertyHierarchySerialized.srz file",

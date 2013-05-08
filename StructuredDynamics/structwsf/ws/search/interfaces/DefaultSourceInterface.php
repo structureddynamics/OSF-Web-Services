@@ -1838,7 +1838,11 @@
               case "_reify_attr":
               case "_reify_attr_obj":
               case "_reify_obj":
-              case "_reify_value_".$this->ws->lang: break;
+              case "_reify_value_".$this->ws->lang: 
+              
+                // @todo Implement reification in Search result. This means that reified statements should appears in the resultsets.
+              
+              break;
             }
           }
           

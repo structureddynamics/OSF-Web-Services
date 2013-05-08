@@ -283,8 +283,8 @@
                       graph <" . $tempGraphReificationUri . ">
                       {
                         ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#subject> ?rei_subject .
-                        ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate> ?rei_predicate .
-                        ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#object> ?rei_object .
+                        ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate> ?rei_predicate_new .
+                        ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#object> ?rei_object_new .
                         
                         ?s ?p ?o.
                       }

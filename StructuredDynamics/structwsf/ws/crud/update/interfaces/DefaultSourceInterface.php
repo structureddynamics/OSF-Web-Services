@@ -280,15 +280,6 @@
                     }
                     where
                     {
-                      graph <" . $tempGraphReificationUri . ">
-                      {
-                        ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#subject> ?rei_subject .
-                        ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate> ?rei_predicate_new .
-                        ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#object> ?rei_object_new .
-                        
-                        ?s ?p ?o.
-                      }
-                      
                       graph <" . $this->ws->dataset . "reification/>
                       {
                         ?s_original <http://www.w3.org/1999/02/22-rdf-syntax-ns#subject> ?rei_subject .
@@ -296,6 +287,7 @@
                         ?s_original <http://www.w3.org/1999/02/22-rdf-syntax-ns#object> ?rei_object .
                         
                         ?s_original ?p_original ?o_original.
+                        FILTER( ?rei_subject IN (<".implode('>, <', $irsUri).">))
                       }
                     }
                     
@@ -343,6 +335,41 @@
                 $this->ws->errorMessenger->_303->level);
               return;
             }
+          }
+          else
+          {
+            // If no reification statements are defined, then make sure none exists for this resource in the system
+            $query = "delete from <" . $this->ws->dataset . "reification/>
+                    { 
+                      ?s_original ?p_original ?o_original.
+                    }
+                    where
+                    {
+                      graph <" . $this->ws->dataset . "reification/>
+                      {
+                        ?s_original <http://www.w3.org/1999/02/22-rdf-syntax-ns#subject> ?rei_subject .
+                        ?s_original <http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate> ?rei_predicate .
+                        ?s_original <http://www.w3.org/1999/02/22-rdf-syntax-ns#object> ?rei_object .
+                        
+                        ?s_original ?p_original ?o_original.
+                        FILTER(?rei_subject IN (<".implode('>, <', $irsUri).">))
+                      }
+                    }";
+
+            @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
+              FALSE));
+
+            if(odbc_error())
+            {
+              $this->ws->conneg->setStatus(500);
+              $this->ws->conneg->setStatusMsg("Internal Error");
+              $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_301->name);
+              $this->ws->conneg->setError($this->ws->errorMessenger->_301->id, $this->ws->errorMessenger->ws,
+                $this->ws->errorMessenger->_301->name, $this->ws->errorMessenger->_301->description, odbc_errormsg(),
+                $this->ws->errorMessenger->_301->level);
+
+              return;
+            }            
           }
 
           // Step #3: Remove the temp graph

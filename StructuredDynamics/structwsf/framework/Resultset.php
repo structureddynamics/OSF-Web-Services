@@ -445,11 +445,6 @@ class Resultset
           
           $prefLabelProperty = $labelProperty;
           
-          if($labelProperty == Namespaces::$iron."prefLabel")
-          {
-            unset($subject[$labelProperty]);
-          }
-          
           break;
         }
       }
@@ -465,11 +460,6 @@ class Resultset
           }
           
           array_push($subject["altLabel"], $subject[$labelProperty][0]["value"]);
-          
-          if($labelProperty == Namespaces::$iron."altLabel")
-          {
-            unset($subject[$labelProperty]);
-          }
         }
       }
       
@@ -480,11 +470,6 @@ class Resultset
         {
           $subject["description"] = $subject[$descriptionProperty][0]["value"];
           
-          if($descriptionProperty == Namespaces::$iron."description")
-          {
-            unset($subject[$descriptionProperty]);
-          }
-          
           break;
         }
       }
@@ -493,8 +478,6 @@ class Resultset
       if(isset($subject[Namespaces::$iron."prefURL"]))        
       {
         $subject["prefURL"] = $subject[Namespaces::$iron."prefURL"][0]["value"];
-        
-        unset($subject[Namespaces::$iron."prefURL"]);
       }  
       
       // Try to get a reference to the dataset where the record could come from
@@ -601,7 +584,7 @@ class Resultset
                 if(isset($value["value"]))
                 {
                   // It is a literal value, or a literal value of some type (int, bool, etc)
-                  if($value["value"] != "")
+                  if($value["value"] !== "")
                   {
                     $xml .= '      <object type="'.$this->xmlEncode($this->prefixize($value["type"])).'"'.(isset($value["lang"]) && $value["lang"] != "" ? ' lang="'.$this->xmlEncode($value["lang"]).'"' : "").'>'.$this->xmlEncode($value["value"]).'</object>'."\n";
                   }
@@ -751,7 +734,7 @@ class Resultset
                 if(isset($value["value"]))
                 {
                   // It is a literal value, or a literal value of some type (int, bool, etc)
-                  if($value["value"] != "")
+                  if($value["value"] !== "")
                   {  
                     // We simply return the literal value                
                     if((isset($value["lang"]) && $value["lang"] != "") ||
@@ -816,7 +799,7 @@ class Resultset
                       {
                         foreach($reifiedValues as $reifiedValue)
                         {
-                          if($reifiedValue != "")
+                          if($reifiedValue !== "")
                           {
                             $jsonReifyData .= '                { '."\n";
                             $jsonReifyData .= '                  "type": "'.$this->jsonEncode($this->prefixize($reifyAttributeUri)).'", '."\n";
@@ -1047,7 +1030,7 @@ class Resultset
                 if(isset($value["value"]))
                 {
                   // It is a literal value, or a literal value of some type (int, bool, etc)
-                  if($value["value"] != "")
+                  if($value["value"] !== "")
                   {
                     $xml .= '    <'.$this->xmlEncode($this->prefixize($attributeURI)).''.(isset($value["lang"]) && $value["lang"] != "" ? ' xml:lang="'.$this->xmlEncode($value["lang"]).'"' : "").''.(isset($value["type"]) && $value["type"] != "" && $value["type"] != "rdfs:Literal" && $value["type"] != Namespaces::$rdfs."Literal" ? ' xml:datatype="'.$this->xmlEncode($this->prefixize($value["type"])).'"' : "").'>'.$this->xmlEncode($value["value"]).'</'.$this->xmlEncode($this->prefixize($attributeURI)).'>'."\n";              
                   }
@@ -1065,7 +1048,7 @@ class Resultset
                       {
                         foreach($reifiedValues as $reifiedValue)
                         {
-                          if($reifiedValue != "")
+                          if($reifiedValue !== "")
                           {
                             $xmlRei .= "  <rdf:Statement rdf:about=\"". $this->xmlEncode("bnode:".md5($recordURI . $attributeURI . $value["uri"])) . "\">\n";
                             $xmlRei .= "    <rdf:subject rdf:resource=\"" . $recordURI . "\" />\n";
@@ -1204,7 +1187,7 @@ class Resultset
                 if(isset($value["value"]))
                 {
                   // It is a literal value, or a literal value of some type (int, bool, etc)
-                  if($value["value"] != "")
+                  if($value["value"] !== "")
                   {
                     if(isset($value["type"]) && $value["type"] != "" && $value["type"] != "rdfs:Literal" && $value["type"] != Namespaces::$rdfs."Literal")
                     {
@@ -1233,7 +1216,7 @@ class Resultset
                       {
                         foreach($reifiedValues as $reifiedValue)
                         {
-                          if($reifiedValue != "")
+                          if($reifiedValue !== "")
                           {
                             $jsonRei .= "_:" . md5($recordURI . $attributeURI . $value["uri"]). " a rdf:Statement ;\n";
                             $jsonRei .= "    rdf:subject <" . $recordURI . "> ;\n";

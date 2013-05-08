@@ -244,6 +244,10 @@ class Resultset
   *                          "value" => "some value",
   *                          "lang" => "language string of the value",
   *                          "type" => "type of the value"
+  *                          "reify" => Array(
+  *                            "reification-attribute-uri" => Array("value of the reification statement"),
+  *                            "more-reification-attribute-uri" => ...
+  *                          )
   *                        ),
   *                        Array(
   *                          ...
@@ -305,6 +309,11 @@ class Resultset
                               "value" => "some value",
                               "lang" => "language string of the value",
                               "type" => "type of the value"
+                              "type" => "optional type of the referenced URI",
+                              "reify" => Array(
+                                "reification-attribute-uri" => Array("value of the reification statement"),
+                                "more-reification-attribute-uri" => ...
+                              )
                             ),
                             Array(
                               ...
@@ -386,8 +395,7 @@ class Resultset
               $value["uri"] = $this->unprefixize((string) $object["uri"]);
             }
             
-            // Add possible reification statement.
-            
+            // Add possible reification statement.            
             if(isset($object->reify))
             {
               $reifyType = $this->unprefixize((string) $object->reify["type"]);
@@ -421,10 +429,10 @@ class Resultset
             
             // Add possible reification statement.
             
-            if(isset($object->reify))
+            if(isset($predicate->reify))
             {
-              $reifyType = $this->unprefixize((string) $object->reify["type"]);
-              $reifyValue = $this->unprefixize((string) $object->reify["value"]);
+              $reifyType = $this->unprefixize((string) $predicate->reify["type"]);
+              $reifyValue = $this->unprefixize((string) $predicate->reify["value"]);
               
               $value["reify"][$reifyType] =  array($reifyValue);
             }
@@ -433,7 +441,7 @@ class Resultset
           }          
         }
       }
-      
+
       // Try to find a prefLabel
       $prefLabelProperty = "";
       
@@ -587,6 +595,17 @@ class Resultset
                   if($value["value"] !== "")
                   {
                     $xml .= '      <object type="'.$this->xmlEncode($this->prefixize($value["type"])).'"'.(isset($value["lang"]) && $value["lang"] != "" ? ' lang="'.$this->xmlEncode($value["lang"]).'"' : "").'>'.$this->xmlEncode($value["value"]).'</object>'."\n";
+                    
+                    foreach($value["reify"] as $reifyAttributeUri => $reifiedValues)
+                    {
+                      foreach($reifiedValues as $reifiedValue)
+                      {
+                        if($reifiedValue != "")
+                        {
+                          $xml .= '      <reify type="'.$this->xmlEncode($this->prefixize($reifyAttributeUri)).'" value="'.$this->xmlEncode($reifiedValue).'" />'."\n";
+                        }
+                      }
+                    }                     
                   }
                 }
                 elseif(isset($value["uri"]))
@@ -738,7 +757,8 @@ class Resultset
                   {  
                     // We simply return the literal value                
                     if((isset($value["lang"]) && $value["lang"] != "") ||
-                       (isset($value["type"]) && ($value["type"] != "" && $value["type"] != "rdfs:Literal" && $value["type"] != Namespaces::$rdfs."Literal")))
+                       (isset($value["type"]) && ($value["type"] != "" && $value["type"] != "rdfs:Literal" && $value["type"] != Namespaces::$rdfs."Literal")) ||
+                       (isset($value["reify"]) && !empty($value['reify'])))
                     {
                       /*
                         If we have a type, or a lang defined for this literal value, we return and object of the kind:
@@ -763,7 +783,43 @@ class Resultset
                         $json .= '              "lang": "'.$this->jsonEncode($value["lang"]).'", '."\n";            
                       }
                       
-                      $json = substr($json, 0, strlen($json) - 3)." \n";
+                      if(isset($value["reify"]))
+                      {
+                        $jsonReifyData = '';
+                        
+                        foreach($value["reify"] as $reifyAttributeUri => $reifiedValues)
+                        {
+                          foreach($reifiedValues as $reifiedValue)
+                          {
+                            if($reifiedValue !== "")
+                            {
+                              $jsonReifyData .= '                { '."\n";
+                              $jsonReifyData .= '                  "type": "'.$this->jsonEncode($this->prefixize($reifyAttributeUri)).'", '."\n";
+                              $jsonReifyData .= '                  "value": "'.$this->jsonEncode($this->prefixize($reifiedValue)).'" '."\n";
+                              $jsonReifyData .= '                }, '."\n";
+                            }
+                          }
+                        }                    
+
+                        if($jsonReifyData != "")
+                        {
+                          $json .= '              "reify": [ '."\n";
+                          
+                          $jsonReifyData = substr($jsonReifyData, 0, strlen($jsonReifyData) - 3);
+                          
+                          $json .= $jsonReifyData;
+                          
+                          $json .= "\n";
+                          
+                          $json .= '              ] '."\n";
+                        }
+                      }
+                      else
+                      {
+                        $json .= " \n";
+                      }                      
+                      
+                      //$json = substr($json, 0, strlen($json) - 3)." \n";
                       
                       $json .= "            }\n";
                       $json .= '          }, '."\n";                      
@@ -1033,6 +1089,25 @@ class Resultset
                   if($value["value"] !== "")
                   {
                     $xml .= '    <'.$this->xmlEncode($this->prefixize($attributeURI)).''.(isset($value["lang"]) && $value["lang"] != "" ? ' xml:lang="'.$this->xmlEncode($value["lang"]).'"' : "").''.(isset($value["type"]) && $value["type"] != "" && $value["type"] != "rdfs:Literal" && $value["type"] != Namespaces::$rdfs."Literal" ? ' xml:datatype="'.$this->xmlEncode($this->prefixize($value["type"])).'"' : "").'>'.$this->xmlEncode($value["value"]).'</'.$this->xmlEncode($this->prefixize($attributeURI)).'>'."\n";              
+                    
+                    if(isset($value["reify"]))
+                    {
+                      foreach($value["reify"] as $reifyAttributeUri => $reifiedValues)
+                      {
+                        foreach($reifiedValues as $reifiedValue)
+                        {
+                          if($reifiedValue !== "")
+                          {
+                            $xmlRei .= "  <rdf:Statement rdf:about=\"". $this->xmlEncode("bnode:".md5($recordURI . $attributeURI . $value["value"])) . "\">\n";
+                            $xmlRei .= "    <rdf:subject rdf:resource=\"" . $recordURI . "\" />\n";
+                            $xmlRei .= "    <rdf:predicate rdf:resource=\"" . $this->xmlEncode($attributeURI) . "\" />\n";
+                            $xmlRei .= "    <rdf:object>" . $this->xmlEncode($value["value"]) . "</rdf:object>\n";
+                            $xmlRei .= "    <".$this->prefixize($reifyAttributeUri).">". $this->xmlEncode($reifiedValue) . "</".$this->prefixize($reifyAttributeUri).">\n";
+                            $xmlRei .= "  </rdf:Statement>  \n\n";
+                          }
+                        }
+                      }                  
+                    }                    
                   }
                 }
                 elseif(isset($value["uri"]))
@@ -1201,6 +1276,24 @@ class Resultset
                     {
                       $json .= $jsonPaddingSize.$this->prefixize($attributeURI).' """'.$this->jsonEncode($value["value"]).'"""'." ;\n";                
                     }
+                    
+                    if(isset($value["reify"]))
+                    {
+                      foreach($value["reify"] as $reifyAttributeUri => $reifiedValues)
+                      {
+                        foreach($reifiedValues as $reifiedValue)
+                        {
+                          if($reifiedValue !== "")
+                          {
+                            $jsonRei .= "_:" . md5($recordURI . $attributeURI . $value["value"]). " a rdf:Statement ;\n";
+                            $jsonRei .= "    rdf:subject <" . $recordURI . "> ;\n";
+                            $jsonRei .= "    rdf:predicate <" . $attributeURI . "> ;\n";
+                            $jsonRei .= "    rdf:object \"\"\"" . $value["value"] . "\"\"\" ;\n";
+                            $jsonRei .= "    " . $this->prefixize($reifyAttributeUri) . " \"\"\"" . $this->jsonEncode($reifiedValue). "\"\"\" .\n\n";
+                          }
+                        }
+                      }                  
+                    }                    
                   }
                 }
                 elseif(isset($value["uri"]))
@@ -1274,9 +1367,9 @@ class Resultset
     // Replace all the possible entities by their character. That way, we won't "double encode" 
     // these entities. Otherwise, we can endup with things such as "&amp;amp;" which some
     // XML parsers doesn't seem to like (and throws errors).
-    $string = str_replace(array ("&amp;", "&lt;", "&gt;"), array ("&", "<", ">"), $string);
+    $string = str_replace(array ("&amp;", "&lt;", "&gt;", "&quot;"), array ("&", "<", ">", '"'), $string);
                            
-    return str_replace(array ("&", "<", ">"), array ("&amp;", "&lt;", "&gt;"), $string); 
+    return str_replace(array ("&", "<", ">", '"'), array ("&amp;", "&lt;", "&gt;", "&quot;"), $string); 
   }
 
   /**

@@ -421,7 +421,8 @@
               {
                 foreach($subjects[$u][$rei_p] as $key => $value)
                 {
-                  if(isset($value["uri"]) && $value["uri"] == $rei_o)
+                  if((isset($value["uri"]) && $value["uri"] == $rei_o) ||
+                     (isset($value["value"]) && $value["value"] == $rei_o))
                   {
                     if(!isset($subjects[$u][$rei_p][$key]["reify"]))
                     {

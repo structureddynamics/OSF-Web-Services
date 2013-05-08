@@ -83,7 +83,7 @@ class Subject
   */
   public function setType($type)
   {
-    if(isset($this->description["type"]) && is_array($this->description["type"]))
+    if(key_exists('type', $this->description) && is_array($this->description["type"]))
     {
       if(array_search($type, $this->description["type"]) === FALSE)
       {
@@ -118,7 +118,7 @@ class Subject
   */
   public function setAltLabel($altLabel)
   {
-    if(isset($this->description["altLabel"]) && is_array($this->description["altLabel"]))
+    if(key_exists('altLabel', $this->description) && is_array($this->description["altLabel"]))
     {
       array_push($this->description["altLabel"], $altLabel);
     }
@@ -152,16 +152,27 @@ class Subject
   }
 
   /**
-  * Set a custom data attribute to this subject.
+  * Set a custom data attribute to this subject. 
+  * 
+  * Note: Datatype and Annotation properties values are included in the 
+  *       notion of "data attribute" of this function.
   *
   * @param mixed $attribute URI of the attribute to define
   * @param mixed $value Literal value to associate to this attribute
   * @param mixed $type URI (normally a XSD uri) of the type of the value (optional)
   * @param mixed $lang Language code of the value (optional)
+  * @param mixed $reiStatements A reification statement that reifies (add meta-data about this
+  *                             relationship) this statement. This parameter expects an array
+  *                             of the type:
+  *
+  *                               Array(
+  *                                 "reification-attribute" => Array(values...)
+  *                                 "another-reification-attribute" => Array(values...)
+  *                               ) 
   *
   * @author Frederick Giasson, Structured Dynamics LLC.
   */
-  public function setDataAttribute($attribute, $value, $type = "rdfs:Literal", $lang = "")
+  public function setDataAttribute($attribute, $value, $type = "rdfs:Literal", $lang = "", $reiStatements = null)
   {
     if(!isset($this->description[$attribute]) || !is_array($this->description[$attribute]))
     {
@@ -173,6 +184,11 @@ class Subject
       "lang" => $lang,
       "type" => $type
     );
+    
+    if($reiStatements != null)
+    {
+      $val["reify"] = $reiStatements;
+    }    
 
     array_push($this->description[$attribute], $val);
   }
@@ -225,7 +241,7 @@ class Subject
   */
   function getTypes()
   {
-    if(isset($this->description["type"]))
+    if(key_exists('type', $this->description))
     {
       return($this->description["type"]);
     }
@@ -246,7 +262,7 @@ class Subject
   */
   function getPrefLabel($force = TRUE)
   {
-    if(isset($this->description["prefLabel"]))
+    if(key_exists('prefLabel', $this->description))
     {
       return($this->description["prefLabel"]);
     }
@@ -286,7 +302,7 @@ class Subject
   */
   function getAltLabels()
   {
-    if(isset($this->description["altLabel"]))
+    if(key_exists('altLabel', $this->description))
     {
       return($this->description["altLabel"]);
     }
@@ -304,7 +320,7 @@ class Subject
   */
   function getPrefURL()
   {
-    if(isset($this->description["prefURL"]))
+    if(key_exists('prefURL', $this->description))
     {
       return($this->description["prefURL"]);
     }
@@ -321,7 +337,7 @@ class Subject
   */
   function getDescription()
   {
-    if(isset($this->description["description"]))
+    if(key_exists('description', $this->description))
     {
       return($this->description["description"]);
     }
@@ -340,9 +356,11 @@ class Subject
     $uris = array();
 
     foreach($this->description as $uri => $property)
-    {
-      if(isset($property[0]["uri"]))
-      {
+    {      
+      if(isset($property[0]) && 
+         is_array($property[0]) &&  
+         key_exists('uri', $property[0]))
+      { 
         array_push($uris, $uri);
       }
     }
@@ -362,7 +380,9 @@ class Subject
 
     foreach($this->description as $uri => $property)
     {
-      if(isset($property[0]["value"]))
+      if(isset($property[0]) && 
+         is_array($property[0]) &&  
+         key_exists('value', $property[0]))
       {
         array_push($uris, $uri);
       }
@@ -374,15 +394,16 @@ class Subject
   /**
   *  Get the values of an object property.
   *
-  *  The values are turned as an array of values which has this structure:
+  *  The values are returned as an array of values which has this structure:
   *
   *  Array(
   *    Array(
   *      "uri" => "some uri",
   *      "type" => "optional type of the referenced URI",
   *      "reify" => Array(
-  *      "reification-attribute-uri" => Array("value of the reification statement"),
-  *      "more-reification-attribute-uri" => ...
+  *        "reification-attribute-uri" => Array("value of the reification statement"),
+  *        "more-reification-attribute-uri" => ...
+  *      ),
   *    ),
   *  )
   *
@@ -404,6 +425,9 @@ class Subject
   /**
   *  Get the values of a data property.
   *
+  * Note: Datatype and Annotation properties values are included in the 
+  *       notion of "data attribute" of this function.
+  * 
   *  The values are turned as an array of values which has this structure:
   *
   * Array(
@@ -411,6 +435,10 @@ class Subject
   *     "value" => "some value",
   *     "lang" => "language string of the value",
   *     "type" => "type of the value"
+  *     "reify" => Array(
+  *        "reification-attribute-uri" => Array("value of the reification statement"),
+  *        "more-reification-attribute-uri" => ...
+  *      ),
   *   ),
   *   Array(
   *     ...

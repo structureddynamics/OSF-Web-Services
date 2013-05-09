@@ -783,6 +783,8 @@ class Resultset
                         $json .= '              "lang": "'.$this->jsonEncode($value["lang"]).'", '."\n";            
                       }
                       
+                      $json = substr($json, 0, strlen($json) - 3)." \n";
+                      
                       if(isset($value["reify"]))
                       {
                         $jsonReifyData = '';
@@ -818,8 +820,6 @@ class Resultset
                       {
                         $json .= " \n";
                       }                      
-                      
-                      //$json = substr($json, 0, strlen($json) - 3)." \n";
                       
                       $json .= "            }\n";
                       $json .= '          }, '."\n";                      

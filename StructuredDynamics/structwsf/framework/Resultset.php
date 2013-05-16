@@ -175,9 +175,9 @@ class Resultset
   {
     $subjects = array();
     
-    foreach($this->resultset as $dataset => $subjects)
+    foreach($this->resultset as $dataset => $subjectsArr)
     {
-      foreach($subjects as $uri => $s)
+      foreach($subjectsArr as $uri => $s)
       {
         $subject = new Subject($uri);
         
@@ -188,7 +188,7 @@ class Resultset
     }
     
     return($subjects);
-  }  
+  }   
   
   /**
   * Get a subject by its URI

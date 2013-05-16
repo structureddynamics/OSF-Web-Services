@@ -596,16 +596,19 @@ class Resultset
                   {
                     $xml .= '      <object type="'.$this->xmlEncode($this->prefixize($value["type"])).'"'.(isset($value["lang"]) && $value["lang"] != "" ? ' lang="'.$this->xmlEncode($value["lang"]).'"' : "").'>'.$this->xmlEncode($value["value"]).'</object>'."\n";
                     
-                    foreach($value["reify"] as $reifyAttributeUri => $reifiedValues)
-                    {
-                      foreach($reifiedValues as $reifiedValue)
+                    if(isset($value["reify"]))
+                    {                    
+                      foreach($value["reify"] as $reifyAttributeUri => $reifiedValues)
                       {
-                        if($reifiedValue != "")
+                        foreach($reifiedValues as $reifiedValue)
                         {
-                          $xml .= '      <reify type="'.$this->xmlEncode($this->prefixize($reifyAttributeUri)).'" value="'.$this->xmlEncode($reifiedValue).'" />'."\n";
+                          if($reifiedValue != "")
+                          {
+                            $xml .= '      <reify type="'.$this->xmlEncode($this->prefixize($reifyAttributeUri)).'" value="'.$this->xmlEncode($reifiedValue).'" />'."\n";
+                          }
                         }
-                      }
-                    }                     
+                      }                     
+                    }
                   }
                 }
                 elseif(isset($value["uri"]))

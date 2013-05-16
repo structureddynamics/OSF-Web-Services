@@ -4143,6 +4143,11 @@ class OWLOntology
   
   public function getBaseUri()
   {
+    if((boolean)java_values($this->ontology->getOntologyID()->isAnonymous()) === TRUE)
+    {
+      return((string)java_values($this->ontology->getOntologyID()->toString()));
+    }
+    
     $uri = (string)java_values($this->ontology->getOntologyID()->getOntologyIRI()->toString()); 
     
     if(substr($uri, (strlen($uri) - 1), 1) == "/")

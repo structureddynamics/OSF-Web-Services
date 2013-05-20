@@ -81,12 +81,6 @@ class CrudDelete extends \StructuredDynamics\structwsf\ws\framework\WebService
         "name": "Can\'t commit changes to the Solr index",
         "description": "An error occured when we tried to commit changes to the Solr index"
       },
-      "_303": {
-        "id": "WS-CRUD-DELETE-303",
-        "level": "Fatal",
-        "name": "Can\'t create a tracking record for one of the input records",
-        "description": "We can\'t create the records because we can\'t ensure that we have a track of their changes."
-      },
       "_304": {
         "id": "WS-CRUD-DELETE-304",
         "level": "Fatal",

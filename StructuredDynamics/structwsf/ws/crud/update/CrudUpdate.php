@@ -115,12 +115,6 @@ class CrudUpdate extends \StructuredDynamics\structwsf\ws\framework\WebService
                           "name": "Can\'t parse RDF document",
                           "description": "Can\'t parse the specified RDF document"
                         },
-                        "_308": {
-                          "id": "WS-CRUD-UPDATE-308",
-                          "level": "Fatal",
-                          "name": "Can\'t create a tracking record for one of the input records",
-                          "description": "We can\'t create the records because we can\'t ensure that we have a track of their changes."
-                        },
                         "_309": {
                           "id": "WS-CRUD-UPDATE-309",
                           "level": "Fatal",

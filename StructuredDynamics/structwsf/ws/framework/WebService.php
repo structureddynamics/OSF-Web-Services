@@ -75,22 +75,6 @@ abstract class WebService
 
   /** Path to the structWSF ontological structure */
   protected $ontological_structure_folder = "";
-  
-  /** Enable the tracking of records changes from the Crud Create web service endpoint */
-  protected $track_create = FALSE;
-
-  /** Enable the tracking of records changes from the Crud Update web service endpoint */
-  protected $track_update = FALSE;
-
-  /** Enable the tracking of records changes from the Crud Delete web service endpoint */
-  protected $track_delete = FALSE;
-
-  /** Specifies a specific WSF tracking web service endpoint URL to access the tracking endpoint. 
-             This is useful to put all the record changes tracking on a different, dedicated purposes, 
-             WSF server. If this parameter is commented, we will use the wsf_base_url to access the 
-             tracking endpoints. If it is uncommented, then we will use the endpoint specified by this
-             parameter. */
-  protected $tracking_endpoint = "";
 
   /** Port number where the triple store server is reachable */
   protected $triplestore_port = "8890";
@@ -354,34 +338,7 @@ abstract class WebService
       {
         $this->log_enable = FALSE;
       }
-    }    
-    
-    if(isset($network_ini["tracking"]["track_create"]))
-    {
-      if(strtolower($network_ini["tracking"]["track_create"]) == "true" || $network_ini["tracking"]["track_create"] == "1")
-      {
-        $this->track_create = TRUE;
-      }
-    }
-    if(isset($network_ini["tracking"]["track_update"]))
-    {
-      if(strtolower($network_ini["tracking"]["track_update"]) == "true" || $network_ini["tracking"]["track_update"] == "1")
-      {
-        $this->track_update = TRUE;
-      }
-    }
-    if(isset($network_ini["tracking"]["track_delete"]))
-    {
-      if(strtolower($network_ini["tracking"]["track_delete"]) == "true" || $network_ini["tracking"]["track_delete"] == "1")
-      {
-        $this->track_delete = TRUE;
-      }
-    }
-    if(isset($network_ini["tracking"]["tracking_endpoint"]))
-    {
-      $this->tracking_endpoint = $network_ini["tracking"]["tracking_endpoint"];
-    } 
-    
+    }        
     
     if(isset($network_ini["owlapi"]["nb_sessions"]))
     {
@@ -628,17 +585,7 @@ abstract class WebService
     else
     {
       $this->default_interfaces["sparql"] = "DefaultSourceInterface";
-    }
-    
-    if(isset($network_ini["default-interfaces"]["tracker_create"]))  
-    {
-      $this->default_interfaces["tracker_create"] = $network_ini["default-interfaces"]["tracker_create"];
     }    
-    else
-    {
-      $this->default_interfaces["tracker_create"] = "DefaultSourceInterface";
-    }
-    
 
     // This handler is defined for the fatal script errors. If a script can't be finished because a fatal error
     // occured, then the handleFatalPhpError function is used to return the error message to the requester.

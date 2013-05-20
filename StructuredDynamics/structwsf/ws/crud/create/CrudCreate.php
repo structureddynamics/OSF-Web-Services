@@ -97,12 +97,6 @@ class CrudCreate extends \StructuredDynamics\structwsf\ws\framework\WebService
           "name": "Can\'t commit changes to the Solr index",
           "description": "An error occured when we tried to commit changes to the Solr index"
         },  
-        "_305": {
-          "id": "WS-CRUD-CREATE-305",
-          "level": "Fatal",
-          "name": "Can\'t create a tracking record for one of the input records",
-          "description": "We can\'t create the records because we can\'t ensure that we have a track of their changes."
-        },
         "_306": {
           "id": "WS-CRUD-CREATE-306",
           "level": "Fatal",

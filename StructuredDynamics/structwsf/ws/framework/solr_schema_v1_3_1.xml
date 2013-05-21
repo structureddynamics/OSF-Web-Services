@@ -1001,6 +1001,12 @@
  <copyField source="*_attr_float"  dest="all_text_en" />
  <copyField source="*_attr_int"  dest="all_text_en" />
  
+ <copyField source="*_attr_date_single_valued"  dest="all_text_en" />
+ <copyField source="*_attr_en_single_valued"  dest="all_text_en" />
+ <copyField source="*_attr_float_single_valued"  dest="all_text_en" />
+ <copyField source="*_attr_int_single_valued"  dest="all_text_en" />
+ <copyField source="*_attr_obj_en_single_valued"  dest="all_text_en" /> 
+ 
  <copyField source="prefURL"  dest="all_text_en" />
  <copyField source="located_in"  dest="all_text_en" />
  <copyField source="lat"  dest="all_text_en" />

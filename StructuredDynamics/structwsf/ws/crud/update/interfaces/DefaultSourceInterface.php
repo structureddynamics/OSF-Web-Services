@@ -32,7 +32,25 @@
         // If the query is still valid
         if($this->ws->conneg->getStatus() == 200)
         {
-          // Step #0: Parse the file using ARC2 to populate the Solr index.
+          // Make sure the publication lifecycle stage is known
+          if($this->ws->lifecycle != 'published' &&
+             $this->ws->lifecycle != 'archive' &&
+             $this->ws->lifecycle != 'experimental' &&
+             $this->ws->lifecycle != 'pre_release' &&
+             $this->ws->lifecycle != 'staging' &&
+             $this->ws->lifecycle != 'harvesting' &&
+             $this->ws->lifecycle != 'unspecified')
+          {
+            $this->ws->conneg->setStatus(400);
+            $this->ws->conneg->setStatusMsg("Bad Request");
+            $this->ws->conneg->setError($this->ws->errorMessenger->_312->id, $this->ws->errorMessenger->ws,
+              $this->ws->errorMessenger->_312->name, $this->ws->errorMessenger->_312->description, $errorsOutput,
+              $this->ws->errorMessenger->_312->level);
+
+            return;            
+          }
+          
+          // Step #1: Parse the file using ARC2 to populate the Solr index.
           // Get triples from ARC for some offline processing.
           include_once("../../framework/arc2/ARC2.php");        
           $parser = ARC2::getRDFParser();
@@ -41,6 +59,7 @@
           $rdfxmlSerializer = ARC2::getRDFXMLSerializer();
 
           $resourceIndex = $parser->getSimpleIndex(0);
+          $resourceRevisionsIndex = $parser->getSimpleIndex(0);
 
           if(count($parser->getErrors()) > 0)
           {
@@ -62,7 +81,6 @@
           }
 
           // Get all the reification statements
-          $break = FALSE;
           $statementsUri = array();
 
           foreach($resourceIndex as $resource => $description)
@@ -80,16 +98,6 @@
                   }
                 }
               }
-
-              if($break)
-              {
-                break;
-              }
-            }
-
-            if($break)
-            {
-              break;
             }
           }
 
@@ -103,20 +111,218 @@
               array_push($irsUri, $resource);
             }
           }          
-
-          // Step #1: indexing the incomming rdf document in its own temporary graph
-          $tempGraphUri = "temp-graph-" . md5($this->ws->document);
-
-          $irs = array();
-
-          foreach($irsUri as $uri)
+                                              
+          $revisionDataset = rtrim($this->ws->dataset, '/').'/revisions/';
+          $revisionUris = array();          
+          
+          // @TODO: make sure that this is the latest version of this record, and make sure that
+          //        there is not a more recent *unpublished* revision of that record
+          if($this->ws->lifecycle == 'published')
           {
-            $irs[$uri] = $resourceIndex[$uri];
-          }
+            foreach($irsUri as $subject)
+            {
+              $query = "select ?status
+                        from <" . $revisionDataset . ">
+                        where
+                        {
+                          ?s <http://purl.org/ontology/wsf#revisionUpdateTime> ?timestamp ;
+                             <http://purl.org/ontology/wsf#revisionUri> <".$subject."> ;
+                             <http://purl.org/ontology/wsf#revisionStatus> ?status .
+                        }
+                        order by desc(?timestamp)
+                        limit 1
+                        offset 0";
 
+              $resultset = @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array('status'), FALSE));
+
+              if(odbc_error())
+              {
+                $this->ws->conneg->setStatus(500);
+                $this->ws->conneg->setStatusMsg("Internal Error");
+                $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_314->name);
+                $this->ws->conneg->setError($this->ws->errorMessenger->_314->id, $this->ws->errorMessenger->ws,
+                  $this->ws->errorMessenger->_314->name, $this->ws->errorMessenger->_314->description, odbc_errormsg(),
+                  $this->ws->errorMessenger->_314->level);
+
+                return;
+              }
+              else
+              {
+                $status = odbc_result($resultset, 1);
+                                
+                if($status != Namespaces::$wsf.'published' && $status !== FALSE)
+                {
+                  // The latest revision is not the latest published so we send an error
+                  // and stop the execution here
+                  $this->ws->conneg->setStatus(400);
+                  $this->ws->conneg->setStatusMsg("Bad Request");
+                  $this->ws->conneg->setError($this->ws->errorMessenger->_313->id, $this->ws->errorMessenger->ws,
+                    $this->ws->errorMessenger->_313->name, $this->ws->errorMessenger->_313->description, $errorsOutput,
+                    $this->ws->errorMessenger->_313->level);
+
+                  return;                        
+                }
+              }
+            }
+          }
+          
+          // Step #2: Add the record(s) into its revisions dataset
+          
+          // If the status is not published, it means we are creating a new unpublished
+          // revision that may eventually get published.
+          foreach($irsUri as $subject)
+          {                         
+            /*
+              a wsf:Revision ;
+              wsf:revisionUri <http://ccr.nhccn.com.au/datasets/global/documents/24665> ;
+              wsf:fromDataset <http://ccr.nhccn.com.au/datasets/global/documents/> ;
+              wsf:revisionTime """1368196492""" ;
+              wsf:revisionUpdateTime """1368196892""" ;
+              wsf:performer <http://ccr.nhccn.com.au/user/1> ;
+              wsf:revisionStatus wsf:published ;  
+            */
+            
+            // Make sure that we sleep this script execution for 1 microsecond to ensure that
+            // we will endup with a unique timestamp. Otherwise there could be URI clashes
+            usleep(1);
+            
+            $microtimestamp = microtime(true);
+            
+            $revisionUri = $revisionDataset.$microtimestamp;
+            
+            $revisionUris[] = $revisionUri;
+            
+            $resourceRevisionsIndex[$subject][Namespaces::$rdf.'type'][] = array(
+                                                                    'value' => Namespaces::$wsf.'Revision',
+                                                                    'type' => 'uri'
+                                                                  );
+                                                                  
+            $resourceRevisionsIndex[$subject][Namespaces::$wsf.'revisionUri'] = array(
+                                                                         array(
+                                                                           'value' => $subject,
+                                                                           'type' => 'uri'
+                                                                         )
+                                                                       );
+                                                                  
+            $resourceRevisionsIndex[$subject][Namespaces::$wsf.'fromDataset'] = array(
+                                                                         array(
+                                                                           'value' => $this->ws->dataset,
+                                                                           'type' => 'uri'
+                                                                         )
+                                                                       );
+            
+            $resourceRevisionsIndex[$subject][Namespaces::$wsf.'revisionUpdateTime'] = array(
+                                                                                array(
+                                                                                  'value' => $microtimestamp,
+                                                                                  'type' => 'literal',
+                                                                                  'datatype' => Namespaces::$xsd.'double'
+                                                                                )
+                                                                              );                    
+                                                                  
+            $resourceRevisionsIndex[$subject][Namespaces::$wsf.'performer'] = array(
+                                                                       array(
+                                                                         'value' => $this->ws->requester_ip,
+                                                                         'type' => 'uri'
+                                                                       )
+                                                                     );                
+            
+            $status = Namespaces::$wsf.'unspecified';
+            
+            switch($this->ws->lifecycle)
+            {
+              case "archive":
+                $status = Namespaces::$wsf.'archive';
+              break;
+              case "experimental":
+                $status = Namespaces::$wsf.'experimental';
+              break;
+              case "pre_release":
+                $status = Namespaces::$wsf.'pre_release';
+              break;
+              case "staging":
+                $status = Namespaces::$wsf.'staging';
+              break;
+              case "harvesting":
+                $status = Namespaces::$wsf.'harvesting';
+              break;
+              case "unspecified":
+                $status = Namespaces::$wsf.'unspecified';
+              break;
+              case "published":
+                $status = Namespaces::$wsf.'published';
+              break;
+            }
+            
+            $resourceRevisionsIndex[$subject][Namespaces::$wsf.'revisionStatus'] = array(
+                                                                            array(
+                                                                              'value' => $status,
+                                                                              'type' => 'uri'
+                                                                            )
+                                                                          );
+          
+            // Change the records' URI for their revision URIs
+            $resourceRevisionsIndex[$revisionUri] = $resourceRevisionsIndex[$subject];
+            unset($resourceRevisionsIndex[$subject]);
+          }
+          
+          // We have to change the rdf:subject value of the reification statements such that
+          // they point to the revision URI.
+          foreach($statementsUri as $statementUri)
+          {
+            foreach($revisionUris as $uri)
+            {
+              if($resourceRevisionsIndex[$uri][Namespaces::$wsf.'revisionUri'][0]['value'] == 
+                 $resourceRevisionsIndex[$statementUri][Namespaces::$rdf.'subject'][0]['value'])
+              {
+                $resourceRevisionsIndex[$statementUri][Namespaces::$rdf.'subject'][0]['value'] = $uri;
+              }
+            }
+          }
+          
+          // Step #2.1: change the lifecycle stage of the previously published record to 'archive'
+          if($this->ws->lifecycle == 'published')
+          {           
+            foreach($irsUri as $uri)
+            {            
+              $query = "modify <" . $revisionDataset . ">
+                        delete
+                        { 
+                          ?revision <http://purl.org/ontology/wsf#revisionStatus> <http://purl.org/ontology/wsf#published> .
+                        }
+                        insert
+                        {
+                          ?revision <http://purl.org/ontology/wsf#revisionStatus> <http://purl.org/ontology/wsf#archive> .
+                        }
+                        where
+                        {
+                          ?revision <http://purl.org/ontology/wsf#revisionUri> <".$uri."> ;
+                                    <http://purl.org/ontology/wsf#revisionStatus> <http://purl.org/ontology/wsf#published> .
+                        }";
+
+              @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
+                FALSE));
+
+              if(odbc_error())
+              {
+                $this->ws->conneg->setStatus(500);
+                $this->ws->conneg->setStatusMsg("Internal Error");
+                $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_301->name);
+                $this->ws->conneg->setError($this->ws->errorMessenger->_301->id, $this->ws->errorMessenger->ws,
+                  $this->ws->errorMessenger->_301->name, $this->ws->errorMessenger->_301->description, odbc_errormsg(),
+                  $this->ws->errorMessenger->_301->level);
+
+                return;
+              }
+            } 
+          }         
+          
+          // Step #2.2: indexing the incomming rdf document revision into its revisions graph
+          
+          // Note: we index the revision records along with the reification statements.
+          
           @$this->ws->db->query("DB.DBA.RDF_LOAD_RDFXML_MT('"
-            . str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($irs))
-              . "', '$tempGraphUri', '$tempGraphUri', 0)");
+            . str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($resourceRevisionsIndex))
+              . "', '$revisionDataset', '$revisionDataset', 0)");
 
           if(odbc_error())
           {
@@ -127,67 +333,26 @@
               $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, odbc_errormsg(),
               $this->ws->errorMessenger->_300->level);
             return;
-          }
+          }                
+          
+          // If the lifecycle is published, then we have to publish this new revision in the
+          // normal dataset, and to remove the "published" state of the last published
+          // revision in the revisions graph.
+          if($this->ws->lifecycle == 'published')
+          {                               
+            // Step #3: indexing the incomming rdf document in its own temporary graph
+            $tempGraphUri = "temp-graph-" . md5($this->ws->document);
 
-          // Step #2: use that temp graph to modify (delete/insert using SPARUL) the target graph of the update query
-          $query = "delete from <" . $this->ws->dataset . ">
-                  { 
-                    ?s ?p_original ?o_original.
-                  }
-                  where
-                  {
-                    graph <" . $tempGraphUri . ">
-                    {
-                      ?s ?p ?o.
-                    }
-                    
-                    graph <" . $this->ws->dataset . ">
-                    {
-                      ?s ?p_original ?o_original.
-                    }
-                  }
-                  
-                  insert into <" . $this->ws->dataset . ">
-                  {
-                    ?s ?p ?o.
-                  }                  
-                  where
-                  {
-                    graph <" . $tempGraphUri . ">
-                    {
-                      ?s ?p ?o.
-                    }
-                  }";
+            $irs = array();
 
-          @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-            FALSE));
-
-          if(odbc_error())
-          {
-            $this->ws->conneg->setStatus(500);
-            $this->ws->conneg->setStatusMsg("Internal Error");
-            $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_301->name);
-            $this->ws->conneg->setError($this->ws->errorMessenger->_301->id, $this->ws->errorMessenger->ws,
-              $this->ws->errorMessenger->_301->name, $this->ws->errorMessenger->_301->description, odbc_errormsg(),
-              $this->ws->errorMessenger->_301->level);
-
-            return;
-          }
-
-          if(count($statementsUri) > 0)
-          {
-            $tempGraphReificationUri = "temp-graph-reification-" . md5($this->ws->document);
-
-            $statements = array();
-
-            foreach($statementsUri as $uri)
+            foreach($irsUri as $uri)
             {
-              $statements[$uri] = $resourceIndex[$uri];
+              $irs[$uri] = $resourceIndex[$uri];
             }
 
             @$this->ws->db->query("DB.DBA.RDF_LOAD_RDFXML_MT('"
-              . str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($statements))
-                . "', '$tempGraphReificationUri', '$tempGraphReificationUri', 0)");
+              . str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($irs))
+                . "', '$tempGraphUri', '$tempGraphUri', 0)");
 
             if(odbc_error())
             {
@@ -200,34 +365,33 @@
               return;
             }
 
-
-            // Step #2.5: use the temp graph to modify the reification graph
-            $query = "delete from <" . $this->ws->dataset . "reification/>
+            // Step #4: use that temp graph to modify (delete/insert using SPARUL) the target graph of the update query
+            $query = "delete from <" . $this->ws->dataset . ">
                     { 
-                      ?s_original ?p_original ?o_original.
+                      ?s ?p_original ?o_original.
                     }
                     where
                     {
-                      graph <" . $this->ws->dataset . "reification/>
+                      graph <" . $tempGraphUri . ">
                       {
-                        ?s_original <http://www.w3.org/1999/02/22-rdf-syntax-ns#subject> ?rei_subject .
-                        ?s_original <http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate> ?rei_predicate .
-                        ?s_original <http://www.w3.org/1999/02/22-rdf-syntax-ns#object> ?rei_object .
-                        
-                        ?s_original ?p_original ?o_original.
-                        FILTER( ?rei_subject IN (<".implode('>, <', $irsUri).">))
+                        ?s ?p ?o.
+                      }
+                      
+                      graph <" . $this->ws->dataset . ">
+                      {
+                        ?s ?p_original ?o_original.
                       }
                     }
                     
-                    insert into <" . $this->ws->dataset . "reification/>
+                    insert into <" . $this->ws->dataset . ">
                     {
-                      ?s_original ?p2 ?o2.
+                      ?s ?p ?o.
                     }                  
                     where
                     {
-                      graph <" . $tempGraphReificationUri . ">
+                      graph <" . $tempGraphUri . ">
                       {
-                        ?s_original ?p2 ?o2.
+                        ?s ?p ?o.
                       }
                     }";
 
@@ -246,8 +410,134 @@
               return;
             }
 
-            // Step #2.6: Remove the temp graph
-            $query = "clear graph <" . $tempGraphReificationUri . ">";
+            if(count($statementsUri) > 0)
+            {
+              $tempGraphReificationUri = "temp-graph-reification-" . md5($this->ws->document);
+
+              $statements = array();
+
+              foreach($statementsUri as $uri)
+              {
+                $statements[$uri] = $resourceIndex[$uri];
+              }
+
+              @$this->ws->db->query("DB.DBA.RDF_LOAD_RDFXML_MT('"
+                . str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($statements))
+                  . "', '$tempGraphReificationUri', '$tempGraphReificationUri', 0)");
+
+              if(odbc_error())
+              {
+                $this->ws->conneg->setStatus(400);
+                $this->ws->conneg->setStatusMsg("Bad Request");
+                $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_300->name);
+                $this->ws->conneg->setError($this->ws->errorMessenger->_300->id, $this->ws->errorMessenger->ws,
+                  $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, odbc_errormsg(),
+                  $this->ws->errorMessenger->_300->level);
+                return;
+              }
+
+
+              // Step #4.1: use the temp graph to modify the reification graph
+              $query = "delete from <" . $this->ws->dataset . "reification/>
+                      { 
+                        ?s_original ?p_original ?o_original.
+                      }
+                      where
+                      {
+                        graph <" . $this->ws->dataset . "reification/>
+                        {
+                          ?s_original <http://www.w3.org/1999/02/22-rdf-syntax-ns#subject> ?rei_subject .
+                          ?s_original <http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate> ?rei_predicate .
+                          ?s_original <http://www.w3.org/1999/02/22-rdf-syntax-ns#object> ?rei_object .
+                          
+                          ?s_original ?p_original ?o_original.
+                          FILTER( ?rei_subject IN (<".implode('>, <', $irsUri).">))
+                        }
+                      }
+                      
+                      insert into <" . $this->ws->dataset . "reification/>
+                      {
+                        ?s_original ?p2 ?o2.
+                      }                  
+                      where
+                      {
+                        graph <" . $tempGraphReificationUri . ">
+                        {
+                          ?s_original ?p2 ?o2.
+                        }
+                      }";
+
+              @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
+                FALSE));
+
+              if(odbc_error())
+              {
+                $this->ws->conneg->setStatus(500);
+                $this->ws->conneg->setStatusMsg("Internal Error");
+                $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_301->name);
+                $this->ws->conneg->setError($this->ws->errorMessenger->_301->id, $this->ws->errorMessenger->ws,
+                  $this->ws->errorMessenger->_301->name, $this->ws->errorMessenger->_301->description, odbc_errormsg(),
+                  $this->ws->errorMessenger->_301->level);
+
+                return;
+              }
+
+              // Step #4.2: Remove the temp graph
+              $query = "clear graph <" . $tempGraphReificationUri . ">";
+
+              @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), "", $query), array(),
+                FALSE));
+
+              if(odbc_error())
+              {
+                $this->ws->conneg->setStatus(500);
+                $this->ws->conneg->setStatusMsg("Internal Error");
+                $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_303->name);
+                $this->ws->conneg->setError($this->ws->errorMessenger->_303->id, $this->ws->errorMessenger->ws,
+                  $this->ws->errorMessenger->_303->name, $this->ws->errorMessenger->_303->description,
+                  odbc_errormsg() . " -- Query: [" . str_replace(array ("\n", "\r", "\t"), " ", $query) . "]",
+                  $this->ws->errorMessenger->_303->level);
+                return;
+              }
+            }
+            else
+            {
+              // If no reification statements are defined, then make sure none exists for this resource in the system
+              $query = "delete from <" . $this->ws->dataset . "reification/>
+                      { 
+                        ?s_original ?p_original ?o_original.
+                      }
+                      where
+                      {
+                        graph <" . $this->ws->dataset . "reification/>
+                        {
+                          ?s_original <http://www.w3.org/1999/02/22-rdf-syntax-ns#subject> ?rei_subject .
+                          ?s_original <http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate> ?rei_predicate .
+                          ?s_original <http://www.w3.org/1999/02/22-rdf-syntax-ns#object> ?rei_object .
+                          
+                          ?s_original ?p_original ?o_original.
+                          FILTER(?rei_subject IN (<".implode('>, <', $irsUri).">))
+                        }
+                      }";
+
+              @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
+                FALSE));
+
+              if(odbc_error())
+              {
+                $this->ws->conneg->setStatus(500);
+                $this->ws->conneg->setStatusMsg("Internal Error");
+                $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_301->name);
+                $this->ws->conneg->setError($this->ws->errorMessenger->_301->id, $this->ws->errorMessenger->ws,
+                  $this->ws->errorMessenger->_301->name, $this->ws->errorMessenger->_301->description, odbc_errormsg(),
+                  $this->ws->errorMessenger->_301->level);
+
+                return;
+              }            
+            }
+
+            // Step #5: Remove the temp graph
+            $query = "clear graph <" . $tempGraphUri . ">";
 
             @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), "", $query), array(),
               FALSE));
@@ -263,440 +553,86 @@
                 $this->ws->errorMessenger->_303->level);
               return;
             }
-          }
-          else
-          {
-            // If no reification statements are defined, then make sure none exists for this resource in the system
-            $query = "delete from <" . $this->ws->dataset . "reification/>
-                    { 
-                      ?s_original ?p_original ?o_original.
-                    }
-                    where
-                    {
-                      graph <" . $this->ws->dataset . "reification/>
-                      {
-                        ?s_original <http://www.w3.org/1999/02/22-rdf-syntax-ns#subject> ?rei_subject .
-                        ?s_original <http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate> ?rei_predicate .
-                        ?s_original <http://www.w3.org/1999/02/22-rdf-syntax-ns#object> ?rei_object .
-                        
-                        ?s_original ?p_original ?o_original.
-                        FILTER(?rei_subject IN (<".implode('>, <', $irsUri).">))
-                      }
-                    }";
 
-            @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-              FALSE));
-
-            if(odbc_error())
+            // Step #6: Update Solr index         
+            $filename = rtrim($this->ws->ontological_structure_folder, "/") . "/classHierarchySerialized.srz";
+            $file = fopen($filename, "r");
+            $classHierarchy = fread($file, filesize($filename));
+            $classHierarchy = unserialize($classHierarchy);
+            fclose($file);
+            
+            if($classHierarchy === FALSE)
             {
               $this->ws->conneg->setStatus(500);
               $this->ws->conneg->setStatusMsg("Internal Error");
-              $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_301->name);
-              $this->ws->conneg->setError($this->ws->errorMessenger->_301->id, $this->ws->errorMessenger->ws,
-                $this->ws->errorMessenger->_301->name, $this->ws->errorMessenger->_301->description, odbc_errormsg(),
-                $this->ws->errorMessenger->_301->level);
-
+              $this->ws->conneg->setError($this->ws->errorMessenger->_309->id, $this->ws->errorMessenger->ws,
+                $this->ws->errorMessenger->_309->name, $this->ws->errorMessenger->_309->description, "",
+                $this->ws->errorMessenger->_309->level);
               return;
-            }            
-          }
+            }        
 
-          // Step #3: Remove the temp graph
-          $query = "clear graph <" . $tempGraphUri . ">";
+            $labelProperties =
+              array (Namespaces::$iron . "prefLabel", Namespaces::$iron . "altLabel", Namespaces::$skos_2008 . "prefLabel",
+                Namespaces::$skos_2008 . "altLabel", Namespaces::$skos_2004 . "prefLabel",
+                Namespaces::$skos_2004 . "altLabel", Namespaces::$rdfs . "label", Namespaces::$dcterms . "title",
+                Namespaces::$foaf . "name", Namespaces::$foaf . "givenName", Namespaces::$foaf . "family_name");
 
-          @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), "", $query), array(),
-            FALSE));
-
-          if(odbc_error())
-          {
-            $this->ws->conneg->setStatus(500);
-            $this->ws->conneg->setStatusMsg("Internal Error");
-            $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_303->name);
-            $this->ws->conneg->setError($this->ws->errorMessenger->_303->id, $this->ws->errorMessenger->ws,
-              $this->ws->errorMessenger->_303->name, $this->ws->errorMessenger->_303->description,
-              odbc_errormsg() . " -- Query: [" . str_replace(array ("\n", "\r", "\t"), " ", $query) . "]",
-              $this->ws->errorMessenger->_303->level);
-            return;
-          }
+            $descriptionProperties = array (Namespaces::$iron . "description", Namespaces::$dcterms . "description",
+              Namespaces::$skos_2008 . "definition", Namespaces::$skos_2004 . "definition");
 
 
-          // Step #4: Update Solr index         
-          $filename = rtrim($this->ws->ontological_structure_folder, "/") . "/classHierarchySerialized.srz";
-          $file = fopen($filename, "r");
-          $classHierarchy = fread($file, filesize($filename));
-          $classHierarchy = unserialize($classHierarchy);
-          fclose($file);
-          
-          if($classHierarchy === FALSE)
-          {
-            $this->ws->conneg->setStatus(500);
-            $this->ws->conneg->setStatusMsg("Internal Error");
-            $this->ws->conneg->setError($this->ws->errorMessenger->_309->id, $this->ws->errorMessenger->ws,
-              $this->ws->errorMessenger->_309->name, $this->ws->errorMessenger->_309->description, "",
-              $this->ws->errorMessenger->_309->level);
-            return;
-          }        
+            // Index in Solr
 
-          $labelProperties =
-            array (Namespaces::$iron . "prefLabel", Namespaces::$iron . "altLabel", Namespaces::$skos_2008 . "prefLabel",
-              Namespaces::$skos_2008 . "altLabel", Namespaces::$skos_2004 . "prefLabel",
-              Namespaces::$skos_2004 . "altLabel", Namespaces::$rdfs . "label", Namespaces::$dcterms . "title",
-              Namespaces::$foaf . "name", Namespaces::$foaf . "givenName", Namespaces::$foaf . "family_name");
+            $solr = new Solr($this->ws->wsf_solr_core, $this->ws->solr_host, $this->ws->solr_port, $this->ws->fields_index_folder);
 
-          $descriptionProperties = array (Namespaces::$iron . "description", Namespaces::$dcterms . "description",
-            Namespaces::$skos_2008 . "definition", Namespaces::$skos_2004 . "definition");
-
-
-          // Index in Solr
-
-          $solr = new Solr($this->ws->wsf_solr_core, $this->ws->solr_host, $this->ws->solr_port, $this->ws->fields_index_folder);
-
-          // Used to detect if we will be creating a new field. If we are, then we will
-          // update the fields index once the new document will be indexed.
-          $indexedFields = $solr->getFieldsIndex();  
-          $newFields = FALSE;              
-          
-          foreach($irsUri as $subject)
-          {
-            // Skip Bnodes indexation in Solr
-            // One of the prerequise is that each records indexed in Solr (and then available in Search and Browse)
-            // should have a URI. Bnodes are simply skiped.
-
-            if(stripos($subject, "_:arc") !== FALSE)
-            {
-              continue;
-            }
-
-            $add = "<add><doc><field name=\"uid\">" . md5($this->ws->dataset . $subject) . "</field>";
-            $add .= "<field name=\"uri\">".$this->ws->xmlEncode($subject)."</field>";
-            $add .= "<field name=\"dataset\">" . $this->ws->dataset . "</field>";
-
-            // Get types for this subject.
-            $types = array();
-
-            foreach($resourceIndex[$subject]["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"] as $value)
-            {
-              array_push($types, $value["value"]);
-
-              $add .= "<field name=\"type\">" . $this->ws->xmlEncode($value["value"]) . "</field>";
-              $add .= "<field name=\"" . urlencode("http://www.w3.org/1999/02/22-rdf-syntax-ns#type") . "_attr_facets\">" . $this->ws->xmlEncode($value["value"])
-                . "</field>";
-            }
-            // Use the first defined type to add the the single-valued fiedl in the Solr schema.
-            // This will be used to enabled sorting on (the first) type
-            $add .= "<field name=\"type_single_valued\">" . $this->ws->xmlEncode($resourceIndex[$subject]["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"][0]["value"]) . "</field>";
-
-            // get the preferred and alternative labels for this resource
-            $prefLabelFound = array();
+            // Used to detect if we will be creating a new field. If we are, then we will
+            // update the fields index once the new document will be indexed.
+            $indexedFields = $solr->getFieldsIndex();  
+            $newFields = FALSE;              
             
-            foreach($this->ws->supportedLanguages as $lang)
+            foreach($irsUri as $subject)
             {
-              $prefLabelFound[$lang] = FALSE;
-            }
+              // Skip Bnodes indexation in Solr
+              // One of the prerequise is that each records indexed in Solr (and then available in Search and Browse)
+              // should have a URI. Bnodes are simply skiped.
 
-            foreach($labelProperties as $property)
-            {
-              if(isset($resourceIndex[$subject][$property]))
+              if(stripos($subject, "_:arc") !== FALSE)
               {
-                foreach($resourceIndex[$subject][$property] as $value)
-                {
-                  $lang = "";
-                  
-                  if(isset($value["lang"]))
-                  {
-                    if(array_search($value["lang"], $this->ws->supportedLanguages) !== FALSE)
-                    {
-                      // The language used for this string is supported by the system, so we index it in
-                      // the good place
-                      $lang = $value["lang"];  
-                    }
-                    else
-                    {
-                      // The language used for this string is not supported by the system, so we
-                      // index it in the default language
-                      $lang = $this->ws->supportedLanguages[0];                        
-                    }
-                  }
-                  else
-                  {
-                    // The language is not defined for this string, so we simply consider that it uses
-                    // the default language supported by the structWSF instance
-                    $lang = $this->ws->supportedLanguages[0];                        
-                  }
-                  
-                  if(!$prefLabelFound[$lang])
-                  {
-                    $prefLabelFound[$lang] = TRUE;
-                    
-                    $add .= "<field name=\"prefLabel_".$lang."\">" . $this->ws->xmlEncode($value["value"])
-                      . "</field>";
-                      
-                    $add .= "<field name=\"prefLabelAutocompletion_".$lang."\">" . $this->ws->xmlEncode($value["value"])
-                      . "</field>";
-                    $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$iron . "prefLabel") . "</field>";
-                    
-                    $add .= "<field name=\"" . urlencode($this->ws->xmlEncode(Namespaces::$iron . "prefLabel")) . "_attr_facets\">" . $this->ws->xmlEncode($value["value"])
-                      . "</field>";
-                  }
-                  else
-                  {         
-                    $add .= "<field name=\"altLabel_".$lang."\">" . $this->ws->xmlEncode($value["value"]) . "</field>";
-                    $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$iron . "altLabel") . "</field>";
-                    $add .= "<field name=\"" . urlencode($this->ws->xmlEncode(Namespaces::$iron . "altLabel")) . "_attr_facets\">" . $this->ws->xmlEncode($value["value"])
-                      . "</field>";
-                  }
-                }
+                continue;
               }
-            }
-            
-            // If no labels are found for this resource, we use the ending of the URI as the label
-            if(!$prefLabelFound)
-            {
-              $lang = $this->ws->supportedLanguages[0];   
-              
-              if(strrpos($subject, "#"))
+
+              $add = "<add><doc><field name=\"uid\">" . md5($this->ws->dataset . $subject) . "</field>";
+              $add .= "<field name=\"uri\">".$this->ws->xmlEncode($subject)."</field>";
+              $add .= "<field name=\"dataset\">" . $this->ws->dataset . "</field>";
+
+              // Get types for this subject.
+              $types = array();
+
+              foreach($resourceIndex[$subject]["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"] as $value)
               {
-                $add .= "<field name=\"prefLabel_".$lang."\">" . substr($subject, strrpos($subject, "#") + 1) . "</field>";                   
-                $add .= "<field name=\"prefLabelAutocompletion_".$lang."\">" . substr($subject, strrpos($subject, "#") + 1) . "</field>";                   
-                $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$iron . "prefLabel") . "</field>";
-                $add .= "<field name=\"" . urlencode($this->ws->xmlEncode(Namespaces::$iron . "prefLabel")) . "_attr_facets\">" . $this->ws->xmlEncode(substr($subject, strrpos($subject, "#") + 1))
+                array_push($types, $value["value"]);
+
+                $add .= "<field name=\"type\">" . $this->ws->xmlEncode($value["value"]) . "</field>";
+                $add .= "<field name=\"" . urlencode("http://www.w3.org/1999/02/22-rdf-syntax-ns#type") . "_attr_facets\">" . $this->ws->xmlEncode($value["value"])
                   . "</field>";
               }
-              elseif(strrpos($subject, "/"))
+              // Use the first defined type to add the the single-valued fiedl in the Solr schema.
+              // This will be used to enabled sorting on (the first) type
+              $add .= "<field name=\"type_single_valued\">" . $this->ws->xmlEncode($resourceIndex[$subject]["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"][0]["value"]) . "</field>";
+
+              // get the preferred and alternative labels for this resource
+              $prefLabelFound = array();
+              
+              foreach($this->ws->supportedLanguages as $lang)
               {
-                $add .= "<field name=\"prefLabel_".$lang."\">" . substr($subject, strrpos($subject, "/") + 1) . "</field>";                   
-                $add .= "<field name=\"prefLabelAutocompletion_".$lang."\">" . substr($subject, strrpos($subject, "/") + 1) . "</field>";                   
-                $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$iron . "prefLabel") . "</field>";
-                $add .= "<field name=\"" . urlencode($this->ws->xmlEncode(Namespaces::$iron . "prefLabel")) . "_attr_facets\">" . $this->ws->xmlEncode(substr($subject, strrpos($subject, "/") + 1))
-                  . "</field>";
+                $prefLabelFound[$lang] = FALSE;
               }
-            }
 
-            // get the description of the resource
-            foreach($descriptionProperties as $property)
-            {
-              if(isset($resourceIndex[$subject][$property]))
+              foreach($labelProperties as $property)
               {
-                $lang = "";
-                
-                foreach($resourceIndex[$subject][$property] as $value)
+                if(isset($resourceIndex[$subject][$property]))
                 {
-                  if(isset($value["lang"]))
-                  {
-                    if(array_search($value["lang"], $this->ws->supportedLanguages) !== FALSE)
-                    {
-                      // The language used for this string is supported by the system, so we index it in
-                      // the good place
-                      $lang = $value["lang"];  
-                    }
-                    else
-                    {
-                      // The language used for this string is not supported by the system, so we
-                      // index it in the default language
-                      $lang = $this->ws->supportedLanguages[0];                        
-                    }
-                  }
-                  else
-                  {
-                    // The language is not defined for this string, so we simply consider that it uses
-                    // the default language supported by the structWSF instance
-                    $lang = $this->ws->supportedLanguages[0];                        
-                  }
-                  
-                  $add .= "<field name=\"description_".$lang."\">"
-                    . $this->ws->xmlEncode($value["value"]) . "</field>";
-                  $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$iron . "description") . "</field>";
-                  $add .= "<field name=\"" . urlencode($this->ws->xmlEncode(Namespaces::$iron . "description")) . "_attr_facets\">" . $this->ws->xmlEncode($value["value"])
-                    . "</field>";
-                }
-              }
-            }
-
-            // Add the prefURL if available
-            if(isset($resourceIndex[$subject][Namespaces::$iron . "prefURL"]))
-            {
-              $add .= "<field name=\"prefURL\">"
-                . $this->ws->xmlEncode($resourceIndex[$subject][Namespaces::$iron . "prefURL"][0]["value"]) . "</field>";
-              $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$iron . "prefURL") . "</field>";
-
-              $add .= "<field name=\"" . urlencode($this->ws->xmlEncode(Namespaces::$iron . "prefURL")) . "_attr_facets\">" . $this->ws->xmlEncode($resourceIndex[$subject][Namespaces::$iron . "prefURL"][0]["value"])
-                . "</field>";
-            }
-            
-            // If enabled, and supported by the structWSF setting, let's add any lat/long positionning to the index.
-            if($this->ws->geoEnabled)
-            {
-              // Check if there exists a lat-long coordinate for that resource.
-              if(isset($resourceIndex[$subject][Namespaces::$geo."lat"]) &&
-                 isset($resourceIndex[$subject][Namespaces::$geo."long"]))
-              {  
-                $lat = str_replace(",", ".", $resourceIndex[$subject][Namespaces::$geo."lat"][0]["value"]);
-                $long = str_replace(",", ".", $resourceIndex[$subject][Namespaces::$geo."long"][0]["value"]);
-                
-                // Add Lat/Long
-                $add .= "<field name=\"lat\">". 
-                           $this->ws->xmlEncode($lat). 
-                        "</field>";
-                $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$geo."lat") . "</field>";
-                        
-                $add .= "<field name=\"long\">". 
-                           $this->ws->xmlEncode($long). 
-                        "</field>";
-                $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$geo."long") . "</field>";
-                                                 
-                // Add hashcode
-                
-                $add .= "<field name=\"geohash\">". 
-                           "$lat,$long".
-                        "</field>"; 
-                $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$sco."geohash") . "</field>";
-                        
-                // Add cartesian tiers                   
-                                
-                // Note: Cartesian tiers are not currently supported. The Lucene Java API
-                //       for this should be ported to PHP to enable this feature.                                
-              }
-              
-              $coordinates = array();
-              
-              // Check if there is a polygonCoordinates property
-              if(isset($resourceIndex[$subject][Namespaces::$sco."polygonCoordinates"]))
-              {  
-                foreach($resourceIndex[$subject][Namespaces::$sco."polygonCoordinates"] as $polygonCoordinates)
-                {
-                  $coordinates = explode(" ", $polygonCoordinates["value"]);
-                  
-                  $add .= "<field name=\"polygonCoordinates\">". 
-                             $this->ws->xmlEncode($polygonCoordinates["value"]). 
-                          "</field>";   
-                  $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$sco."polygonCoordinates") . "</field>";                                             
-                }                                        
-              }
-              
-              // Check if there is a polylineCoordinates property
-              if(isset($resourceIndex[$subject][Namespaces::$sco."polylineCoordinates"]))
-              {  
-                foreach($resourceIndex[$subject][Namespaces::$sco."polylineCoordinates"] as $polylineCoordinates)
-                {
-                  $coordinates = array_merge($coordinates, explode(" ", $polylineCoordinates["value"]));
-                  
-                  $add .= "<field name=\"polylineCoordinates\">". 
-                             $this->ws->xmlEncode($polylineCoordinates["value"]). 
-                          "</field>";   
-                  $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$sco."polylineCoordinates") . "</field>";                   
-                }               
-              }
-              
-                
-              if(count($coordinates) > 0)
-              { 
-                $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$geo."lat") . "</field>";
-                $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$geo."long") . "</field>";
-                
-                foreach($coordinates as $key => $coordinate)
-                {
-                  $points = explode(",", $coordinate);
-                  
-                  if($points[0] != "" && $points[1] != "")
-                  {
-                    // Add Lat/Long
-                    $add .= "<field name=\"lat\">". 
-                               $this->ws->xmlEncode($points[1]). 
-                            "</field>";
-                            
-                    $add .= "<field name=\"long\">". 
-                               $this->ws->xmlEncode($points[0]). 
-                            "</field>";
-                            
-                    // Add altitude
-                    if(isset($points[2]) && $points[2] != "")
-                    {
-                      $add .= "<field name=\"alt\">". 
-                                 $this->ws->xmlEncode($points[2]). 
-                              "</field>";
-                      if($key == 0)
-                      {
-                        $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$geo."alt") . "</field>";
-                      }
-                    }
-                
-                    
-                    // Add hashcode
-                    $add .= "<field name=\"geohash\">". 
-                               $points[1].",".$points[0].
-                            "</field>"; 
-                            
-                    if($key == 0)
-                    {
-                      $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$sco."geohash") . "</field>";
-                    }
-                            
-                            
-                    // Add cartesian tiers                   
-                                    
-                    // Note: Cartesian tiers are not currently supported. The Lucene Java API
-                    //       for this should be ported to PHP to enable this feature.           
-                  }                                         
-                }
-              }                
-              
-              // Check if there is any geonames:locatedIn assertion for that resource.
-              if(isset($resourceIndex[$subject][Namespaces::$geoname."locatedIn"]))
-              {  
-                $add .= "<field name=\"located_in\">". 
-                           $this->ws->xmlEncode($resourceIndex[$subject][Namespaces::$geoname."locatedIn"][0]["value"]). 
-                        "</field>";                           
-                        
-
-                $add .= "<field name=\"" . urlencode($this->ws->xmlEncode(Namespaces::$geoname . "locatedIn")) . "_attr_facets\">" . $this->ws->xmlEncode($resourceIndex[$subject][Namespaces::$geoname."locatedIn"][0]["value"])
-                  . "</field>";                                                 
-              }
-              
-              // Check if there is any wgs84_pos:alt assertion for that resource.
-              if(isset($resourceIndex[$subject][Namespaces::$geo."alt"]))
-              {  
-                $add .= "<field name=\"alt\">". 
-                           $this->ws->xmlEncode($resourceIndex[$subject][Namespaces::$geo."alt"][0]["value"]). 
-                        "</field>";                                
-                $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$geo."alt") . "</field>";
-              }                
-            }          
-                
-                $filename = rtrim($this->ws->ontological_structure_folder, "/") . "/propertyHierarchySerialized.srz";
-                
-                $file = fopen($filename, "r");
-                $propertyHierarchy = fread($file, filesize($filename));
-                $propertyHierarchy = unserialize($propertyHierarchy);                        
-                fclose($file);
-                
-                if($propertyHierarchy === FALSE)
-                {
-                  $this->ws->conneg->setStatus(500);   
-                  $this->ws->conneg->setStatusMsg("Internal Error");
-                  $this->ws->conneg->setError($this->ws->errorMessenger->_310->id, $this->ws->errorMessenger->ws,
-                    $this->ws->errorMessenger->_310->name, $this->ws->errorMessenger->_310->description, "",
-                    $this->ws->errorMessenger->_310->level);
-                  return;
-                }       
-                
-                // When a property appears in this array, it means that it is already
-                // used in the Solr document we are creating
-                $usedSingleValuedProperties = array();         
-
-            // Get properties with the type of the object
-            foreach($resourceIndex[$subject] as $predicate => $values)
-            {
-              if(array_search($predicate, $labelProperties) === FALSE && 
-                 array_search($predicate, $descriptionProperties) === FALSE && 
-                 $predicate != Namespaces::$iron."prefURL" &&
-                 $predicate != Namespaces::$geo."long" &&
-                 $predicate != Namespaces::$geo."lat" &&
-                 $predicate != Namespaces::$geo."alt" &&
-                 $predicate != Namespaces::$sco."polygonCoordinates" &&
-                 $predicate != Namespaces::$sco."polylineCoordinates") // skip label & description & prefURL properties
-              {
-                foreach($values as $value)
-                {
-                  if($value["type"] == "literal")
+                  foreach($resourceIndex[$subject][$property] as $value)
                   {
                     $lang = "";
                     
@@ -720,327 +656,433 @@
                       // The language is not defined for this string, so we simply consider that it uses
                       // the default language supported by the structWSF instance
                       $lang = $this->ws->supportedLanguages[0];                        
-                    }                        
-                    
-                    // Detect if the field currently exists in the fields index 
-                    if(!$newFields && 
-                       array_search(urlencode($predicate) . "_attr_".$lang, $indexedFields) === FALSE &&
-                       array_search(urlencode($predicate) . "_attr_date", $indexedFields) === FALSE &&
-                       array_search(urlencode($predicate) . "_attr_int", $indexedFields) === FALSE &&
-                       array_search(urlencode($predicate) . "_attr_float", $indexedFields) === FALSE &&
-                       array_search(urlencode($predicate) . "_attr_".$lang."_single_valued", $indexedFields) === FALSE &&
-                       array_search(urlencode($predicate) . "_attr_date_single_valued", $indexedFields) === FALSE &&
-                       array_search(urlencode($predicate) . "_attr_int_single_valued", $indexedFields) === FALSE &&
-                       array_search(urlencode($predicate) . "_attr_float_single_valued", $indexedFields) === FALSE)
-                    {
-                      $newFields = TRUE;
                     }
-                        
-                        // Check the datatype of the datatype property
-                        $property = $propertyHierarchy->getProperty($predicate);
-
-                    if(is_array($property->range) && 
-                           array_search("http://www.w3.org/2001/XMLSchema#dateTime", $property->range) !== FALSE &&
-                           $this->safeDate($value["value"]) != "")
-                        {
-                          // Check if the property is defined as a cardinality of maximum 1
-                          // If it doesn't we consider it a multi-valued field, otherwise
-                          // we use the single-valued version of the field.
-                          if($property->cardinality == 1 || $property->maxCardinality == 1)
-                          {
-                            if(array_search($predicate, $usedSingleValuedProperties) === FALSE)
-                            {
-                              $add .= "<field name=\"" . urlencode($predicate) . "_attr_date_single_valued\">" . $this->ws->xmlEncode($this->safeDate($value["value"])) . "</field>";
-                              
-                              $usedSingleValuedProperties[] = $predicate;
-                            }                            
-                          }
-                          else
-                          {
-                            $add .= "<field name=\"" . urlencode($predicate) . "_attr_date\">" . $this->ws->xmlEncode($this->safeDate($value["value"])) . "</field>";
-                          }
-                        }
-                    elseif(is_array($property->range) && array_search("http://www.w3.org/2001/XMLSchema#int", $property->range) !== FALSE ||
-                           is_array($property->range) && array_search("http://www.w3.org/2001/XMLSchema#integer", $property->range) !== FALSE)
-                        {
-                          // Check if the property is defined as a cardinality of maximum 1
-                          // If it doesn't we consider it a multi-valued field, otherwise
-                          // we use the single-valued version of the field.
-                          if($property->cardinality == 1 || $property->maxCardinality == 1)
-                          {                          
-                            if(array_search($predicate, $usedSingleValuedProperties) === FALSE)
-                            {
-                              $add .= "<field name=\"" . urlencode($predicate) . "_attr_int_single_valued\">" . $this->ws->xmlEncode($value["value"]) . "</field>";
-                              
-                              $usedSingleValuedProperties[] = $predicate;
-                            }                          
-                          }
-                          else
-                          {
-                            $add .= "<field name=\"" . urlencode($predicate) . "_attr_int\">" . $this->ws->xmlEncode($value["value"]) . "</field>";
-                          }
-                        }
-                        elseif(is_array($property->range) && array_search("http://www.w3.org/2001/XMLSchema#float", $property->range) !== FALSE)
-                        {
-                          // Check if the property is defined as a cardinality of maximum 1
-                          // If it doesn't we consider it a multi-valued field, otherwise
-                          // we use the single-valued version of the field.
-                          if($property->cardinality == 1 || $property->maxCardinality == 1)
-                          {
-                            if(array_search($predicate, $usedSingleValuedProperties) === FALSE)
-                            {
-                              $add .= "<field name=\"" . urlencode($predicate) . "_attr_float_single_valued\">" . $this->ws->xmlEncode($value["value"]) . "</field>";
-                              
-                              $usedSingleValuedProperties[] = $predicate;
-                            }
-                          }
-                          else
-                          {
-                            $add .= "<field name=\"" . urlencode($predicate) . "_attr_float\">" . $this->ws->xmlEncode($value["value"]) . "</field>";
-                          }
-                        }
-                    else
-                    {
-                          // By default, the datatype used is a literal/string
-                          
-                          // Check if the property is defined as a cardinality of maximum 1
-                          // If it doesn't we consider it a multi-valued field, otherwise
-                          // we use the single-valued version of the field.
-                          if($property->cardinality == 1 || $property->maxCardinality == 1)
-                          {
-                            if(array_search($predicate, $usedSingleValuedProperties) === FALSE)
-                            {
-                              $add .= "<field name=\"" . urlencode($predicate) . "_attr_".$lang."_single_valued\">" . $this->ws->xmlEncode($value["value"]) . "</field>";                          
-                              
-                              $usedSingleValuedProperties[] = $predicate;
-                            }
-                          }
-                          else
-                          {
-                            $add .= "<field name=\"" . urlencode($predicate) . "_attr_".$lang."\">" . $this->ws->xmlEncode($value["value"]) . "</field>";                          
-                          }
-                        }
                     
-                    $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode($predicate) . "</field>";
-                    $add .= "<field name=\"" . urlencode($predicate) . "_attr_facets\">" . $this->ws->xmlEncode($value["value"])
-                      . "</field>";
-
-                    /* 
-                       Check if there is a reification statement for that triple. If there is one, we index it in 
-                       the index as:
-                       <property> <text>
-                       Note: Eventually we could want to update the Solr index to include a new "reifiedText" field.
-                    */
-                    foreach($statementsUri as $statementUri)
+                    if(!$prefLabelFound[$lang])
                     {
-                      if($resourceIndex[$statementUri]["http://www.w3.org/1999/02/22-rdf-syntax-ns#subject"][0]["value"]
-                        == $subject
-                          && $resourceIndex[$statementUri]["http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate"][0][
-                            "value"] == $predicate
-                          && $resourceIndex[$statementUri]["http://www.w3.org/1999/02/22-rdf-syntax-ns#object"][0][
-                            "value"] == $value["value"])
-                      {
-                        foreach($resourceIndex[$statementUri] as $reiPredicate => $reiValues)
-                        {
-                          if($reiPredicate != "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-                            && $reiPredicate != "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject"
-                            && $reiPredicate != "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate"
-                            && $reiPredicate != "http://www.w3.org/1999/02/22-rdf-syntax-ns#object")
-                          {
-                            foreach($reiValues as $reiValue)
-                            {
-                              $reiLang = "";
-                              
-                              if(isset($reiValue["lang"]))
-                              {
-                                if(array_search($reiValue["lang"], $this->ws->supportedLanguages) !== FALSE)
-                                {
-                                  // The language used for this string is supported by the system, so we index it in
-                                  // the good place
-                                  $reiLang = $reiValue["lang"];  
-                                }
-                                else
-                                {
-                                  // The language used for this string is not supported by the system, so we
-                                  // index it in the default language
-                                  $reiLang = $this->ws->supportedLanguages[0];                        
-                                }
-                              }
-                              else
-                              {
-                                // The language is not defined for this string, so we simply consider that it uses
-                                // the default language supported by the structWSF instance
-                                $reiLang = $this->ws->supportedLanguages[0];                        
-                              }                                   
-                              if($reiValue["type"] == "literal")
-                              {
-                                // Attribute used to reify information to a statement.
-                                $add .= "<field name=\"" . urlencode($reiPredicate) . "_reify_attr\">"
-                                  . $this->ws->xmlEncode($predicate) .
-                                  "</field>";
-
-                                $add .= "<field name=\"" . urlencode($reiPredicate) . "_reify_obj\">"
-                                  . $this->ws->xmlEncode($value["value"]) .
-                                  "</field>";
-
-                                $add .= "<field name=\"" . urlencode($reiPredicate) . "_reify_value_".$reiLang."\">"
-                                  . $this->ws->xmlEncode($reiValue["value"]) .
-                                  "</field>";
-
-                                $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode($reiPredicate) . "</field>";
-                              }
-                            }
-                          }
-                        }
-                      }
+                      $prefLabelFound[$lang] = TRUE;
+                      
+                      $add .= "<field name=\"prefLabel_".$lang."\">" . $this->ws->xmlEncode($value["value"])
+                        . "</field>";
+                        
+                      $add .= "<field name=\"prefLabelAutocompletion_".$lang."\">" . $this->ws->xmlEncode($value["value"])
+                        . "</field>";
+                      $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$iron . "prefLabel") . "</field>";
+                      
+                      $add .= "<field name=\"" . urlencode($this->ws->xmlEncode(Namespaces::$iron . "prefLabel")) . "_attr_facets\">" . $this->ws->xmlEncode($value["value"])
+                        . "</field>";
+                    }
+                    else
+                    {         
+                      $add .= "<field name=\"altLabel_".$lang."\">" . $this->ws->xmlEncode($value["value"]) . "</field>";
+                      $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$iron . "altLabel") . "</field>";
+                      $add .= "<field name=\"" . urlencode($this->ws->xmlEncode(Namespaces::$iron . "altLabel")) . "_attr_facets\">" . $this->ws->xmlEncode($value["value"])
+                        . "</field>";
                     }
                   }
-                  elseif($value["type"] == "uri")
+                }
+              }
+              
+              // If no labels are found for this resource, we use the ending of the URI as the label
+              if(!$prefLabelFound)
+              {
+                $lang = $this->ws->supportedLanguages[0];   
+                
+                if(strrpos($subject, "#"))
+                {
+                  $add .= "<field name=\"prefLabel_".$lang."\">" . substr($subject, strrpos($subject, "#") + 1) . "</field>";                   
+                  $add .= "<field name=\"prefLabelAutocompletion_".$lang."\">" . substr($subject, strrpos($subject, "#") + 1) . "</field>";                   
+                  $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$iron . "prefLabel") . "</field>";
+                  $add .= "<field name=\"" . urlencode($this->ws->xmlEncode(Namespaces::$iron . "prefLabel")) . "_attr_facets\">" . $this->ws->xmlEncode(substr($subject, strrpos($subject, "#") + 1))
+                    . "</field>";
+                }
+                elseif(strrpos($subject, "/"))
+                {
+                  $add .= "<field name=\"prefLabel_".$lang."\">" . substr($subject, strrpos($subject, "/") + 1) . "</field>";                   
+                  $add .= "<field name=\"prefLabelAutocompletion_".$lang."\">" . substr($subject, strrpos($subject, "/") + 1) . "</field>";                   
+                  $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$iron . "prefLabel") . "</field>";
+                  $add .= "<field name=\"" . urlencode($this->ws->xmlEncode(Namespaces::$iron . "prefLabel")) . "_attr_facets\">" . $this->ws->xmlEncode(substr($subject, strrpos($subject, "/") + 1))
+                    . "</field>";
+                }
+              }
+
+              // get the description of the resource
+              foreach($descriptionProperties as $property)
+              {
+                if(isset($resourceIndex[$subject][$property]))
+                {
+                  $lang = "";
+                  
+                  foreach($resourceIndex[$subject][$property] as $value)
                   {
-                    // Set default language
-                    $lang = $this->ws->supportedLanguages[0];                        
-                    
-                    // Detect if the field currently exists in the fields index 
-                    if(!$newFields && 
-                       array_search(urlencode($predicate) . "_attr_obj_uri", $indexedFields) === FALSE &&
-                       array_search(urlencode($predicate) . "_attr_obj_".$lang, $indexedFields) === FALSE &&
-                       array_search(urlencode($predicate) . "_attr_obj_".$lang."_single_valued", $indexedFields) === FALSE)
+                    if(isset($value["lang"]))
                     {
-                      $newFields = TRUE;
-                    }                      
-                    
-                    // If it is an object property, we want to bind labels of the resource referenced by that
-                    // object property to the current resource. That way, if we have "paul" -- know --> "bob", and the
-                    // user send a seach query for "bob", then "paul" will be returned as well.
-                    $query = $this->ws->db->build_sparql_query("select ?p ?o where {<"
-                      . $value["value"] . "> ?p ?o.}", array ('p', 'o'), FALSE);
-
-                    $resultset3 = $this->ws->db->query($query);
-
-                    $subjectTriples = array();
-
-                    while(odbc_fetch_row($resultset3))
-                    {
-                      $p = odbc_result($resultset3, 1);
-                      $o = $this->ws->db->odbc_getPossibleLongResult($resultset3, 2);
-
-                      if(!isset($subjectTriples[$p]))
+                      if(array_search($value["lang"], $this->ws->supportedLanguages) !== FALSE)
                       {
-                        $subjectTriples[$p] = array();
-                      }
-
-                      array_push($subjectTriples[$p], $o);
-                    }
-
-                    unset($resultset3);
-
-                    // We allign all label properties values in a single string so that we can search over all of them.
-                    $labels = "";
-
-                    foreach($labelProperties as $property)
-                    {
-                      if(isset($subjectTriples[$property]))
-                      {
-                        $labels .= $subjectTriples[$property][0] . " ";
-                      }
-                    }
-                    
-                    $property = $propertyHierarchy->getProperty($predicate);
-                    
-                    if($labels != "")
-                    {
-                      // Check if the property is defined as a cardinality of maximum 1
-                      // If it doesn't we consider it a multi-valued field, otherwise
-                      // we use the single-valued version of the field.
-                      if($property->cardinality == 1 || $property->maxCardinality == 1)
-                      {                          
-                        if(array_search($predicate, $usedSingleValuedProperties) === FALSE)
-                        {
-                          $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_".$lang."_single_valued\">" . $this->ws->xmlEncode($labels) . "</field>";
-                          
-                          $usedSingleValuedProperties[] = $predicate;
-                        }
+                        // The language used for this string is supported by the system, so we index it in
+                        // the good place
+                        $lang = $value["lang"];  
                       }
                       else
                       {
-                        $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_".$lang."\">" . $this->ws->xmlEncode($labels) . "</field>";
+                        // The language used for this string is not supported by the system, so we
+                        // index it in the default language
+                        $lang = $this->ws->supportedLanguages[0];                        
                       }
-                      
-                      $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_uri\">" . $this->ws->xmlEncode($value["value"]) . "</field>";
-                      $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode($predicate) . "</field>";
-                      $add .= "<field name=\"" . urlencode($predicate) . "_attr_facets\">" . $this->ws->xmlEncode($labels) . "</field>";                        
-                      $add .= "<field name=\"" . urlencode($predicate) . "_attr_uri_label_facets\">" . $this->ws->xmlEncode($value["value"]) .'::'. $this->ws->xmlEncode($labels) . "</field>";                        
                     }
                     else
                     {
-                      // If no label is found, we may want to manipulate the ending of the URI to create
-                      // a "temporary" pref label for that object, and then to index it as a search string.
-                      $pos = strripos($value["value"], "#");
-                      
-                      if($pos !== FALSE)
-                      {
-                        $temporaryLabel = substr($value["value"], $pos + 1);
-                      }
-                      else
-                      {
-                        $pos = strripos($value["value"], "/");
-
-                        if($pos !== FALSE)
-                        {
-                          $temporaryLabel = substr($value["value"], $pos + 1);
-                        }
-                      }
-                          
-                      // Check if the property is defined as a cardinality of maximum 1
-                      // If it doesn't we consider it a multi-valued field, otherwise
-                      // we use the single-valued version of the field.
-                      if($property->cardinality == 1 || $property->maxCardinality == 1)
-                      {
-                        if(array_search($predicate, $usedSingleValuedProperties) === FALSE)
-                        {
-                          $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_".$lang."_single_valued\">" . $this->ws->xmlEncode($temporaryLabel) . "</field>";
-                          
-                          $usedSingleValuedProperties[] = $predicate;
-                        }
-                      }
-                      else
-                      {
-                        $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_".$lang."\">" . $this->ws->xmlEncode($temporaryLabel) . "</field>";
-                      }
-                      
-                      $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_uri\">" . $this->ws->xmlEncode($value["value"]) . "</field>";
-                      $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode($predicate) . "</field>";
-                      $add .= "<field name=\"" . urlencode($predicate) . "_attr_facets\">" . $this->ws->xmlEncode($temporaryLabel) . "</field>";
-                      $add .= "<field name=\"" . urlencode($predicate) . "_attr_uri_label_facets\">" . $this->ws->xmlEncode($value["value"]) .'::'. $this->ws->xmlEncode($temporaryLabel) . "</field>";                        
+                      // The language is not defined for this string, so we simply consider that it uses
+                      // the default language supported by the structWSF instance
+                      $lang = $this->ws->supportedLanguages[0];                        
                     }
+                    
+                    $add .= "<field name=\"description_".$lang."\">"
+                      . $this->ws->xmlEncode($value["value"]) . "</field>";
+                    $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$iron . "description") . "</field>";
+                    $add .= "<field name=\"" . urlencode($this->ws->xmlEncode(Namespaces::$iron . "description")) . "_attr_facets\">" . $this->ws->xmlEncode($value["value"])
+                      . "</field>";
+                  }
+                }
+              }
 
-                    /* 
-                      Check if there is a reification statement for that triple. If there is one, we index it in the 
-                      index as:
-                      <property> <text>
-                      Note: Eventually we could want to update the Solr index to include a new "reifiedText" field.
-                    */
-                    $statementAdded = FALSE;
+              // Add the prefURL if available
+              if(isset($resourceIndex[$subject][Namespaces::$iron . "prefURL"]))
+              {
+                $add .= "<field name=\"prefURL\">"
+                  . $this->ws->xmlEncode($resourceIndex[$subject][Namespaces::$iron . "prefURL"][0]["value"]) . "</field>";
+                $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$iron . "prefURL") . "</field>";
 
-                    foreach($statementsUri as $statementUri)
+                $add .= "<field name=\"" . urlencode($this->ws->xmlEncode(Namespaces::$iron . "prefURL")) . "_attr_facets\">" . $this->ws->xmlEncode($resourceIndex[$subject][Namespaces::$iron . "prefURL"][0]["value"])
+                  . "</field>";
+              }
+              
+              // If enabled, and supported by the structWSF setting, let's add any lat/long positionning to the index.
+              if($this->ws->geoEnabled)
+              {
+                // Check if there exists a lat-long coordinate for that resource.
+                if(isset($resourceIndex[$subject][Namespaces::$geo."lat"]) &&
+                   isset($resourceIndex[$subject][Namespaces::$geo."long"]))
+                {  
+                  $lat = str_replace(",", ".", $resourceIndex[$subject][Namespaces::$geo."lat"][0]["value"]);
+                  $long = str_replace(",", ".", $resourceIndex[$subject][Namespaces::$geo."long"][0]["value"]);
+                  
+                  // Add Lat/Long
+                  $add .= "<field name=\"lat\">". 
+                             $this->ws->xmlEncode($lat). 
+                          "</field>";
+                  $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$geo."lat") . "</field>";
+                          
+                  $add .= "<field name=\"long\">". 
+                             $this->ws->xmlEncode($long). 
+                          "</field>";
+                  $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$geo."long") . "</field>";
+                                                   
+                  // Add hashcode
+                  
+                  $add .= "<field name=\"geohash\">". 
+                             "$lat,$long".
+                          "</field>"; 
+                  $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$sco."geohash") . "</field>";
+                          
+                  // Add cartesian tiers                   
+                                  
+                  // Note: Cartesian tiers are not currently supported. The Lucene Java API
+                  //       for this should be ported to PHP to enable this feature.                                
+                }
+                
+                $coordinates = array();
+                
+                // Check if there is a polygonCoordinates property
+                if(isset($resourceIndex[$subject][Namespaces::$sco."polygonCoordinates"]))
+                {  
+                  foreach($resourceIndex[$subject][Namespaces::$sco."polygonCoordinates"] as $polygonCoordinates)
+                  {
+                    $coordinates = explode(" ", $polygonCoordinates["value"]);
+                    
+                    $add .= "<field name=\"polygonCoordinates\">". 
+                               $this->ws->xmlEncode($polygonCoordinates["value"]). 
+                            "</field>";   
+                    $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$sco."polygonCoordinates") . "</field>";                                             
+                  }                                        
+                }
+                
+                // Check if there is a polylineCoordinates property
+                if(isset($resourceIndex[$subject][Namespaces::$sco."polylineCoordinates"]))
+                {  
+                  foreach($resourceIndex[$subject][Namespaces::$sco."polylineCoordinates"] as $polylineCoordinates)
+                  {
+                    $coordinates = array_merge($coordinates, explode(" ", $polylineCoordinates["value"]));
+                    
+                    $add .= "<field name=\"polylineCoordinates\">". 
+                               $this->ws->xmlEncode($polylineCoordinates["value"]). 
+                            "</field>";   
+                    $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$sco."polylineCoordinates") . "</field>";                   
+                  }               
+                }
+                
+                  
+                if(count($coordinates) > 0)
+                { 
+                  $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$geo."lat") . "</field>";
+                  $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$geo."long") . "</field>";
+                  
+                  foreach($coordinates as $key => $coordinate)
+                  {
+                    $points = explode(",", $coordinate);
+                    
+                    if($points[0] != "" && $points[1] != "")
                     {
-                      if($resourceIndex[$statementUri]["http://www.w3.org/1999/02/22-rdf-syntax-ns#subject"][0]["value"]
-                        == $subject
-                          && $resourceIndex[$statementUri]["http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate"][0][
-                            "value"] == $predicate
-                          && $resourceIndex[$statementUri]["http://www.w3.org/1999/02/22-rdf-syntax-ns#object"][0][
-                            "value"] == $value["value"])
+                      // Add Lat/Long
+                      $add .= "<field name=\"lat\">". 
+                                 $this->ws->xmlEncode($points[1]). 
+                              "</field>";
+                              
+                      $add .= "<field name=\"long\">". 
+                                 $this->ws->xmlEncode($points[0]). 
+                              "</field>";
+                              
+                      // Add altitude
+                      if(isset($points[2]) && $points[2] != "")
                       {
-                        foreach($resourceIndex[$statementUri] as $reiPredicate => $reiValues)
+                        $add .= "<field name=\"alt\">". 
+                                   $this->ws->xmlEncode($points[2]). 
+                                "</field>";
+                        if($key == 0)
                         {
-                          if($reiPredicate != "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-                            && $reiPredicate != "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject"
-                            && $reiPredicate != "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate"
-                            && $reiPredicate != "http://www.w3.org/1999/02/22-rdf-syntax-ns#object")
+                          $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$geo."alt") . "</field>";
+                        }
+                      }
+                  
+                      
+                      // Add hashcode
+                      $add .= "<field name=\"geohash\">". 
+                                 $points[1].",".$points[0].
+                              "</field>"; 
+                              
+                      if($key == 0)
+                      {
+                        $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$sco."geohash") . "</field>";
+                      }
+                              
+                              
+                      // Add cartesian tiers                   
+                                      
+                      // Note: Cartesian tiers are not currently supported. The Lucene Java API
+                      //       for this should be ported to PHP to enable this feature.           
+                    }                                         
+                  }
+                }                
+                
+                // Check if there is any geonames:locatedIn assertion for that resource.
+                if(isset($resourceIndex[$subject][Namespaces::$geoname."locatedIn"]))
+                {  
+                  $add .= "<field name=\"located_in\">". 
+                             $this->ws->xmlEncode($resourceIndex[$subject][Namespaces::$geoname."locatedIn"][0]["value"]). 
+                          "</field>";                           
+                          
+
+                  $add .= "<field name=\"" . urlencode($this->ws->xmlEncode(Namespaces::$geoname . "locatedIn")) . "_attr_facets\">" . $this->ws->xmlEncode($resourceIndex[$subject][Namespaces::$geoname."locatedIn"][0]["value"])
+                    . "</field>";                                                 
+                }
+                
+                // Check if there is any wgs84_pos:alt assertion for that resource.
+                if(isset($resourceIndex[$subject][Namespaces::$geo."alt"]))
+                {  
+                  $add .= "<field name=\"alt\">". 
+                             $this->ws->xmlEncode($resourceIndex[$subject][Namespaces::$geo."alt"][0]["value"]). 
+                          "</field>";                                
+                  $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$geo."alt") . "</field>";
+                }                
+              }          
+                  
+                  $filename = rtrim($this->ws->ontological_structure_folder, "/") . "/propertyHierarchySerialized.srz";
+                  
+                  $file = fopen($filename, "r");
+                  $propertyHierarchy = fread($file, filesize($filename));
+                  $propertyHierarchy = unserialize($propertyHierarchy);                        
+                  fclose($file);
+                  
+                  if($propertyHierarchy === FALSE)
+                  {
+                    $this->ws->conneg->setStatus(500);   
+                    $this->ws->conneg->setStatusMsg("Internal Error");
+                    $this->ws->conneg->setError($this->ws->errorMessenger->_310->id, $this->ws->errorMessenger->ws,
+                      $this->ws->errorMessenger->_310->name, $this->ws->errorMessenger->_310->description, "",
+                      $this->ws->errorMessenger->_310->level);
+                    return;
+                  }       
+                  
+                  // When a property appears in this array, it means that it is already
+                  // used in the Solr document we are creating
+                  $usedSingleValuedProperties = array();         
+
+              // Get properties with the type of the object
+              foreach($resourceIndex[$subject] as $predicate => $values)
+              {
+                if(array_search($predicate, $labelProperties) === FALSE && 
+                   array_search($predicate, $descriptionProperties) === FALSE && 
+                   $predicate != Namespaces::$iron."prefURL" &&
+                   $predicate != Namespaces::$geo."long" &&
+                   $predicate != Namespaces::$geo."lat" &&
+                   $predicate != Namespaces::$geo."alt" &&
+                   $predicate != Namespaces::$sco."polygonCoordinates" &&
+                   $predicate != Namespaces::$sco."polylineCoordinates") // skip label & description & prefURL properties
+                {
+                  foreach($values as $value)
+                  {
+                    if($value["type"] == "literal")
+                    {
+                      $lang = "";
+                      
+                      if(isset($value["lang"]))
+                      {
+                        if(array_search($value["lang"], $this->ws->supportedLanguages) !== FALSE)
+                        {
+                          // The language used for this string is supported by the system, so we index it in
+                          // the good place
+                          $lang = $value["lang"];  
+                        }
+                        else
+                        {
+                          // The language used for this string is not supported by the system, so we
+                          // index it in the default language
+                          $lang = $this->ws->supportedLanguages[0];                        
+                        }
+                      }
+                      else
+                      {
+                        // The language is not defined for this string, so we simply consider that it uses
+                        // the default language supported by the structWSF instance
+                        $lang = $this->ws->supportedLanguages[0];                        
+                      }                        
+                      
+                      // Detect if the field currently exists in the fields index 
+                      if(!$newFields && 
+                         array_search(urlencode($predicate) . "_attr_".$lang, $indexedFields) === FALSE &&
+                         array_search(urlencode($predicate) . "_attr_date", $indexedFields) === FALSE &&
+                         array_search(urlencode($predicate) . "_attr_int", $indexedFields) === FALSE &&
+                         array_search(urlencode($predicate) . "_attr_float", $indexedFields) === FALSE &&
+                         array_search(urlencode($predicate) . "_attr_".$lang."_single_valued", $indexedFields) === FALSE &&
+                         array_search(urlencode($predicate) . "_attr_date_single_valued", $indexedFields) === FALSE &&
+                         array_search(urlencode($predicate) . "_attr_int_single_valued", $indexedFields) === FALSE &&
+                         array_search(urlencode($predicate) . "_attr_float_single_valued", $indexedFields) === FALSE)
+                      {
+                        $newFields = TRUE;
+                      }
+                          
+                          // Check the datatype of the datatype property
+                          $property = $propertyHierarchy->getProperty($predicate);
+
+                      if(is_array($property->range) && 
+                             array_search("http://www.w3.org/2001/XMLSchema#dateTime", $property->range) !== FALSE &&
+                             $this->safeDate($value["value"]) != "")
                           {
-                            foreach($reiValues as $reiValue)
+                            // Check if the property is defined as a cardinality of maximum 1
+                            // If it doesn't we consider it a multi-valued field, otherwise
+                            // we use the single-valued version of the field.
+                            if($property->cardinality == 1 || $property->maxCardinality == 1)
                             {
-                              if($reiValue["type"] == "literal")
+                              if(array_search($predicate, $usedSingleValuedProperties) === FALSE)
+                              {
+                                $add .= "<field name=\"" . urlencode($predicate) . "_attr_date_single_valued\">" . $this->ws->xmlEncode($this->safeDate($value["value"])) . "</field>";
+                                
+                                $usedSingleValuedProperties[] = $predicate;
+                              }                            
+                            }
+                            else
+                            {
+                              $add .= "<field name=\"" . urlencode($predicate) . "_attr_date\">" . $this->ws->xmlEncode($this->safeDate($value["value"])) . "</field>";
+                            }
+                          }
+                      elseif(is_array($property->range) && array_search("http://www.w3.org/2001/XMLSchema#int", $property->range) !== FALSE ||
+                             is_array($property->range) && array_search("http://www.w3.org/2001/XMLSchema#integer", $property->range) !== FALSE)
+                          {
+                            // Check if the property is defined as a cardinality of maximum 1
+                            // If it doesn't we consider it a multi-valued field, otherwise
+                            // we use the single-valued version of the field.
+                            if($property->cardinality == 1 || $property->maxCardinality == 1)
+                            {                          
+                              if(array_search($predicate, $usedSingleValuedProperties) === FALSE)
+                              {
+                                $add .= "<field name=\"" . urlencode($predicate) . "_attr_int_single_valued\">" . $this->ws->xmlEncode($value["value"]) . "</field>";
+                                
+                                $usedSingleValuedProperties[] = $predicate;
+                              }                          
+                            }
+                            else
+                            {
+                              $add .= "<field name=\"" . urlencode($predicate) . "_attr_int\">" . $this->ws->xmlEncode($value["value"]) . "</field>";
+                            }
+                          }
+                          elseif(is_array($property->range) && array_search("http://www.w3.org/2001/XMLSchema#float", $property->range) !== FALSE)
+                          {
+                            // Check if the property is defined as a cardinality of maximum 1
+                            // If it doesn't we consider it a multi-valued field, otherwise
+                            // we use the single-valued version of the field.
+                            if($property->cardinality == 1 || $property->maxCardinality == 1)
+                            {
+                              if(array_search($predicate, $usedSingleValuedProperties) === FALSE)
+                              {
+                                $add .= "<field name=\"" . urlencode($predicate) . "_attr_float_single_valued\">" . $this->ws->xmlEncode($value["value"]) . "</field>";
+                                
+                                $usedSingleValuedProperties[] = $predicate;
+                              }
+                            }
+                            else
+                            {
+                              $add .= "<field name=\"" . urlencode($predicate) . "_attr_float\">" . $this->ws->xmlEncode($value["value"]) . "</field>";
+                            }
+                          }
+                      else
+                      {
+                            // By default, the datatype used is a literal/string
+                            
+                            // Check if the property is defined as a cardinality of maximum 1
+                            // If it doesn't we consider it a multi-valued field, otherwise
+                            // we use the single-valued version of the field.
+                            if($property->cardinality == 1 || $property->maxCardinality == 1)
+                            {
+                              if(array_search($predicate, $usedSingleValuedProperties) === FALSE)
+                              {
+                                $add .= "<field name=\"" . urlencode($predicate) . "_attr_".$lang."_single_valued\">" . $this->ws->xmlEncode($value["value"]) . "</field>";                          
+                                
+                                $usedSingleValuedProperties[] = $predicate;
+                              }
+                            }
+                            else
+                            {
+                              $add .= "<field name=\"" . urlencode($predicate) . "_attr_".$lang."\">" . $this->ws->xmlEncode($value["value"]) . "</field>";                          
+                            }
+                          }
+                      
+                      $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode($predicate) . "</field>";
+                      $add .= "<field name=\"" . urlencode($predicate) . "_attr_facets\">" . $this->ws->xmlEncode($value["value"])
+                        . "</field>";
+
+                      /* 
+                         Check if there is a reification statement for that triple. If there is one, we index it in 
+                         the index as:
+                         <property> <text>
+                         Note: Eventually we could want to update the Solr index to include a new "reifiedText" field.
+                      */
+                      foreach($statementsUri as $statementUri)
+                      {
+                        if($resourceIndex[$statementUri]["http://www.w3.org/1999/02/22-rdf-syntax-ns#subject"][0]["value"]
+                          == $subject
+                            && $resourceIndex[$statementUri]["http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate"][0][
+                              "value"] == $predicate
+                            && $resourceIndex[$statementUri]["http://www.w3.org/1999/02/22-rdf-syntax-ns#object"][0][
+                              "value"] == $value["value"])
+                        {
+                          foreach($resourceIndex[$statementUri] as $reiPredicate => $reiValues)
+                          {
+                            if($reiPredicate != "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+                              && $reiPredicate != "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject"
+                              && $reiPredicate != "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate"
+                              && $reiPredicate != "http://www.w3.org/1999/02/22-rdf-syntax-ns#object")
+                            {
+                              foreach($reiValues as $reiValue)
                               {
                                 $reiLang = "";
                                 
@@ -1064,31 +1106,227 @@
                                   // The language is not defined for this string, so we simply consider that it uses
                                   // the default language supported by the structWSF instance
                                   $reiLang = $this->ws->supportedLanguages[0];                        
-                                }                                 
-                                
-                                // Attribute used to reify information to a statement.
-                                $add .= "<field name=\"" . urlencode($reiPredicate) . "_reify_attr\">"
-                                  . $this->ws->xmlEncode($predicate) .
-                                  "</field>";
+                                }                                   
+                                if($reiValue["type"] == "literal")
+                                {
+                                  // Attribute used to reify information to a statement.
+                                  $add .= "<field name=\"" . urlencode($reiPredicate) . "_reify_attr\">"
+                                    . $this->ws->xmlEncode($predicate) .
+                                    "</field>";
 
-                                $add .= "<field name=\"" . urlencode($reiPredicate) . "_reify_obj\">"
-                                  . $this->ws->xmlEncode($value["value"]) .
-                                  "</field>";
+                                  $add .= "<field name=\"" . urlencode($reiPredicate) . "_reify_obj\">"
+                                    . $this->ws->xmlEncode($value["value"]) .
+                                    "</field>";
 
-                                $add .= "<field name=\"" . urlencode($reiPredicate) . "_reify_value_".$reiLang."\">"
-                                  . $this->ws->xmlEncode($reiValue["value"]) .
-                                  "</field>";
+                                  $add .= "<field name=\"" . urlencode($reiPredicate) . "_reify_value_".$reiLang."\">"
+                                    . $this->ws->xmlEncode($reiValue["value"]) .
+                                    "</field>";
 
-                                $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode($reiPredicate) . "</field>";
-                                $statementAdded = TRUE;
-                                break;
+                                  $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode($reiPredicate) . "</field>";
+                                }
                               }
                             }
                           }
+                        }
+                      }
+                    }
+                    elseif($value["type"] == "uri")
+                    {
+                      // Set default language
+                      $lang = $this->ws->supportedLanguages[0];                        
+                      
+                      // Detect if the field currently exists in the fields index 
+                      if(!$newFields && 
+                         array_search(urlencode($predicate) . "_attr_obj_uri", $indexedFields) === FALSE &&
+                         array_search(urlencode($predicate) . "_attr_obj_".$lang, $indexedFields) === FALSE &&
+                         array_search(urlencode($predicate) . "_attr_obj_".$lang."_single_valued", $indexedFields) === FALSE)
+                      {
+                        $newFields = TRUE;
+                      }                      
+                      
+                      // If it is an object property, we want to bind labels of the resource referenced by that
+                      // object property to the current resource. That way, if we have "paul" -- know --> "bob", and the
+                      // user send a seach query for "bob", then "paul" will be returned as well.
+                      $query = $this->ws->db->build_sparql_query("select ?p ?o where {<"
+                        . $value["value"] . "> ?p ?o.}", array ('p', 'o'), FALSE);
 
-                          if($statementAdded)
+                      $resultset3 = $this->ws->db->query($query);
+
+                      $subjectTriples = array();
+
+                      while(odbc_fetch_row($resultset3))
+                      {
+                        $p = odbc_result($resultset3, 1);
+                        $o = $this->ws->db->odbc_getPossibleLongResult($resultset3, 2);
+
+                        if(!isset($subjectTriples[$p]))
+                        {
+                          $subjectTriples[$p] = array();
+                        }
+
+                        array_push($subjectTriples[$p], $o);
+                      }
+
+                      unset($resultset3);
+
+                      // We allign all label properties values in a single string so that we can search over all of them.
+                      $labels = "";
+
+                      foreach($labelProperties as $property)
+                      {
+                        if(isset($subjectTriples[$property]))
+                        {
+                          $labels .= $subjectTriples[$property][0] . " ";
+                        }
+                      }
+                      
+                      $property = $propertyHierarchy->getProperty($predicate);
+                      
+                      if($labels != "")
+                      {
+                        $labels = trim($labels);
+                        
+                        // Check if the property is defined as a cardinality of maximum 1
+                        // If it doesn't we consider it a multi-valued field, otherwise
+                        // we use the single-valued version of the field.
+                        if($property->cardinality == 1 || $property->maxCardinality == 1)
+                        {                          
+                          if(array_search($predicate, $usedSingleValuedProperties) === FALSE)
                           {
-                            break;
+                            $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_".$lang."_single_valued\">" . $this->ws->xmlEncode($labels) . "</field>";
+                            
+                            $usedSingleValuedProperties[] = $predicate;
+                          }
+                        }
+                        else
+                        {
+                          $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_".$lang."\">" . $this->ws->xmlEncode($labels) . "</field>";
+                        }
+                        
+                        $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_uri\">" . $this->ws->xmlEncode($value["value"]) . "</field>";
+                        $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode($predicate) . "</field>";
+                        $add .= "<field name=\"" . urlencode($predicate) . "_attr_facets\">" . $this->ws->xmlEncode($labels) . "</field>";                        
+                        $add .= "<field name=\"" . urlencode($predicate) . "_attr_uri_label_facets\">" . $this->ws->xmlEncode($value["value"]) .'::'. $this->ws->xmlEncode($labels) . "</field>";                        
+                      }
+                      else
+                      {
+                        // If no label is found, we may want to manipulate the ending of the URI to create
+                        // a "temporary" pref label for that object, and then to index it as a search string.
+                        $pos = strripos($value["value"], "#");
+                        
+                        if($pos !== FALSE)
+                        {
+                          $temporaryLabel = substr($value["value"], $pos + 1);
+                        }
+                        else
+                        {
+                          $pos = strripos($value["value"], "/");
+
+                          if($pos !== FALSE)
+                          {
+                            $temporaryLabel = substr($value["value"], $pos + 1);
+                          }
+                        }
+                            
+                        // Check if the property is defined as a cardinality of maximum 1
+                        // If it doesn't we consider it a multi-valued field, otherwise
+                        // we use the single-valued version of the field.
+                        if($property->cardinality == 1 || $property->maxCardinality == 1)
+                        {
+                          if(array_search($predicate, $usedSingleValuedProperties) === FALSE)
+                          {
+                            $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_".$lang."_single_valued\">" . $this->ws->xmlEncode($temporaryLabel) . "</field>";
+                            
+                            $usedSingleValuedProperties[] = $predicate;
+                          }
+                        }
+                        else
+                        {
+                          $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_".$lang."\">" . $this->ws->xmlEncode($temporaryLabel) . "</field>";
+                        }
+                        
+                        $add .= "<field name=\"" . urlencode($predicate) . "_attr_obj_uri\">" . $this->ws->xmlEncode($value["value"]) . "</field>";
+                        $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode($predicate) . "</field>";
+                        $add .= "<field name=\"" . urlencode($predicate) . "_attr_facets\">" . $this->ws->xmlEncode($temporaryLabel) . "</field>";
+                        $add .= "<field name=\"" . urlencode($predicate) . "_attr_uri_label_facets\">" . $this->ws->xmlEncode($value["value"]) .'::'. $this->ws->xmlEncode($temporaryLabel) . "</field>";                        
+                      }
+
+                      /* 
+                        Check if there is a reification statement for that triple. If there is one, we index it in the 
+                        index as:
+                        <property> <text>
+                        Note: Eventually we could want to update the Solr index to include a new "reifiedText" field.
+                      */
+                      $statementAdded = FALSE;
+
+                      foreach($statementsUri as $statementUri)
+                      {
+                        if($resourceIndex[$statementUri]["http://www.w3.org/1999/02/22-rdf-syntax-ns#subject"][0]["value"]
+                          == $subject
+                            && $resourceIndex[$statementUri]["http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate"][0][
+                              "value"] == $predicate
+                            && $resourceIndex[$statementUri]["http://www.w3.org/1999/02/22-rdf-syntax-ns#object"][0][
+                              "value"] == $value["value"])
+                        {
+                          foreach($resourceIndex[$statementUri] as $reiPredicate => $reiValues)
+                          {
+                            if($reiPredicate != "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+                              && $reiPredicate != "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject"
+                              && $reiPredicate != "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate"
+                              && $reiPredicate != "http://www.w3.org/1999/02/22-rdf-syntax-ns#object")
+                            {
+                              foreach($reiValues as $reiValue)
+                              {
+                                if($reiValue["type"] == "literal")
+                                {
+                                  $reiLang = "";
+                                  
+                                  if(isset($reiValue["lang"]))
+                                  {
+                                    if(array_search($reiValue["lang"], $this->ws->supportedLanguages) !== FALSE)
+                                    {
+                                      // The language used for this string is supported by the system, so we index it in
+                                      // the good place
+                                      $reiLang = $reiValue["lang"];  
+                                    }
+                                    else
+                                    {
+                                      // The language used for this string is not supported by the system, so we
+                                      // index it in the default language
+                                      $reiLang = $this->ws->supportedLanguages[0];                        
+                                    }
+                                  }
+                                  else
+                                  {
+                                    // The language is not defined for this string, so we simply consider that it uses
+                                    // the default language supported by the structWSF instance
+                                    $reiLang = $this->ws->supportedLanguages[0];                        
+                                  }                                 
+                                  
+                                  // Attribute used to reify information to a statement.
+                                  $add .= "<field name=\"" . urlencode($reiPredicate) . "_reify_attr\">"
+                                    . $this->ws->xmlEncode($predicate) .
+                                    "</field>";
+
+                                  $add .= "<field name=\"" . urlencode($reiPredicate) . "_reify_obj\">"
+                                    . $this->ws->xmlEncode($value["value"]) .
+                                    "</field>";
+
+                                  $add .= "<field name=\"" . urlencode($reiPredicate) . "_reify_value_".$reiLang."\">"
+                                    . $this->ws->xmlEncode($reiValue["value"]) .
+                                    "</field>";
+
+                                  $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode($reiPredicate) . "</field>";
+                                  $statementAdded = TRUE;
+                                  break;
+                                }
+                              }
+                            }
+
+                            if($statementAdded)
+                            {
+                              break;
+                            }
                           }
                         }
                       }
@@ -1096,76 +1334,77 @@
                   }
                 }
               }
-            }
 
-            // Get all types by inference
-            $inferredTypes = array();
-            
-            foreach($types as $type)
-            {
-              $superClasses = $classHierarchy->getSuperClasses($type);
-
-              // Add the type to make the closure of the set of inferred types
-              array_push($inferredTypes, $type);              
+              // Get all types by inference
+              $inferredTypes = array();
               
-              foreach($superClasses as $sc)
+              foreach($types as $type)
               {
-                if(array_search($sc->name, $inferredTypes) === FALSE)
+                $superClasses = $classHierarchy->getSuperClasses($type);
+
+                // Add the type to make the closure of the set of inferred types
+                array_push($inferredTypes, $type);              
+                
+                foreach($superClasses as $sc)
                 {
-                  array_push($inferredTypes, $sc->name);
-                }
-              }                 
+                  if(array_search($sc->name, $inferredTypes) === FALSE)
+                  {
+                    array_push($inferredTypes, $sc->name);
+                  }
+                }                 
+              }
+              
+              foreach($inferredTypes as $sc)
+              {
+                $add .= "<field name=\"inferred_type\">" . $this->ws->xmlEncode($sc) . "</field>";
+              }  
+
+              $add .= "</doc></add>";
+
+              if(!$solr->update($add))
+              {
+                $this->ws->conneg->setStatus(500);
+                $this->ws->conneg->setStatusMsg("Internal Error");
+                $this->ws->conneg->setError($this->ws->errorMessenger->_304->id, $this->ws->errorMessenger->ws,
+                  $this->ws->errorMessenger->_304->name, $this->ws->errorMessenger->_304->description, 
+                  $solr->errorMessage . '[Debugging information: ]'.$solr->errorMessageDebug,
+                  $this->ws->errorMessenger->_304->level);
+                return;
+              }
+            }
+
+            if($this->ws->solr_auto_commit === FALSE)
+            {
+              if(!$solr->commit())
+              {
+                $this->ws->conneg->setStatus(500);
+                $this->ws->conneg->setStatusMsg("Internal Error");
+                $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_305->name);
+                $this->ws->conneg->setError($this->ws->errorMessenger->_305->id, $this->ws->errorMessenger->ws,
+                  $this->ws->errorMessenger->_305->name, $this->ws->errorMessenger->_305->description, 
+                  $solr->errorMessage . '[Debugging information: ]'.$solr->errorMessageDebug,
+                  $this->ws->errorMessenger->_305->level);
+                return;
+              }
             }
             
-            foreach($inferredTypes as $sc)
+            // Update the fields index if a new field as been detected.
+            if($newFields)
             {
-              $add .= "<field name=\"inferred_type\">" . $this->ws->xmlEncode($sc) . "</field>";
-            }  
+              $solr->updateFieldsIndex();
+            }        
 
-            $add .= "</doc></add>";
-
-            if(!$solr->update($add))
-            {
-              $this->ws->conneg->setStatus(500);
-              $this->ws->conneg->setStatusMsg("Internal Error");
-              $this->ws->conneg->setError($this->ws->errorMessenger->_304->id, $this->ws->errorMessenger->ws,
-                $this->ws->errorMessenger->_304->name, $this->ws->errorMessenger->_304->description, 
-                $solr->errorMessage . '[Debugging information: ]'.$solr->errorMessageDebug,
-                $this->ws->errorMessenger->_304->level);
-              return;
-            }
-          }
-
-          if($this->ws->solr_auto_commit === FALSE)
-          {
-            if(!$solr->commit())
+            
+            /*        
+            if(!$solr->optimize())
             {
               $this->ws->conneg->setStatus(500);
               $this->ws->conneg->setStatusMsg("Internal Error");
-              $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_305->name);
-              $this->ws->conneg->setError($this->ws->errorMessenger->_305->id, $this->ws->errorMessenger->ws,
-                $this->ws->errorMessenger->_305->name, $this->ws->errorMessenger->_305->description, 
-                $solr->errorMessage . '[Debugging information: ]'.$solr->errorMessageDebug,
-                $this->ws->errorMessenger->_305->level);
-              return;
+              $this->ws->conneg->setStatusMsgExt("Error #crud-create-105");
+              return;          
             }
-          }
-          
-          // Update the fields index if a new field as been detected.
-          if($newFields)
-          {
-            $solr->updateFieldsIndex();
-          }        
-
-        /*        
-                if(!$solr->optimize())
-                {
-                  $this->ws->conneg->setStatus(500);
-                  $this->ws->conneg->setStatusMsg("Internal Error");
-                  $this->ws->conneg->setStatusMsgExt("Error #crud-create-105");
-                  return;          
-                }
-        */
+            */
+          }           
         }
       }      
     }

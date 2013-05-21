@@ -42,8 +42,11 @@ class CrudUpdate extends \StructuredDynamics\structwsf\ws\framework\WebService
   /** Dataset where to index the resource*/
   private $dataset;
 
-/** RDF document where resource(s) to be added are described. Maximum size (by default) is 8M (default php.ini setting). */
+  /** RDF document where resource(s) to be added are described. Maximum size (by default) is 8M (default php.ini setting). */
   private $document = array();
+  
+  /** Publication lifecycle stage of the record */
+  private $lifecycle = "published";
 
   /** Mime of the RDF document serialization */
   private $mime = "";
@@ -132,7 +135,25 @@ class CrudUpdate extends \StructuredDynamics\structwsf\ws\framework\WebService
                           "level": "Fatal",
                           "name": "Can\'t parse the propertyHierarchySerialized.srz file",
                           "description": "We can\'t parse the propertyHierarchySerialized.srz file. Please do make sure that this file is properly serialized. You can try to fix that issue by re-creating a serialization file from the latest version of the OntologyRead web service endpoint and to replace the result with the current file being used."
-                        }                                                    
+                        },
+                        "_312": {
+                          "id": "WS-CRUD-UPDATE-312",
+                          "level": "Fatal",
+                          "name": "Unknown publication lifecycle stage",
+                          "description": "The publication lifecycle stage that has been specified for this query is unknown. Known publication lifecycle stages are: published, archive, experimental, pre_release, staging, harvesting, unspecified"
+                        },
+                        "_313": {
+                          "id": "WS-CRUD-UPDATE-313",
+                          "level": "Fatal",
+                          "name": "Latest revision of this record is unpublished",
+                          "description": "You cannot create a new published revision of a record if a more recent unpublished revision exists for that record. The first thing you have to do is to use the Revision: Update web service endpoint to publish the latest revision and then you will be able to use this web service endpoint to create this new published revision."
+                        },
+                        "_314": {
+                          "id": "WS-CRUD-UPDATE-314",
+                          "level": "Fatal",
+                          "name": "Can\'t query the revisions graph",
+                          "description": "Can\'t read the revisions graph to get the lifecycle stage of the last revision"
+                        }                                                                            
                       }';
 
 
@@ -177,7 +198,7 @@ class CrudUpdate extends \StructuredDynamics\structwsf\ws\framework\WebService
       @author Frederick Giasson, Structured Dynamics LLC.
   */
   function __construct($document, $mime, $dataset, $registered_ip, $requester_ip, $interface='default', 
-                       $requestedInterfaceVersion="")
+                       $requestedInterfaceVersion="", $lifecycle = 'published')
   {
     parent::__construct();
 
@@ -186,6 +207,7 @@ class CrudUpdate extends \StructuredDynamics\structwsf\ws\framework\WebService
     $this->requester_ip = $requester_ip;
     $this->dataset = $dataset;
     $this->mime = $mime;
+    $this->lifecycle = strtolower($lifecycle);
 
     if (extension_loaded("mbstring") && mb_detect_encoding($document, "UTF-8", TRUE) != "UTF-8")
     {                   

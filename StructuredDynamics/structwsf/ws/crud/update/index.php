@@ -71,6 +71,15 @@ if(isset($_POST['mime']))
   $mime = $_POST['mime'];
 }
 
+
+// Publication lifecycle stage of the record
+$lifecycle = "";
+
+if(isset($_POST['lifecycle']))
+{
+  $lifecycle = $_POST['lifecycle'];
+}
+
 $mtime = microtime();
 $mtime = explode(' ', $mtime);
 $mtime = $mtime[1] + $mtime[0];
@@ -104,7 +113,7 @@ elseif(isset($_SERVER['PHP_SELF']))
 }
 
 $ws_crudupdate = new CrudUpdate($document, $mime, $dataset, $registered_ip, $requester_ip, 
-                                $interface, $version);
+                                $interface, $version, $lifecycle);
 
 $ws_crudupdate->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                           (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

@@ -586,6 +586,15 @@ abstract class WebService
     {
       $this->default_interfaces["sparql"] = "DefaultSourceInterface";
     }    
+    
+    if(isset($network_ini["default-interfaces"]["revision_lister"]))  
+    {
+      $this->default_interfaces["revision_lister"] = $network_ini["default-interfaces"]["revision_lister"];
+    }    
+    else
+    {
+      $this->default_interfaces["revision_lister"] = "DefaultSourceInterface";
+    }    
 
     // This handler is defined for the fatal script errors. If a script can't be finished because a fatal error
     // occured, then the handleFatalPhpError function is used to return the error message to the requester.

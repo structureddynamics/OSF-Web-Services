@@ -125,7 +125,7 @@
                         from <" . $revisionDataset . ">
                         where
                         {
-                          ?s <http://purl.org/ontology/wsf#revisionUpdateTime> ?timestamp ;
+                          ?s <http://purl.org/ontology/wsf#revisionTime> ?timestamp ;
                              <http://purl.org/ontology/wsf#revisionUri> <".$subject."> ;
                              <http://purl.org/ontology/wsf#revisionStatus> ?status .
                         }
@@ -177,7 +177,6 @@
               wsf:revisionUri <http://ccr.nhccn.com.au/datasets/global/documents/24665> ;
               wsf:fromDataset <http://ccr.nhccn.com.au/datasets/global/documents/> ;
               wsf:revisionTime """1368196492""" ;
-              wsf:revisionUpdateTime """1368196892""" ;
               wsf:performer <http://ccr.nhccn.com.au/user/1> ;
               wsf:revisionStatus wsf:published ;  
             */
@@ -211,7 +210,7 @@
                                                                          )
                                                                        );
             
-            $resourceRevisionsIndex[$subject][Namespaces::$wsf.'revisionUpdateTime'] = array(
+            $resourceRevisionsIndex[$subject][Namespaces::$wsf.'revisionTime'] = array(
                                                                                 array(
                                                                                   'value' => $microtimestamp,
                                                                                   'type' => 'literal',

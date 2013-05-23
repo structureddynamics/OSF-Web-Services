@@ -3,7 +3,7 @@
 /*! @ingroup WsRevision Revisioning Web Service */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\auth\lister\index.php
+/*! @file \StructuredDynamics\structwsf\ws\revision\lister\index.php
     @brief Entry point of a query for the Auth Validator web service
  */
  

@@ -45,7 +45,7 @@ class RevisionLister extends \StructuredDynamics\structwsf\ws\framework\WebServi
   /** Error messages of this web service */
   private $errorMessenger =
     '{
-                        "ws": "/ws/auth/lister/",
+                        "ws": "/ws/revision/lister/",
                         "_200": {
                           "id": "WS-REVISION-LISTER-200",
                           "level": "Warning",

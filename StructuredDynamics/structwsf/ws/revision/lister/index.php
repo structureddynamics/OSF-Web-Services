@@ -4,7 +4,7 @@
 //@{
 
 /*! @file \StructuredDynamics\structwsf\ws\revision\lister\index.php
-    @brief Entry point of a query for the Auth Validator web service
+    @brief Entry point of a query for the Revision Lister web service
  */
  
 include_once("../../../../SplClassLoader.php"); 

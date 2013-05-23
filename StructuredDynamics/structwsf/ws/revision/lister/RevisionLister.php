@@ -128,24 +128,12 @@ class RevisionLister extends \StructuredDynamics\structwsf\ws\framework\WebServi
            
   /** Constructor
 
-    @param $mode One of:  (1) "dataset (default)": List all datasets URI accessible by a user, 
-                          (2) "ws": List all Web services registered in a WSF
-                          (3) "access_dataset": List all the registered IP addresses and their CRUD permissions for a given dataset URI
-                          (4) "access_user": List all datasets URI and CRUD permissions accessible by a user 
+    @param $uri URI of the record for which you want the revisions
     @param $dataset URI referring to a target dataset. Needed when param1 = "dataset" or param1 = "access_datase". Otherwise this parameter as to be ommited.
+    @param $mode One of:  (1) "short": Get the list of all the URIs of all the revisions for that record and their date stamp (for ordering purposes)
+                          (2) "long (default)": Get the list of all the URIs, revision performer, their lifecycle stage and their date stamp (for ordering purposes) for that record
     @param $registered_ip Target IP address registered in the WSF
     @param $requester_ip IP address of the requester
-    @param $target_webservice Determine on what web service URI(s) we should focus on for the listing of the access records.
-                              This parameter is used to improve the performance of the web service endpoint depending on the 
-                              use case. If there are numerous datasets with a numerous number of access permissions defined 
-                              for each of them, properly using this parameter can have a dramatic impact on the performances. 
-                              This parameter should be used if the param1 = "access_dataset" or param1 = "access_user" This 
-                              parameter can have any of these values:
-                             
-                                + "all" (default): all the web service endpoints URIs for each access records will 
-                                                   be taken into account and returned to the user (may be more time 
-                                                   consuming).
-                                + "none": no web service URI, for any access record, will be returned. 
     @param $interface Name of the source interface to use for this web service query. Default value: 'default'                            
     @param $requestedInterfaceVersion Version used for the requested source interface. The default is the latest 
                                       version of the interface.

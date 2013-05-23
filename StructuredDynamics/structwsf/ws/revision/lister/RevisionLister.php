@@ -156,7 +156,6 @@ class RevisionLister extends \StructuredDynamics\structwsf\ws\framework\WebServi
     $this->mode = strtolower($mode);
     $this->dataset = $dataset;
     $this->recordUri = $uri;
-    $this->targetWebservice = strtolower($target_webservice);
     
     if(strtolower($interface) == "default")
     {

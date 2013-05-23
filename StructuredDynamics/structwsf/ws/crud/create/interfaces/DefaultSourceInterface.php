@@ -854,6 +854,8 @@
 
                         if($labels != "")
                         {
+                          $labels = trim($labels);
+                          
                           // Check if the property is defined as a cardinality of maximum 1
                           // If it doesn't we consider it a multi-valued field, otherwise
                           // we use the single-valued version of the field.

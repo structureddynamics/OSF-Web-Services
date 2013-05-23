@@ -1,6 +1,6 @@
 <?php
 
-/*! @ingroup WsAuth Authentication / Registration Web Service  */
+/*! @ingroup WsRevision Revisioning Web Service */
 //@{
 
 /*! @file \StructuredDynamics\structwsf\ws\auth\lister\index.php

@@ -47,6 +47,9 @@ class CrudUpdate extends \StructuredDynamics\structwsf\ws\framework\WebService
   
   /** Publication lifecycle stage of the record */
   private $lifecycle = "published";
+  
+  /** Specify if we want to create a new revision or not for the updated record */
+  private $createRevision = "true";
 
   /** Mime of the RDF document serialization */
   private $mime = "";
@@ -198,7 +201,7 @@ class CrudUpdate extends \StructuredDynamics\structwsf\ws\framework\WebService
       @author Frederick Giasson, Structured Dynamics LLC.
   */
   function __construct($document, $mime, $dataset, $registered_ip, $requester_ip, $interface='default', 
-                       $requestedInterfaceVersion="", $lifecycle = 'published')
+                       $requestedInterfaceVersion="", $lifecycle = 'published', $revision = 'true')
   {
     parent::__construct();
 
@@ -208,6 +211,12 @@ class CrudUpdate extends \StructuredDynamics\structwsf\ws\framework\WebService
     $this->dataset = $dataset;
     $this->mime = $mime;
     $this->lifecycle = strtolower($lifecycle);
+    
+    $this->createRevision = filter_var($revision, FILTER_VALIDATE_BOOLEAN, array('flags' => FILTER_NULL_ON_FAILURE));
+    if($this->createRevision === NULL)
+    {
+      $this->createRevision = FALSE;
+    }        
 
     if (extension_loaded("mbstring") && mb_detect_encoding($document, "UTF-8", TRUE) != "UTF-8")
     {                   

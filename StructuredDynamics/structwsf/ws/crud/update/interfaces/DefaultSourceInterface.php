@@ -111,233 +111,238 @@
               array_push($irsUri, $resource);
             }
           }          
-                                              
-          $revisionDataset = rtrim($this->ws->dataset, '/').'/revisions/';
-          $revisionUris = array();          
-          
-          // @TODO: make sure that this is the latest version of this record, and make sure that
-          //        there is not a more recent *unpublished* revision of that record
-          if($this->ws->lifecycle == 'published')
-          {
-            foreach($irsUri as $subject)
-            {
-              $query = "select ?status
-                        from <" . $revisionDataset . ">
-                        where
-                        {
-                          ?s <http://purl.org/ontology/wsf#revisionTime> ?timestamp ;
-                             <http://purl.org/ontology/wsf#revisionUri> <".$subject."> ;
-                             <http://purl.org/ontology/wsf#revisionStatus> ?status .
-                        }
-                        order by desc(?timestamp)
-                        limit 1
-                        offset 0";
 
-              $resultset = @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array('status'), FALSE));
-
-              if(odbc_error())
+          if($this->ws->createRevision)
+          {                                              
+            $revisionDataset = rtrim($this->ws->dataset, '/').'/revisions/';
+            $revisionUris = array();          
+            
+            // Make sure that this is the latest version of this record, and make sure that
+            // there is not a more recent *unpublished* revision of that record.         
+            // This check is only valid if a revision need to be created in the process.
+            if($this->ws->lifecycle == 'published')
+            {      
+              foreach($irsUri as $subject)
               {
-                $this->ws->conneg->setStatus(500);
-                $this->ws->conneg->setStatusMsg("Internal Error");
-                $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_314->name);
-                $this->ws->conneg->setError($this->ws->errorMessenger->_314->id, $this->ws->errorMessenger->ws,
-                  $this->ws->errorMessenger->_314->name, $this->ws->errorMessenger->_314->description, odbc_errormsg(),
-                  $this->ws->errorMessenger->_314->level);
+                $query = "select ?status
+                          from <" . $revisionDataset . ">
+                          where
+                          {
+                            ?s <http://purl.org/ontology/wsf#revisionTime> ?timestamp ;
+                               <http://purl.org/ontology/wsf#revisionUri> <".$subject."> ;
+                               <http://purl.org/ontology/wsf#revisionStatus> ?status .
+                          }
+                          order by desc(?timestamp)
+                          limit 1
+                          offset 0";
 
-                return;
-              }
-              else
-              {
-                $status = odbc_result($resultset, 1);
-                                
-                if($status != Namespaces::$wsf.'published' && $status !== FALSE)
+                $resultset = @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array('status'), FALSE));
+
+                if(odbc_error())
                 {
-                  // The latest revision is not the latest published so we send an error
-                  // and stop the execution here
-                  $this->ws->conneg->setStatus(400);
-                  $this->ws->conneg->setStatusMsg("Bad Request");
-                  $this->ws->conneg->setError($this->ws->errorMessenger->_313->id, $this->ws->errorMessenger->ws,
-                    $this->ws->errorMessenger->_313->name, $this->ws->errorMessenger->_313->description, $errorsOutput,
-                    $this->ws->errorMessenger->_313->level);
+                  $this->ws->conneg->setStatus(500);
+                  $this->ws->conneg->setStatusMsg("Internal Error");
+                  $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_314->name);
+                  $this->ws->conneg->setError($this->ws->errorMessenger->_314->id, $this->ws->errorMessenger->ws,
+                    $this->ws->errorMessenger->_314->name, $this->ws->errorMessenger->_314->description, odbc_errormsg(),
+                    $this->ws->errorMessenger->_314->level);
 
-                  return;                        
+                  return;
+                }
+                else
+                {
+                  $status = odbc_result($resultset, 1);
+                                  
+                  if($status != Namespaces::$wsf.'published' && $status !== FALSE)
+                  {
+                    // The latest revision is not the latest published so we send an error
+                    // and stop the execution here
+                    $this->ws->conneg->setStatus(400);
+                    $this->ws->conneg->setStatusMsg("Bad Request");
+                    $this->ws->conneg->setError($this->ws->errorMessenger->_313->id, $this->ws->errorMessenger->ws,
+                      $this->ws->errorMessenger->_313->name, $this->ws->errorMessenger->_313->description, $errorsOutput,
+                      $this->ws->errorMessenger->_313->level);
+
+                    return;                        
+                  }
                 }
               }
             }
-          }
           
-          // Step #2: Add the record(s) into its revisions dataset
-          
-          // If the status is not published, it means we are creating a new unpublished
-          // revision that may eventually get published.
-          foreach($irsUri as $subject)
-          {                         
-            /*
-              a wsf:Revision ;
-              wsf:revisionUri <http://ccr.nhccn.com.au/datasets/global/documents/24665> ;
-              wsf:fromDataset <http://ccr.nhccn.com.au/datasets/global/documents/> ;
-              wsf:revisionTime """1368196492""" ;
-              wsf:performer <http://ccr.nhccn.com.au/user/1> ;
-              wsf:revisionStatus wsf:published ;  
-            */
+            // Step #2: Add the record(s) into its revisions dataset
             
-            // Make sure that we sleep this script execution for 1 microsecond to ensure that
-            // we will endup with a unique timestamp. Otherwise there could be URI clashes
-            usleep(1);
-            
-            $microtimestamp = microtime(true);
-            
-            $revisionUri = $revisionDataset.$microtimestamp;
-            
-            $revisionUris[] = $revisionUri;
-            
-            $resourceRevisionsIndex[$subject][Namespaces::$rdf.'type'][] = array(
-                                                                    'value' => Namespaces::$wsf.'Revision',
-                                                                    'type' => 'uri'
-                                                                  );
-                                                                  
-            $resourceRevisionsIndex[$subject][Namespaces::$wsf.'revisionUri'] = array(
+            // If the status is not published, it means we are creating a new unpublished
+            // revision that may eventually get published.
+
+            foreach($irsUri as $subject)
+            {                         
+              /*
+                a wsf:Revision ;
+                wsf:revisionUri <http://ccr.nhccn.com.au/datasets/global/documents/24665> ;
+                wsf:fromDataset <http://ccr.nhccn.com.au/datasets/global/documents/> ;
+                wsf:revisionTime """1368196492""" ;
+                wsf:performer <http://ccr.nhccn.com.au/user/1> ;
+                wsf:revisionStatus wsf:published ;  
+              */
+              
+              // Make sure that we sleep this script execution for 1 microsecond to ensure that
+              // we will endup with a unique timestamp. Otherwise there could be URI clashes
+              usleep(1);
+              
+              $microtimestamp = microtime(true);
+              
+              $revisionUri = $revisionDataset.$microtimestamp;
+              
+              $revisionUris[] = $revisionUri;
+              
+              $resourceRevisionsIndex[$subject][Namespaces::$rdf.'type'][] = array(
+                                                                      'value' => Namespaces::$wsf.'Revision',
+                                                                      'type' => 'uri'
+                                                                    );
+                                                                    
+              $resourceRevisionsIndex[$subject][Namespaces::$wsf.'revisionUri'] = array(
+                                                                           array(
+                                                                             'value' => $subject,
+                                                                             'type' => 'uri'
+                                                                           )
+                                                                         );
+                                                                    
+              $resourceRevisionsIndex[$subject][Namespaces::$wsf.'fromDataset'] = array(
+                                                                           array(
+                                                                             'value' => $this->ws->dataset,
+                                                                             'type' => 'uri'
+                                                                           )
+                                                                         );
+              
+              $resourceRevisionsIndex[$subject][Namespaces::$wsf.'revisionTime'] = array(
+                                                                                  array(
+                                                                                    'value' => $microtimestamp,
+                                                                                    'type' => 'literal',
+                                                                                    'datatype' => Namespaces::$xsd.'double'
+                                                                                  )
+                                                                                );                    
+                                                                    
+              $resourceRevisionsIndex[$subject][Namespaces::$wsf.'performer'] = array(
                                                                          array(
-                                                                           'value' => $subject,
+                                                                           'value' => $this->ws->requester_ip,
                                                                            'type' => 'uri'
                                                                          )
-                                                                       );
-                                                                  
-            $resourceRevisionsIndex[$subject][Namespaces::$wsf.'fromDataset'] = array(
-                                                                         array(
-                                                                           'value' => $this->ws->dataset,
-                                                                           'type' => 'uri'
-                                                                         )
-                                                                       );
-            
-            $resourceRevisionsIndex[$subject][Namespaces::$wsf.'revisionTime'] = array(
-                                                                                array(
-                                                                                  'value' => $microtimestamp,
-                                                                                  'type' => 'literal',
-                                                                                  'datatype' => Namespaces::$xsd.'double'
-                                                                                )
-                                                                              );                    
-                                                                  
-            $resourceRevisionsIndex[$subject][Namespaces::$wsf.'performer'] = array(
-                                                                       array(
-                                                                         'value' => $this->ws->requester_ip,
-                                                                         'type' => 'uri'
-                                                                       )
-                                                                     );                
-            
-            $status = Namespaces::$wsf.'unspecified';
-            
-            switch($this->ws->lifecycle)
-            {
-              case "archive":
-                $status = Namespaces::$wsf.'archive';
-              break;
-              case "experimental":
-                $status = Namespaces::$wsf.'experimental';
-              break;
-              case "pre_release":
-                $status = Namespaces::$wsf.'pre_release';
-              break;
-              case "staging":
-                $status = Namespaces::$wsf.'staging';
-              break;
-              case "harvesting":
-                $status = Namespaces::$wsf.'harvesting';
-              break;
-              case "unspecified":
-                $status = Namespaces::$wsf.'unspecified';
-              break;
-              case "published":
-                $status = Namespaces::$wsf.'published';
-              break;
-            }
-            
-            $resourceRevisionsIndex[$subject][Namespaces::$wsf.'revisionStatus'] = array(
-                                                                            array(
-                                                                              'value' => $status,
-                                                                              'type' => 'uri'
-                                                                            )
-                                                                          );
-          
-            // Change the records' URI for their revision URIs
-            $resourceRevisionsIndex[$revisionUri] = $resourceRevisionsIndex[$subject];
-            unset($resourceRevisionsIndex[$subject]);
-          }
-          
-          // We have to change the rdf:subject value of the reification statements such that
-          // they point to the revision URI.
-          foreach($statementsUri as $statementUri)
-          {
-            foreach($revisionUris as $uri)
-            {
-              if($resourceRevisionsIndex[$uri][Namespaces::$wsf.'revisionUri'][0]['value'] == 
-                 $resourceRevisionsIndex[$statementUri][Namespaces::$rdf.'subject'][0]['value'])
+                                                                       );                
+              
+              $status = Namespaces::$wsf.'unspecified';
+              
+              switch($this->ws->lifecycle)
               {
-                $resourceRevisionsIndex[$statementUri][Namespaces::$rdf.'subject'][0]['value'] = $uri;
+                case "archive":
+                  $status = Namespaces::$wsf.'archive';
+                break;
+                case "experimental":
+                  $status = Namespaces::$wsf.'experimental';
+                break;
+                case "pre_release":
+                  $status = Namespaces::$wsf.'pre_release';
+                break;
+                case "staging":
+                  $status = Namespaces::$wsf.'staging';
+                break;
+                case "harvesting":
+                  $status = Namespaces::$wsf.'harvesting';
+                break;
+                case "unspecified":
+                  $status = Namespaces::$wsf.'unspecified';
+                break;
+                case "published":
+                  $status = Namespaces::$wsf.'published';
+                break;
+              }
+              
+              $resourceRevisionsIndex[$subject][Namespaces::$wsf.'revisionStatus'] = array(
+                                                                              array(
+                                                                                'value' => $status,
+                                                                                'type' => 'uri'
+                                                                              )
+                                                                            );
+            
+              // Change the records' URI for their revision URIs
+              $resourceRevisionsIndex[$revisionUri] = $resourceRevisionsIndex[$subject];
+              unset($resourceRevisionsIndex[$subject]);
+            }
+
+          
+            // We have to change the rdf:subject value of the reification statements such that
+            // they point to the revision URI.
+            foreach($statementsUri as $statementUri)
+            {
+              foreach($revisionUris as $uri)
+              {
+                if($resourceRevisionsIndex[$uri][Namespaces::$wsf.'revisionUri'][0]['value'] == 
+                   $resourceRevisionsIndex[$statementUri][Namespaces::$rdf.'subject'][0]['value'])
+                {
+                  $resourceRevisionsIndex[$statementUri][Namespaces::$rdf.'subject'][0]['value'] = $uri;
+                }
               }
             }
-          }
-          
-          // Step #2.1: change the lifecycle stage of the previously published record to 'archive'
-          if($this->ws->lifecycle == 'published')
-          {           
-            foreach($irsUri as $uri)
-            {            
-              $query = "modify <" . $revisionDataset . ">
-                        delete
-                        { 
-                          ?revision <http://purl.org/ontology/wsf#revisionStatus> <http://purl.org/ontology/wsf#published> .
-                        }
-                        insert
-                        {
-                          ?revision <http://purl.org/ontology/wsf#revisionStatus> <http://purl.org/ontology/wsf#archive> .
-                        }
-                        where
-                        {
-                          ?revision <http://purl.org/ontology/wsf#revisionUri> <".$uri."> ;
-                                    <http://purl.org/ontology/wsf#revisionStatus> <http://purl.org/ontology/wsf#published> .
-                        }";
+            
+            // Step #2.1: change the lifecycle stage of the previously published record to 'archive'
+            if($this->ws->lifecycle == 'published')
+            {           
+              foreach($irsUri as $uri)
+              {            
+                $query = "modify <" . $revisionDataset . ">
+                          delete
+                          { 
+                            ?revision <http://purl.org/ontology/wsf#revisionStatus> <http://purl.org/ontology/wsf#published> .
+                          }
+                          insert
+                          {
+                            ?revision <http://purl.org/ontology/wsf#revisionStatus> <http://purl.org/ontology/wsf#archive> .
+                          }
+                          where
+                          {
+                            ?revision <http://purl.org/ontology/wsf#revisionUri> <".$uri."> ;
+                                      <http://purl.org/ontology/wsf#revisionStatus> <http://purl.org/ontology/wsf#published> .
+                          }";
 
-              @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-                FALSE));
+                @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
+                  FALSE));
 
-              if(odbc_error())
-              {
-                $this->ws->conneg->setStatus(500);
-                $this->ws->conneg->setStatusMsg("Internal Error");
-                $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_301->name);
-                $this->ws->conneg->setError($this->ws->errorMessenger->_301->id, $this->ws->errorMessenger->ws,
-                  $this->ws->errorMessenger->_301->name, $this->ws->errorMessenger->_301->description, odbc_errormsg(),
-                  $this->ws->errorMessenger->_301->level);
+                if(odbc_error())
+                {
+                  $this->ws->conneg->setStatus(500);
+                  $this->ws->conneg->setStatusMsg("Internal Error");
+                  $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_301->name);
+                  $this->ws->conneg->setError($this->ws->errorMessenger->_301->id, $this->ws->errorMessenger->ws,
+                    $this->ws->errorMessenger->_301->name, $this->ws->errorMessenger->_301->description, odbc_errormsg(),
+                    $this->ws->errorMessenger->_301->level);
 
-                return;
-              }
-            } 
-          }         
+                  return;
+                }
+              } 
+            }        
           
-          // Step #2.2: indexing the incomming rdf document revision into its revisions graph
-          
-          // Note: we index the revision records along with the reification statements.
-          
-          @$this->ws->db->query("DB.DBA.RDF_LOAD_RDFXML_MT('"
-            . str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($resourceRevisionsIndex))
-              . "', '$revisionDataset', '$revisionDataset', 0)");
+            // Step #2.2: indexing the incomming rdf document revision into its revisions graph
+            
+            // Note: we index the revision records along with the reification statements.
+            
+            @$this->ws->db->query("DB.DBA.RDF_LOAD_RDFXML_MT('"
+              . str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($resourceRevisionsIndex))
+                . "', '$revisionDataset', '$revisionDataset', 0)");
 
-          if(odbc_error())
-          {
-            $this->ws->conneg->setStatus(400);
-            $this->ws->conneg->setStatusMsg("Bad Request");
-            $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_300->name);
-            $this->ws->conneg->setError($this->ws->errorMessenger->_300->id, $this->ws->errorMessenger->ws,
-              $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, odbc_errormsg(),
-              $this->ws->errorMessenger->_300->level);
-            return;
-          }                
+            if(odbc_error())
+            {
+              $this->ws->conneg->setStatus(400);
+              $this->ws->conneg->setStatusMsg("Bad Request");
+              $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_300->name);
+              $this->ws->conneg->setError($this->ws->errorMessenger->_300->id, $this->ws->errorMessenger->ws,
+                $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, odbc_errormsg(),
+                $this->ws->errorMessenger->_300->level);
+              return;
+            }  
+          }              
           
-          // If the lifecycle is published, then we have to publish this new revision in the
-          // normal dataset, and to remove the "published" state of the last published
-          // revision in the revisions graph.
-          if($this->ws->lifecycle == 'published')
+          // If the lifecycle is published, or if no revision need to be created 
+          // then we have to publish this new revision in the normal dataset.
+          if($this->ws->lifecycle == 'published' || !$this->ws->createRevision)
           {                               
             // Step #3: indexing the incomming rdf document in its own temporary graph
             $tempGraphUri = "temp-graph-" . md5($this->ws->document);

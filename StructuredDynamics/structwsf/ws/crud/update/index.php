@@ -71,6 +71,13 @@ if(isset($_POST['mime']))
   $mime = $_POST['mime'];
 }
 
+// Specify if we want to create a new revision or not for the updated record
+$revision = "true";
+
+if(isset($_POST['revision']))
+{
+  $revision = $_POST['revision'];
+}
 
 // Publication lifecycle stage of the record
 $lifecycle = "";
@@ -113,7 +120,7 @@ elseif(isset($_SERVER['PHP_SELF']))
 }
 
 $ws_crudupdate = new CrudUpdate($document, $mime, $dataset, $registered_ip, $requester_ip, 
-                                $interface, $version, $lifecycle);
+                                $interface, $version, $lifecycle, $revision);
 
 $ws_crudupdate->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                           (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

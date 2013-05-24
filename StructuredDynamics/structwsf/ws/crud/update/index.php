@@ -80,7 +80,7 @@ if(isset($_POST['revision']))
 }
 
 // Publication lifecycle stage of the record
-$lifecycle = "";
+$lifecycle = "published";
 
 if(isset($_POST['lifecycle']))
 {

@@ -613,6 +613,15 @@ abstract class WebService
     {
       $this->default_interfaces["revision_update"] = "DefaultSourceInterface";
     }  
+         
+    if(isset($network_ini["default-interfaces"]["revision_delete"]))  
+    {
+      $this->default_interfaces["revision_delete"] = $network_ini["default-interfaces"]["revision_delete"];
+    }    
+    else
+    {
+      $this->default_interfaces["revision_delete"] = "DefaultSourceInterface";
+    }  
 
     // This handler is defined for the fatal script errors. If a script can't be finished because a fatal error
     // occured, then the handleFatalPhpError function is used to return the error message to the requester.

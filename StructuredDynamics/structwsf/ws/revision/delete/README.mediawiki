@@ -1,0 +1,3 @@
+== Endpoint Documentation ==
+  
+[http://techwiki.openstructs.org/index.php/Revision:_Delete Revision: Delete Web Service Endpoint Documentation]

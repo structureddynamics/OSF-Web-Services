@@ -126,7 +126,19 @@ class CrudCreate extends \StructuredDynamics\structwsf\ws\framework\WebService
           "level": "Fatal",
           "name": "Can\'t parse the propertyHierarchySerialized.srz file",
           "description": "We can\'t parse the propertyHierarchySerialized.srz file. Please do make sure that this file is properly serialized. You can try to fix that issue by re-creating a serialization file from the latest version of the OntologyRead web service endpoint and to replace the result with the current file being used."
-        }
+        },
+        "_311": {
+          "id": "WS-CRUD-CREATE-311",
+          "level": "Fatal",
+          "name": "Can\'t query the revisions graph",
+          "description": "Can\'t read the revisions graph to check if revisions exists for one of the record(s)"
+        },
+        "_312": {
+          "id": "WS-CRUD-CREATE-312",
+          "level": "Fatal",
+          "name": "A revision exists for one of the record(s)",
+          "description": "A revision exists for one of the record(s) that are being created. This web service endpoint cannot be used to re-create a record. That record needs to be updated using CRUD: Update."
+        } 
       }';
 
   /**

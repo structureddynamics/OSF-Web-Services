@@ -60,7 +60,6 @@
           }
 
           // First: check for a void:Dataset description to add to the "dataset description graph" of structWSF
-          $break = FALSE;
           $datasetUri = "";
 
           foreach($resourceIndex as $resource => $description)
@@ -78,22 +77,11 @@
                   }
                 }
               }
-
-              if($break)
-              {
-                break;
-              }
-            }
-
-            if($break)
-            {
-              break;
             }
           }
 
 
           // Second: get all the reification statements
-          $break = FALSE;
           $statementsUri = array();
 
           foreach($resourceIndex as $resource => $description)
@@ -111,16 +99,6 @@
                   }
                 }
               }
-
-              if($break)
-              {
-                break;
-              }
-            }
-
-            if($break)
-            {
-              break;
             }
           }
 
@@ -138,6 +116,58 @@
           // If the query is still valid
           if($this->ws->conneg->getStatus() == 200)        
           {
+            // Make sure that there is no revision existing for any of these records    
+            $revisionsDataset = rtrim($this->ws->dataset, '/').'/revisions/';
+            
+            $subjectsFilter = '';        
+            foreach($irsUri as $subject)
+            {
+              $subjectsFilter .= '<'.$subject.'>,';
+            }
+            
+            $subjectsFilter = rtrim($subjectsFilter, ',');
+            
+            $query = "select ?s
+                      from <" . $revisionsDataset . ">
+                      where
+                      {
+                        ?s <http://purl.org/ontology/wsf#revisionUri> ?record.
+                        
+                        filter(?record in(".$subjectsFilter."))
+                      }
+                      limit 1
+                      offset 0";
+
+            $resultset = @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array('status'), FALSE));
+
+            if(odbc_error())
+            {
+              $this->ws->conneg->setStatus(500);
+              $this->ws->conneg->setStatusMsg("Internal Error");
+              $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_311->name);
+              $this->ws->conneg->setError($this->ws->errorMessenger->_311->id, $this->ws->errorMessenger->ws,
+                $this->ws->errorMessenger->_311->name, $this->ws->errorMessenger->_311->description, odbc_errormsg(),
+                $this->ws->errorMessenger->_311->level);
+
+              return;
+            }
+            else
+            {
+              $status = odbc_result($resultset, 1);
+                              
+              if($status !== FALSE)
+              {
+                // There are revisions records for one of the record. We stop the execution right here.
+                $this->ws->conneg->setStatus(400);
+                $this->ws->conneg->setStatusMsg("Bad Request");
+                $this->ws->conneg->setError($this->ws->errorMessenger->_312->id, $this->ws->errorMessenger->ws,
+                  $this->ws->errorMessenger->_312->name, $this->ws->errorMessenger->_312->description, $errorsOutput,
+                  $this->ws->errorMessenger->_312->level);
+
+                return;                        
+              }
+            }
+            
             // Index all the instance records in the dataset
             if($this->ws->mode == "full" || $this->ws->mode == "triplestore")
             {

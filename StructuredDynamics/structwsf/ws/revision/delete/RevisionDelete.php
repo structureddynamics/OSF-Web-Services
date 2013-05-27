@@ -3,7 +3,7 @@
 /** @defgroup WsRevision Revisioning Web Service */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\revision\delete\RevisionRead.php
+/*! @file \StructuredDynamics\structwsf\ws\revision\delete\RevisionDelete.php
     @brief Delete a specific revision of a record.
  */
 
@@ -38,7 +38,7 @@ class RevisionDelete extends \StructuredDynamics\structwsf\ws\framework\WebServi
   /** Dataset URI where to index the RDF document. Note: this is the Dataset URI, and not the Dataset Revisions URI  */
   private $dataset = "";
 
-  /** URI of the revision to read */
+  /** URI of the revision to delete */
   private $revuri = "";
   
   /** Error messages of this web service */
@@ -167,7 +167,7 @@ class RevisionDelete extends \StructuredDynamics\structwsf\ws\framework\WebServi
     
     if(strtolower($interface) == "default")
     {
-      $this->interface = $this->default_interfaces["revision_read"];
+      $this->interface = $this->default_interfaces["revision_delete"];
     }
     else
     {
@@ -206,7 +206,7 @@ class RevisionDelete extends \StructuredDynamics\structwsf\ws\framework\WebServi
     $this->crud_usage = new CrudUsage(FALSE, FALSE, FALSE, TRUE);
     $this->endpoint = $this->wsf_base_url . "/ws/revision/delete/";
 
-    $this->dtdURL = "revision/read/revisionDelete.dtd";
+    $this->dtdURL = "revision/delete/revisionDelete.dtd";
 
     $this->errorMessenger = json_decode($this->errorMessenger);
   }

@@ -198,7 +198,7 @@
               // record that will save its initial state.
               //
               // This is requirec since when a record is first created, we are *not* creating
-              // an initial revision record using CRUD: Create.
+              // an initial revision record using CRUD: Create.  
               if(in_array($subject, $firstRevisionUris))
               {
                 $microtimestamp = microtime(true);
@@ -207,7 +207,7 @@
                 
                 $revisionUris[] = $revisionUri;     
                 
-                $crudRead = new CrudRead($subject, $this->ws->dataset, FALSE, TRUE, $this->ws->registered_ip, $this->ws->requester_ip);
+                $crudRead = new CrudRead($subject, $this->ws->dataset, 'false', 'true', $this->ws->registered_ip, $this->ws->requester_ip);
                 
                 $crudRead->ws_conneg('application/rdf+xml', $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
                                      $_SERVER['HTTP_ACCEPT_LANGUAGE']);
@@ -278,6 +278,7 @@
                                                   
                 // Add the initial record's revision to the list of revisions to add to the triple store
                 $resourceRevisionsIndex[$revisionUri] = $initialResourceIndex[$subject];
+                $resourceRevisionsIndex[$revisionUri]['initialRecord'] = TRUE;
                 
                 // Add any potential reification statements, and change the rdf:subject
                 // to point to the revision record's URI
@@ -294,6 +295,7 @@
                           $initialResourceIndex[$resource][Namespaces::$rdf.'subject'][0]['value'] = $revisionUri;
                           
                           $resourceRevisionsIndex[$resource] = $initialResourceIndex[$resource];
+                          $resourceRevisionsIndex[$resource]['initialRecord'] = TRUE;
                           break;
                         }
                       }
@@ -301,7 +303,7 @@
                   }
                 }                           
               }
-              
+
               // Make sure that we sleep this script execution for 1 microsecond to ensure that
               // we will endup with a unique timestamp. Otherwise there could be URI clashes
               usleep(1);
@@ -385,7 +387,6 @@
               unset($resourceRevisionsIndex[$subject]);
             }
 
-          
             // We have to change the rdf:subject value of the reification statements such that
             // they point to the revision URI.
             foreach($statementsUri as $statementUri)
@@ -393,10 +394,20 @@
               foreach($revisionUris as $uri)
               {
                 if($resourceRevisionsIndex[$uri][Namespaces::$wsf.'revisionUri'][0]['value'] == 
-                   $resourceRevisionsIndex[$statementUri][Namespaces::$rdf.'subject'][0]['value'])
+                   $resourceRevisionsIndex[$statementUri][Namespaces::$rdf.'subject'][0]['value'] &&
+                   !isset($resourceRevisionsIndex[$uri]['initialRecord']))
                 {
                   $resourceRevisionsIndex[$statementUri][Namespaces::$rdf.'subject'][0]['value'] = $uri;
                 }
+              }
+            }
+            
+            // Remove initial records tags
+            foreach($resourceRevisionsIndex as $uri => $record)
+            {
+              if(isset($resourceRevisionsIndex[$uri]['initialRecord']))
+              {
+                unset($resourceRevisionsIndex[$uri]['initialRecord']);
               }
             }
             
@@ -439,8 +450,7 @@
           
             // Step #2.2: indexing the incomming rdf document revision into its revisions graph
             
-            // Note: we index the revision records along with the reification statements.
-            
+            // Note: we index the revision records along with the reification statements.           
             @$this->ws->db->query("DB.DBA.RDF_LOAD_RDFXML_MT('"
               . str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($resourceRevisionsIndex))
                 . "', '$revisionDataset', '$revisionDataset', 0)");

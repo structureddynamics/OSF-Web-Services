@@ -115,7 +115,8 @@
           if($this->ws->createRevision)
           {                                              
             $revisionDataset = rtrim($this->ws->dataset, '/').'/revisions/';
-            $revisionUris = array();          
+            $revisionUris = array();    
+            $firstRevisionUris = array();      
             
             // Make sure that this is the latest version of this record, and make sure that
             // there is not a more recent *unpublished* revision of that record.         
@@ -165,6 +166,14 @@
 
                     return;                        
                   }
+                  
+                  if($status === FALSE)
+                  {
+                    // This is the first time this record get revisioned. This means that we will
+                    // have to create its initial revision using what is currently indexed in
+                    // the dataset
+                    $firstRevisionUris[] = $subject;
+                  }
                 }
               }
             }
@@ -173,7 +182,6 @@
             
             // If the status is not published, it means we are creating a new unpublished
             // revision that may eventually get published.
-
             foreach($irsUri as $subject)
             {                         
               /*
@@ -185,10 +193,119 @@
                 wsf:revisionStatus wsf:published ;  
               */
               
+              // Check if this is the first time a revision is created for that record.
+              // If it is the case, then the first thing we have to do is to create a revision
+              // record that will save its initial state.
+              //
+              // This is requirec since when a record is first created, we are *not* creating
+              // an initial revision record using CRUD: Create.
+              if(in_array($subject, $firstRevisionUris))
+              {
+                $microtimestamp = microtime(true);
+                
+                $revisionUri = $revisionDataset.$microtimestamp;
+                
+                $revisionUris[] = $revisionUri;     
+                
+                $crudRead = new CrudRead($subject, $this->ws->dataset, FALSE, TRUE, $this->ws->registered_ip, $this->ws->requester_ip);
+                
+                $crudRead->ws_conneg('application/rdf+xml', $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
+                                     $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+
+                $crudRead->process();
+
+                if($crudRead->pipeline_getResponseHeaderStatus() != 200)
+                {   
+                  $this->ws->conneg->setStatus(400);
+                  $this->ws->conneg->setStatusMsg("Bad Request");
+                  $this->ws->conneg->setError($this->ws->errorMessenger->_315->id, $this->ws->errorMessenger->ws,
+                    $this->ws->errorMessenger->_315->name, $this->ws->errorMessenger->_315->description, $errorsOutput,
+                    $this->ws->errorMessenger->_315->level);
+
+                  return;                    
+                }
+                else
+                {
+                  $subjectrdfxml = $crudRead->ws_serialize();
+                }         
+                
+                $parserInitial = ARC2::getRDFParser();
+                
+                $parserInitial->parse($this->ws->dataset, $subjectrdfxml);   
+
+                $initialResourceIndex = $parserInitial->getSimpleIndex(0);
+                
+                $initialResourceIndex[$subject][Namespaces::$rdf.'type'][] = array(
+                                                            'value' => Namespaces::$wsf.'Revision',
+                                                            'type' => 'uri'
+                                                          );
+                                                
+                $initialResourceIndex[$subject][Namespaces::$wsf.'revisionUri'] = array(
+                                                                 array(
+                                                                   'value' => $subject,
+                                                                   'type' => 'uri'
+                                                                 )
+                                                               );
+                                                                    
+                $initialResourceIndex[$subject][Namespaces::$wsf.'fromDataset'] = array(
+                                                                 array(
+                                                                   'value' => $this->ws->dataset,
+                                                                   'type' => 'uri'
+                                                                 )
+                                                               );
+
+                $initialResourceIndex[$subject][Namespaces::$wsf.'revisionTime'] = array(
+                                                                  array(
+                                                                    'value' => $microtimestamp,
+                                                                    'type' => 'literal',
+                                                                    'datatype' => Namespaces::$xsd.'double'
+                                                                  )
+                                                                );                    
+                                                                    
+                $initialResourceIndex[$subject][Namespaces::$wsf.'performer'] = array(
+                                                               array(
+                                                                 'value' => $this->ws->requester_ip,
+                                                                 'type' => 'uri'
+                                                               )
+                                                             );
+                                                             
+                $initialResourceIndex[$subject][Namespaces::$wsf.'revisionStatus'] = array(
+                                                                    array(
+                                                                      'value' => Namespaces::$wsf.'archive',
+                                                                      'type' => 'uri'
+                                                                    )
+                                                                  );    
+                                                  
+                // Add the initial record's revision to the list of revisions to add to the triple store
+                $resourceRevisionsIndex[$revisionUri] = $initialResourceIndex[$subject];
+                
+                // Add any potential reification statements, and change the rdf:subject
+                // to point to the revision record's URI
+                foreach($initialResourceIndex as $resource => $description)
+                {
+                  foreach($description as $predicate => $values)
+                  {
+                    if($predicate == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+                    {
+                      foreach($values as $value)
+                      {
+                        if($value["type"] == "uri" && $value["value"] == "http://www.w3.org/1999/02/22-rdf-syntax-ns#Statement")
+                        {
+                          $initialResourceIndex[$resource][Namespaces::$rdf.'subject'][0]['value'] = $revisionUri;
+                          
+                          $resourceRevisionsIndex[$resource] = $initialResourceIndex[$resource];
+                          break;
+                        }
+                      }
+                    }
+                  }
+                }                           
+              }
+              
               // Make sure that we sleep this script execution for 1 microsecond to ensure that
               // we will endup with a unique timestamp. Otherwise there could be URI clashes
               usleep(1);
-              
+
               $microtimestamp = microtime(true);
               
               $revisionUri = $revisionDataset.$microtimestamp;

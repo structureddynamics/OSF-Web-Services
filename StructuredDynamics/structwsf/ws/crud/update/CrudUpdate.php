@@ -156,6 +156,12 @@ class CrudUpdate extends \StructuredDynamics\structwsf\ws\framework\WebService
                           "level": "Fatal",
                           "name": "Can\'t query the revisions graph",
                           "description": "Can\'t read the revisions graph to get the lifecycle stage of the last revision"
+                        },
+                        "_315": {
+                          "id": "WS-CRUD-UPDATE-315",
+                          "level": "Fatal",
+                          "name": "Can\'t get the description of the initial version of this record",
+                          "description": "An error occured when we tried to get the description of the initial version of this record"
                         }                                                                            
                       }';
 

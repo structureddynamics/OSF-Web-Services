@@ -164,6 +164,24 @@
 
           return;
         }
+        
+        // Drop the revisions graph
+        $revisionsDataset = rtrim($this->ws->datasetUri, '/').'/revisions/';
+        $query = "sparql clear graph <" . $revisionsDataset . ">";
+
+        @$this->ws->db->query($query);
+
+        if(odbc_error())
+        {
+          $this->ws->conneg->setStatus(500);
+          $this->ws->conneg->setStatusMsg("Internal Error");
+          $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_310->name);
+          $this->ws->conneg->setError($this->ws->errorMessenger->_310->id, $this->ws->errorMessenger->ws,
+            $this->ws->errorMessenger->_310->name, $this->ws->errorMessenger->_310->description, odbc_errormsg(),
+            $this->ws->errorMessenger->_310->level);
+
+          return;
+        }        
 
         // Drop the reification graph related to this dataset
         $query = "sparql clear graph <" . $this->ws->datasetUri . "reification/>";

@@ -113,6 +113,12 @@ class DatasetDelete extends \StructuredDynamics\structwsf\ws\framework\WebServic
                           "level": "Fatal",
                           "name": "Source Interface\'s version not compatible with the web service endpoint\'s",
                           "description": "The version of the source interface you requested is not compatible with the one of the web service endpoint. Please contact the system administrator such that he updates the source interface to make it compatible with the new endpoint version."
+                        },
+                        "_310": {
+                          "id": "WS-DATASET-DELETE-310",
+                          "level": "Fatal",
+                          "name": "Can\'t delete the revisions graph in the triple store",
+                          "description": "An error occured when we tried to delete the revisions graph in the triple store"
                         }                            
                       }';
 

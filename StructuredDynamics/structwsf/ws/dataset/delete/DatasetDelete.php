@@ -94,7 +94,7 @@ class DatasetDelete extends \StructuredDynamics\structwsf\ws\framework\WebServic
                           "id": "WS-DATASET-DELETE-306",
                           "level": "Error",
                           "name": "Ontology dataset can\'t be deleted",
-                          "description": "This ontology dataset can\'t be deleted using the Dataset Delete web service endpoint. Please use the Ontology Dataset web service to delete this dataset."
+                          "description": "This ontology dataset can\'t be deleted using the Dataset Delete web service endpoint. Please use the Ontology Dalete web service to delete this dataset."
                         },
                         "_307": {
                           "id": "WS-DATASET-DELETE-307",

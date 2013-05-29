@@ -46,6 +46,9 @@ class CrudDelete extends \StructuredDynamics\structwsf\ws\framework\WebService
 
   /** Requester's IP used for request validation */
   private $requester_ip = "";
+  
+  /** Mode of the endpoint. Specify if we want to delete, or keep, the revisions related to this record */
+  private $mode = 'soft';
 
   /** Error messages of this web service */
   private $errorMessenger =
@@ -98,6 +101,18 @@ class CrudDelete extends \StructuredDynamics\structwsf\ws\framework\WebService
         "level": "Fatal",
         "name": "Source Interface\'s version not compatible with the web service endpoint\'s",
         "description": "The version of the source interface you requested is not compatible with the one of the web service endpoint. Please contact the system administrator such that he updates the source interface to make it compatible with the new endpoint version."
+      },
+      "_307": {
+        "id": "WS-CRUD-DELETE-307",
+        "level": "Fatal",
+        "name": "Unknown mode",
+        "description": "The mode you specified for this query is unknown. Support modes are: \'soft\' and \'hard\'"
+      },
+      "_308": {
+        "id": "WS-CRUD-DELETE-308",
+        "level": "Fatal",
+        "name": "Cannot change the record\'s revision status from published to archive",
+        "description": "An error occured when we tried to change the record\'s revision status from published to archive."
       }    
     }';
 
@@ -148,7 +163,7 @@ class CrudDelete extends \StructuredDynamics\structwsf\ws\framework\WebService
       @author Frederick Giasson, Structured Dynamics LLC.
   */
   function __construct($uri, $dataset, $registered_ip, $requester_ip, $interface='default', 
-                       $requestedInterfaceVersion="")
+                       $requestedInterfaceVersion='', $mode='soft')
   {
     parent::__construct();
     
@@ -159,6 +174,7 @@ class CrudDelete extends \StructuredDynamics\structwsf\ws\framework\WebService
     $this->requester_ip = $requester_ip;
     $this->dataset = $dataset;
     $this->resourceUri = $uri;
+    $this->mode = strtolower($mode);
 
     if($registered_ip == "")
     {
@@ -338,6 +354,19 @@ class CrudDelete extends \StructuredDynamics\structwsf\ws\framework\WebService
       $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
         $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, "",
         $this->errorMessenger->_201->level);
+
+      return;
+    }
+    
+    if($this->mode != 'soft' &&
+       $this->mode != 'hard')
+    {
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_307->name);
+      $this->conneg->setError($this->errorMessenger->_307->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_307->name, $this->errorMessenger->_307->description, "",
+        $this->errorMessenger->_307->level);
 
       return;
     }

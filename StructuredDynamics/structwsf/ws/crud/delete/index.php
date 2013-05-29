@@ -63,6 +63,13 @@ if(isset($_GET['uri']))
   $uri = $_GET['uri'];
 }
 
+$mode = "soft";
+
+if(isset($_GET['mode']))
+{
+  $mode = $_GET['mode'];
+}
+
 $mtime = microtime();
 $mtime = explode(' ', $mtime);
 $mtime = $mtime[1] + $mtime[0];
@@ -95,7 +102,7 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_cruddelete = new CrudDelete($uri, $dataset, $registered_ip, $requester_ip, $interface, $version);
+$ws_cruddelete = new CrudDelete($uri, $dataset, $registered_ip, $requester_ip, $interface, $version, $mode);
 
 $ws_cruddelete->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                           (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

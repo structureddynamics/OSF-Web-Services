@@ -202,8 +202,9 @@
               if($status == Namespaces::$wsf.'published')
               {
                 // Check to delete potential datasets that have been created within structWSF
+                // Use the default 'soft' mode such that we keep all the revisions
                 $crudDelete = new CrudDelete($uri, $this->ws->dataset, $this->ws->registered_ip, 
-                                             $this->ws->requester_ip, 'soft');
+                                             $this->ws->requester_ip);
 
                 $crudDelete->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'],
                   $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);

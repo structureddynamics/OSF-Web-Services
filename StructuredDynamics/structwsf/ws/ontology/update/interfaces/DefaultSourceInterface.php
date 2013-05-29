@@ -387,6 +387,7 @@
                 $serializedResource = $rdfxmlSerializer->getSerializedIndex($resourcesIndex);
                 
                 // Update the classes and properties into the Solr index
+                // Every time OntologyUpdate is called, a new revision will be created
                 $crudUpdate = new CrudUpdate($serializedResource, "application/rdf+xml", $this->ws->ontologyUri, 
                                              $this->ws->registered_ip, $this->ws->requester_ip);
 
@@ -555,6 +556,10 @@
 
           // Delete the old entity in Solr        
           // Update the classes and properties into the Solr index
+          // Use the default 'soft' mode such that we keep all the ontologies changes by default
+          // This means that we "unpublish" the current record, with the current URI. We will always
+          // keep information about that record, with that URI, even if the URI of the record is change
+          // using this function
           $crudDelete = new CrudDelete($oldUri, $this->ws->ontologyUri, 
                                        $this->ws->registered_ip, $this->ws->requester_ip);
 

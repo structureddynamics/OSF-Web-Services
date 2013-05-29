@@ -117,6 +117,8 @@
         $this->ws->ontology->removeClass($uri);
 
         // Check to delete potential datasets that have been created within structWSF
+        // Use the default 'soft' mode such that we keep all the ontologies changes by default
+        // This means that we "unpublish" the current record, with the current URI.
         $crudDelete = new CrudDelete($uri, $this->ws->ontologyUri, $this->ws->registered_ip, $this->ws->requester_ip);
 
         $crudDelete->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'],
@@ -167,6 +169,8 @@
         $this->ws->ontology->removeNamedIndividual($uri);
 
         // Check to delete potential datasets that have been created within structWSF
+        // Use the default 'soft' mode such that we keep all the ontologies changes by default
+        // This means that we "unpublish" the current record, with the current URI.
         $crudDelete =
           new CrudDelete($uri, $this->ws->ontologyUri, $this->ws->registered_ip, $this->ws->requester_ip);
 
@@ -269,6 +273,8 @@
         $this->ws->ontology->removeProperty($uri);
 
         // Check to delete potential datasets that have been created within structWSF
+        // Use the default 'soft' mode such that we keep all the ontologies changes by default
+        // This means that we "unpublish" the current record, with the current URI.
         $crudDelete =
           new CrudDelete($uri, $this->ws->ontologyUri, $this->ws->registered_ip, $this->ws->requester_ip);
 

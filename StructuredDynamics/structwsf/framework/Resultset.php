@@ -1057,13 +1057,16 @@ class Resultset
             case "prefLabel":
               if($attributeValues != "")
               {
-                $xml .= '    <iron:prefLabel>'.$this->xmlEncode($attributeValues).'</iron:prefLabel>'."\n";              
+                if(!$this->in_array_r($attributeValues, $record[Namespaces::$iron.'prefLabel']))
+                {
+                  $xml .= '    <iron:prefLabel>'.$this->xmlEncode($attributeValues).'</iron:prefLabel>'."\n";              
+                }
               }
             break;
             case "altLabel":     
               foreach($attributeValues as $altLabel)
               {
-                if($altLabel != "")
+                if($altLabel != "" && !$this->in_array_r($altLabel, $record[Namespaces::$iron.'altLabel']))
                 {
                   $xml .= '    <iron:altLabel>'.$this->xmlEncode($altLabel).'</iron:altLabel>'."\n";              
                 }
@@ -1072,13 +1075,19 @@ class Resultset
             case "description":   
               if($attributeValues != "")
               {
-                $xml .= '    <iron:description>'.$this->xmlEncode($attributeValues).'</iron:description>'."\n";              
+                if(!$this->in_array_r($attributeValues, $record[Namespaces::$iron.'description']))
+                {                
+                  $xml .= '    <iron:description>'.$this->xmlEncode($attributeValues).'</iron:description>'."\n";              
+                }
               }
             break;
             case "prefURL":
               if($attributeValues != "")
               {
-                $xml .= '    <iron:prefURL>'.$this->xmlEncode($attributeValues).'</iron:prefURL>'."\n";              
+                if(!$this->in_array_r($attributeValues, $record[Namespaces::$iron.'prefURL']))
+                {
+                  $xml .= '    <iron:prefURL>'.$this->xmlEncode($attributeValues).'</iron:prefURL>'."\n";              
+                }
               }            
             break;
             
@@ -1233,7 +1242,10 @@ class Resultset
             case "prefLabel":
               if($attributeValues != "")
               {
-                $json .= $jsonPaddingSize.'iron:prefLabel """'.$this->jsonEncode($attributeValues).'"""'." ;\n";              
+                if(!$this->in_array_r($attributeValues, $record[Namespaces::$iron.'prefLabel']))
+                {                
+                  $json .= $jsonPaddingSize.'iron:prefLabel """'.$this->jsonEncode($attributeValues).'"""'." ;\n";              
+                }
               }
             break;
             case "altLabel":     
@@ -1241,20 +1253,29 @@ class Resultset
               {
                 if($altLabel != "")
                 {
-                  $json .= $jsonPaddingSize.'iron:prefLabel """'.$this->jsonEncode($altLabel).'"""'." ;\n";              
+                  if(!$this->in_array_r($altLabel, $record[Namespaces::$iron.'altLabel']))
+                  {                
+                    $json .= $jsonPaddingSize.'iron:altLabel """'.$this->jsonEncode($altLabel).'"""'." ;\n";              
+                  }
                 }
               }          
             break;
             case "description":   
               if($attributeValues != "")
               {
-                $json .= $jsonPaddingSize.'iron:description """'.$this->jsonEncode($attributeValues).'"""'." ;\n";              
+                if(!$this->in_array_r($attributeValues, $record[Namespaces::$iron.'description']))
+                {                
+                  $json .= $jsonPaddingSize.'iron:description """'.$this->jsonEncode($attributeValues).'"""'." ;\n";              
+                }
               }
             break;
             case "prefURL":
               if($attributeValues != "")
               {
-                $json .= $jsonPaddingSize.'iron:prefURL """'.$this->jsonEncode($attributeValues).'"""'." ;\n";              
+                if(!$this->in_array_r($attributeValues, $record[Namespaces::$iron.'prefURL']))
+                {                
+                  $json .= $jsonPaddingSize.'iron:prefURL """'.$this->jsonEncode($attributeValues).'"""'." ;\n";              
+                }
               }            
             break;
             
@@ -1495,6 +1516,22 @@ class Resultset
     {
       return($uri);
     }
+  }
+
+  /**
+  * Utility in_array recursive function
+  */
+  private function in_array_r($needle, $haystack, $strict = false) 
+  {
+    foreach($haystack as $item) 
+    {
+      if(($strict ? $item === $needle : $item == $needle) || (is_array($item) && $this->in_array_r($needle, $item, $strict))) 
+      {
+        return true;
+      }
+    }
+
+    return false;
   }
 }            
 

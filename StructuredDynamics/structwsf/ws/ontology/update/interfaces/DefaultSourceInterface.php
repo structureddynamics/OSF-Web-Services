@@ -398,14 +398,42 @@
                 
                 if($crudUpdate->pipeline_getResponseHeaderStatus() != 200)
                 {
-                  $this->ws->conneg->setStatus($crudUpdate->pipeline_getResponseHeaderStatus());
-                  $this->ws->conneg->setStatusMsg($crudUpdate->pipeline_getResponseHeaderStatusMsg());
-                  $this->ws->conneg->setStatusMsgExt($crudUpdate->pipeline_getResponseHeaderStatusMsgExt());
-                  $this->ws->conneg->setError($crudUpdate->pipeline_getError()->id, $crudUpdate->pipeline_getError()->webservice,
-                    $crudUpdate->pipeline_getError()->name, $crudUpdate->pipeline_getError()->description,
-                    $crudUpdate->pipeline_getError()->debugInfo, $crudUpdate->pipeline_getError()->level);
+                  if($crudUpdate->pipeline_getError()->id == 'WS-CRUD-UPDATE-315')
+                  {
+                    // If the WS-CRUD-UPDATE-315 error is returned, it means that we are creating
+                    // this new entity into structWSF, so we have to re-issue the query using
+                    // the CRUD: Create endpoint
+                    $crudCreate = new CrudCreate($serializedResource, "application/rdf+xml", 'full', $this->ws->ontologyUri, 
+                                                 $this->ws->registered_ip, $this->ws->requester_ip);
 
-                  return;
+                    $crudCreate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
+                      $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+
+                    $crudCreate->process();
+                    
+                    if($crudCreate->pipeline_getResponseHeaderStatus() != 200)
+                    {   
+                      $this->ws->conneg->setStatus($crudCreate->pipeline_getResponseHeaderStatus());
+                      $this->ws->conneg->setStatusMsg($crudCreate->pipeline_getResponseHeaderStatusMsg());
+                      $this->ws->conneg->setStatusMsgExt($crudCreate->pipeline_getResponseHeaderStatusMsgExt());
+                      $this->ws->conneg->setError($crudCreate->pipeline_getError()->id, $crudCreate->pipeline_getError()->webservice,
+                        $crudCreate->pipeline_getError()->name, $crudCreate->pipeline_getError()->description,
+                        $crudCreate->pipeline_getError()->debugInfo, $crudCreate->pipeline_getError()->level);
+
+                      return;
+                    }                                     
+                  }
+                  else
+                  {
+                    $this->ws->conneg->setStatus($crudUpdate->pipeline_getResponseHeaderStatus());
+                    $this->ws->conneg->setStatusMsg($crudUpdate->pipeline_getResponseHeaderStatusMsg());
+                    $this->ws->conneg->setStatusMsgExt($crudUpdate->pipeline_getResponseHeaderStatusMsgExt());
+                    $this->ws->conneg->setError($crudUpdate->pipeline_getError()->id, $crudUpdate->pipeline_getError()->webservice,
+                      $crudUpdate->pipeline_getError()->name, $crudUpdate->pipeline_getError()->description,
+                      $crudUpdate->pipeline_getError()->debugInfo, $crudUpdate->pipeline_getError()->level);
+
+                    return;
+                  }
                 } 
                 
                 unset($crudUpdate);              

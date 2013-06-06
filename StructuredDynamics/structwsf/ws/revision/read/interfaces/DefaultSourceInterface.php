@@ -186,6 +186,12 @@
             }
           }
 
+          if(!isset($subject[Namespaces::$dcterms.'isPartOf']))
+          {
+            $subject[Namespaces::$dcterms.'isPartOf'] = array(array("uri" => $this->ws->dataset, 
+                                                                    "type" => ""));
+          }
+          
           unset($resultset);
 
           $this->ws->rset->setResultset(Array($this->ws->dataset => array($subjectUri => $subject)));

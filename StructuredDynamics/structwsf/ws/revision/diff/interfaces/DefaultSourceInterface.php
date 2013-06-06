@@ -26,7 +26,7 @@
         
         // If the query is still valid
         if($this->ws->conneg->getStatus() == 200)
-        { 
+        {          
           // Get the description of the revisions
           $lRevisionRead = new RevisionRead($this->ws->lrevuri, $this->ws->dataset, 'record', 
                                             $this->ws->registered_ip, $this->ws->requester_ip);
@@ -85,14 +85,14 @@
           $rrev = $rrev->getResultset();
 
           // Make sure the two revisions are revisions of the same record
-          reset($lrev['unspecified']);
+          reset($lrev[$this->ws->dataset]);
           $lrevuri = key($lrev[$this->ws->dataset]);
           reset($rrev[$this->ws->dataset]);
           $rrevuri = key($rrev[$this->ws->dataset]);
           
           $lrev = $lrev[$this->ws->dataset][$lrevuri];
           $rrev = $rrev[$this->ws->dataset][$rrevuri];
-          
+
           if($lrevuri != $rrevuri)
           {
             $this->ws->conneg->setStatus(500);

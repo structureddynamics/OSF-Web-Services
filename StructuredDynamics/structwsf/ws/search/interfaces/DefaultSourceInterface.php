@@ -949,7 +949,7 @@
                     break;
                     
                     default:
-                      $solrQuery .= " ".$this->ws->attributesBooleanOperator." (".$attribute.":".urlencode($this->escapeSolrValue($this->arrangeSolrValue($val))).")";
+                      $solrQuery .= " ".$this->ws->attributesBooleanOperator." (".$attribute.":".urlencode($this->arrangeSolrValue($val)).")";
                     break;
                   }                
                   
@@ -975,7 +975,7 @@
               // the query anyway.
               if(!$coreAttr && array_search(urlencode($attribute), $indexedFields) !== FALSE)
               {
-                $solrQuery .= "(".urlencode(urlencode($attribute)).":".urlencode($this->escapeSolrValue($this->arrangeSolrValue($val))).")";  
+                $solrQuery .= "(".urlencode(urlencode($attribute)).":".urlencode($this->arrangeSolrValue($val)).")";  
                 $addOR = TRUE;
                 $empty = FALSE;
               }
@@ -987,7 +987,7 @@
                   $solrQuery .= " OR ";
                 }
                 
-                $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_".$this->ws->lang.$singleValuedDesignator.":".urlencode($this->escapeSolrValue($this->arrangeSolrValue($val))).")";
+                $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_".$this->ws->lang.$singleValuedDesignator.":".urlencode($this->arrangeSolrValue($val)).")";
                 $addOR = TRUE;
                 $empty = FALSE;
               }
@@ -1172,7 +1172,7 @@
                   $solrQuery .= " OR ";
                 }
                 
-                $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj_".$this->ws->lang.$singleValuedDesignator.":".urlencode($this->escapeSolrValue($val)).")";
+                $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj_".$this->ws->lang.$singleValuedDesignator.":".urlencode($this->arrangeSolrValue($val)).")";
                 $addOR = TRUE;
                 $empty = FALSE;
               }

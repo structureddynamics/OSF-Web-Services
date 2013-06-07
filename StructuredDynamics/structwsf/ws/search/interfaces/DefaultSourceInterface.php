@@ -1534,6 +1534,7 @@
         $founds = $xpath->query("//*/lst[@name='facet_fields']//lst[@name='type']/int");
         
         // Set types aggregates
+        $aggregateTypes = array();
         foreach($founds as $found)
         {
           $subject = new Subject($this->ws->uri . "aggregate/" . md5(microtime()));
@@ -1542,6 +1543,8 @@
           $subject->setObjectAttribute(Namespaces::$aggr."object", $found->attributes->getNamedItem("name")->nodeValue);
           $subject->setDataAttribute(Namespaces::$aggr."count", $found->nodeValue);
           $this->ws->rset->addSubject($subject);
+          
+          $aggregateTypes[] = $found->attributes->getNamedItem("name")->nodeValue;          
         }
 
         // Set types aggregates for inferred types
@@ -1553,6 +1556,15 @@
           // Get types counts
           foreach($founds as $found)
           {
+            // Make sure we don't duplicate aggregate type here
+            // Also make sure that if rdfs:Class is part of the inferred types it means that
+            // owl:Class is part of the non-inferred types which means that we have to skip it here.
+            if(in_array($found->attributes->getNamedItem("name")->nodeValue, $aggregateTypes) ||
+               $found->attributes->getNamedItem("name")->nodeValue == Namespaces::$rdfs.'Class')
+            {
+              continue;
+            }
+                        
             $subject = new Subject($this->ws->uri . "aggregate/" . md5(microtime()));
             $subject->setType(Namespaces::$aggr."Aggregate");
             $subject->setObjectAttribute(Namespaces::$aggr."property", Namespaces::$rdf."type");
@@ -1560,6 +1572,8 @@
             $subject->setDataAttribute(Namespaces::$aggr."count", $found->nodeValue);
             $this->ws->rset->addSubject($subject);
           }
+          
+          unset($aggregateTypes);          
         }                  
         
         // Set the dataset aggregates

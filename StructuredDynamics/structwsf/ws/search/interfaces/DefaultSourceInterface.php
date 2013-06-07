@@ -290,7 +290,7 @@
         // Types boosting rules
         if($this->ws->typesBoost != "")
         {
-         $boostRules = explode(";", $this->ws->typesBoost);
+         $boostRules = explode(";", trim($this->ws->typesBoost, ';'));
          
          foreach($boostRules as $key => $rule)
          {
@@ -313,7 +313,7 @@
         // Datasets boosting rules
         if($this->ws->datasetsBoost != "")
         {
-         $boostRules = explode(";", $this->ws->datasetsBoost);
+         $boostRules = explode(";", trim($this->ws->datasetsBoost, ';'));
          
          foreach($boostRules as $key => $rule)
          {
@@ -331,7 +331,7 @@
         // Attributes & Attributes/values boosting rules
         if($this->ws->attributesBoost != "")
         {
-         $boostRules = explode(";", $this->ws->attributesBoost);
+         $boostRules = explode(";", trim($this->ws->attributesBoost, ';'));
          
          foreach($boostRules as $key => $rule)
          {
@@ -437,7 +437,7 @@
         // Attributes phrases boosting rules
         if($this->ws->attributesPhraseBoost != "")
         {
-          $boostRules = explode(";", $this->ws->attributesPhraseBoost);
+          $boostRules = explode(";", trim($this->ws->attributesPhraseBoost, ';'));
 
           $indexedFields = array();
 
@@ -496,7 +496,7 @@
         {
           $restrictionRules .= '&qf=';
           
-          $restrictions = explode(';', $this->ws->searchRestrictions);
+          $restrictions = explode(';', trim($this->ws->searchRestrictions, ';'));
           
           foreach($restrictions as $restriction)
           {
@@ -611,7 +611,7 @@
         }
         else
         {
-          $datasets = explode(";", $this->ws->datasets);
+          $datasets = explode(";", trim($this->ws->datasets, ';'));
 
           $solrQuery .= "&fq=dataset:%22%22";
 
@@ -632,7 +632,7 @@
         {
           // Lets include the information to facet per type.
 
-          $types = explode(";", $this->ws->types);
+          $types = explode(";", trim($this->ws->types, ';'));
 
           $nbProcessed = 0;
 
@@ -817,7 +817,7 @@
         if($this->ws->attributes != "all")
         {                    
           // Lets include the information to facet per type.
-          $attributes = explode(";", $this->ws->attributes);
+          $attributes = explode(";", trim($this->ws->attributes, ';'));
 
           $nbProcessed = 0;
 
@@ -1251,7 +1251,7 @@
             $params[2] == distance
             $params[3] == (0) distance in kilometers, (1) distance in miles
           */
-          $params = explode(";", $this->ws->distanceFilter);
+          $params = explode(";", trim($this->ws->distanceFilter, ';'));
           
           $earthRadius = 6371;
           
@@ -1273,7 +1273,7 @@
             $params[2] == latitude bottom-right
             $params[3] == longitude bottom-right
           */
-          $params = explode(";", $this->ws->rangeFilter);
+          $params = explode(";", trim($this->ws->rangeFilter, ';'));
           
           // Make sure the ranges are respected according to the way the cartesian coordinate
           // system works.

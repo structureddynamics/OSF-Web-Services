@@ -117,63 +117,62 @@
             $revisionDataset = rtrim($this->ws->dataset, '/').'/revisions/';
             $revisionUris = array();    
             $firstRevisionUris = array();      
-            
+
             // Make sure that this is the latest version of this record, and make sure that
             // there is not a more recent *unpublished* revision of that record.         
-            // This check is only valid if a revision need to be created in the process.
-            if($this->ws->lifecycle == 'published')
-            {      
-              foreach($irsUri as $subject)
+            // This check is only valid if a revision need to be created in the process.  
+            foreach($irsUri as $subject)
+            {
+              $query = "select ?status
+                        from <" . $revisionDataset . ">
+                        where
+                        {
+                          ?s <http://purl.org/ontology/wsf#revisionTime> ?timestamp ;
+                             <http://purl.org/ontology/wsf#revisionUri> <".$subject."> ;
+                             <http://purl.org/ontology/wsf#revisionStatus> ?status .
+                        }
+                        order by desc(?timestamp)
+                        limit 1
+                        offset 0";
+
+              $resultset = @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array('status'), FALSE));
+
+              if(odbc_error())
               {
-                $query = "select ?status
-                          from <" . $revisionDataset . ">
-                          where
-                          {
-                            ?s <http://purl.org/ontology/wsf#revisionTime> ?timestamp ;
-                               <http://purl.org/ontology/wsf#revisionUri> <".$subject."> ;
-                               <http://purl.org/ontology/wsf#revisionStatus> ?status .
-                          }
-                          order by desc(?timestamp)
-                          limit 1
-                          offset 0";
+                $this->ws->conneg->setStatus(500);
+                $this->ws->conneg->setStatusMsg("Internal Error");
+                $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_314->name);
+                $this->ws->conneg->setError($this->ws->errorMessenger->_314->id, $this->ws->errorMessenger->ws,
+                  $this->ws->errorMessenger->_314->name, $this->ws->errorMessenger->_314->description, odbc_errormsg(),
+                  $this->ws->errorMessenger->_314->level);
 
-                $resultset = @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array('status'), FALSE));
-
-                if(odbc_error())
+                return;
+              }
+              else
+              {
+                $status = odbc_result($resultset, 1);
+                                
+                if($this->ws->lifecycle == 'published' && 
+                   $status != Namespaces::$wsf.'published' 
+                   && $status !== FALSE)
                 {
-                  $this->ws->conneg->setStatus(500);
-                  $this->ws->conneg->setStatusMsg("Internal Error");
-                  $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_314->name);
-                  $this->ws->conneg->setError($this->ws->errorMessenger->_314->id, $this->ws->errorMessenger->ws,
-                    $this->ws->errorMessenger->_314->name, $this->ws->errorMessenger->_314->description, odbc_errormsg(),
-                    $this->ws->errorMessenger->_314->level);
+                  // The latest revision is not the latest published so we send an error
+                  // and stop the execution here
+                  $this->ws->conneg->setStatus(400);
+                  $this->ws->conneg->setStatusMsg("Bad Request");
+                  $this->ws->conneg->setError($this->ws->errorMessenger->_313->id, $this->ws->errorMessenger->ws,
+                    $this->ws->errorMessenger->_313->name, $this->ws->errorMessenger->_313->description, $errorsOutput,
+                    $this->ws->errorMessenger->_313->level);
 
-                  return;
+                  return;                        
                 }
-                else
+                
+                if($status === FALSE)
                 {
-                  $status = odbc_result($resultset, 1);
-                                  
-                  if($status != Namespaces::$wsf.'published' && $status !== FALSE)
-                  {
-                    // The latest revision is not the latest published so we send an error
-                    // and stop the execution here
-                    $this->ws->conneg->setStatus(400);
-                    $this->ws->conneg->setStatusMsg("Bad Request");
-                    $this->ws->conneg->setError($this->ws->errorMessenger->_313->id, $this->ws->errorMessenger->ws,
-                      $this->ws->errorMessenger->_313->name, $this->ws->errorMessenger->_313->description, $errorsOutput,
-                      $this->ws->errorMessenger->_313->level);
-
-                    return;                        
-                  }
-                  
-                  if($status === FALSE)
-                  {
-                    // This is the first time this record get revisioned. This means that we will
-                    // have to create its initial revision using what is currently indexed in
-                    // the dataset
-                    $firstRevisionUris[] = $subject;
-                  }
+                  // This is the first time this record get revisioned. This means that we will
+                  // have to create its initial revision using what is currently indexed in
+                  // the dataset
+                  $firstRevisionUris[] = $subject;
                 }
               }
             }
@@ -197,7 +196,7 @@
               // If it is the case, then the first thing we have to do is to create a revision
               // record that will save its initial state.
               //
-              // This is requirec since when a record is first created, we are *not* creating
+              // This is required since when a record is first created, we are *not* creating
               // an initial revision record using CRUD: Create.  
               if(in_array($subject, $firstRevisionUris))
               {
@@ -268,13 +267,28 @@
                                                                  'type' => 'uri'
                                                                )
                                                              );
-                                                             
-                $initialResourceIndex[$subject][Namespaces::$wsf.'revisionStatus'] = array(
-                                                                    array(
-                                                                      'value' => Namespaces::$wsf.'archive',
-                                                                      'type' => 'uri'
-                                                                    )
-                                                                  );    
+                
+                if($this->ws->lifecycle == 'published')
+                {                                             
+                  $initialResourceIndex[$subject][Namespaces::$wsf.'revisionStatus'] = array(
+                                                                      array(
+                                                                        'value' => Namespaces::$wsf.'archive',
+                                                                        'type' => 'uri'
+                                                                      )
+                                                                    );    
+                }
+                else
+                {
+                  // If the lifecycle stage is not published, it means that the initial state of te record
+                  // is still the published version of it, so we make that initial state the published
+                  // version for that record.
+                  $initialResourceIndex[$subject][Namespaces::$wsf.'revisionStatus'] = array(
+                                                                      array(
+                                                                        'value' => Namespaces::$wsf.'published',
+                                                                        'type' => 'uri'
+                                                                      )
+                                                                    );    
+                }
                                                   
                 // Add the initial record's revision to the list of revisions to add to the triple store
                 $resourceRevisionsIndex[$revisionUri] = $initialResourceIndex[$subject];

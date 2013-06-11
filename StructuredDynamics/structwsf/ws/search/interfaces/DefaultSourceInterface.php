@@ -32,6 +32,13 @@
     
     private function escapeURIValue($uri)
     {
+      $uri = $this->escapeColonValue($uri);
+
+      return $uri;
+    } 
+             
+    private function escapeColonValue($uri)
+    {
       $match = array(':');
       $replace = array('\\:');
       $uri = str_replace($match, $replace, $uri);
@@ -51,11 +58,11 @@
       if(!$this->isUsingLuceneSyntax($string))
       {
         return(preg_replace("/[^A-Za-z0-9\.\s\*\\\]/", " ", $string));  
-      }
+      } 
 
       // If the string is using some character from the lucene syntax, then we keep the string 
-      // intact.
-      return($string);  
+      // intact except that we escape possible colon characters.
+      return($this->escapeColonValue($string));  
     }                    
 
     /**

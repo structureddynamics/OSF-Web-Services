@@ -346,6 +346,12 @@
               $s = odbc_result($resultset, 1);
               $p = odbc_result($resultset, 2);
 
+              // Make sure that the linkback record is not a record that is already returned by the endpoint
+              if(in_array($s, $uris))
+              {
+                continue;  
+              }
+              
               if(!isset($subjects[$s]))
               {
                 $subjects[$s] = array( "type" => array(),

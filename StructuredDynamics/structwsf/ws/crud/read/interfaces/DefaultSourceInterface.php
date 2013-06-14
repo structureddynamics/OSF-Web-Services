@@ -51,7 +51,10 @@
           if($this->ws->virtuoso_main_version != 6)
           {
             // At least return the type
-            $attributesFilter = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type|';
+            if(is_array($this->ws->include_attributes_list) && count($this->ws->include_attributes_list) > 0)
+            {
+              $attributesFilter = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type|';
+            }
             
             foreach($this->ws->include_attributes_list as $attr)
             {
@@ -63,7 +66,10 @@
           else
           {
             // At least return the type
-            $attributesFilter = '<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>,';
+            if(is_array($this->ws->include_attributes_list) && count($this->ws->include_attributes_list) > 0)
+            {
+              $attributesFilter = '<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>,';
+            }
             
             foreach($this->ws->include_attributes_list as $attr)
             {
@@ -75,7 +81,7 @@
             
             $attributesFilter = trim($attributesFilter, ",");
           }
-          
+
           if($this->ws->globalDataset === FALSE)
           {
             $d = str_ireplace("%3B", ";", $datasets[$key]);

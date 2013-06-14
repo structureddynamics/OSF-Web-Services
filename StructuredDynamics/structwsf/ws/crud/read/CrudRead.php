@@ -225,7 +225,10 @@ class CrudRead extends \StructuredDynamics\structwsf\ws\framework\WebService
 
     $this->dataset = $dataset;
     
-    $this->include_attributes_list = explode(";", $include_attributes_list);
+    if($include_attributes_list != '')
+    {
+      $this->include_attributes_list = explode(";", $include_attributes_list);
+    }
 
     // If no dataset URI is defined for this query, we simply query all datasets accessible by the requester.
     if($this->dataset == "")

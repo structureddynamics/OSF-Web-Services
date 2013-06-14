@@ -50,6 +50,9 @@
           // when the Virtuoso instance has been fixed with the LRL (long read length) path
           if($this->ws->virtuoso_main_version != 6)
           {
+            // At least return the type
+            $attributesFilter = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type|';
+            
             foreach($this->ws->include_attributes_list as $attr)
             {
               $attributesFilter .= $attr."|";
@@ -59,6 +62,9 @@
           }
           else
           {
+            // At least return the type
+            $attributesFilter = '<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>,';
+            
             foreach($this->ws->include_attributes_list as $attr)
             {
               if($attr != "")
@@ -361,7 +367,7 @@
 
             if($this->ws->globalDataset === FALSE)
             {
-              $query = "  select ?rei_p ?rei_o ?p ?o from <" . $d . "reification/> 
+              $query = "  select ?statement ?rei_p ?rei_o ?p ?o from <" . $d . "reification/> 
                       where 
                       {
                         ?statement <http://www.w3.org/1999/02/22-rdf-syntax-ns#subject> <"
@@ -384,7 +390,7 @@
                 }
               }
 
-              $query = "  select ?rei_p ?rei_o ?p ?o $d 
+              $query = "  select ?statement ?rei_p ?rei_o ?p ?o $d 
                       where 
                       {
                         graph ?g
@@ -400,7 +406,7 @@
             }
           
             $query = $this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
-              array ('rei_p', 'rei_o', 'p', 'o'), FALSE);
+              array ('statement', 'rei_p', 'rei_o', 'p', 'o'), FALSE);
 
             $resultset = $this->ws->db->query($query);
 
@@ -416,10 +422,11 @@
 
             while(odbc_fetch_row($resultset))
             {
-              $rei_p = odbc_result($resultset, 1);
-              $rei_o = $this->ws->db->odbc_getPossibleLongResult($resultset, 2);
-              $p = odbc_result($resultset, 3);
-              $o = $this->ws->db->odbc_getPossibleLongResult($resultset, 4);
+              $statement = odbc_result($resultset, 1);
+              $rei_p = odbc_result($resultset, 2);
+              $rei_o = $this->ws->db->odbc_getPossibleLongResult($resultset, 3);
+              $p = odbc_result($resultset, 4);
+              $o = $this->ws->db->odbc_getPossibleLongResult($resultset, 5);
 
               if($p != "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject"
                 && $p != "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate"

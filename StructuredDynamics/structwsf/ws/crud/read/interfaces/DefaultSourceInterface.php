@@ -54,14 +54,14 @@
             if(is_array($this->ws->include_attributes_list) && count($this->ws->include_attributes_list) > 0)
             {
               $attributesFilter = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type|';
+              
+              foreach($this->ws->include_attributes_list as $attr)
+              {
+                $attributesFilter .= $attr."|";
+              }
+              
+              $attributesFilter = trim($attributesFilter, "|");              
             }
-            
-            foreach($this->ws->include_attributes_list as $attr)
-            {
-              $attributesFilter .= $attr."|";
-            }
-            
-            $attributesFilter = trim($attributesFilter, "|");
           }
           else
           {
@@ -69,17 +69,17 @@
             if(is_array($this->ws->include_attributes_list) && count($this->ws->include_attributes_list) > 0)
             {
               $attributesFilter = '<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>,';
-            }
-            
-            foreach($this->ws->include_attributes_list as $attr)
-            {
-              if($attr != "")
+              
+              foreach($this->ws->include_attributes_list as $attr)
               {
-                $attributesFilter .= "<$attr>,";
+                if($attr != "")
+                {
+                  $attributesFilter .= "<$attr>,";
+                }
               }
+              
+              $attributesFilter = trim($attributesFilter, ",");              
             }
-            
-            $attributesFilter = trim($attributesFilter, ",");
           }
 
           if($this->ws->globalDataset === FALSE)

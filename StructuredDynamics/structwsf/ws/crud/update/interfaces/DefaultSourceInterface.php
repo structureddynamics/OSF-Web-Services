@@ -161,7 +161,7 @@
                   $this->ws->conneg->setStatus(400);
                   $this->ws->conneg->setStatusMsg("Bad Request");
                   $this->ws->conneg->setError($this->ws->errorMessenger->_313->id, $this->ws->errorMessenger->ws,
-                    $this->ws->errorMessenger->_313->name, $this->ws->errorMessenger->_313->description, $errorsOutput,
+                    $this->ws->errorMessenger->_313->name, $this->ws->errorMessenger->_313->description, '',
                     $this->ws->errorMessenger->_313->level);
 
                   return;                        
@@ -317,15 +317,16 @@
                   }
                 }                           
               }
-
+              
               // Make sure that we sleep this script execution for 1 microsecond to ensure that
               // we will endup with a unique timestamp. Otherwise there could be URI clashes
-              usleep(1);
 
               $microtimestamp = microtime(true);
-              
+
+              usleep(1);
+
               $revisionUri = $revisionDataset.$microtimestamp;
-              
+
               $revisionUris[] = $revisionUri;
               
               $resourceRevisionsIndex[$subject][Namespaces::$rdf.'type'][] = array(

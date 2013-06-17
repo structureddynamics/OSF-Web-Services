@@ -136,8 +136,8 @@ class CrudUpdate extends \StructuredDynamics\structwsf\ws\framework\WebService
                         "_311": {
                           "id": "WS-CRUD-UPDATE-311",
                           "level": "Fatal",
-                          "name": "Can\'t parse the propertyHierarchySerialized.srz file",
-                          "description": "We can\'t parse the propertyHierarchySerialized.srz file. Please do make sure that this file is properly serialized. You can try to fix that issue by re-creating a serialization file from the latest version of the OntologyRead web service endpoint and to replace the result with the current file being used."
+                          "name": "Requested incompatible Source Interface version",
+                          "description": "The version of the source interface you requested is not compatible with the version of the source interface currently hosted on the system. Please make sure that your tool get upgraded for using this current version of the endpoint."
                         },
                         "_312": {
                           "id": "WS-CRUD-UPDATE-312",
@@ -544,11 +544,11 @@ class CrudUpdate extends \StructuredDynamics\structwsf\ws\framework\WebService
         {
           $this->conneg->setStatus(400);
           $this->conneg->setStatusMsg("Bad Request");
-          $this->conneg->setStatusMsgExt($this->errorMessenger->_309->name);
-          $this->conneg->setError($this->errorMessenger->_309->id, $this->errorMessenger->ws,
-            $this->errorMessenger->_309->name, $this->errorMessenger->_309->description, 
+          $this->conneg->setStatusMsgExt($this->errorMessenger->_311->name);
+          $this->conneg->setError($this->errorMessenger->_311->id, $this->errorMessenger->ws,
+            $this->errorMessenger->_311->name, $this->errorMessenger->_311->description, 
             "Requested Source Interface: ".$this->interface,
-            $this->errorMessenger->_309->level);  
+            $this->errorMessenger->_311->level);  
             
             return;
         }

@@ -94,6 +94,12 @@ class RevisionRead extends \StructuredDynamics\structwsf\ws\framework\WebService
                           "level": "Fatal",
                           "name": "Requested mode non-existing",
                           "description": "The mode requested for this query is not existing. Known modes are: \'revision\' and \'record\'"
+                        },
+                        "_306": {
+                          "id": "WS-REVISION-READ-306",
+                          "level": "Fatal",
+                          "name": "Unexisting Revision Record",
+                          "description": "The revision record you specified for this query is not existing for this dataset"
                         }
                       }';
 

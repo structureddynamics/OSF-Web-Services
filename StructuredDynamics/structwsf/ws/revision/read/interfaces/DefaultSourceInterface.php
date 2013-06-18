@@ -56,9 +56,11 @@
                            "altLabel" => Array(),
                            "prefURL" => "",
                            "description" => "");           
-          
+         
+          $found = FALSE; 
           while(odbc_fetch_row($resultset))
           {
+            $found = TRUE;
             $p = odbc_result($resultset, 1);
             
             $o = $this->ws->db->odbc_getPossibleLongResult($resultset, 2);
@@ -186,15 +188,27 @@
             }
           }
 
-          if(!isset($subject[Namespaces::$dcterms.'isPartOf']))
+          if($found)
           {
-            $subject[Namespaces::$dcterms.'isPartOf'] = array(array("uri" => $this->ws->dataset, 
-                                                                    "type" => ""));
-          }
-          
-          unset($resultset);
+            if(!isset($subject[Namespaces::$dcterms.'isPartOf']))
+            {
+              $subject[Namespaces::$dcterms.'isPartOf'] = array(array("uri" => $this->ws->dataset, 
+                                                                      "type" => ""));
+            }
+            
+            unset($resultset);
 
-          $this->ws->rset->setResultset(Array($this->ws->dataset => array($subjectUri => $subject)));
+            $this->ws->rset->setResultset(Array($this->ws->dataset => array($subjectUri => $subject)));
+          }
+          else
+          {
+            $this->ws->conneg->setStatus(400);
+            $this->ws->conneg->setStatusMsg("Bad Request");
+            $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_306->name);
+            $this->ws->conneg->setError($this->ws->errorMessenger->_306->id, $this->ws->errorMessenger->ws,
+              $this->ws->errorMessenger->_306->name, $this->ws->errorMessenger->_306->description, odbc_errormsg(),
+              $this->ws->errorMessenger->_306->level);            
+          }
         }      
       }
     }

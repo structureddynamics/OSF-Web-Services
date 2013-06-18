@@ -276,8 +276,8 @@ class RevisionRead extends \StructuredDynamics\structwsf\ws\framework\WebService
     if($this->mode != 'revision' &&
        $this->mode != 'record')
     {
-      $this->conneg->setStatus(500);
-      $this->conneg->setStatusMsg("Internal Error");
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
       $this->conneg->setStatusMsgExt($this->errorMessenger->_305->name);
       $this->conneg->setError($this->errorMessenger->_305->id, $this->errorMessenger->ws,
         $this->errorMessenger->_305->name, $this->errorMessenger->_305->description, odbc_errormsg(),

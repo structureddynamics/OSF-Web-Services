@@ -333,8 +333,7 @@ class CrudDelete extends \StructuredDynamics\structwsf\ws\framework\WebService
       new Conneg($accept, $accept_charset, $accept_encoding, $accept_language, CrudDelete::$supportedSerializations);
 
     // Check for errors
-
-    if($this->uri == "")
+    if($this->resourceUri == "")
     {
       $this->conneg->setStatus(400);
       $this->conneg->setStatusMsg("Bad Request");

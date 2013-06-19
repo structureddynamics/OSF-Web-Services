@@ -87,15 +87,24 @@
               }
             }            
             
+            $objectType = "";
+            
             if($olang && $olang != "")
             {
               /* If a language is defined for an object, we force its type to be xsd:string */
-              $objectType = "http://www.w3.org/2001/XMLSchema#string";
+              $otype = "http://www.w3.org/2001/XMLSchema#string";
             }
-            else
+            
+            // Since the default datatype is rdfs:Literal, we put nothing as the type if the $otype
+            // is xsd:string
+            // Note: we may eventually want to keep the xsd:string type assignation. If it is the
+            //       case then we will only have to remove the 4 lines below.
+            if($otype == 'http://www.w3.org/2001/XMLSchema#string')
             {
-              $objectType = $otype;
+              $otype = '';
             }
+            
+            $objectType = $otype;
     
             if($p == Namespaces::$rdf."type")
             {
@@ -120,7 +129,7 @@
               {
                 array_push($subject[$p], Array("value" => $o, 
                                                "lang" => (isset($olang) ? $olang : ""),
-                                               "type" => "rdfs:Literal"));
+                                               "type" => $objectType));
               }
               else
               {

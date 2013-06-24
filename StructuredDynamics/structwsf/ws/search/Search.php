@@ -234,6 +234,48 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
                           "level": "Fatal",
                           "name": "Query failed",
                           "description": "The query to the Solr server failed using these parameters."
+                        },
+                        "_312": {
+                          "id": "WS-SEARCH-312",
+                          "level": "Fatal",
+                          "name": "fieldsIndex.srz unexisting",
+                          "description": "The file fieldsIndex.srz is unexisting. Make sure it can be created by the CRUD: Create and CRUD: Update web service endpoints at the folder location specified by the fields_index_folder setting of the data.ini file."
+                        },
+                        "_313": {
+                          "id": "WS-SEARCH-313",
+                          "level": "Warning",
+                          "name": "Unused attribute specified in the attributes filters",
+                          "description": "An unused attribute as been specified as an attributes filter for this query. Make sure the URI of this attribute is the good one, and make sure there is data currently indexed for this attribute then try this query again."
+                        },
+                        "_314": {
+                          "id": "WS-SEARCH-314",
+                          "level": "Warning",
+                          "name": "Unused attribute specified in the attributes boost parameter",
+                          "description": "An unused attribute as been specified as an attributes boost parameter for this query. Make sure the URI of this attribute is the good one, and make sure there is data currently indexed for this attribute then try this query again."
+                        },
+                        "_315": {
+                          "id": "WS-SEARCH-315",
+                          "level": "Warning",
+                          "name": "Unused attribute specified in the attributes phrases boost parameter",
+                          "description": "An unused attribute as been specified as an attributes phrases boost parameter for this query. Make sure the URI of this attribute is the good one, and make sure there is data currently indexed for this attribute then try this query again."
+                        },
+                        "_316": {
+                          "id": "WS-SEARCH-316",
+                          "level": "Warning",
+                          "name": "Unused attribute specified in the search restrictions parameter",
+                          "description": "An unused attribute as been specified as a search restrictions parameter for this query. Make sure the URI of this attribute is the good one, and make sure there is data currently indexed for this attribute then try this query again."
+                        },
+                        "_317": {
+                          "id": "WS-SEARCH-317",
+                          "level": "Warning",
+                          "name": "Unused attribute specified in the extended filters parameter",
+                          "description": "An unused attribute as been specified in the extended filters parameter for this query. Make sure the URI of this attribute is the good one, and make sure there is data currently indexed for this attribute then try this query again."
+                        },
+                        "_318": {
+                          "id": "WS-SEARCH-318",
+                          "level": "Warning",
+                          "name": "Unused attribute specified in the sort parameter",
+                          "description": "An unused attribute as been specified in the sort parameter for this query. Make sure the URI of this attribute is the good one, and make sure there is data currently indexed for this attribute then try this query again."
                         }
                       }';
 

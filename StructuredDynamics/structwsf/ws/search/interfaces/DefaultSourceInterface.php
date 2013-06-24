@@ -172,6 +172,21 @@
       return(FALSE);
     }
     
+    private function isAttributeUsed($attributeUri, $indexedFields)
+    {
+      foreach($indexedFields as $uri)
+      {
+        $uri = urldecode($uri);
+        
+        if(strpos($uri, $attributeUri) !== FALSE)  
+        {
+          return(TRUE);
+        }
+      }
+      
+      return(FALSE);
+    }
+    
     public function processInterface()
     {  
       // Make sure there was no conneg error prior to this process call
@@ -273,6 +288,24 @@
           return;
         }
         
+        $indexedFields = array();
+
+        if(file_exists($this->ws->fields_index_folder."fieldsIndex.srz"))
+        {
+          $indexedFields = unserialize(file_get_contents($this->ws->fields_index_folder."fieldsIndex.srz"));
+        }                 
+        else
+        {
+          $this->ws->conneg->setStatus(400);
+          $this->ws->conneg->setStatusMsg("Bad Request");
+          $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_312->name);
+          $this->ws->conneg->setError($this->ws->errorMessenger->_312->id, $this->ws->errorMessenger->ws,
+            $this->ws->errorMessenger->_312->name, $this->ws->errorMessenger->_312->description, "Missing file: ".$this->ws->fields_index_folder."fieldsIndex.srz",
+            $this->ws->errorMessenger->_312->level);
+
+          return;              
+        }        
+        
         $queryParam = "*:*";
         
         if($this->ws->query != "")
@@ -360,13 +393,18 @@
              
              $attributeValue = $attribute[1];
              $attribute = $attribute[0];
-             
-             $indexedFields = array();
 
-             if(file_exists($this->ws->fields_index_folder."fieldsIndex.srz"))
+             // Make sure there is data currently indexed for the specified filter(s)
+             if($this->isAttributeUsed($attribute, $indexedFields) === FALSE)
              {
-               $indexedFields = unserialize(file_get_contents($this->ws->fields_index_folder."fieldsIndex.srz"));
-             }                 
+               $this->ws->conneg->setStatus(400);
+               $this->ws->conneg->setStatusMsg("Bad Request");
+               $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_314->name);
+               $this->ws->conneg->setError($this->ws->errorMessenger->_314->id, $this->ws->errorMessenger->ws,
+                 $this->ws->errorMessenger->_314->name, $this->ws->errorMessenger->_314->description, "Unused filter attribute: ".urldecode($attribute),
+                 $this->ws->errorMessenger->_314->level);
+               return;                
+             }
              
              // Fix the reference to some of the core attributes                 
              $isCoreAttribute = $this->isCoreAttribute($attribute, $attribute);
@@ -443,15 +481,8 @@
         
         // Attributes phrases boosting rules
         if($this->ws->attributesPhraseBoost != "")
-        {
+        { 
           $boostRules = explode(";", trim($this->ws->attributesPhraseBoost, ';'));
-
-          $indexedFields = array();
-
-          if(file_exists($this->ws->fields_index_folder."fieldsIndex.srz"))
-          {
-            $indexedFields = unserialize(file_get_contents($this->ws->fields_index_folder."fieldsIndex.srz"));
-          }             
           
           foreach($boostRules as $key => $rule)
           {
@@ -464,6 +495,18 @@
 
             $attribute = str_replace(array("%3B", "%5E"), array(";", "^"), $boost[0]);
             $modifier = $boost[1];
+            
+            // Make sure there is data currently indexed for the specified filter(s)
+            if($this->isAttributeUsed($attribute, $indexedFields) === FALSE)
+            {
+              $this->ws->conneg->setStatus(400);
+                $this->ws->conneg->setStatusMsg("Bad Request");
+                $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_315->name);
+                $this->ws->conneg->setError($this->ws->errorMessenger->_315->id, $this->ws->errorMessenger->ws,
+                  $this->ws->errorMessenger->_315->name, $this->ws->errorMessenger->_315->description, "Unused filter attribute: ".urldecode($attribute),
+                  $this->ws->errorMessenger->_315->level);
+                return;                
+            }            
            
             $isCoreAttribute = $this->isCoreAttribute($attribute, $attribute);
            
@@ -523,13 +566,18 @@
               $attribute = $res[0];
             }
             
-            $indexedFields = array();
-
-            if(file_exists($this->ws->fields_index_folder."fieldsIndex.srz"))
+            // Make sure there is data currently indexed for the specified filter(s)
+            if($this->isAttributeUsed($attribute, $indexedFields) === FALSE)
             {
-              $indexedFields = unserialize(file_get_contents($this->ws->fields_index_folder."fieldsIndex.srz"));
-            }                 
-
+              $this->ws->conneg->setStatus(400);
+                $this->ws->conneg->setStatusMsg("Bad Request");
+                $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_316->name);
+                $this->ws->conneg->setError($this->ws->errorMessenger->_316->id, $this->ws->errorMessenger->ws,
+                  $this->ws->errorMessenger->_316->name, $this->ws->errorMessenger->_316->description, "Unused filter attribute: ".urldecode($attribute),
+                  $this->ws->errorMessenger->_316->level);
+                return;                
+            }            
+            
             // Fix the reference to some of the core attributes                 
             $isCoreAttribute = $this->isCoreAttribute($attribute, $attribute);
 
@@ -672,19 +720,24 @@
           preg_match_all("/([#%\.A-Za-z0-9_\-\[\]]+):[\(\"#%\.A-Za-z0-9_\-\+*]+/Uim", $this->ws->extendedFilters, $matches);
           
           $attributes = $matches[1];
-
-          $indexedFields = array();
-          
-          if(file_exists($this->ws->fields_index_folder."fieldsIndex.srz"))
-          {
-            $indexedFields = unserialize(file_get_contents($this->ws->fields_index_folder."fieldsIndex.srz"));
-          }
           
           $attributes = array_unique($attributes);
 
           foreach($attributes as $attribute)
           {
             $attribute = urldecode($attribute);
+             
+            // Make sure there is data currently indexed for the specified filter(s)
+            if($this->isAttributeUsed($attribute, $indexedFields) === FALSE)
+            {
+              $this->ws->conneg->setStatus(400);
+                $this->ws->conneg->setStatusMsg("Bad Request");
+                $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_317->name);
+                $this->ws->conneg->setError($this->ws->errorMessenger->_317->id, $this->ws->errorMessenger->ws,
+                  $this->ws->errorMessenger->_317->name, $this->ws->errorMessenger->_317->description, "Unused filter attribute: ".urldecode($attribute),
+                  $this->ws->errorMessenger->_317->level);
+                return;                
+            }             
              
             if($attribute == "dataset")
             {
@@ -828,13 +881,6 @@
 
           $nbProcessed = 0;
 
-          $indexedFields = array();          
-          
-          if(file_exists($this->ws->fields_index_folder."fieldsIndex.srz"))
-          {
-            $indexedFields = unserialize(file_get_contents($this->ws->fields_index_folder."fieldsIndex.srz"));
-          }
-
           foreach($attributes as $attribute)
           {
             $attributeValue = explode("::", $attribute);
@@ -845,6 +891,18 @@
             if($attribute == "dataset")
             {
               continue;
+            }
+            
+            // Make sure there is data currently indexed for the specified filter(s)
+            if($this->isAttributeUsed($attribute, $indexedFields) === FALSE)
+            {
+              $this->ws->conneg->setStatus(400);
+                $this->ws->conneg->setStatusMsg("Bad Request");
+                $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_313->name);
+                $this->ws->conneg->setError($this->ws->errorMessenger->_313->id, $this->ws->errorMessenger->ws,
+                  $this->ws->errorMessenger->_313->name, $this->ws->errorMessenger->_313->description, "Unused filter attribute: ".urldecode($attribute),
+                  $this->ws->errorMessenger->_313->level);
+                return;                
             }
             
             if(isset($attributeValue[1]) && $attributeValue[1] != "")
@@ -1367,58 +1425,63 @@
         
         // The the sorting parameter
         if(count($this->ws->sort) > 0)
-        {  
-          $indexedFields = array();
+        {          
+          $solrQuery .= "&sort=";
           
-          if(file_exists($this->ws->fields_index_folder."fieldsIndex.srz"))
+          foreach($this->ws->sort as $sortProperty => $order)
           {
-            $indexedFields = unserialize(file_get_contents($this->ws->fields_index_folder."fieldsIndex.srz"));
-          
-            $solrQuery .= "&sort=";
+            $lSortProperty = strtolower($sortProperty);
             
-            foreach($this->ws->sort as $sortProperty => $order)
+            if($lSortProperty == "preflabel")
             {
-              $lSortProperty = strtolower($sortProperty);
+              $sortProperty = "prefLabelAutocompletion_".$this->ws->lang;
+            }
+            else if($lSortProperty == "type")
+            {
+              $sortProperty = "type_single_valued";
+            }
+            else if( $lSortProperty != "uri" &&
+                     $lSortProperty != "dataset" &&
+                     $lSortProperty != "score")
+            {              
+              $uSortProperty = urlencode($sortProperty);
               
-              if($lSortProperty == "preflabel")
+              // Make sure there is data currently indexed for the specified filter(s)
+              if($this->isAttributeUsed($uSortProperty, $indexedFields) === FALSE)
               {
-                $sortProperty = "prefLabelAutocompletion_".$this->ws->lang;
-              }
-              else if($lSortProperty == "type")
-              {
-                $sortProperty = "type_single_valued";
-              }
-              else if( $lSortProperty != "uri" &&
-                       $lSortProperty != "dataset" &&
-                       $lSortProperty != "score")
-              {              
-                $uSortProperty = urlencode($sortProperty);
-                
-                if(array_search($uSortProperty."_attr_date_single_valued", $indexedFields) !== FALSE)
-                {
-                  $sortProperty = urlencode($uSortProperty)."_attr_date_single_valued";
-                }
-                else if(array_search($uSortProperty."_attr_float_single_valued", $indexedFields) !== FALSE)
-                {
-                  $sortProperty = urlencode($uSortProperty)."_attr_float_single_valued";
-                }
-                else if(array_search($uSortProperty."_attr_int_single_valued", $indexedFields) !== FALSE)
-                {
-                  $sortProperty = urlencode($uSortProperty)."_attr_int_single_valued";
-                }
-                else if(array_search($uSortProperty."_attr_obj_".$this->ws->lang."_single_valued", $indexedFields) !== FALSE)
-                {
-                  $sortProperty = urlencode($uSortProperty)."_attr_obj_".$this->ws->lang."_single_valued";
-                }
-                else if(array_search($uSortProperty."_attr_".$this->ws->lang."_single_valued", $indexedFields) !== FALSE)
-                {
-                  $sortProperty = urlencode($uSortProperty)."_attr_".$this->ws->lang."_single_valued";
-                }                             
-              }
+                $this->ws->conneg->setStatus(400);
+                  $this->ws->conneg->setStatusMsg("Bad Request");
+                  $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_318->name);
+                  $this->ws->conneg->setError($this->ws->errorMessenger->_318->id, $this->ws->errorMessenger->ws,
+                    $this->ws->errorMessenger->_318->name, $this->ws->errorMessenger->_318->description, "Unused filter attribute: ".urldecode($attribute),
+                    $this->ws->errorMessenger->_318->level);
+                  return;                
+              }              
               
-              $solrQuery .= $sortProperty." ".$order.",";
+              if(array_search($uSortProperty."_attr_date_single_valued", $indexedFields) !== FALSE)
+              {
+                $sortProperty = urlencode($uSortProperty)."_attr_date_single_valued";
+              }
+              else if(array_search($uSortProperty."_attr_float_single_valued", $indexedFields) !== FALSE)
+              {
+                $sortProperty = urlencode($uSortProperty)."_attr_float_single_valued";
+              }
+              else if(array_search($uSortProperty."_attr_int_single_valued", $indexedFields) !== FALSE)
+              {
+                $sortProperty = urlencode($uSortProperty)."_attr_int_single_valued";
+              }
+              else if(array_search($uSortProperty."_attr_obj_".$this->ws->lang."_single_valued", $indexedFields) !== FALSE)
+              {
+                $sortProperty = urlencode($uSortProperty)."_attr_obj_".$this->ws->lang."_single_valued";
+              }
+              else if(array_search($uSortProperty."_attr_".$this->ws->lang."_single_valued", $indexedFields) !== FALSE)
+              {
+                $sortProperty = urlencode($uSortProperty)."_attr_".$this->ws->lang."_single_valued";
+              }                             
             }
             
+            $solrQuery .= $sortProperty." ".$order.",";
+
             $solrQuery = rtrim($solrQuery, ",");
           }
         }

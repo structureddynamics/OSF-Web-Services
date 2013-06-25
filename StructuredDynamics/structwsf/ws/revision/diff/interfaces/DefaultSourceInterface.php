@@ -95,8 +95,8 @@
 
           if($lrevuri != $rrevuri)
           {
-            $this->ws->conneg->setStatus(500);
-            $this->ws->conneg->setStatusMsg("Internal Error");
+            $this->ws->conneg->setStatus(400);
+            $this->ws->conneg->setStatusMsg("Bad Request");
             $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_305->name);
             $this->ws->conneg->setError($this->ws->errorMessenger->_305->id, $this->ws->errorMessenger->ws,
               $this->ws->errorMessenger->_305->name, $this->ws->errorMessenger->_305->description, odbc_errormsg(),

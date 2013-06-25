@@ -47,6 +47,7 @@ class Namespaces
   public static $xsd = "http://www.w3.org/2001/XMLSchema#";
   public static $vann = "http://purl.org/vocab/vann/";
   public static $vs = "http://www.w3.org/2003/06/sw-vocab-status/ns#";  
+  public static $cs = "http://purl.org/vocab/changeset/schema#";
   
   private $namespaces = array();
   

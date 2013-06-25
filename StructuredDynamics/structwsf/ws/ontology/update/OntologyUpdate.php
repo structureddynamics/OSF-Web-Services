@@ -78,7 +78,7 @@ class OntologyUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServi
                           "description": "The ontology can\'t be loaded by the endpoint"
                         },
                         "_301": {
-                          "id": "WS-CRUD-CREATE-301",
+                          "id": "WS-ONTOLOGY-UPDATE-301",
                           "level": "Warning",
                           "name": "Can\'t parse RDF document",
                           "description": "Can\'t parse the specified RDF document"

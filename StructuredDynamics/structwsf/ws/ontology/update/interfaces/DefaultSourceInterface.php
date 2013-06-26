@@ -144,7 +144,7 @@
       $this->getOntologyReference();
       
       if($this->isValid())      
-      {
+      { 
         // Now read the RDF file that we got as input to update the ontology with it.
         // Basically, we list all the entities (classes, properties and instance)
         // and we update each of them, one by one, in both the OWLAPI instance
@@ -203,7 +203,7 @@
                       $literalValues[$predicate] = array();
                     }
                     
-                    array_push($literalValues[$predicate], $value["value"]);  
+                    array_push($literalValues[$predicate], $value);  
                   }
                   else
                   {

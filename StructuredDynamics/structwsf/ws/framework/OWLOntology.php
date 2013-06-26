@@ -321,8 +321,10 @@ class OWLOntology
       {
         if($info["lang"] == "" || $this->lang == "" || $info["lang"] == $this->lang)
         {
+          $datatype = ($info['type'] == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#PlainLiteral' ? '' : $info['type']);
+          
           array_push($niDescription[$info["property"]], array("value" => $info["value"],
-                                                              "type" => $info["type"],
+                                                              "type" => $datatype,
                                                               "lang" => $info["lang"]));       
         }
       }
@@ -472,8 +474,10 @@ class OWLOntology
         {
           if($info["lang"] == "" || $this->lang == "" || $info["lang"] == $this->lang)
           {
+            $datatype = ($info['type'] == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#PlainLiteral' ? '' : $info['type']);
+            
             array_push($niDescription[$info["property"]], array("value" => $info["value"],
-                                                                "type" => $info["type"],
+                                                                "type" => $datatype,
                                                                 "lang" => $info["lang"]));
           }
         }
@@ -1944,8 +1948,10 @@ class OWLOntology
       {
         if($info["lang"] == "" || $this->lang == "" || $info["lang"] == $this->lang)
         {
+          $datatype = ($info['type'] == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#PlainLiteral' ? '' : $info['type']);
+          
           array_push($propertyDescription[$info["property"]], array("value" => $info["value"],
-                                                                    "type" => $info["type"],
+                                                                    "type" => $datatype,
                                                                     "lang" => $info["lang"])); 
         }
       }
@@ -2352,15 +2358,17 @@ class OWLOntology
       if(isset($info["uri"]))
       {      
         array_push($classDescription[$info["property"]], array("uri" => $info["uri"],
-                                                           "reify" => $info["reify"]));     
+                                                               "reify" => $info["reify"]));     
       }
       else
       {
         if($info["lang"] == "" || $this->lang == "" || $info["lang"] == $this->lang)
         {
+          $datatype = ($info['type'] == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#PlainLiteral' ? '' : $info['type']);
+          
           array_push($classDescription[$info["property"]], array("value" => $info["value"],
-                                                             "type" => $info["type"],
-                                                             "lang" => $info["lang"]));     
+                                                                 "type" => $datatype,
+                                                                 "lang" => $info["lang"]));     
         }
       }
     } 
@@ -2428,7 +2436,7 @@ class OWLOntology
     
     // Get the types of the entity    
     $classDescription["type"] = array("owl:".$class->getEntityType()->getName());                                                             
-    
+
     // Get all the annotations
     $annotations = $class->getAnnotations($this->ontology);
 
@@ -2451,8 +2459,10 @@ class OWLOntology
       {
         if($info["lang"] == "" || $this->lang == "" || $info["lang"] == $this->lang)
         {
+          $datatype = ($info['type'] == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#PlainLiteral' ? '' : $info['type']);
+          
           array_push($classDescription[$info["property"]], array("value" => $info["value"],
-                                                                 "type" => $info["type"],
+                                                                 "type" => $datatype,
                                                                  "lang" => $info["lang"]));       
         }
       }
@@ -3041,7 +3051,20 @@ class OWLOntology
                                                                       
     if($literalValue != null && $literalValue != "")
     {
-      $value = $this->owlDataFactory->getOWLLiteral($literalValue);
+      if(is_array($literalValue) && array_key_exists('lang', $literalValue))
+      {
+        $value = $this->owlDataFactory->getOWLLiteral($literalValue['value'], $literalValue['lang']);
+      } 
+      elseif(isset($literalValue['datatype']))
+      {
+        $iri = java("org.semanticweb.owlapi.model.IRI")->create($literalValue['type']);
+        $datatype = $this->owlDataFactory->getOWLDatatype($iri);
+        $value = $this->owlDataFactory->getOWLLiteral($literalValue['value'], $datatype);
+      }
+      else
+      {
+        $value = $this->owlDataFactory->getOWLLiteral($literalValue);
+      }
     }
     elseif($objectValue != null && $objectValue != "")
     {
@@ -3076,7 +3099,20 @@ class OWLOntology
                                                                       
     if($literalValue != null && $literalValue != "")
     {
-      $value = $this->owlDataFactory->getOWLLiteral($literalValue);
+      if(is_array($literalValue) && array_key_exists('lang', $literalValue))
+      {
+        $value = $this->owlDataFactory->getOWLLiteral($literalValue['value'], $literalValue['lang']);
+      } 
+      elseif(isset($literalValue['datatype']))
+      {
+        $iri = java("org.semanticweb.owlapi.model.IRI")->create($literalValue['type']);
+        $datatype = $this->owlDataFactory->getOWLDatatype($iri);
+        $value = $this->owlDataFactory->getOWLLiteral($literalValue['value'], $datatype);
+      }
+      else
+      {
+        $value = $this->owlDataFactory->getOWLLiteral($literalValue);
+      }      
     }
     elseif($objectValue != null && $objectValue != "")
     {
@@ -3188,7 +3224,20 @@ class OWLOntology
       {
         $annotationProperty = $this->owlDataFactory->getOWLAnnotationProperty(java("org.semanticweb.owlapi.model.IRI")->create($predicate));
         
-        $literalValue = $this->owlDataFactory->getOWLLiteral($value);
+        if(is_array($value) && array_key_exists('lang', $value))
+        {
+          $literalValue = $this->owlDataFactory->getOWLLiteral($value['value'], $value['lang']);
+        } 
+        elseif(isset($value['datatype']))
+        {
+          $iri = java("org.semanticweb.owlapi.model.IRI")->create($value['type']);
+          $datatype = $this->owlDataFactory->getOWLDatatype($iri);
+          $literalValue = $this->owlDataFactory->getOWLLiteral($value['value'], $datatype);
+        }
+        else
+        {
+          $literalValue = $this->owlDataFactory->getOWLLiteral($value);
+        }        
         
         $annotationAxiom = $this->owlDataFactory->getOWLAnnotation($annotationProperty, $literalValue); 
         
@@ -3473,7 +3522,20 @@ class OWLOntology
       {
         $annotationProperty = $this->owlDataFactory->getOWLAnnotationProperty(java("org.semanticweb.owlapi.model.IRI")->create($predicate));
         
-        $literalValue = $this->owlDataFactory->getOWLLiteral($value);
+        if(is_array($value) && array_key_exists('lang', $value))
+        {
+          $literalValue = $this->owlDataFactory->getOWLLiteral($value['value'], $value['lang']);
+        } 
+        elseif(isset($value['datatype']))
+        {
+          $iri = java("org.semanticweb.owlapi.model.IRI")->create($value['type']);
+          $datatype = $this->owlDataFactory->getOWLDatatype($iri);
+          $literalValue = $this->owlDataFactory->getOWLLiteral($value['value'], $datatype);
+        }
+        else
+        {
+          $literalValue = $this->owlDataFactory->getOWLLiteral($value);
+        } 
         
         $annotationAxiom = $this->owlDataFactory->getOWLAnnotation($annotationProperty, $literalValue); 
         
@@ -3790,7 +3852,20 @@ class OWLOntology
           {
             $annotationProperty = $this->owlDataFactory->getOWLAnnotationProperty(java("org.semanticweb.owlapi.model.IRI")->create($predicate));
             
-            $literalValue = $this->owlDataFactory->getOWLLiteral($value);
+            if(is_array($value) && array_key_exists('lang', $value))
+            {
+              $literalValue = $this->owlDataFactory->getOWLLiteral($value['value'], $value['lang']);
+            } 
+            elseif(isset($value['datatype']))
+            {
+              $iri = java("org.semanticweb.owlapi.model.IRI")->create($value['type']);
+              $datatype = $this->owlDataFactory->getOWLDatatype($iri);
+              $literalValue = $this->owlDataFactory->getOWLLiteral($value['value'], $datatype);
+            }
+            else
+            {
+              $literalValue = $this->owlDataFactory->getOWLLiteral($value);
+            }             
 
             $annotationAxiom = $this->owlDataFactory->getOWLAnnotation($annotationProperty, $literalValue); 
             
@@ -3923,7 +3998,7 @@ class OWLOntology
     $type = "";
     $lang = "";
     $rei = array();
-    
+ 
     if(!java_instanceof($annotation, java("org.semanticweb.owlapi.model.OWLAnnotation")))
     {
       return(array("property" => "", "uri" => "", "value" => "", "type" => "", "lang" => "", "reify" => ""));

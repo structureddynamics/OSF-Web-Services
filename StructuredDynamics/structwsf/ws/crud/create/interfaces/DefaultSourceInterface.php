@@ -146,7 +146,7 @@
               $this->ws->conneg->setStatusMsg("Internal Error");
               $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_311->name);
               $this->ws->conneg->setError($this->ws->errorMessenger->_311->id, $this->ws->errorMessenger->ws,
-                $this->ws->errorMessenger->_311->name, $this->ws->errorMessenger->_311->description, odbc_errormsg(),
+                $this->ws->errorMessenger->_311->name, $this->ws->errorMessenger->_311->description, $query,
                 $this->ws->errorMessenger->_311->level);
 
               return;

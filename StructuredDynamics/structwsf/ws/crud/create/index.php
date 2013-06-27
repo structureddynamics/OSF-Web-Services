@@ -15,7 +15,7 @@ use \StructuredDynamics\structwsf\ws\framework\Logger;
 // Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
 ini_set("display_errors", "Off"); 
 
-ini_set("memory_limit", "128M");
+ini_set("memory_limit", "256M");
 set_time_limit(2700);
 
 if ($_SERVER['REQUEST_METHOD'] != 'POST') 

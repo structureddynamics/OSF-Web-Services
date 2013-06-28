@@ -131,6 +131,12 @@
           return(TRUE);
         break;
         
+        case "alt":
+        case Namespaces::$geo."alt":
+          $coreAttributeField = "alt";
+          return(TRUE);
+        break;
+        
         case "long":
         case Namespaces::$geo."long":
           $coreAttributeField = "long";
@@ -936,6 +942,16 @@
 
                 case "long":                
                 case Namespaces::$geo."long":
+                  if(!is_numeric(urldecode($attributeValue[1])))
+                  {
+                    // If the value is not numeric, we skip that attribute/value. 
+                    // Otherwise an exception will be raised by Solr.
+                    continue;
+                  }
+                break;
+
+                case "alt":                
+                case Namespaces::$geo."alt":
                   if(!is_numeric(urldecode($attributeValue[1])))
                   {
                     // If the value is not numeric, we skip that attribute/value. 
@@ -1780,7 +1796,7 @@
             
             $skipLatLong = TRUE;
           }          
-          
+                    
           if(!$skipLatLong)
           {
             $resultDescriptionLat = $xpath->query("arr[@name='lat']/double", $result);
@@ -1796,6 +1812,14 @@
             {
               $subject->setDataAttribute(Namespaces::$geo."long", $resultDescriptionLong->item(0)->nodeValue);
             }
+            
+            $resultDescriptionAlt = $xpath->query("arr[@name='alt']/float", $result);
+
+            if($resultDescriptionAlt->length > 0)
+            {
+              $subject->setDataAttribute(Namespaces::$geo."alt", $resultDescriptionAlt->item(0)->nodeValue);
+            }
+
           }
           
           // Set possible score
@@ -1807,15 +1831,7 @@
             {
               $subject->setDataAttribute(Namespaces::$wsf."score", $score->item(0)->nodeValue);
             }            
-          }
-          
-          // get possible locatedIn URI(s)
-          $resultLocatedIn = $xpath->query("arr[@name='located_in']/str", $result);
-
-          if($resultLocatedIn->length > 0)
-          {
-            $subject->setObjectAttribute(Namespaces::$geoname."locatedIn", $resultLocatedIn->item(0)->nodeValue);
-          }           
+          }      
 
           // get records description
           $resultDescriptionURI = $xpath->query("arr[@name='description_".$this->ws->lang."']/str", $result);

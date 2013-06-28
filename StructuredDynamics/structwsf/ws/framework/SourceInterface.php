@@ -84,7 +84,7 @@
     {
       // Validate that the version of the interface is valid with
       // the version of the web service endpoint.
-      if(version_compare($this->compatibleWith, $this->version) != 0)
+      if(version_compare($this->compatibleWith, $this->ws->version) != 0)
       {
         return(FALSE);
       }

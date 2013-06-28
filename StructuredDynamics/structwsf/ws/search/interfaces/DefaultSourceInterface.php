@@ -1623,7 +1623,7 @@
         $aggregateTypes = array();
         foreach($founds as $found)
         {
-          $subject = new Subject($this->ws->uri . "aggregate/" . md5(microtime()));
+          $subject = new Subject($this->ws->uri . "aggregate/" . md5(Namespaces::$rdf."type".$found->attributes->getNamedItem("name")->nodeValue.$found->nodeValue));
           $subject->setType(Namespaces::$aggr."Aggregate");
           $subject->setObjectAttribute(Namespaces::$aggr."property", Namespaces::$rdf."type");
           $subject->setObjectAttribute(Namespaces::$aggr."object", $found->attributes->getNamedItem("name")->nodeValue);
@@ -1651,7 +1651,7 @@
               continue;
             }
                         
-            $subject = new Subject($this->ws->uri . "aggregate/" . md5(microtime()));
+            $subject = new Subject($this->ws->uri . "aggregate/" . md5(Namespaces::$rdf."type".$found->attributes->getNamedItem("name")->nodeValue.$found->nodeValue));
             $subject->setType(Namespaces::$aggr."Aggregate");
             $subject->setObjectAttribute(Namespaces::$aggr."property", Namespaces::$rdf."type");
             $subject->setObjectAttribute(Namespaces::$aggr."object", $found->attributes->getNamedItem("name")->nodeValue);
@@ -1667,7 +1667,7 @@
 
         foreach($founds as $found)
         {
-          $subject = new Subject($this->ws->uri . "aggregate/" . md5(microtime()));
+          $subject = new Subject($this->ws->uri . "aggregate/" . md5(Namespaces::$void."Dataset".$found->attributes->getNamedItem("name")->nodeValue.$found->nodeValue));
           $subject->setType(Namespaces::$aggr."Aggregate");
           $subject->setObjectAttribute(Namespaces::$aggr."property", Namespaces::$void."Dataset");
           $subject->setObjectAttribute(Namespaces::$aggr."object", $found->attributes->getNamedItem("name")->nodeValue);
@@ -1680,7 +1680,7 @@
 
         foreach($founds as $found)
         {
-          $subject = new Subject($this->ws->uri . "aggregate/" . md5(microtime()));
+          $subject = new Subject($this->ws->uri . "aggregate/" . md5(Namespaces::$rdf."Property".$found->attributes->getNamedItem("name")->nodeValue.$found->nodeValue));
           $subject->setType(Namespaces::$aggr."Aggregate");
           $subject->setObjectAttribute(Namespaces::$aggr."property", Namespaces::$rdf."Property");
           $subject->setObjectAttribute(Namespaces::$aggr."object", $found->attributes->getNamedItem("name")->nodeValue);
@@ -1695,7 +1695,7 @@
 
           foreach($founds as $found)
           {
-            $subject = new Subject($this->ws->uri . "aggregate/" . md5(microtime()));
+            $subject = new Subject($this->ws->uri . "aggregate/" . md5(str_replace(array("_attr_uri_label_facets","_attr_facets", "_attr_obj_uri"), "", urldecode($attribute)).$found->attributes->getNamedItem("name")->nodeValue.$found->nodeValue));
             $subject->setType(Namespaces::$aggr."Aggregate");
             $subject->setObjectAttribute(Namespaces::$aggr."property", str_replace(array("_attr_uri_label_facets","_attr_facets", "_attr_obj_uri"), "", urldecode($attribute)));
             

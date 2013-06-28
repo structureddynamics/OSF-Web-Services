@@ -211,6 +211,8 @@ class CrudUpdate extends \StructuredDynamics\structwsf\ws\framework\WebService
   {
     parent::__construct();
 
+    $this->version = "1.0";
+
     $this->db = new DBVirtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 
     $this->requester_ip = $requester_ip;
@@ -558,7 +560,7 @@ class CrudUpdate extends \StructuredDynamics\structwsf\ws\framework\WebService
       $interface->processInterface();
     }
     else
-    { 
+    {
       // Interface not existing
       $this->conneg->setStatus(400);
       $this->conneg->setStatusMsg("Bad Request");

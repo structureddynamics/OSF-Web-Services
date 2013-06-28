@@ -545,13 +545,11 @@
           $boostingRules .= '&qs='.$this->ws->phraseBoostDistance;
         }
         
-        $restrictionRules = '';
+        $restrictionRules .= '&qf=';
         
         // Define properties restricted for search and their boost
         if(!empty($this->ws->searchRestrictions))
         {
-          $restrictionRules .= '&qf=';
-          
           $restrictions = explode(';', trim($this->ws->searchRestrictions, ';'));
           
           foreach($restrictions as $restriction)
@@ -635,6 +633,11 @@
               $restrictionRules .= $attribute.'^'.$modifier.' ';            
             }            
           }
+        }
+        else
+        {
+          // Set the default field of the search
+          $restrictionRules = "all_text_".$this->ws->lang;
         }
         
         $restrictionRules = rtrim($restrictionRules);        
@@ -1435,9 +1438,6 @@
         // Remove possible left-over introduced by the procedure above for some rare usecases.
         $solrQuery = str_replace("fq= OR ", "fq=", $solrQuery);      
         $solrQuery = str_replace("fq= AND ", "fq=", $solrQuery);      
-
-        // Set the default field of the search
-        $solrQuery .= "&df=all_text_".$this->ws->lang;
         
         // The the sorting parameter
         if(count($this->ws->sort) > 0)
@@ -1542,7 +1542,7 @@
         
         // Specifies that the query parser is eDisMax
         $solrQuery .= '&defType=edismax';
-    
+
         $resultset = $solr->select($solrQuery);
         
         if($resultset === FALSE)

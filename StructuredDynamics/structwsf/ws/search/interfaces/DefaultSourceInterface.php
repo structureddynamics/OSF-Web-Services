@@ -327,7 +327,7 @@
           // Here, "^0" is added to zero-out the boost (revelency) value of the keyword
           // in this query, we simply want to aggregate the results related to their
           // distance of the center point.
-          $distanceQueryRevelencyBooster = '^0 AND _val_:"recip(geodist(geohash, '.$this->ws->resultsLocationAggregator[0].', '.$this->ws->resultsLocationAggregator[1].'), 1, 1, 0)"^100';  
+          $distanceQueryRevelencyBooster = ' AND _val_:"recip(geodist(geohash, '.$this->ws->resultsLocationAggregator[0].', '.$this->ws->resultsLocationAggregator[1].'), 1, 1, 0)"^100';  
         }
         
         $boostingRules = "";

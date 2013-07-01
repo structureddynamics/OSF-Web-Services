@@ -276,6 +276,12 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
                           "level": "Warning",
                           "name": "Unused attribute specified in the sort parameter",
                           "description": "An unused attribute as been specified in the sort parameter for this query. Make sure the URI of this attribute is the good one, and make sure there is data currently indexed for this attribute then try this query again."
+                        },
+                        "_319": {
+                          "id": "WS-SEARCH-319",
+                          "level": "Warning",
+                          "name": "Unexisting sorting order",
+                          "description": "The sorting order you specified is unexisting. Possible sorting orders are: \'asc\' or \'desc\'"
                         }
                       }';
 
@@ -662,11 +668,6 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
         else
         {
           $parts[1] = strtolower($parts[1]);
-          
-          if($parts[1] != "asc" && $parts[1] != "desc")
-          {
-            $parts[1] = "asc";
-          }
         }
         
         $sortingCriterias[$parts[0]]  = $parts[1];
@@ -736,6 +737,7 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
            $lSortProperty != "type" &&
            $lSortProperty != "dataset" &&
            $lSortProperty != "preflabel" &&
+           $lSortProperty != Namespaces::$iron.'preflabel' &&
            $lSortProperty != "score")
         {
           $indexedFields = array();
@@ -766,6 +768,22 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
             
             return;
           }
+        }
+      }
+      
+      // Make sure that the sorting order exists
+      foreach($this->sort as $prop => $order)
+      {
+        if($order != 'asc' && $order != 'desc')
+        {
+          $this->conneg->setStatus(400);
+          $this->conneg->setStatusMsg("Bad Request");
+          $this->conneg->setStatusMsgExt($this->errorMessenger->_319->name);
+          $this->conneg->setError($this->errorMessenger->_319->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_319->name, $this->errorMessenger->_319->description, 'Specified sorting order: "'.$order.'" for property "'.$prop.'"',
+          $this->errorMessenger->_319->level);          
+          
+          return;          
         }
       }
     }
@@ -926,7 +944,7 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
       $class = 'StructuredDynamics\structwsf\ws\search\interfaces\\'.$class;
       
       $interface = new $class($this);
-      
+
       // Validate versions
       if($this->requestedInterfaceVersion == "")
       {

@@ -327,7 +327,6 @@
           // Here, "^0" is added to zero-out the boost (revelency) value of the keyword
           // in this query, we simply want to aggregate the results related to their
           // distance of the center point.
-          //$distanceQueryRevelencyBooster = '^0 AND _val_:"recip(dist(2, lat, long, '.$this->ws->resultsLocationAggregator[0].', '.$this->ws->resultsLocationAggregator[1].'), 1, 1, 0)"^100';  
           $distanceQueryRevelencyBooster = '^0 AND _val_:"recip(geodist(geohash, '.$this->ws->resultsLocationAggregator[0].', '.$this->ws->resultsLocationAggregator[1].'), 1, 1, 0)"^100';  
         }
         
@@ -399,6 +398,19 @@
              
              $attributeValue = $attribute[1];
              $attribute = $attribute[0];
+             
+             // Check if it is an object property, and check if the pattern of this object property
+             // is using URIs as values
+             $valuesAsURI = FALSE;
+             
+             if(stripos($attribute, "[uri]") !== FALSE)
+             {
+               $valuesAsURI = TRUE;
+               $attribute = str_replace("[uri]", "", $attribute);
+             }             
+             
+             // Fix the reference to some of the core attributes                 
+             $isCoreAttribute = $this->isCoreAttribute($attribute, $attribute);
 
              // Make sure there is data currently indexed for the specified filter(s)
              if($this->isAttributeUsed($attribute, $indexedFields) === FALSE)
@@ -410,10 +422,7 @@
                  $this->ws->errorMessenger->_314->name, $this->ws->errorMessenger->_314->description, "Unused filter attribute: ".urldecode($attribute),
                  $this->ws->errorMessenger->_314->level);
                return;                
-             }
-             
-             // Fix the reference to some of the core attributes                 
-             $isCoreAttribute = $this->isCoreAttribute($attribute, $attribute);
+             }             
               
              // If it is not a core attribute, check if we have to make that attribute
              // single-valued. We check that by checking if a single_valued version
@@ -434,16 +443,6 @@
              // Get the Solr field ID for this attribute
              if(!$isCoreAttribute)
              {
-               // Check if it is an object property, and check if the pattern of this object property
-               // is using URIs as values
-               $valuesAsURI = FALSE;
-               
-               if(stripos($attribute, "[uri]") !== FALSE)
-               {
-                 $valuesAsURI = TRUE;
-                 $attribute = str_replace("[uri]", "", $attribute);
-               }
-                
                $attribute = urlencode($attribute);
                
                if(array_search($attribute."_attr_date".$singleValuedDesignator, $indexedFields) !== FALSE)
@@ -637,7 +636,7 @@
         else
         {
           // Set the default field of the search
-          $restrictionRules = "all_text_".$this->ws->lang;
+          $restrictionRules .= "all_text_".$this->ws->lang;
         }
         
         $restrictionRules = rtrim($restrictionRules);        
@@ -1337,15 +1336,12 @@
           */
           $params = explode(";", trim($this->ws->distanceFilter, ';'));
           
-          $earthRadius = 6371;
-          
           if($params[3] == 1)
           {
-            $earthRadius = 3963.205;
+            $params[2] = $params[2] * 1.60934;
           }
           
-          $solrQuery .= "&fq={!frange l=0 u=".$params[2]."}hsin(".$params[0].",".$params[1].
-                        " , lat_rad, long_rad, ".$earthRadius.")";
+          $solrQuery .= '&fq={!geofilt pt='.$params[0].','.$params[1].' sfield=geohash d='.$params[2].'}';
         }
         
         // Check if this query is geo-enabled and if a range-filter is requested
@@ -1448,7 +1444,8 @@
           {
             $lSortProperty = strtolower($sortProperty);
             
-            if($lSortProperty == "preflabel")
+            if($lSortProperty == "preflabel" ||
+               $lSortProperty == Namespaces::$iron.'preflabel')
             {
               $sortProperty = "prefLabelAutocompletion_".$this->ws->lang;
             }
@@ -1585,7 +1582,7 @@
             $collation = $collation->item(0)->nodeValue;
           }
           
-          $subject = new Subject($this->ws->uri . "suggestions/" . md5(microtime()));
+          $subject = new Subject($this->ws->uri . "suggestions/" . md5($collation));
           $subject->setType(Namespaces::$wsf."SpellSuggestion");
           $subject->setDataAttribute(Namespaces::$wsf."collation", $collation);
           
@@ -1605,7 +1602,7 @@
               $word = $word_frequency->getElementsByTagName('str')->item(0)->nodeValue;
               $frequency = $word_frequency->getElementsByTagName('int')->item(0)->nodeValue;
               
-              $subject = new Subject($this->ws->uri . "suggestions/" . md5(microtime()));
+              $subject = new Subject($this->ws->uri . "suggestions/" . md5($misspelledWord.$word.$frequency));
               $subject->setType(Namespaces::$wsf."SpellSuggestion");
               $subject->setDataAttribute(Namespaces::$wsf."misspelledWord", $misspelledWord);
               $subject->setDataAttribute(Namespaces::$wsf."suggestion", $word);

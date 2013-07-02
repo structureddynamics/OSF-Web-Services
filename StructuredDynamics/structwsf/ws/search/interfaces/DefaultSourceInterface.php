@@ -500,7 +500,7 @@
 
             $attribute = str_replace(array("%3B", "%5E"), array(";", "^"), $boost[0]);
             $modifier = $boost[1];
-            
+
             // Make sure there is data currently indexed for the specified filter(s)
             if($this->isAttributeUsed($attribute, $indexedFields) === FALSE)
             {
@@ -519,29 +519,34 @@
 
             if(!$isCoreAttribute)
             {
-              if(array_search(urlencode($attribute."_attr_".$this->ws->lang."_single_valued"), $indexedFields) !== FALSE)
-              {
-                $singleValuedDesignator = "_single_valued";
-              }             
-             
-              if(array_search($attribute."_attr_".$this->ws->lang.$singleValuedDesignator, $indexedFields) !== FALSE && $valuesAsURI === FALSE)
-              {              
-                $attribute = str_replace($attribute, urlencode($attribute)."_attr_".$this->ws->lang.$singleValuedDesignator, $attribute);
+              $attribute = urlencode($attribute);
 
-                $attributeFound = TRUE;
+              if(array_search($attribute."_attr_date".$singleValuedDesignator, $indexedFields) !== FALSE)
+              {
+                $attribute = urlencode($attribute)."_attr_date".$singleValuedDesignator;
+              }
+              elseif(array_search($attribute."_attr_int".$singleValuedDesignator, $indexedFields) !== FALSE)
+              {
+                $attribute = urlencode($attribute)."_attr_int".$singleValuedDesignator;
+              }
+              elseif(array_search($attribute."_attr_float".$singleValuedDesignator, $indexedFields) !== FALSE)
+              {
+                $attribute = urlencode($attribute)."_attr_float".$singleValuedDesignator;
               }
               elseif(array_search($attribute."_attr_obj_".$this->ws->lang.$singleValuedDesignator, $indexedFields) !== FALSE)
-              {      
-                $attribute = str_replace($attribute.":", urlencode($attribute)."_attr_obj_".$this->ws->lang.$singleValuedDesignator.":", $attribute);
+              {
+                $attribute = urlencode($attribute)."_attr_obj_".$this->ws->lang.$singleValuedDesignator;
+              }
+              elseif(array_search($attribute."_attr_".$this->ws->lang.$singleValuedDesignator, $indexedFields) !== FALSE)
+              {
+                $attribute = urlencode($attribute)."_attr_".$this->ws->lang.$singleValuedDesignator;
+              }
+            }
 
-                $attributeFound = TRUE;
-              }           
-            }           
-           
-            $boostingRules .= '&pf='.urlencode($attribute).'^'.$modifier;
+            $boostingRules .= '&pf='.$attribute.'^'.$modifier;           
           }
           
-          $boostingRules .= '&qs='.$this->ws->phraseBoostDistance;
+          $boostingRules .= '&ps='.$this->ws->phraseBoostDistance;
         }
         
         $restrictionRules .= '&qf=';
@@ -636,7 +641,7 @@
         else
         {
           // Set the default field of the search
-          $restrictionRules .= "all_text_".$this->ws->lang;
+          $restrictionRules .= "all_text_".$this->ws->lang;    
         }
         
         $restrictionRules = rtrim($restrictionRules);        
@@ -1539,7 +1544,7 @@
         
         // Specifies that the query parser is eDisMax
         $solrQuery .= '&defType=edismax';
-
+file_put_contents('/tmp/solr.query', $solrQuery);
         $resultset = $solr->select($solrQuery);
         
         if($resultset === FALSE)

@@ -739,6 +739,16 @@
           foreach($attributes as $attribute)
           {
             $attribute = urldecode($attribute);
+            
+            // Check if it is an object property, and check if the pattern of this object property
+            // is using URIs as values
+            $valuesAsURI = FALSE;
+
+            if(stripos($attribute, "[uri]") !== FALSE)
+            {
+              $valuesAsURI = TRUE;
+              $attribute = str_replace("[uri]", "", $attribute);
+            }
              
             // Make sure there is data currently indexed for the specified filter(s)
             if($this->isAttributeUsed($attribute, $indexedFields) === FALSE)
@@ -814,22 +824,12 @@
             {
               $attribute = urlencode($attribute);
               
-              $this->ws->extendedFilters = str_replace($attribute, $coreAttribute, $this->ws->extendedFilters);
+              $this->ws->extendedFilters = str_replace($attribute.($valuesAsURI ? '[uri]' : ''), $coreAttribute, $this->ws->extendedFilters);
               
               $attributeFound = TRUE;
             }
             else
             {
-              // Check if it is an object property, and check if the pattern of this object property
-              // is using URIs as values
-              $valuesAsURI = FALSE;
-              
-              if(stripos($attribute, "[uri]") !== FALSE)
-              {
-                $valuesAsURI = TRUE;
-                $attribute = str_replace("[uri]", "", $attribute);
-              }
-              
               $attribute = urlencode($attribute);
     
               if(array_search($attribute."_attr_date".$singleValuedDesignator, $indexedFields) !== FALSE)
@@ -1544,7 +1544,7 @@
         
         // Specifies that the query parser is eDisMax
         $solrQuery .= '&defType=edismax';
-file_put_contents('/tmp/solr.query', $solrQuery);
+
         $resultset = $solr->select($solrQuery);
         
         if($resultset === FALSE)

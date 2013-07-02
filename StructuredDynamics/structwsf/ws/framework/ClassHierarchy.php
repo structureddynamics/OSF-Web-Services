@@ -116,7 +116,6 @@ class ClassHierarchy
 
       $superClass = $this->classes[$subClassOf];
 
-      //array_push($superClass->superClassOf, &$newClass);
       $this->array_push_ref($superClass->superClassOf, $newClass);
 
       array_push($newClass->subClassOf, $superClass);
@@ -187,6 +186,13 @@ class ClassHierarchy
           }
         }
       }
+    }
+    
+    // If the class is not found, it means that the class is not in the class hierarchy (yet)
+    // So by default, it is at least a sub-class-of owl:Thing
+    if(empty($superClasses))
+    {
+      $superClasses[] = new ClassNode('http://www.w3.org/2002/07/owl#Thing', '');
     }
 
     return $superClasses;

@@ -640,7 +640,7 @@ class OWLOntology
     {
       try
       {
-        $subClasses = $this->reasoner->getSubClasses($class, (boolean)$direct); 
+        $subClasses = $this->reasoner->getSubClasses($class, filter_var($direct, FILTER_VALIDATE_BOOLEAN)); 
         $subClasses = $subClasses->getFlattened();
       }
       catch(Exception $e)
@@ -682,7 +682,7 @@ class OWLOntology
     
     if($this->useReasoner)
     {
-      $superClasses = $this->reasoner->getSuperClasses($class, (boolean)$direct); 
+      $superClasses = $this->reasoner->getSuperClasses($class, filter_var($direct, FILTER_VALIDATE_BOOLEAN)); 
       $superClasses = $superClasses->getFlattened();
     } 
     else
@@ -851,7 +851,7 @@ class OWLOntology
     {
       try
       {
-        $subClasses = $this->reasoner->getSubClasses($class, (boolean)$direct); 
+        $subClasses = $this->reasoner->getSubClasses($class, filter_var($direct, FILTER_VALIDATE_BOOLEAN)); 
         $subClasses = $subClasses->getFlattened();
       }
       catch(Exception $e)
@@ -1023,7 +1023,7 @@ class OWLOntology
     
     if($this->useReasoner)
     {
-      $superClasses = $this->reasoner->getSuperClasses($class, (boolean)$direct); 
+      $superClasses = $this->reasoner->getSuperClasses($class, filter_var($direct, FILTER_VALIDATE_BOOLEAN)); 
       $superClasses = $superClasses->getFlattened();
     } 
     else
@@ -1224,7 +1224,7 @@ class OWLOntology
       
       if($this->useReasoner)
       {
-        $subProperties = $this->reasoner->getSubDataProperties($property, (boolean)$direct); 
+        $subProperties = $this->reasoner->getSubDataProperties($property, filter_var($direct, FILTER_VALIDATE_BOOLEAN)); 
       } 
       else
       {
@@ -1237,7 +1237,7 @@ class OWLOntology
       
       if($this->useReasoner)
       {
-        $subProperties = $this->reasoner->getSubObjectProperties($property, (boolean)$direct); 
+        $subProperties = $this->reasoner->getSubObjectProperties($property, filter_var($direct, FILTER_VALIDATE_BOOLEAN)); 
       } 
       else
       {
@@ -1309,7 +1309,7 @@ class OWLOntology
       
       if($this->useReasoner)
       {
-        $subProperties = $this->reasoner->getSubDataProperties($property, (boolean)$direct); 
+        $subProperties = $this->reasoner->getSubDataProperties($property, filter_var($direct, FILTER_VALIDATE_BOOLEAN)); 
       } 
       else
       {
@@ -1322,7 +1322,7 @@ class OWLOntology
       
       if($this->useReasoner)
       {
-        $subProperties = $this->reasoner->getSubObjectProperties($property, (boolean)$direct); 
+        $subProperties = $this->reasoner->getSubObjectProperties($property, filter_var($direct, FILTER_VALIDATE_BOOLEAN)); 
       } 
       else
       {
@@ -1383,7 +1383,7 @@ class OWLOntology
       
       if($this->useReasoner)
       {
-        $superProperties = $this->reasoner->getSuperDataProperties($property, (boolean)$direct); 
+        $superProperties = $this->reasoner->getSuperDataProperties($property, filter_var($direct, FILTER_VALIDATE_BOOLEAN)); 
       } 
       else
       {
@@ -1396,7 +1396,7 @@ class OWLOntology
       
       if($this->useReasoner)
       {
-        $superProperties = $this->reasoner->getSuperObjectProperties($property, (boolean)$direct); 
+        $superProperties = $this->reasoner->getSuperObjectProperties($property, filter_var($direct, FILTER_VALIDATE_BOOLEAN)); 
       } 
       else
       {
@@ -1488,7 +1488,7 @@ class OWLOntology
       
       if($this->useReasoner)
       {
-        $superProperties = $this->reasoner->getSuperDataProperties($property, (boolean)$direct); 
+        $superProperties = $this->reasoner->getSuperDataProperties($property, filter_var($direct, FILTER_VALIDATE_BOOLEAN)); 
       } 
       else
       {
@@ -1501,7 +1501,7 @@ class OWLOntology
       
       if($this->useReasoner)
       {
-        $superProperties = $this->reasoner->getSuperObjectProperties($property, (boolean)$direct); 
+        $superProperties = $this->reasoner->getSuperObjectProperties($property, filter_var($direct, FILTER_VALIDATE_BOOLEAN)); 
       } 
       else
       {
@@ -2756,7 +2756,7 @@ class OWLOntology
 
       if($this->useReasoner)
       {
-        $individuals = $this->reasoner->getInstances($class, (boolean)$direct); 
+        $individuals = $this->reasoner->getInstances($class, filter_var($direct, FILTER_VALIDATE_BOOLEAN)); 
         $individuals = $individuals->getFlattened();
       } 
       else
@@ -2842,7 +2842,7 @@ class OWLOntology
 
       if($this->useReasoner)
       {
-        $namedIndividuals = $this->reasoner->getInstances($class, (boolean)$direct); 
+        $namedIndividuals = $this->reasoner->getInstances($class, filter_var($direct, FILTER_VALIDATE_BOOLEAN)); 
         $namedIndividuals = $namedIndividuals->getFlattened();
       } 
       else

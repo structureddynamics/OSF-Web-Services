@@ -657,7 +657,7 @@
               $this->returnError(400, "Bad Request", "_202");
               return;              
             }
-          
+
             switch(strtolower($this->ws->parameters["mode"]))
             {
               case "uris":
@@ -723,7 +723,7 @@
               $this->returnError(400, "Bad Request", "_202");
               return;              
             }
-          
+            
             switch(strtolower($this->ws->parameters["mode"]))
             {
               case "uris":
@@ -2044,6 +2044,17 @@
                   
                   case "annotationproperty":
                     $properties = $ontology->getPropertiesUri(FALSE, FALSE, TRUE, $limit, $offset);
+                    
+                    foreach($properties as $property)
+                    {
+                      $subject = new Subject($property);
+                      $subject->setType("owl:AnnotationProperty");
+                      $this->ws->rset->addSubject($subject);
+                    }
+                  break;
+                  
+                  case "all":
+                    $properties = $ontology->getPropertiesUri(TRUE, TRUE, TRUE, $limit, $offset);
                     
                     foreach($properties as $property)
                     {

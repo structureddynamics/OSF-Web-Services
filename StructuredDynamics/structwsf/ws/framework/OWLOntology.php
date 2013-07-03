@@ -692,7 +692,7 @@ class OWLOntology
 
     $sc = array();
           
-    foreach($classes as $class)
+    foreach($superClasses as $class)
     {
       if(java_instanceof($class, java("org.semanticweb.owlapi.model.OWLClass")))
       {

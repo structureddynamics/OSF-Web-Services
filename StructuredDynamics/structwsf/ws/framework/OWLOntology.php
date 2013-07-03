@@ -928,7 +928,7 @@ class OWLOntology
 
     foreach($disjointClasses as $disjointClass)
     {                                                         
-      if(java_instanceof($range, java("uk.ac.manchester.cs.owl.owlapi.OWLClassImpl")))       
+      if(java_instanceof($disjointClass, java("uk.ac.manchester.cs.owl.owlapi.OWLClassImpl")))       
       {      
         $disjointClassUri = (string)java_values($disjointClass->toStringID());
         $classDescription[$disjointClassUri] = array();

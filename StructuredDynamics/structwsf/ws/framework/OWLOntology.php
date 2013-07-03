@@ -687,7 +687,7 @@ class OWLOntology
     } 
     else
     {
-      $superClasses = $class->getSubClasses($this->ontology);
+      $superClasses = $class->getSuperClasses($this->ontology);
     } 
 
     $sc = array();
@@ -1028,7 +1028,7 @@ class OWLOntology
     } 
     else
     {
-      $superClasses = $class->getSubClasses($this->ontology);
+      $superClasses = $class->getSuperClasses($this->ontology);
     } 
     
     $classDescription = array();

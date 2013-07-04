@@ -1190,6 +1190,13 @@ class OWLOntology
             }      
             
             $propertyUri = (string)java_values($property->toStringID());
+
+            // Check if the properties got punned. If they did, then ignore returning the property.
+            if(isset($propertyDescription[$propertyUri]))  
+            {
+              $nb--;
+              continue;
+            }
             
             $propertyDescription[$propertyUri] = array();
             
@@ -1596,13 +1603,13 @@ class OWLOntology
       if($isDataProperty)
       {
         $property = $this->owlDataFactory->getOWLDataProperty(java("org.semanticweb.owlapi.model.IRI")->create($uri));
+        $equivalentProperties = $property->getEquivalentProperties($this->ontology); 
       }
       else
       {
         $property = $this->owlDataFactory->getOWLObjectProperty(java("org.semanticweb.owlapi.model.IRI")->create($uri));
+        $equivalentProperties = $property->getEquivalentProperties($this->ontology); 
       }
-      
-      $equivalentProperties = $equivalentProperties->getEntitiesMinus($property);
     }
 
     $propertyDescription = array();
@@ -1670,13 +1677,13 @@ class OWLOntology
       if($isDataProperty)
       {
         $property = $this->owlDataFactory->getOWLDataProperty(java("org.semanticweb.owlapi.model.IRI")->create($uri));
+        $equivalentProperties = $property->getEquivalentProperties($this->ontology); 
       }
       else
       {
         $property = $this->owlDataFactory->getOWLObjectProperty(java("org.semanticweb.owlapi.model.IRI")->create($uri));
+        $equivalentProperties = $property->getEquivalentProperties($this->ontology); 
       }
-      
-      $equivalentProperties = $equivalentProperties->getEntitiesMinus($property);
     }
     
     $propertyDescription = array();
@@ -1722,7 +1729,7 @@ class OWLOntology
       } 
       else
       {
-        $disjointProperties = $class->getDisjointProperties($this->ontology);
+        $disjointProperties = $property->getDisjointProperties($this->ontology);
       }             
     }
     else
@@ -1736,13 +1743,8 @@ class OWLOntology
       } 
       else
       {
-        $disjointProperties = $class->getDisjointProperties($this->ontology);
+        $disjointProperties = $property->getDisjointProperties($this->ontology);
       }         
-    }
-    
-    if($this->useReasoner)
-    {
-      $disjointProperties = $disjointProperties->getFlattened();  
     }
 
     $propertyDescription = array();
@@ -1800,7 +1802,7 @@ class OWLOntology
       } 
       else
       {
-        $disjointProperties = $class->getDisjointProperties($this->ontology);
+        $disjointProperties = $property->getDisjointProperties($this->ontology);
       }             
     }
     else
@@ -1814,13 +1816,8 @@ class OWLOntology
       } 
       else
       {
-        $disjointProperties = $class->getDisjointProperties($this->ontology);
+        $disjointProperties = $property->getDisjointProperties($this->ontology);
       }         
-    }
-    
-    if($this->useReasoner)
-    {
-      $disjointProperties = $disjointProperties->getFlattened();  
     }
     
     $propertyDescription = array();

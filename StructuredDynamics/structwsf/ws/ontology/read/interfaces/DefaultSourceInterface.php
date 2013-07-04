@@ -578,12 +578,12 @@
             }
             
             $classUri = "all";
-            
-            if(!isset($this->ws->parameters["classuri"]))
+
+            if(isset($this->ws->parameters["classuri"]))
             {
               $classUri = $this->ws->parameters["classuri"];
             }          
-          
+            
             switch(strtolower($this->ws->parameters["mode"]))
             {
               case "uris":

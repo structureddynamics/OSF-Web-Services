@@ -2014,7 +2014,7 @@
             {
               $offset = $this->ws->parameters["offset"];
             }
-          
+
             switch(strtolower($this->ws->parameters["mode"]))
             {
               case "uris":
@@ -2089,19 +2089,7 @@
                   case "all":
                     // @TODO: property handle possible punned properties (properties that have the same URI but that are of different property types)
                     $subjectTriples = array();
-                    $subjectTriples = array_merge($subjectTriples, $ontology->getPropertiesDescription(TRUE, FALSE, FALSE, $limit, $offset));
-                    $subjectTriples = array_merge($subjectTriples, $ontology->getPropertiesDescription(FALSE, TRUE, FALSE, $limit, $offset));
-                    
-                    // Check if the annotatio properties got punned. If they did, then ignore returning the annotation property.
-                    $annotationProperties = $ontology->getPropertiesDescription(FALSE, FALSE, TRUE, $limit, $offset);
-                    
-                    foreach($annotationProperties as $uri => $property)
-                    {
-                      if(!isset($subjectTriples[$uri]))  
-                      {
-                        $subjectTriples[$uri] = $property;
-                      }
-                    }
+                    $subjectTriples = $ontology->getPropertiesDescription(TRUE, TRUE, TRUE, $limit, $offset);
                     
                     $this->ws->rset->setResultset(Array($this->ws->ontologyUri => $subjectTriples));
                   break;
@@ -2127,7 +2115,7 @@
               $this->returnError(400, "Bad Request", "_202");
               return;              
             }
-          
+            
             switch(strtolower($this->ws->parameters["mode"]))
             {
               case "uris":
@@ -2329,7 +2317,7 @@
               $this->returnError(400, "Bad Request", "_202");
               return;              
             }
-          
+            
             switch(strtolower($this->ws->parameters["mode"]))
             {
               case "uris":

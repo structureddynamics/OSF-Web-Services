@@ -12,12 +12,6 @@
     /** Sparql query */
     private $query = "";
     
-    /** Determine if this is a CONSTRUCT SPARQL query */
-    private $isConstructQuery = FALSE;
-    
-    /** Determine if this is a CONSTRUCT SPARQL query */
-    private $isDescribeQuery = FALSE;
-    
     function __construct($webservice)
     {   
       parent::__construct($webservice);
@@ -235,10 +229,10 @@
         }
 
         // Detect any CONSTRUCT clause
-        $this->isConstructQuery = FALSE;
+        $this->ws->isConstructQuery = FALSE;
         if(preg_match_all("/^[\s\t]*construct[\s\t]*/Uim", $noPrologQuery, $matches) > 0)
         {
-          $this->isConstructQuery = TRUE;
+          $this->ws->isConstructQuery = TRUE;
           /*
           $this->ws->conneg->setStatus(400);
           $this->ws->conneg->setStatusMsg("Bad Request");
@@ -278,10 +272,10 @@
         // "DESCRIBE <test>" -- IRI_REF
         // "DESCRIBE a:" -- PrefixedName
         
-        $this->isDescribeQuery = FALSE;
+        $this->ws->isDescribeQuery = FALSE;
         if(preg_match("/^[\s\t]*describe[\s\t]*/Uim", $noPrologQuery, $matches) > 0)
         {
-          $this->isDescribeQuery = TRUE;
+          $this->ws->isDescribeQuery = TRUE;
         }    
         
         preg_match_all("/^[\s\t]*describe[\s\t]*<(.*)>/Uim", $noPrologQuery, $matches);  
@@ -432,8 +426,8 @@
         if($this->ws->conneg->getMime() == "application/sparql-results+json" || 
            $this->ws->conneg->getMime() == "application/sparql-results+xml" || 
            $this->ws->conneg->getMime() == "text/html" ||
-           $this->isDescribeQuery === TRUE ||
-           $this->isConstructQuery === TRUE)
+           $this->ws->isDescribeQuery === TRUE ||
+           $this->ws->isConstructQuery === TRUE)
         {
           $queryFormat = $this->ws->conneg->getMime();
         }
@@ -494,14 +488,14 @@
 
         // If a DESCRIBE query as been requested by the user, then we simply returns what is returned by
         // the triple store. We don't have any convertion to do here.
-        if($this->isDescribeQuery === TRUE)
+        if($this->ws->isDescribeQuery === TRUE)
         {
            return;
         }
 
         // If a CONSTRUCT query as been requested by the user, then we simply returns what is returned by
         // the triple store. We don't have any convertion to do here.
-        if($this->isConstructQuery === TRUE)
+        if($this->ws->isConstructQuery === TRUE)
         {
            return;
         }

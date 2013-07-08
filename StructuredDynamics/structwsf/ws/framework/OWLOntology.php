@@ -3233,7 +3233,7 @@ class OWLOntology
         }
         else
         {
-          $literalValue = $this->owlDataFactory->getOWLLiteral($value);
+          $literalValue = $this->owlDataFactory->getOWLLiteral($value['value']);
         }        
         
         $annotationAxiom = $this->owlDataFactory->getOWLAnnotation($annotationProperty, $literalValue); 
@@ -3531,7 +3531,7 @@ class OWLOntology
         }
         else
         {
-          $literalValue = $this->owlDataFactory->getOWLLiteral($value);
+          $literalValue = $this->owlDataFactory->getOWLLiteral($value['value']);
         } 
         
         $annotationAxiom = $this->owlDataFactory->getOWLAnnotation($annotationProperty, $literalValue); 
@@ -3861,7 +3861,7 @@ class OWLOntology
             }
             else
             {
-              $literalValue = $this->owlDataFactory->getOWLLiteral($value);
+              $literalValue = $this->owlDataFactory->getOWLLiteral($value['value']);
             }             
 
             $annotationAxiom = $this->owlDataFactory->getOWLAnnotation($annotationProperty, $literalValue); 

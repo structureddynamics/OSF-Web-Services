@@ -9,6 +9,9 @@
   use \StructuredDynamics\structwsf\ws\crud\delete\CrudDelete;
   use \StructuredDynamics\structwsf\ws\crud\create\CrudCreate;
   use \StructuredDynamics\structwsf\ws\crud\update\CrudUpdate;
+  use \StructuredDynamics\structwsf\ws\revision\update\RevisionUpdate;
+  use \StructuredDynamics\structwsf\ws\revision\lister\RevisionLister;
+  use \StructuredDynamics\structwsf\framework\Resultset;
   use \ARC2;
   use \Exception;
   
@@ -422,6 +425,87 @@
 
                       return;
                     }                                     
+                  }
+                  elseif($crudUpdate->pipeline_getError()->id == 'WS-CRUD-UPDATE-313')
+                  {
+                    // If the WS-CRUD-UPDATE-313 error is returned, it means that we are
+                    // trying to re-create an entity that was previously existing and that
+                    // got updated (and so, for which a revision got created). What we do in
+                    // in this case is that we re-publish the latest revision and than we
+                    // that we create a new version using what we got as input with this call.
+
+                    reset($resourcesIndex);
+                    $recordUri = key($resourcesIndex);                    
+                    
+                    $revisionLister = new RevisionLister($recordUri, $this->ws->ontologyUri, 'short', $this->ws->registered_ip, $this->ws->requester_ip);
+                    
+                    $revisionLister->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
+                      $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+
+                    $revisionLister->process();
+                    
+                    if($revisionLister->pipeline_getResponseHeaderStatus() != 200)
+                    {
+                      $this->ws->conneg->setStatus($revisionLister->pipeline_getResponseHeaderStatus());
+                      $this->ws->conneg->setStatusMsg($revisionLister->pipeline_getResponseHeaderStatusMsg());
+                      $this->ws->conneg->setStatusMsgExt($revisionLister->pipeline_getResponseHeaderStatusMsgExt());
+                      $this->ws->conneg->setError($revisionLister->pipeline_getError()->id, $revisionLister->pipeline_getError()->webservice,
+                        $revisionLister->pipeline_getError()->name, $revisionLister->pipeline_getError()->description,
+                        $revisionLister->pipeline_getError()->debugInfo, $revisionLister->pipeline_getError()->level);
+
+                      return;                      
+                    }
+                    
+                    $resultset = new Resultset();
+                    
+                    $resultset->importStructXMLResultset($revisionLister->pipeline_getResultset());
+                    
+                    $resultset = $resultset->getResultset();
+                    
+                    reset($resultset['unspecified']);
+                    
+                    $revisionUri = key($resultset['unspecified']);
+                    
+                    // Re-publish the latest version of the record
+                    $revisionUpdate = new RevisionUpdate($revisionUri, $this->ws->ontologyUri, 'published', $this->ws->registered_ip, $this->ws->requester_ip);
+                    
+                    $revisionUpdate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
+                                               $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+
+                    $revisionUpdate->process();
+                    
+                    if($revisionUpdate->pipeline_getResponseHeaderStatus() != 200)
+                    {       
+                      $this->ws->conneg->setStatus($revisionUpdate->pipeline_getResponseHeaderStatus());
+                      $this->ws->conneg->setStatusMsg($revisionUpdate->pipeline_getResponseHeaderStatusMsg());
+                      $this->ws->conneg->setStatusMsgExt($revisionUpdate->pipeline_getResponseHeaderStatusMsgExt());
+                      $this->ws->conneg->setError($revisionUpdate->pipeline_getError()->id, $revisionUpdate->pipeline_getError()->webservice,
+                        $revisionUpdate->pipeline_getError()->name, $revisionUpdate->pipeline_getError()->description,
+                        $revisionUpdate->pipeline_getError()->debugInfo, $revisionUpdate->pipeline_getError()->level);
+
+                      return;
+                    }                       
+                    
+                    // Now create a new published version of that record according to this Ontology: Update query
+                    $reCrudUpdate = new CrudUpdate($serializedResource, "application/rdf+xml", $this->ws->ontologyUri, 
+                                                 $this->ws->registered_ip, $this->ws->requester_ip);
+
+                    $reCrudUpdate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
+                      $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+
+                    $reCrudUpdate->process();
+                    
+                    if($reCrudUpdate->pipeline_getResponseHeaderStatus() != 200)
+                    {       
+                      $this->ws->conneg->setStatus($reCrudUpdate->pipeline_getResponseHeaderStatus());
+                      $this->ws->conneg->setStatusMsg($reCrudUpdate->pipeline_getResponseHeaderStatusMsg());
+                      $this->ws->conneg->setStatusMsgExt($reCrudUpdate->pipeline_getResponseHeaderStatusMsgExt());
+                      $this->ws->conneg->setError($reCrudUpdate->pipeline_getError()->id, $reCrudUpdate->pipeline_getError()->webservice,
+                        $reCrudUpdate->pipeline_getError()->name, $reCrudUpdate->pipeline_getError()->description,
+                        $reCrudUpdate->pipeline_getError()->debugInfo, $reCrudUpdate->pipeline_getError()->level);
+
+                      return;
+                    }                    
                   }
                   else
                   {

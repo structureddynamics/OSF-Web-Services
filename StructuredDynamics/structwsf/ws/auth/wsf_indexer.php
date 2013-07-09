@@ -89,6 +89,11 @@ switch($action)
               wsf:hasWebService <$server_address/wsf/ws/crud/read/> ;
               wsf:hasWebService <$server_address/wsf/ws/crud/update/> ;
               wsf:hasWebService <$server_address/wsf/ws/crud/delete/> ;
+              wsf:hasWebService <$server_address/wsf/ws/revision/delete/> ;
+              wsf:hasWebService <$server_address/wsf/ws/revision/diff/> ;
+              wsf:hasWebService <$server_address/wsf/ws/revision/lister/> ;
+              wsf:hasWebService <$server_address/wsf/ws/revision/read/> ;
+              wsf:hasWebService <$server_address/wsf/ws/revision/update/> ;
               wsf:hasWebService <$server_address/wsf/ws/ontology/create/> ;
               wsf:hasWebService <$server_address/wsf/ws/ontology/delete/> ;
               wsf:hasWebService <$server_address/wsf/ws/ontology/read/> ;
@@ -409,6 +414,61 @@ switch($action)
               wsf:create \"False\" ;
               wsf:read \"False\" ;
               wsf:update \"False\" ;
+              wsf:delete \"False\" .                                
+              
+            <$server_address/wsf/ws/revision/delete/> rdf:type wsf:WebService ;
+              dcterms:title \"Revisions Delete web service\" ;
+              wsf:endpoint \"\"\"$server_address/ws/revision/delete/\"\"\";
+              wsf:hasCrudUsage <$server_address/wsf/usage/revision/delete/> .
+            
+            <$server_address/wsf/usage/revision/delete/> rdf:type wsf:CrudUsage ;
+              wsf:create \"False\" ;
+              wsf:read \"False\" ;
+              wsf:update \"False\" ;
+              wsf:delete \"True\" .                                
+              
+            <$server_address/wsf/ws/revision/diff/> rdf:type wsf:WebService ;
+              dcterms:title \"Revisions Diff web service\" ;
+              wsf:endpoint \"\"\"$server_address/ws/revision/diff/\"\"\";
+              wsf:hasCrudUsage <$server_address/wsf/usage/revision/diff/> .
+            
+            <$server_address/wsf/usage/revision/diff/> rdf:type wsf:CrudUsage ;
+              wsf:create \"False\" ;
+              wsf:read \"True\" ;
+              wsf:update \"False\" ;
+              wsf:delete \"False\" .                                
+              
+            <$server_address/wsf/ws/revision/lister/> rdf:type wsf:WebService ;
+              dcterms:title \"Revisions Lister web service\" ;
+              wsf:endpoint \"\"\"$server_address/ws/revision/lister/\"\"\";
+              wsf:hasCrudUsage <$server_address/wsf/usage/revision/lister/> .
+            
+            <$server_address/wsf/usage/revision/lister/> rdf:type wsf:CrudUsage ;
+              wsf:create \"False\" ;
+              wsf:read \"True\" ;
+              wsf:update \"False\" ;
+              wsf:delete \"False\" .                                
+              
+            <$server_address/wsf/ws/revision/read/> rdf:type wsf:WebService ;
+              dcterms:title \"Revisions Read web service\" ;
+              wsf:endpoint \"\"\"$server_address/ws/revision/read/\"\"\";
+              wsf:hasCrudUsage <$server_address/wsf/usage/revision/read/> .
+            
+            <$server_address/wsf/usage/revision/read/> rdf:type wsf:CrudUsage ;
+              wsf:create \"False\" ;
+              wsf:read \"True\" ;
+              wsf:update \"False\" ;
+              wsf:delete \"False\" .                                
+              
+            <$server_address/wsf/ws/revision/update/> rdf:type wsf:WebService ;
+              dcterms:title \"Revisions Update web service\" ;
+              wsf:endpoint \"\"\"$server_address/ws/revision/update/\"\"\";
+              wsf:hasCrudUsage <$server_address/wsf/usage/revision/update/> .
+            
+            <$server_address/wsf/usage/revision/update/> rdf:type wsf:CrudUsage ;
+              wsf:create \"False\" ;
+              wsf:read \"False\" ;
+              wsf:update \"True\" ;
               wsf:delete \"False\" .                                
               ";
   break;

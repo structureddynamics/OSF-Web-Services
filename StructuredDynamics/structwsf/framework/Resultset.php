@@ -1064,7 +1064,7 @@ class Resultset
             case "prefLabel":
               if($attributeValues != "")
               {
-                if(!$this->in_array_r($attributeValues, $record[Namespaces::$iron.'prefLabel']))
+                if(!isset($record[Namespaces::$iron.'prefLabel']) || !$this->in_array_r($attributeValues, $record[Namespaces::$iron.'prefLabel']))
                 {
                   $xml .= '    <iron:prefLabel>'.$this->xmlEncode($attributeValues).'</iron:prefLabel>'."\n";              
                 }
@@ -1073,7 +1073,7 @@ class Resultset
             case "altLabel":     
               foreach($attributeValues as $altLabel)
               {
-                if($altLabel != "" && !$this->in_array_r($altLabel, $record[Namespaces::$iron.'altLabel']))
+                if($altLabel != "" && (!isset($record[Namespaces::$iron.'altLabel']) || !$this->in_array_r($altLabel, $record[Namespaces::$iron.'altLabel'])))
                 {
                   $xml .= '    <iron:altLabel>'.$this->xmlEncode($altLabel).'</iron:altLabel>'."\n";              
                 }
@@ -1082,7 +1082,7 @@ class Resultset
             case "description":   
               if($attributeValues != "")
               {
-                if(!$this->in_array_r($attributeValues, $record[Namespaces::$iron.'description']))
+                if(!isset($record[Namespaces::$iron.'description']) || !$this->in_array_r($attributeValues, $record[Namespaces::$iron.'description']))
                 {                
                   $xml .= '    <iron:description>'.$this->xmlEncode($attributeValues).'</iron:description>'."\n";              
                 }
@@ -1091,7 +1091,7 @@ class Resultset
             case "prefURL":
               if($attributeValues != "")
               {
-                if(!$this->in_array_r($attributeValues, $record[Namespaces::$iron.'prefURL']))
+                if(!isset($record[Namespaces::$iron.'prefURL']) || !$this->in_array_r($attributeValues, $record[Namespaces::$iron.'prefURL']))
                 {
                   $xml .= '    <iron:prefURL>'.$this->xmlEncode($attributeValues).'</iron:prefURL>'."\n";              
                 }

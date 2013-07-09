@@ -704,6 +704,8 @@ class Resultset
         
         $json .= '        "predicate": [  '."\n";
            
+        ksort($record);   
+           
         foreach($record as $attributeURI => $attributeValues)
         {
           switch($attributeURI)

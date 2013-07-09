@@ -66,7 +66,7 @@
           elseif($this->ws->mode == 'hard')
           {
             // delete all the revisions of this record
-            $revisionLister = new RevisionLister($this->ws->resourceUri, $this->ws->dataset);
+            $revisionLister = new RevisionLister($this->ws->resourceUri, $this->ws->dataset, 'short', $this->ws->registered_ip, $this->ws->requester_ip);
             
             $revisionLister->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
                                        $_SERVER['HTTP_ACCEPT_LANGUAGE']);
@@ -92,7 +92,7 @@
               
               foreach($revisions->getSubjects() as $subject)
               {
-                $revisionDelete = new RevisionDelete($subject->getUri(), $this->ws->dataset);
+                $revisionDelete = new RevisionDelete($subject->getUri(), $this->ws->dataset, $this->ws->registered_ip, $this->ws->requester_ip);
                 
                 $revisionDelete->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
                                            $_SERVER['HTTP_ACCEPT_LANGUAGE']);

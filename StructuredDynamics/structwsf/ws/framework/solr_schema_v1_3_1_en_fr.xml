@@ -960,6 +960,10 @@
    <!-- Unmodified version of the values of the attributes used for faceting purposes -->
    <dynamicField name="*_attr_facets"  type="string"  indexed="true"  stored="false" multiValued="true"/>      
    
+   <!-- Field used to keep the correspondance between the URI and the Label of the URI when using the "uriliteral"
+        type for the aggregate_attributes_object_type Search parameter -->
+   <dynamicField name="*_attr_uri_label_facets"  type="string"  indexed="true"  stored="false" multiValued="true"/>      
+   
    <!-- Reified statements for this record -->
    <dynamicField name="*_reify_attr"  type="string"  indexed="true"  stored="true" multiValued="true"/>   
    <dynamicField name="*_reify_obj"  type="string"  indexed="true"  stored="true" multiValued="true"/>   

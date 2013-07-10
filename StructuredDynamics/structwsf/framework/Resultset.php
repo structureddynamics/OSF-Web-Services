@@ -480,7 +480,7 @@ class Resultset
       // Try to find description
       foreach(Namespaces::getDescriptionProperties() as $descriptionProperty)
       {
-        if(isset($subject[$descriptionProperty]))        
+        if(isset($subject[$descriptionProperty]) && !empty($subject[$descriptionProperty]) && isset($subject[$descriptionProperty][0]["value"]))        
         {
           $subject["description"] = $subject[$descriptionProperty][0]["value"];
           

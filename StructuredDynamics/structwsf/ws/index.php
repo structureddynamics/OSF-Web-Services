@@ -21,7 +21,7 @@
 	if(file_exists($sidDirectory."server.sid"))
 	{
 		// Read the SID
-    $sid = file_get_contents($sidDirectory."server.sid");
+    echo file_get_contents($sidDirectory."server.sid");
 	}
 	else
 	{
@@ -29,10 +29,13 @@
 		$sid = md5(microtime());
 		
 		// Write the SID to the server.sid file
-    file_put_contents($sidDirectory."server.sid", $sid);
+    if(file_put_contents($sidDirectory."server.sid", $sid) !== FALSE)
+    {
+      echo $sid;
+    }
 	}
 
-	echo $sid;
+	
 	
 	//@} 	
 ?>

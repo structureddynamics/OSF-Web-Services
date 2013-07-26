@@ -125,46 +125,49 @@
               $subjectsFilter .= '<'.$subject.'>,';
             }
             
-            $subjectsFilter = rtrim($subjectsFilter, ',');
-            
-            $query = "select ?s
-                      from <" . $revisionsDataset . ">
-                      where
-                      {
-                        ?s <http://purl.org/ontology/wsf#revisionUri> ?record.
-                        
-                        filter(?record in(".$subjectsFilter."))
-                      }
-                      limit 1
-                      offset 0";
-
-            $resultset = @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array('status'), FALSE));
-
-            if(odbc_error())
+            if(!empty($subjectsFilter))
             {
-              $this->ws->conneg->setStatus(500);
-              $this->ws->conneg->setStatusMsg("Internal Error");
-              $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_311->name);
-              $this->ws->conneg->setError($this->ws->errorMessenger->_311->id, $this->ws->errorMessenger->ws,
-                $this->ws->errorMessenger->_311->name, $this->ws->errorMessenger->_311->description, $query,
-                $this->ws->errorMessenger->_311->level);
+              $subjectsFilter = rtrim($subjectsFilter, ',');
+              
+              $query = "select ?s
+                        from <" . $revisionsDataset . ">
+                        where
+                        {
+                          ?s <http://purl.org/ontology/wsf#revisionUri> ?record.
+                          
+                          filter(?record in(".$subjectsFilter."))
+                        }
+                        limit 1
+                        offset 0";
 
-              return;
-            }
-            else
-            {
-              $status = odbc_result($resultset, 1);
-                              
-              if($status !== FALSE)
+              $resultset = @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array('status'), FALSE));
+
+              if(odbc_error())
               {
-                // There are revisions records for one of the record. We stop the execution right here.
-                $this->ws->conneg->setStatus(400);
-                $this->ws->conneg->setStatusMsg("Bad Request");
-                $this->ws->conneg->setError($this->ws->errorMessenger->_312->id, $this->ws->errorMessenger->ws,
-                  $this->ws->errorMessenger->_312->name, $this->ws->errorMessenger->_312->description, $errorsOutput,
-                  $this->ws->errorMessenger->_312->level);
+                $this->ws->conneg->setStatus(500);
+                $this->ws->conneg->setStatusMsg("Internal Error");
+                $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_311->name);
+                $this->ws->conneg->setError($this->ws->errorMessenger->_311->id, $this->ws->errorMessenger->ws,
+                  $this->ws->errorMessenger->_311->name, $this->ws->errorMessenger->_311->description, $query,
+                  $this->ws->errorMessenger->_311->level);
 
-                return;                        
+                return;
+              }
+              else
+              {
+                $status = odbc_result($resultset, 1);
+                                
+                if($status !== FALSE)
+                {
+                  // There are revisions records for one of the record. We stop the execution right here.
+                  $this->ws->conneg->setStatus(400);
+                  $this->ws->conneg->setStatusMsg("Bad Request");
+                  $this->ws->conneg->setError($this->ws->errorMessenger->_312->id, $this->ws->errorMessenger->ws,
+                    $this->ws->errorMessenger->_312->name, $this->ws->errorMessenger->_312->description, $errorsOutput,
+                    $this->ws->errorMessenger->_312->level);
+
+                  return;                        
+                }
               }
             }
             

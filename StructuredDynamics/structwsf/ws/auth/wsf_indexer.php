@@ -700,13 +700,13 @@ switch($action)
 
     $db = new DBVirtuoso($username, $password, $dsn, $host);
 
-    $query = "exst('select * from (sparql clear graph <$server_address/wsf/ontologies/>) sub')";
+    $query = "sparql clear graph <$server_address/wsf/ontologies/>";
     $db->query($query);
 
-    $query = "exst('select * from (sparql clear graph <$server_address/wsf/datasets/>) sub')";
+    $query = "sparql clear graph <$server_address/wsf/datasets/>";
     $db->query($query);
 
-    $query = "exst('select * from (sparql clear graph <$server_address/wsf/>) sub')";
+    $query = "sparql clear graph <$server_address/wsf/>";
     $db->query($query);
 
     $db->close();

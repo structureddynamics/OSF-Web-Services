@@ -175,14 +175,16 @@ class Solr
     
     $data = curl_exec($ch);
 
+    $httpStatusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);     
+    
     if(curl_errno($ch) || 
-       strpos($data, "<title>Error 400 null</title>"))
+       $httpStatusCode == 400)
     {
       $this->errorMessage = 'The search query you provided is not valid, and returns no result. We can\'t say where the error is coming from, but there is one, probably one with the syntax used.';
       $this->errorMessageDebug = htmlentities($data);
       return FALSE;
     }
-    elseif(strpos($data, "<h2>HTTP ERROR 404</h2>"))
+    elseif($httpStatusCode == 404)
     {
       if(strpos($data, 'Specified dictionary does not exist'))
       {
@@ -195,6 +197,13 @@ class Solr
       
       $this->errorMessageDebug = htmlentities($data);
       return FALSE;
+    }
+    elseif($httpStatusCode !== 200)
+    {
+      $this->errorMessage = 'Unexpected error from Solr for this search query';
+      
+      $this->errorMessageDebug = htmlentities($data);
+      return FALSE;      
     }
     else
     {

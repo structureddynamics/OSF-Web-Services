@@ -86,15 +86,6 @@ class OWLOntology
   private $useReasoner = TRUE;  
   
   /**
-  * Reasoner to use for this OWLAPI instance. Supported reasoners are:
-  * 
-  *   (1) pellet
-  *   (2) hermit
-  *   (3) factpp
-  */
-  private $reasonerToUse = "pellet";
-  
-  /**
   * Language to use to return the annotations
   * 
   * @var mixed
@@ -108,12 +99,18 @@ class OWLOntology
   * @param $OwlApiSession OWLAPI session where the OWLAPI object may be defined/hosted
   * @param $readingMode The reading mode is used to simply read an ontology, and not
   *                     to load it if it is not currently loaded.
+  * @param $reasoner Reasoner to use for this OWLAPI instance. Supported reasoners are:
+  *   (1) pellet
+  *   (2) hermit
+  *   (3) factpp
+  * 
   * @return Nothing
   *  
   * @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($uri, $OwlApiSession, $readingMode=TRUE)
+  function __construct($uri, $OwlApiSession, $readingMode = TRUE, $reasoner = 'pellet')
   {
+    $reasoner = strtolower($reasoner);
     $this->uri = $uri;
 
     // Register it into the ontologies register
@@ -186,9 +183,9 @@ class OWLOntology
        array_search($this->getReasonerSessionID($uri), $register) === FALSE) 
     {
       // Create the reasoner for this ontology
-
+      
       // Pellet    
-      if($this->reasonerToUse == "pellet")
+      if($reasoner == "pellet")
       {
         $PelletReasonnerFactory = java("com.clarkparsia.pellet.owlapiv3.PelletReasonerFactory");
         $PelletReasonnerFactory = $PelletReasonnerFactory->getInstance();
@@ -197,13 +194,13 @@ class OWLOntology
       }
       
       // HermiT
-      if($this->reasonerToUse == "hermit")
+      if($reasoner == "hermit")
       {
         $this->reasoner = new java("org.semanticweb.HermiT.Reasoner", $this->ontology);
       }
                                          
       // Fact++
-      if($this->reasonerToUse == "factpp")
+      if($reasoner == "factpp")
       {
         $FactppReasonnerFactory= new java("uk.ac.manchester.cs.factplusplus.owlapiv3.FaCTPlusPlusReasonerFactory");
         $this->reasoner = $FactppReasonnerFactory->createNonBufferingReasoner($this->ontology);
@@ -2430,7 +2427,7 @@ class OWLOntology
   public function _getClassDescription($class)
   {
     $classDescription = array();
-    
+    DebugBreak();
     // Get the types of the entity    
     $classDescription["type"] = array("owl:".$class->getEntityType()->getName());                                                             
 
@@ -4171,30 +4168,6 @@ class OWLOntology
     $this->manager->saveOntology($this->ontology, $outputStream);
     
     return((string)java_values($outputStream->toString()));
-  }
-  
-  /**
-  * Specifies that we want to use the Pellet reasoner
-  */
-  public function usePelletReasoner()
-  {
-    $this->reasonerToUse = "pellet";
-  }
-  
-  /**
-  * Specifies that we want to use the Hermit reasoner
-  */
-  public function useHermitReasoner()
-  {
-    $this->reasonerToUse = "hermit";
-  }
-  
-  /**
-  * Specifies that we want to use the FaCT++ reasoner
-  */
-  public function useFactppReasoner()
-  {
-    $this->reasonerToUse = "factpp";
   }
   
   /**

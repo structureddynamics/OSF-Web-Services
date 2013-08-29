@@ -2427,7 +2427,7 @@ class OWLOntology
   public function _getClassDescription($class)
   {
     $classDescription = array();
-    DebugBreak();
+    
     // Get the types of the entity    
     $classDescription["type"] = array("owl:".$class->getEntityType()->getName());                                                             
 

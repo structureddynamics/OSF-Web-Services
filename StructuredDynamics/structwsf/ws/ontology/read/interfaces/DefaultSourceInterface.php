@@ -442,6 +442,16 @@
               $subject = new Subject($this->ws->parameters["uri"]);
               $subject->setSubject($ontology->_getClassDescription($class));
               $this->ws->rset->addSubject($subject);
+              
+              // Get possible restrictions descriptions             
+              $restrictions = $ontology->_getClassRestrictionsDescription($class);
+              
+              foreach($restrictions as $uri => $restriction)
+              {
+                $subject = new Subject($uri);
+                $subject->setSubject($restriction);
+                $this->ws->rset->addSubject($subject);
+              } 
             }          
           break;
           

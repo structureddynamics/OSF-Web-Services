@@ -805,6 +805,14 @@ class OWLOntology
       
       $classDescription[$classUri] = $this->_getClassDescription($class);
       $nb++;     
+      
+      // Get possible restrictions descriptions and add them to the resultset            
+      $restrictions = $this->_getClassRestrictionsDescription($class);
+      
+      foreach($restrictions as $uri => $restriction)
+      {
+        $classDescription[$uri] = $restriction;
+      }       
     }
     
     return($classDescription);    
@@ -2427,7 +2435,7 @@ class OWLOntology
   public function _getClassDescription($class)
   {
     $classDescription = array();
-    
+        
     // Get the types of the entity    
     $classDescription["type"] = array("owl:".$class->getEntityType()->getName());                                                             
 
@@ -2498,7 +2506,7 @@ class OWLOntology
                                                                            ))); 
       }
     } 
-    
+
     // Specify Super Classes Of properties   
     if($this->useReasoner)
     {
@@ -2577,9 +2585,356 @@ class OWLOntology
                                                                              ))); 
       }
     }  
+        
+    // Get restrictions
+    $restrictions = $this->_restrictionsVisitor($class);
+    
+    foreach($restrictions as $restriction)
+    {
+      if(!isset($classDescription[Namespaces::$rdfs."subClassOf"]) ||
+         is_array($classDescription[Namespaces::$rdfs."subClassOf"]) === FALSE)
+      {
+        $classDescription[Namespaces::$rdfs."subClassOf"] = array(); 
+      }
+
+      $classDescription[Namespaces::$rdfs."subClassOf"][] = array("uri" => 'urn:restriction:'.md5(java_values($restriction->toString())));
+    }
     
     return($classDescription);  
   }  
+  
+  public function _getClassRestrictionsDescription($class)
+  {
+    $restrictionsDescriptions = array();
+    
+    $restrictions = $this->_restrictionsVisitor($class);
+
+    foreach($restrictions as $restriction)
+    {
+      $restrictionDescription = array();
+      $restrictionDescription["type"] = array("owl:Restriction");                                                             
+      
+      // Get the values of the restriction by extract the information from the String representation of the Restriction
+      // Ex: DataMaxCardinality(1 &lt;http://purl.org/dc/terms/language&gt; xsd:language)
+      
+      // Get the function
+      $functionSerialized = java_values($restriction->toString());
+      preg_match("/^(.*)\(.*\)$/", $functionSerialized, $matches);
+      
+      $restrictionType = $matches[1];
+      $cardinality;
+      $onProperty;
+      $datatype;
+
+      // Extract function parameters
+      switch($restrictionType)
+      {
+        case "DataAllValuesFrom":
+          // DataAllValuesFrom(iron:altLabel rdfs:Literal)
+          preg_match("/^(.*)\(<?([^<>].*)>?\s<?([^<>].*)>?\)$/U", $functionSerialized, $matches);    
+          
+          $onProperty = $matches[2];
+          $datatype = $matches[3];
+        break;
+        
+        case "DataSomeValuesFrom":
+          // DataSomeValuesFrom(<http://purl.org/ontology/bibo/abstract> xsd:anyURI)
+          preg_match("/^(.*)\(<?([^<>].*)>?\s<?([^<>].*)>?\)$/U", $functionSerialized, $matches);    
+          
+          $onProperty = $matches[2];
+          $datatype = $matches[3];
+        break;
+        
+        case "DataMinCardinality":
+          // DataMinCardinality(1 agls:availability xsd:anyURI)
+          preg_match("/^(.*)\(([0-9]+)\s<?([^<>].*)>?\s<?([^<>].*)>?\)$/U", $functionSerialized, $matches);    
+          
+          $cardinality = $matches[2];
+          $onProperty = $matches[3];
+          $datatype = $matches[4];
+        break;
+        
+        case "DataExactCardinality":
+          // DataExactCardinality(1 :complexity xsd:anyURI)
+          preg_match("/^(.*)\(([0-9]+)\s<?([^<>].*)>?\s<?([^<>].*)>?\)$/U", $functionSerialized, $matches);    
+          
+          $cardinality = $matches[2];
+          $onProperty = $matches[3];
+          $datatype = $matches[4];
+        break;
+        
+        case "DataMaxCardinality":
+          // DataMaxCardinality(1 :copyrights xsd:anyURI)
+          preg_match("/^(.*)\(([0-9]+)\s<?([^<>].*)>?\s<?([^<>].*)>?\)$/U", $functionSerialized, $matches);    
+          
+          $cardinality = $matches[2];
+          $onProperty = $matches[3];
+          $datatype = $matches[4];
+        break;
+        
+        case "ObjectSomeValuesFrom":
+          // ObjectSomeValuesFrom(:audience owl:Thing)
+          preg_match("/^(.*)\(<?([^<>].*)>?\s<?([^<>].*)>?\)$/U", $functionSerialized, $matches);    
+          
+          $onProperty = $matches[2];
+          $datatype = $matches[3];
+        break;
+        
+        case "ObjectAllValuesFrom":
+          // ObjectAllValuesFrom(:azsubcategory owl:Thing)
+          preg_match("/^(.*)\(<?([^<>].*)>?\s<?([^<>].*)>?\)$/U", $functionSerialized, $matches);    
+          
+          $onProperty = $matches[2];
+          $datatype = $matches[3];
+        break;
+        
+        case "ObjectMinCardinality":
+          // ObjectMinCardinality(1 :contentCategory)
+          // ObjectMinCardinality(1 :contentCategory owl:Thing)
+          preg_match("/^(.*)\(([0-9]+)\s<?([^<>].*)>?(\s<?([^<>].*)?>?)?\)$/U", $functionSerialized, $matches);    
+          
+          $cardinality = $matches[2];
+          $onProperty = $matches[3];
+          $datatype = $matches[5];
+        break;
+        
+        case "ObjectExactCardinality":
+          // ObjectExactCardinality(1 dcterms:creator)
+          // ObjectExactCardinality(1 dcterms:creator owl:Thing)
+          preg_match("/^(.*)\(([0-9]+)\s<?([^<>].*)>?(\s<?([^<>].*)?>?)?\)$/U", $functionSerialized, $matches);    
+          
+          $cardinality = $matches[2];
+          $onProperty = $matches[3];
+          $datatype = $matches[5];
+        break;
+        
+        case "ObjectMaxCardinality":
+          // ObjectMaxCardinality(1 :format)
+          // ObjectMaxCardinality(1 :format owl:Thing)
+          preg_match("/^(.*)\(([0-9]+)\s<?([^<>].*)>?(\s<?([^<>].*)?>?)?\)$/U", $functionSerialized, $matches);    
+          
+          $cardinality = $matches[2];
+          $onProperty = $matches[3];
+          $datatype = $matches[5];
+        break;
+      }
+        
+      $namespaces = new Namespaces();
+      
+      // Depending on the type of restrictions, they get serialized differently in OWL-RDF      
+      switch($restrictionType)
+      {
+        case "DataAllValuesFrom":
+          /*
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="&iron;altLabel"/>
+                <owl:allValuesFrom rdf:resource="&xsd;anyURI"/>
+            </owl:Restriction>
+          */
+          
+          $restrictionDescription[Namespaces::$owl."onProperty"] = array(array("uri" => $namespaces->getUnprefixedUri($onProperty)));
+          $restrictionDescription[Namespaces::$owl."allValuesFrom"] = array(array("uri" => $namespaces->getUnprefixedUri($datatype)));
+        break;
+        
+        case "DataExactCardinality":
+          /*
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://purl.org/ontology/nhccn#complexity"/>
+                <owl:qualifiedCardinality rdf:datatype="&xsd;nonNegativeInteger">1</owl:qualifiedCardinality>
+                <owl:onDataRange rdf:resource="&xsd;anyURI"/>
+            </owl:Restriction>        
+          */
+          
+          $restrictionDescription[Namespaces::$owl."onProperty"] = array(array("uri" => $namespaces->getUnprefixedUri($onProperty)));
+          $restrictionDescription[Namespaces::$owl."qualifiedCardinality"] = array(array("value" => $cardinality,
+                                                                                         "type" => 'xsd:nonNegativeInteger'));
+          $restrictionDescription[Namespaces::$owl."onDataRange"] = array(array("uri" => $namespaces->getUnprefixedUri($datatype)));
+        break;
+        
+        case "DataMaxCardinality":
+          /*
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://purl.org/ontology/nhccn#copyrights"/>
+                <owl:maxQualifiedCardinality rdf:datatype="&xsd;nonNegativeInteger">1</owl:maxQualifiedCardinality>
+                <owl:onDataRange rdf:resource="&xsd;anyURI"/>
+            </owl:Restriction>        
+          */  
+          
+          $restrictionDescription[Namespaces::$owl."onProperty"] = array(array("uri" => $namespaces->getUnprefixedUri($onProperty)));
+          $restrictionDescription[Namespaces::$owl."maxQualifiedCardinality"] = array(array("value" => $cardinality,
+                                                                                            "type" => 'xsd:nonNegativeInteger'));
+          $restrictionDescription[Namespaces::$owl."onDataRange"] = array(array("uri" => $namespaces->getUnprefixedUri($datatype)));
+        break;
+        
+        case "DataMinCardinality":
+          /*
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="&agls;availability"/>
+                <owl:minQualifiedCardinality rdf:datatype="&xsd;nonNegativeInteger">1</owl:minQualifiedCardinality>
+                <owl:onDataRange rdf:resource="&xsd;anyURI"/>
+            </owl:Restriction>        
+          */
+          
+          $restrictionDescription[Namespaces::$owl."onProperty"] = array(array("uri" => $namespaces->getUnprefixedUri($onProperty)));
+          $restrictionDescription[Namespaces::$owl."minQualifiedCardinality"] = array(array("value" => $cardinality,
+                                                                                            "type" => 'xsd:nonNegativeInteger'));
+          $restrictionDescription[Namespaces::$owl."onDataRange"] = array(array("uri" => $namespaces->getUnprefixedUri($datatype)));
+        break;
+        
+        case "DataSomeValuesFrom":
+          /*
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://purl.org/ontology/bibo/abstract"/>
+                <owl:someValuesFrom rdf:resource="&xsd;anyURI"/>
+            </owl:Restriction>        
+          */
+          
+          $restrictionDescription[Namespaces::$owl."onProperty"] = array(array("uri" => $namespaces->getUnprefixedUri($onProperty)));
+          $restrictionDescription[Namespaces::$owl."someValuesFrom"] = array(array("uri" => $namespaces->getUnprefixedUri($datatype)));          
+        break;
+        
+        case "ObjectAllValuesFrom":
+          /*
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://purl.org/ontology/nhccn#azsubcategory"/>
+                <owl:allValuesFrom rdf:resource="&owl;Thing"/>
+            </owl:Restriction>        
+          */
+          
+          $restrictionDescription[Namespaces::$owl."onProperty"] = array(array("uri" => $namespaces->getUnprefixedUri($onProperty)));
+          $restrictionDescription[Namespaces::$owl."allValuesFrom"] = array(array("uri" => $namespaces->getUnprefixedUri($datatype)));          
+        break;
+        
+        case "ObjectExactCardinality":
+          /*
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="&dcterms;creator"/>
+                <owl:cardinality rdf:datatype="&xsd;nonNegativeInteger">1</owl:cardinality>
+                <owl:onClass rdf:resource="http://purl.org/ontology/nhccn#Status"/>
+            </owl:Restriction>        
+          */
+
+          $restrictionDescription[Namespaces::$owl."onProperty"] = array(array("uri" => $namespaces->getUnprefixedUri($onProperty)));
+          $restrictionDescription[Namespaces::$owl."cardinality"] = array(array("value" => $cardinality,
+                                                                                "type" => 'xsd:nonNegativeInteger'));
+                                                                                   
+          if(!empty($datatype))
+          {
+            $restrictionDescription[Namespaces::$owl."onClass"] = array(array("uri" => $namespaces->getUnprefixedUri($datatype)));
+          }
+        break;
+        
+        case "ObjectMaxCardinality":
+          /*
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://purl.org/ontology/nhccn#format"/>
+                <owl:maxCardinality rdf:datatype="&xsd;nonNegativeInteger">1</owl:maxCardinality>
+                <owl:onClass rdf:resource="http://purl.org/ontology/nhccn#Status"/>
+            </owl:Restriction>        
+          */
+
+          $restrictionDescription[Namespaces::$owl."onProperty"] = array(array("uri" => $namespaces->getUnprefixedUri($onProperty)));
+          $restrictionDescription[Namespaces::$owl."maxCardinality"] = array(array("value" => $cardinality,
+                                                                                   "type" => 'xsd:nonNegativeInteger'));
+                                                                                   
+          if(!empty($datatype))
+          {
+            $restrictionDescription[Namespaces::$owl."onClass"] = array(array("uri" => $namespaces->getUnprefixedUri($datatype)));
+          }
+        break;
+        
+        case "ObjectMinCardinality":
+          /*
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://purl.org/ontology/nhccn#contentCategory"/>
+                <owl:minCardinality rdf:datatype="&xsd;nonNegativeInteger">1</owl:minCardinality>
+                <owl:onClass rdf:resource="http://purl.org/ontology/nhccn#Status"/>
+            </owl:Restriction>        
+          */        
+
+          $restrictionDescription[Namespaces::$owl."onProperty"] = array(array("uri" => $namespaces->getUnprefixedUri($onProperty)));
+          $restrictionDescription[Namespaces::$owl."minCardinality"] = array(array("value" => $cardinality,
+                                                                                   "type" => 'xsd:nonNegativeInteger'));
+                                                                                   
+          if(!empty($datatype))
+          {
+            $restrictionDescription[Namespaces::$owl."onClass"] = array(array("uri" => $namespaces->getUnprefixedUri($datatype)));
+          }
+        break;
+        
+        case "ObjectSomeValuesFrom":
+          /*
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://purl.org/ontology/nhccn#audience"/>
+                <owl:someValuesFrom rdf:resource="&owl;Thing"/>
+            </owl:Restriction>        
+          */
+          
+          $restrictionDescription[Namespaces::$owl."onProperty"] = array(array("uri" => $namespaces->getUnprefixedUri($onProperty)));
+          $restrictionDescription[Namespaces::$owl."someValuesFrom"] = array(array("uri" => $namespaces->getUnprefixedUri($datatype)));                    
+        break;
+      }
+      
+      $restrictionsDescriptions['urn:restriction:'.md5(java_values($restriction->toString()))] = $restrictionDescription;
+    }    
+    
+    return($restrictionsDescriptions);
+  }  
+  
+  private function _restrictionsVisitor($desc)
+  {
+    $restrictions = array();
+    
+    $subClassOfAxioms = $this->ontology->getSubClassAxiomsForSubClass($desc);
+    
+    $nbSuperClasses = 0;
+    foreach($subClassOfAxioms as $subClassOfAxiom)
+    {
+      $superClass = $subClassOfAxiom->getSuperClass();
+      
+      if(java_instanceof($superClass, java("uk.ac.manchester.cs.owl.owlapi.OWLClassImpl")))
+      {      
+        $nbSuperClasses++;
+        
+        $rests = $this->_restrictionsVisitor($superClass);
+        
+        $restrictions = array_unique(array_merge($restrictions, $rests));
+      }
+      
+      //  Just keep the restrictions exposed in Protégé
+      if(java_instanceof($superClass, java("org.semanticweb.owlapi.model.OWLDataAllValuesFrom")) ||
+         java_instanceof($superClass, java("org.semanticweb.owlapi.model.OWLDataExactCardinality")) ||
+         java_instanceof($superClass, java("org.semanticweb.owlapi.model.OWLDataMaxCardinality")) ||
+         java_instanceof($superClass, java("org.semanticweb.owlapi.model.OWLDataMinCardinality")) ||
+         java_instanceof($superClass, java("org.semanticweb.owlapi.model.OWLDataSomeValuesFrom")) ||
+         java_instanceof($superClass, java("org.semanticweb.owlapi.model.OWLObjectAllValuesFrom")) ||
+         java_instanceof($superClass, java("org.semanticweb.owlapi.model.OWLObjectExactCardinality")) ||
+         java_instanceof($superClass, java("org.semanticweb.owlapi.model.OWLObjectMaxCardinality")) ||
+         java_instanceof($superClass, java("org.semanticweb.owlapi.model.OWLObjectMinCardinality")) ||
+         java_instanceof($superClass, java("org.semanticweb.owlapi.model.OWLObjectSomeValuesFrom")))
+      {
+        $restrictions[] = $superClass;
+      }
+    }
+    
+    if($nbSuperClasses == 0 && java_values($desc->toStringID()) != 'http://www.w3.org/2002/07/owl#Thing')
+    {
+      // If there is no super class of OWLClassImpl type, then we consider it as at least owl:Thing by inference.
+      // We perform this inference step since if we have restrictions defined on owl:Thing, we want them to be
+      // applied on all sub-classes of owl:Thing.
+      //
+      // If we don't do this, then only the classes with the specific (rdfs:subClassOf owl:Thing) statement will
+      // get the restriction.
+      
+      $superClass = $this->_getClass(java("org.semanticweb.owlapi.model.IRI")->create('http://www.w3.org/2002/07/owl#Thing'));
+
+      $rests = $this->_restrictionsVisitor($superClass);
+      
+      $restrictions = array_unique(array_merge($restrictions, $rests));
+    } 
+    
+    return($restrictions);   
+  }
   
   /**
   * Convert the OWLAPI ontology description into an array describing the ontology's annotations. This array 

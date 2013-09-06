@@ -2917,7 +2917,7 @@ class OWLOntology
       }
     }
     
-    if($nbSuperClasses == 0 && java_values($desc->toStringID()) != 'http://www.w3.org/2002/07/owl#Thing')
+    if($nbSuperClasses == 0 && method_exists($desc, 'toStringID') && java_values($desc->toStringID()) != 'http://www.w3.org/2002/07/owl#Thing')
     {
       // If there is no super class of OWLClassImpl type, then we consider it as at least owl:Thing by inference.
       // We perform this inference step since if we have restrictions defined on owl:Thing, we want them to be

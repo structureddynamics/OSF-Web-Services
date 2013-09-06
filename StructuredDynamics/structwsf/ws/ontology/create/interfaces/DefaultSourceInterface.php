@@ -191,7 +191,7 @@
 
         // If the query is still valid
         if($this->ws->conneg->getStatus() == 200)
-        {
+        {  
           // Starts the OWLAPI process/bridge
           require_once($this->ws->owlapiBridgeURI);
 

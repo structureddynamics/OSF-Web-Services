@@ -125,7 +125,7 @@
               $subjectsFilter .= '<'.$subject.'>,';
             }
             
-            if(!empty($subjectsFilter))
+            if(!empty($subjectsFilter) && $this->ws->mode != "searchindex")
             {
               $subjectsFilter = rtrim($subjectsFilter, ',');
               
@@ -272,6 +272,109 @@
             // Index everything in Solr
             if($this->ws->mode == "full" || $this->ws->mode == "searchindex")
             {
+              // If the user is forcing the reload of the search index, then we replace the
+              // content of the $resourceIndex index with the triples that are currently indexed
+              // into Virtuoso
+              if($this->ws->mode == "searchindex")
+              {
+                // First, we have to make sure that the record is currently published. We cannot
+                // update the Solr index of an unpublished record
+                $subjectsFilter = rtrim($subjectsFilter, ',');
+                
+                $query = "select count(?s) as ?nb
+                          from <" . $this->ws->dataset . ">
+                          where
+                          {
+                            ?s a ?type.
+                          
+                            filter(?s in(".$subjectsFilter."))
+                          }";
+
+                $resultset = @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array('status'), FALSE));
+
+                if(odbc_error())
+                {
+                  $this->ws->conneg->setStatus(500);
+                  $this->ws->conneg->setStatusMsg("Internal Error");
+                  $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_311->name);
+                  $this->ws->conneg->setError($this->ws->errorMessenger->_311->id, $this->ws->errorMessenger->ws,
+                    $this->ws->errorMessenger->_311->name, $this->ws->errorMessenger->_311->description, $query,
+                    $this->ws->errorMessenger->_311->level);
+
+                  return;
+                }
+                else
+                {
+                  $nb = odbc_result($resultset, 1);
+               
+                  if($nb != count($irsUri))
+                  {
+                    // There are revisions records for one of the record. We stop the execution right here.
+                    $this->ws->conneg->setStatus(400);
+                    $this->ws->conneg->setStatusMsg("Bad Request");
+                    $this->ws->conneg->setError($this->ws->errorMessenger->_313->id, $this->ws->errorMessenger->ws,
+                      $this->ws->errorMessenger->_313->name, $this->ws->errorMessenger->_313->description, $errorsOutput,
+                      $this->ws->errorMessenger->_313->level);
+
+                    return;                        
+                  }
+                }                
+                
+                $crudRead = new CrudRead(implode(';', $irsUri), implode(';', array_fill(0, count($irsUri), $this->ws->dataset)), 'false', 'true', $this->ws->registered_ip, $this->ws->requester_ip);
+                
+                $crudRead->ws_conneg('application/rdf+xml', $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
+                                     $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+
+                $crudRead->process();
+
+                if($crudRead->pipeline_getResponseHeaderStatus() != 200)
+                { 
+                  $this->ws->conneg->setStatus($crudRead->pipeline_getResponseHeaderStatus());
+                  $this->ws->conneg->setStatusMsg($crudRead->pipeline_getResponseHeaderStatusMsg());
+                  $this->ws->conneg->setStatusMsgExt($crudRead->pipeline_getResponseHeaderStatusMsgExt());
+                  $this->ws->conneg->setError($crudRead->pipeline_getError()->id, $crudRead->pipeline_getError()->webservice,
+                    $crudRead->pipeline_getError()->name, $crudRead->pipeline_getError()->description,
+                    $crudRead->pipeline_getError()->debugInfo, $crudRead->pipeline_getError()->level);                  
+                  
+                  return;                    
+                }
+                else
+                {
+                  $subjectrdfxml = $crudRead->ws_serialize();
+                }            
+                
+                $parser = ARC2::getRDFParser();
+                $parser->parse($this->ws->dataset, $subjectrdfxml);
+                $rdfxmlSerializer = ARC2::getRDFXMLSerializer();
+          
+                $resourceIndex = $parser->getSimpleIndex(0);
+
+                if(count($parser->getErrors()) > 0)
+                {
+                  $errorsOutput = "";
+                  $errors = $parser->getErrors();
+
+                  foreach($errors as $key => $error)
+                  {
+                    $errorsOutput .= "[Error #$key] $error\n";
+                  }
+
+                  $this->ws->conneg->setStatus(400);
+                  $this->ws->conneg->setStatusMsg("Bad Request");
+                  $this->ws->conneg->setError($this->ws->errorMessenger->_301->id, $this->ws->errorMessenger->ws,
+                    $this->ws->errorMessenger->_301->name, $this->ws->errorMessenger->_301->description, $errorsOutput,
+                    $this->ws->errorMessenger->_301->level);
+
+                  return;
+                }
+                
+                // Remove isPartOf from what is returned by the CrudRead endpoint
+                foreach($resourceIndex as $subject => $properties)
+                {
+                  unset($resourceIndex[$subject]['http://purl.org/dc/terms/isPartOf']);
+                }
+              }
+              
               $labelProperties = array (Namespaces::$iron . "prefLabel", Namespaces::$iron . "altLabel",
                 Namespaces::$skos_2008 . "prefLabel", Namespaces::$skos_2008 . "altLabel",
                 Namespaces::$skos_2004 . "prefLabel", Namespaces::$skos_2004 . "altLabel", Namespaces::$rdfs . "label",
@@ -1109,7 +1212,7 @@
               {
                 $solr->updateFieldsIndex();
               }
-            }
+            } 
           /*        
                   // Optimisation can be time consuming "on-the-fly" (which decrease user's experience)
                   if(!$solr->optimize())

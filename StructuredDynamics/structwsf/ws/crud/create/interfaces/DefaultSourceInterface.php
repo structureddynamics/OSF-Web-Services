@@ -129,13 +129,27 @@
             {
               $subjectsFilter = rtrim($subjectsFilter, ',');
               
+              // Here we check either:
+              //  (1) If a revision exists for a record, even if the record is unpublished
+              //  (2) If the record exists in the published dataset, even if no revision records exists
+              //      Note: this happens when a record never got revisioned
+              
               $query = "select ?s
                         from <" . $revisionsDataset . ">
+                        from <" . $this->ws->dataset . ">
                         where
                         {
-                          ?s <http://purl.org/ontology/wsf#revisionUri> ?record.
+                          {
+                            ?s <http://purl.org/ontology/wsf#revisionUri> ?record.
                           
-                          filter(?record in(".$subjectsFilter."))
+                            filter(?record in(".$subjectsFilter."))
+                          }
+                          union
+                          {
+                            ?s a ?type.
+                          
+                            filter(?s in(".$subjectsFilter."))
+                          }  
                         }
                         limit 1
                         offset 0";

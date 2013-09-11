@@ -1585,13 +1585,13 @@
           if($collation->length > 0)
           {
             $collation = $collation->item(0)->nodeValue;
+          
+            $subject = new Subject($this->ws->uri . "suggestions/" . md5($collation));
+            $subject->setType(Namespaces::$wsf."SpellSuggestion");
+            $subject->setDataAttribute(Namespaces::$wsf."collation", $collation);
+            
+            $this->ws->rset->addSubject($subject);    
           }
-          
-          $subject = new Subject($this->ws->uri . "suggestions/" . md5($collation));
-          $subject->setType(Namespaces::$wsf."SpellSuggestion");
-          $subject->setDataAttribute(Namespaces::$wsf."collation", $collation);
-          
-          $this->ws->rset->addSubject($subject);    
 
           // Try to get the suggested terms
           $suggestedWords = $xpath->query("//*/lst[@name='suggestions']/lst");

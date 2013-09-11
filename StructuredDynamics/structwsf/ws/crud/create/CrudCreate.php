@@ -138,6 +138,12 @@ class CrudCreate extends \StructuredDynamics\structwsf\ws\framework\WebService
           "level": "Fatal",
           "name": "A revision exists for one of the record(s)",
           "description": "A revision exists for one of the record(s) that are being created. This web service endpoint cannot be used to re-create a record. That record needs to be updated using CRUD: Update."
+        },
+        "_313": {
+          "id": "WS-CRUD-CREATE-313",
+          "level": "Fatal",
+          "name": "Can\'t refresh search index for an un-published record",
+          "description": "You are trying to refresh the search index using records that are currently unpublished. Only published records can be used to update the search index."
         } 
       }';
 

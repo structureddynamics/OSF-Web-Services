@@ -669,11 +669,11 @@
           {
             if($key == 0)
             {
-              $solrQuery .= "&fq=dataset:%22" . urlencode($dataset) . "%22";
+              $solrQuery .= "&fq=dataset:(%22" . urlencode($dataset) . "%22)";
             }
             else
             {
-              $solrQuery .= " OR dataset:%22" . urlencode($dataset) . "%22";
+              $solrQuery .= " OR dataset:(%22" . urlencode($dataset) . "%22)";
             }
           }
         }
@@ -681,7 +681,7 @@
         {
           $datasets = explode(";", trim($this->ws->datasets, ';'));
 
-          $solrQuery .= "&fq=dataset:%22%22";
+          $solrQuery .= "&fq=dataset:(%22%22)";
 
           foreach($datasets as $dataset)
           {
@@ -691,7 +691,7 @@
               // Decoding potentially encoded ";" characters
               $dataset = str_replace(array ("%3B", "%3b"), ";", $dataset);
 
-              $solrQuery .= " OR dataset:%22" . urlencode($dataset) . "%22";
+              $solrQuery .= " OR dataset:(%22" . urlencode($dataset) . "%22)";
             }
           }
         }
@@ -711,18 +711,18 @@
 
             if($nbProcessed == 0)
             {
-              $solrQuery .= "&fq=type:%22" . urlencode($type) . "%22";
+              $solrQuery .= "&fq=type:(%22" . urlencode($type) . "%22)";
             }
             else
             {
-              $solrQuery .= " OR type:%22" . urlencode($type) . "%22";
+              $solrQuery .= " OR type:(%22" . urlencode($type) . "%22)";
             }
 
             $nbProcessed++;
 
             if(strtolower($this->ws->inference) == "on")
             {
-              $solrQuery .= " OR inferred_type:%22" . urlencode($type) . "%22";
+              $solrQuery .= " OR inferred_type:(%22" . urlencode($type) . "%22)";
             }
           }
         }
@@ -994,20 +994,20 @@
                     case "type":
                       if(strtolower($this->ws->inference) == "on")
                       {
-                        $solrQuery .= "&fq=((type:".urlencode($this->escapeSolrValue($val)).") OR (inferred_type:".urlencode($this->escapeSolrValue($val))."))";
+                        $solrQuery .= "&fq=((type:(".urlencode($this->escapeSolrValue($val)).")) OR (inferred_type:(".urlencode($this->escapeSolrValue($val)).")))";
                       }
                       else
                       {
-                        $solrQuery .= "&fq=(type:".urlencode($this->escapeSolrValue($val)).")";
+                        $solrQuery .= "&fq=(type:(".urlencode($this->escapeSolrValue($val))."))";
                       }
                     break;
                     
                     case "located_in":
-                      $solrQuery .= "&fq=(located_in:".urlencode($this->escapeSolrValue($val)).")";
+                      $solrQuery .= "&fq=(located_in:(".urlencode($this->escapeSolrValue($val))."))";
                     break;
                     
                     default:
-                      $solrQuery .= "&fq=(".$attribute.":".urlencode($this->arrangeSolrValue($val)).")";
+                      $solrQuery .= "&fq=(".$attribute.":(".urlencode($this->arrangeSolrValue($val))."))";
                     break;
                   }
                 }
@@ -1025,19 +1025,19 @@
                     case "type":
                       if(strtolower($this->ws->inference) == "on")
                       {
-                        $solrQuery .= " ".$this->ws->attributesBooleanOperator." ((type:".urlencode($this->escapeSolrValue($val)).") OR (inferred_type:".urlencode($this->escapeSolrValue($val))."))";
+                        $solrQuery .= " ".$this->ws->attributesBooleanOperator." ((type:(".urlencode($this->escapeSolrValue($val)).")) OR (inferred_type:(".urlencode($this->escapeSolrValue($val)).")))";
                       }
                       else
                       {
-                        $solrQuery .= " ".$this->ws->attributesBooleanOperator." (type:".urlencode($this->escapeSolrValue($val)).")";
+                        $solrQuery .= " ".$this->ws->attributesBooleanOperator." (type:(".urlencode($this->escapeSolrValue($val))."))";
                       }
                     break;                  
                     case "located_in":
-                      $solrQuery .= " ".$this->ws->attributesBooleanOperator." (located_in:".urlencode($this->escapeSolrValue($val)).")";
+                      $solrQuery .= " ".$this->ws->attributesBooleanOperator." (located_in:(".urlencode($this->escapeSolrValue($val))."))";
                     break;
                     
                     default:
-                      $solrQuery .= " ".$this->ws->attributesBooleanOperator." (".$attribute.":".urlencode($this->arrangeSolrValue($val)).")";
+                      $solrQuery .= " ".$this->ws->attributesBooleanOperator." (".$attribute.":(".urlencode($this->arrangeSolrValue($val))."))";
                     break;
                   }                
                   
@@ -1063,7 +1063,7 @@
               // the query anyway.
               if(!$coreAttr && array_search(urlencode($attribute), $indexedFields) !== FALSE)
               {
-                $solrQuery .= "(".urlencode(urlencode($attribute)).":".urlencode($this->arrangeSolrValue($val)).")";  
+                $solrQuery .= "(".urlencode(urlencode($attribute)).":(".urlencode($this->arrangeSolrValue($val))."))";  
                 $addOR = TRUE;
                 $empty = FALSE;
               }
@@ -1075,7 +1075,7 @@
                   $solrQuery .= " OR ";
                 }
                 
-                $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_".$this->ws->lang.$singleValuedDesignator.":".urlencode($this->arrangeSolrValue($val)).")";
+                $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_".$this->ws->lang.$singleValuedDesignator.":(".urlencode($this->arrangeSolrValue($val))."))";
                 $addOR = TRUE;
                 $empty = FALSE;
               }
@@ -1089,7 +1089,7 @@
                 
                 if(is_numeric($val))
                 {
-                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_int".$singleValuedDesignator.":".$val.")";                      
+                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_int".$singleValuedDesignator.":(".$val."))";                      
                 }
                 else
                 {
@@ -1124,7 +1124,7 @@
                     }
                   } 
                   
-                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_int".$singleValuedDesignator.":".urlencode("[".$numbers[0]." TO ".$numbers[1]."]").")";
+                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_int".$singleValuedDesignator.":(".urlencode("[".$numbers[0]." TO ".$numbers[1]."]")."))";
                 }
                   
                   
@@ -1141,7 +1141,7 @@
                       
                 if(is_numeric($val))
                 {
-                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_float".$singleValuedDesignator.":".$val.")";
+                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_float".$singleValuedDesignator.":(".$val."))";
                 }
                 else
                 {                    
@@ -1176,7 +1176,7 @@
                     }
                   } 
                   
-                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_float".$singleValuedDesignator.":".urlencode("[".$numbers[0]." TO ".$numbers[1]."]").")";
+                  $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_float".$singleValuedDesignator.":(".urlencode("[".$numbers[0]." TO ".$numbers[1]."]")."))";
                 }
                 $addOR = TRUE;
                 $empty = FALSE;
@@ -1248,7 +1248,7 @@
                   }                       
                 }
                 
-                $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_date".$singleValuedDesignator.":".urlencode("[".$dateFrom." TO ".$dateTo)."]".")";
+                $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_date".$singleValuedDesignator.":(".urlencode("[".$dateFrom." TO ".$dateTo)."]"."))";
                 $addOR = TRUE;
                 $empty = FALSE;
               }
@@ -1260,7 +1260,7 @@
                   $solrQuery .= " OR ";
                 }
                 
-                $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj_".$this->ws->lang.$singleValuedDesignator.":".urlencode($this->arrangeSolrValue($val)).")";
+                $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj_".$this->ws->lang.$singleValuedDesignator.":(".urlencode($this->arrangeSolrValue($val))."))";
                 $addOR = TRUE;
                 $empty = FALSE;
               }
@@ -1272,7 +1272,7 @@
                   $solrQuery .= " OR ";
                 }
                 
-                $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj_uri:".urlencode($this->escapeURIValue($val)).")";
+                $solrQuery .= "(".urlencode(urlencode($attribute))."_attr_obj_uri:(".urlencode($this->escapeURIValue($val))."))";
                 $addOR = TRUE;
                 $empty = FALSE;
               }   
@@ -1318,11 +1318,11 @@
             {
               if($nbProcessed == 0)
               {
-                $solrQuery .= "&fq=(attribute:%22" . urlencode($attribute) . "%22)";
+                $solrQuery .= "&fq=(attribute:(%22" . urlencode($attribute) . "%22))";
               }
               else
               {
-                $solrQuery .= " ".$this->ws->attributesBooleanOperator." (attribute:%22" . urlencode($attribute) . "%22)";
+                $solrQuery .= " ".$this->ws->attributesBooleanOperator." (attribute:(%22" . urlencode($attribute) . "%22))";
               }
             }
 
@@ -1379,7 +1379,7 @@
             $p4 = $params[1];
           }
           
-          $solrQuery .= "&fq=lat:[".$p1." TO ".$p2."]&fq=long:[".$p3." TO ".$p4."]";
+          $solrQuery .= "&fq=lat:([".$p1." TO ".$p2."])&fq=long:([".$p3." TO ".$p4."])";
         }
 
         // Add the attribute/value aggregates if needed

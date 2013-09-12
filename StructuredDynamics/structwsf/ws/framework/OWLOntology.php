@@ -679,8 +679,14 @@ class OWLOntology
     
     if($this->useReasoner)
     {
-      $superClasses = $this->reasoner->getSuperClasses($class, filter_var($direct, FILTER_VALIDATE_BOOLEAN)); 
-      $superClasses = $superClasses->getFlattened();
+      try
+      {
+        $superClasses = $this->reasoner->getSuperClasses($class, filter_var($direct, FILTER_VALIDATE_BOOLEAN)); 
+        $superClasses = $superClasses->getFlattened();
+      }
+      catch(Exception $e)
+      {
+      }
     } 
     else
     {
@@ -1028,8 +1034,14 @@ class OWLOntology
     
     if($this->useReasoner)
     {
-      $superClasses = $this->reasoner->getSuperClasses($class, filter_var($direct, FILTER_VALIDATE_BOOLEAN)); 
-      $superClasses = $superClasses->getFlattened();
+      try
+      {
+        $superClasses = $this->reasoner->getSuperClasses($class, filter_var($direct, FILTER_VALIDATE_BOOLEAN)); 
+        $superClasses = $superClasses->getFlattened();
+      }
+      catch(Exception $e)
+      {
+      }
     } 
     else
     {
@@ -2378,8 +2390,14 @@ class OWLOntology
     // Specify Super Classes Of properties   
     if($this->useReasoner)
     {
-      $subClasses = $this->reasoner->getSubClasses($class, TRUE); 
-      $subClasses = $subClasses->getFlattened();
+      try
+      {
+        $subClasses = $this->reasoner->getSubClasses($class, TRUE); 
+        $subClasses = $subClasses->getFlattened();
+      }
+      catch(Exception $e)
+      {
+      }
     } 
     else
     {
@@ -2473,8 +2491,14 @@ class OWLOntology
     // Get Sub Classes Of properties 
     if($this->useReasoner)
     {
-      $superClasses = $this->reasoner->getSuperClasses($class, TRUE); 
-      $superClasses = $superClasses->getFlattened();
+      try
+      {
+        $superClasses = $this->reasoner->getSuperClasses($class, TRUE); 
+        $superClasses = $superClasses->getFlattened();
+      }
+      catch(Exception $e)
+      {
+      }
     } 
     else
     {
@@ -2510,8 +2534,14 @@ class OWLOntology
     // Specify Super Classes Of properties   
     if($this->useReasoner)
     {
-      $subClasses = $this->reasoner->getSubClasses($class, TRUE); 
-      $subClasses = $subClasses->getFlattened();
+      try
+      {
+        $subClasses = $this->reasoner->getSubClasses($class, TRUE); 
+        $subClasses = $subClasses->getFlattened();
+      }
+      catch(Exception $e)
+      {
+      }
     } 
     else
     {

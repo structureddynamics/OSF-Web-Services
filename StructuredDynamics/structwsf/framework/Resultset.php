@@ -497,7 +497,9 @@ class Resultset
       // Try to get a reference to the dataset where the record could come from
       $dataset = "unspecified";
       
-      if(isset($subject[Namespaces::$dcterms."isPartOf"]))    
+      if(isset($subject[Namespaces::$dcterms."isPartOf"]) && 
+         is_array($subject[Namespaces::$dcterms."isPartOf"]) &&
+         isset($subject[Namespaces::$dcterms."isPartOf"][0]["uri"]))     
       {
         $dataset = $subject[Namespaces::$dcterms."isPartOf"][0]["uri"];
       }

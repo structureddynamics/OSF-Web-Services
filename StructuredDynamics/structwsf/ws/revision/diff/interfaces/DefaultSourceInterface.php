@@ -120,10 +120,11 @@
           // and add that rdf:Statement as acs:removal to the ChangeSet.
           foreach($lrev as $lproperty => $lvalues)
           {
-            if($property == 'prefLabel' ||
-               $property == 'description' ||
-               $property == 'prefURL' ||
-               $property == 'altLabel')
+            if($lproperty == 'prefLabel' ||
+               $lproperty == 'description' ||
+               $lproperty == 'prefURL' ||
+               $lproperty == 'type' ||
+               $lproperty == 'altLabel')
             {
               continue;
             }
@@ -179,10 +180,11 @@
           // reify that $rrev triple as an rdf:Statement, and add that rdf:Statement as acs:addition to the ChangeSet.
           foreach($rrev as $rproperty => $rvalues)
           {
-            if($property == 'prefLabel' ||
-               $property == 'description' ||
-               $property == 'prefURL' ||
-               $property == 'altLabel')
+            if($rproperty == 'prefLabel' ||
+               $rproperty == 'description' ||
+               $rproperty == 'prefURL' ||
+               $rproperty == 'type' ||
+               $rproperty == 'altLabel')
             {
               continue;
             }

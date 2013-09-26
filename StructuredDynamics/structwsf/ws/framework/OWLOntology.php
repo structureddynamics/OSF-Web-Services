@@ -3316,7 +3316,7 @@ class OWLOntology
           
     foreach($ontologies as $ontology)
     {
-      array_push($os, str_replace(array("<", ">"), "", $ontology->getOntologyID()));
+      array_push($os, str_replace(array("<", ">"), "", $ontology->getOntologyID()->getOntologyIRI()));
     }
     
     return($os);    

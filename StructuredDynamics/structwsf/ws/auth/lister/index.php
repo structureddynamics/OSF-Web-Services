@@ -69,13 +69,6 @@ if(isset($_GET['target_webservice']))
   $target_webservice = $_GET['target_webservice'];
 }
 
-$requester_ip = "0.0.0.0";
-
-if(isset($_SERVER['REMOTE_ADDR']))
-{
-  $requester_ip = $_SERVER['REMOTE_ADDR'];
-}
-
 $parameters = "";
 
 if(isset($_SERVER['REQUEST_URI']))
@@ -94,7 +87,7 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_al = new AuthLister($mode, $dataset, $group, $requester_ip, $target_webservice, $interface, $version);
+$ws_al = new AuthLister($mode, $dataset, $group, $target_webservice, $interface, $version);
 
 $ws_al->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                   (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

@@ -86,21 +86,6 @@ if(isset($_POST['webservices']))
   $webservices = $_POST['webservices'];
 }
 
-$requester_ip = "0.0.0.0";
-
-if(isset($_SERVER['REMOTE_ADDR']))
-{
-  $requester_ip = $_SERVER['REMOTE_ADDR'];
-}
-
-// Optional IP
-$registered_ip = "";
-
-if(isset($_POST['registered_ip']))
-{
-  $registered_ip = $_POST['registered_ip'];
-}
-
 $parameters = "";
 
 if(isset($_SERVER['REQUEST_URI']))
@@ -119,8 +104,7 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_dc = new DatasetCreate($uri, $title, $description, $creator, $registered_ip, $requester_ip, 
-                           $webservices, $globalPermissions, $interface, $version);
+$ws_dc = new DatasetCreate($uri, $title, $description, $creator, $webservices, $globalPermissions, $interface, $version);
 
 $ws_dc->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                   (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

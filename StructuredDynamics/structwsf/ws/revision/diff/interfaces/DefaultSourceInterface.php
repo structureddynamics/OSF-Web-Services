@@ -24,8 +24,7 @@
       if($this->ws->conneg->getStatus() == 200)
       {          
         // Get the description of the revisions
-        $lRevisionRead = new RevisionRead($this->ws->lrevuri, $this->ws->dataset, 'record', 
-                                          $this->ws->registered_ip, $this->ws->requester_ip);
+        $lRevisionRead = new RevisionRead($this->ws->lrevuri, $this->ws->dataset, 'record');
                                  
         $lRevisionRead->ws_conneg('text/xml', $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
           $_SERVER['HTTP_ACCEPT_LANGUAGE']);
@@ -52,8 +51,7 @@
         $lrev->importStructXMLResultset($lrevxml);
         $lrev = $lrev->getResultset();
         
-        $rRevisionRead = new RevisionRead($this->ws->rrevuri, $this->ws->dataset, 'record', 
-                                          $this->ws->registered_ip, $this->ws->requester_ip);
+        $rRevisionRead = new RevisionRead($this->ws->rrevuri, $this->ws->dataset, 'record');
                                  
         $rRevisionRead->ws_conneg('text/xml', $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
           $_SERVER['HTTP_ACCEPT_LANGUAGE']);

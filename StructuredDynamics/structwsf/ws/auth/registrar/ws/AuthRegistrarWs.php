@@ -43,9 +43,6 @@ class AuthRegistrarWs extends \StructuredDynamics\structwsf\ws\framework\WebServ
   /** Web service URI being registered */
   private $registered_uri = "";
 
-  /** Requester's IP used for request validation */
-  private $requester_ip = "";
-
   /** Error messages of this web service */
   private $errorMessenger =
     '{
@@ -147,8 +144,6 @@ class AuthRegistrarWs extends \StructuredDynamics\structwsf\ws\framework\WebServ
                                 character. an example of such a quadruple is: "crud_usage=True;True;False;False", 
                                 meaning: Create = True, Read = True, Update = False and Delete = False
       @param $registered_uri URI of the web service endpoint to register
-      @param $registered_ip Target IP address registered in the WSF         
-      @param $requester_ip IP address of the requester
       @param $interface Name of the source interface to use for this web service query. Default value: 'default'                            
       @param $requestedInterfaceVersion Version used for the requested source interface. The default is the latest 
                                         version of the interface.
@@ -158,7 +153,7 @@ class AuthRegistrarWs extends \StructuredDynamics\structwsf\ws\framework\WebServ
       @author Frederick Giasson, Structured Dynamics LLC.
   */
   function __construct($registered_title, $registered_endpoint, $registered_crud_usage, $registered_uri, 
-                       $registered_ip, $requester_ip, $interface='default', $requestedInterfaceVersion="")
+                       $interface='default', $requestedInterfaceVersion="")
   {
     parent::__construct();
     
@@ -170,16 +165,6 @@ class AuthRegistrarWs extends \StructuredDynamics\structwsf\ws\framework\WebServ
     $this->registered_endpoint = $registered_endpoint;
     $this->registered_crud_usage = $registered_crud_usage;
     $this->registered_uri = $registered_uri;
-    $this->requester_ip = $requester_ip;
-
-    if($registered_ip == "")
-    {
-      $this->registered_ip = $requester_ip;
-    }
-    else
-    {
-      $this->registered_ip = $registered_ip;
-    }
     
     if(strtolower($interface) == "default")
     {
@@ -190,23 +175,7 @@ class AuthRegistrarWs extends \StructuredDynamics\structwsf\ws\framework\WebServ
       $this->interface = $interface;
     }
         
-    $this->requestedInterfaceVersion = $requestedInterfaceVersion;    
-
-    if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
-    {
-      $pos = strpos($this->registered_ip, "::");
-
-      if($pos !== FALSE)
-      {
-        $account = substr($this->registered_ip, $pos + 2, strlen($this->registered_ip) - ($pos + 2));
-
-        $this->registered_ip = $requester_ip . "::" . $account;
-      }
-      else
-      {
-        $this->registered_ip = $requester_ip;
-      }
-    }   
+    $this->requestedInterfaceVersion = $requestedInterfaceVersion;      
     
     $this->uri = $this->wsf_base_url . "/wsf/ws/auth/registrar/ws/";
     $this->title = "Authentication Web Service Registration Web Service";

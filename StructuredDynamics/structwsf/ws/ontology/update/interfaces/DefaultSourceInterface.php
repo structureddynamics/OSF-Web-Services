@@ -17,9 +17,6 @@
   
   class DefaultSourceInterface extends SourceInterface
   {
-    /** Requester's IP used for request validation */
-    private $requester_ip = "";
-    
     private $OwlApiSession = null;    
     
     function __construct($webservice)
@@ -304,8 +301,7 @@
               foreach($queries as $query)
               {
                 // Get the class description of the current punned entity
-                $ontologyRead = new OntologyRead($this->ws->ontologyUri, $query["function"], $query["params"],
-                                                 $this->ws->registered_ip, $this->ws->requester_ip);
+                $ontologyRead = new OntologyRead($this->ws->ontologyUri, $query["function"], $query["params"]);
 
                 // Since we are in pipeline mode, we have to set the owlapisession using the current one.
                 // otherwise the java bridge will return an error
@@ -372,8 +368,7 @@
                 
                 // Update the classes and properties into the Solr index
                 // Every time OntologyUpdate is called, a new revision will be created
-                $crudUpdate = new CrudUpdate($serializedResource, "application/rdf+xml", $this->ws->ontologyUri, 
-                                             $this->ws->registered_ip, $this->ws->requester_ip);
+                $crudUpdate = new CrudUpdate($serializedResource, "application/rdf+xml", $this->ws->ontologyUri);
 
                 $crudUpdate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
                   $_SERVER['HTTP_ACCEPT_LANGUAGE']);
@@ -387,8 +382,7 @@
                     // If the WS-CRUD-UPDATE-315 error is returned, it means that we are creating
                     // this new entity into structWSF, so we have to re-issue the query using
                     // the CRUD: Create endpoint
-                    $crudCreate = new CrudCreate($serializedResource, "application/rdf+xml", 'full', $this->ws->ontologyUri, 
-                                                 $this->ws->registered_ip, $this->ws->requester_ip);
+                    $crudCreate = new CrudCreate($serializedResource, "application/rdf+xml", 'full', $this->ws->ontologyUri);
 
                     $crudCreate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
                       $_SERVER['HTTP_ACCEPT_LANGUAGE']);
@@ -418,7 +412,7 @@
                     reset($resourcesIndex);
                     $recordUri = key($resourcesIndex);                    
                     
-                    $revisionLister = new RevisionLister($recordUri, $this->ws->ontologyUri, 'short', $this->ws->registered_ip, $this->ws->requester_ip);
+                    $revisionLister = new RevisionLister($recordUri, $this->ws->ontologyUri, 'short');
                     
                     $revisionLister->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
                       $_SERVER['HTTP_ACCEPT_LANGUAGE']);
@@ -448,7 +442,7 @@
                     $revisionUri = key($resultset['unspecified']);
                     
                     // Re-publish the latest version of the record
-                    $revisionUpdate = new RevisionUpdate($revisionUri, $this->ws->ontologyUri, 'published', $this->ws->registered_ip, $this->ws->requester_ip);
+                    $revisionUpdate = new RevisionUpdate($revisionUri, $this->ws->ontologyUri, 'published');
                     
                     $revisionUpdate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
                                                $_SERVER['HTTP_ACCEPT_LANGUAGE']);
@@ -468,8 +462,7 @@
                     }                       
                     
                     // Now create a new published version of that record according to this Ontology: Update query
-                    $reCrudUpdate = new CrudUpdate($serializedResource, "application/rdf+xml", $this->ws->ontologyUri, 
-                                                 $this->ws->registered_ip, $this->ws->requester_ip);
+                    $reCrudUpdate = new CrudUpdate($serializedResource, "application/rdf+xml", $this->ws->ontologyUri);
 
                     $reCrudUpdate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
                       $_SERVER['HTTP_ACCEPT_LANGUAGE']);
@@ -516,8 +509,7 @@
                 $serializedResource = $ser->getSerializedIndex(array($uri => $resourceIndex[$uri]));
                 
                 // Update the classes and properties into the Solr index
-                $crudUpdate = new CrudUpdate($serializedResource, "application/rdf+n3", $this->ws->ontologyUri, 
-                                             $this->ws->registered_ip, $this->ws->requester_ip);
+                $crudUpdate = new CrudUpdate($serializedResource, "application/rdf+n3", $this->ws->ontologyUri);
 
                 $crudUpdate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
                   $_SERVER['HTTP_ACCEPT_LANGUAGE']);
@@ -610,8 +602,7 @@
           }
           
           // Get the description of the newly updated entity.
-          $ontologyRead = new OntologyRead($this->ws->ontologyUri, $function, $params,
-                                           $this->ws->registered_ip, $this->ws->requester_ip);
+          $ontologyRead = new OntologyRead($this->ws->ontologyUri, $function, $params);
 
           // Since we are in pipeline mode, we have to set the owlapisession using the current one.
           // otherwise the java bridge will return an error
@@ -653,8 +644,7 @@
           // This means that we "unpublish" the current record, with the current URI. We will always
           // keep information about that record, with that URI, even if the URI of the record is change
           // using this function
-          $crudDelete = new CrudDelete($oldUri, $this->ws->ontologyUri, 
-                                       $this->ws->registered_ip, $this->ws->requester_ip);
+          $crudDelete = new CrudDelete($oldUri, $this->ws->ontologyUri);
 
           $crudDelete->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
             $_SERVER['HTTP_ACCEPT_LANGUAGE']);
@@ -678,8 +668,7 @@
           // Add the new entity in Solr
 
           // Update the classes and properties into the Solr index
-          $crudCreate = new CrudCreate($entitySerialized, "application/rdf+xml", "full", $this->ws->ontologyUri, 
-                                       $this->ws->registered_ip, $this->ws->requester_ip);
+          $crudCreate = new CrudCreate($entitySerialized, "application/rdf+xml", "full", $this->ws->ontologyUri);
 
           $crudCreate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
             $_SERVER['HTTP_ACCEPT_LANGUAGE']);

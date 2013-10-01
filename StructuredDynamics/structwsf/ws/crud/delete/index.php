@@ -38,14 +38,6 @@ if(isset($_GET['version']))
   $version = $_GET['version'];
 }
 
-// IP being registered
-$registered_ip = "";
-
-if(isset($_GET['registered_ip']))
-{
-  $registered_ip = $_GET['registered_ip'];
-}
-
 // Dataset where to index the resource
 $dataset = "";
 
@@ -69,13 +61,6 @@ if(isset($_GET['mode']))
   $mode = $_GET['mode'];
 }
 
-$requester_ip = "0.0.0.0";
-
-if(isset($_SERVER['REMOTE_ADDR']))
-{
-  $requester_ip = $_SERVER['REMOTE_ADDR'];
-}
-
 $parameters = "";
 
 if(isset($_SERVER['REQUEST_URI']))
@@ -94,7 +79,7 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_cruddelete = new CrudDelete($uri, $dataset, $registered_ip, $requester_ip, $interface, $version, $mode);
+$ws_cruddelete = new CrudDelete($uri, $dataset, $interface, $version, $mode);
 
 $ws_cruddelete->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                           (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

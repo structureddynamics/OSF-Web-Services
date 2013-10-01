@@ -39,14 +39,6 @@ if(isset($_POST['version']))
   $version = $_POST['version'];
 }
 
-// IP being registered
-$registered_ip = "";
-
-if(isset($_POST['registered_ip']))
-{
-  $registered_ip = $_POST['registered_ip'];
-}
-
 // Ontology RDF document where resource(s) to be added are described
 $ontology = "";
 
@@ -85,13 +77,6 @@ if(isset($_POST['reasoner']))
   }  
 }
 
-$requester_ip = "0.0.0.0";
-
-if(isset($_SERVER['REMOTE_ADDR']))
-{
-  $requester_ip = $_SERVER['REMOTE_ADDR'];
-}
-
 $parameters = "";
 
 if(isset($_SERVER['REQUEST_URI']))
@@ -110,7 +95,7 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_ontologyupdate = new OntologyUpdate($ontology, $registered_ip, $requester_ip, $interface, $version);
+$ws_ontologyupdate = new OntologyUpdate($ontology, $interface, $version);
 
 $ws_ontologyupdate->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                               (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

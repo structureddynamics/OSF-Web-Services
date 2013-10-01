@@ -26,9 +26,6 @@ class AuthLister extends \StructuredDynamics\structwsf\ws\framework\WebService
   /** URL where the DTD of the XML document can be located on the Web */
   private $dtdURL;
 
-  /** IP of the requester */
-  private $requester_ip = "";
-
   /** Group URI */
   private $group = "";
 
@@ -161,7 +158,6 @@ class AuthLister extends \StructuredDynamics\structwsf\ws\framework\WebService
 
     @param $dataset URI referring to a target dataset. Needed when param1 = "dataset" or param1 = "access_datase". Otherwise this parameter as to be ommited.
     @param $group Target Group URI
-    @param $requester_ip IP address of the requester
     @param $target_webservice Determine on what web service URI(s) we should focus on for the listing of the access records.
                               This parameter is used to improve the performance of the web service endpoint depending on the 
                               use case. If there are numerous datasets with a numerous number of access permissions defined 
@@ -182,7 +178,7 @@ class AuthLister extends \StructuredDynamics\structwsf\ws\framework\WebService
   
     @author Frederick Giasson, Structured Dynamics LLC.
 */
-  function __construct($mode, $dataset, $group, $requester_ip, $target_webservice = "all", 
+  function __construct($mode, $dataset, $group, $target_webservice = "all", 
                        $interface='default', $requestedInterfaceVersion="")
   {
     parent::__construct();
@@ -191,7 +187,6 @@ class AuthLister extends \StructuredDynamics\structwsf\ws\framework\WebService
 
     $this->db = new DBVirtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 
-    $this->requester_ip = $requester_ip;
     $this->mode = $mode;
     $this->dataset = $dataset;
     $this->targetWebservice = strtolower($target_webservice);

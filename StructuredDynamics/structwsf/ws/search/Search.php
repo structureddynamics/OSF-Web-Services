@@ -55,12 +55,6 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
   /** Include spellchecking suggestions */
   private $spellcheck = FALSE;
 
-  /** IP of the requester */
-  private $requester_ip = "";
-
-  /** Requested IP */
-  private $registered_ip = "";
-  
   /** Global query filtering parameter */
   private $query = "";
   
@@ -358,8 +352,6 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
       @param $page Starting item number of the returned resultset
       @param $inference Enabling inference on types
       @param $include_aggregates Including aggregates with returned resultsets
-      @param $registered_ip Target IP address registered in the WSF
-      @param $requester_ip IP address of the requester
       @param $distanceFilter The distance filter is a series of parameter that are used to
                                  filter records of the dataset according to the distance they
                                  are located from a given lat;long point. The values are
@@ -523,7 +515,7 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
       @author Frederick Giasson, Structured Dynamics LLC.
   */
   function __construct($query, $types, $attributes, $datasets, $items, $page, $inference, $include_aggregates,
-                       $registered_ip, $requester_ip, $distanceFilter = '', $rangeFilter = '', 
+                       $distanceFilter = '', $rangeFilter = '', 
                        $aggregate_attributes = '', $attributesBooleanOperator = 'and',
                        $includeAttributesList = '', $aggregate_attributes_object_type = 'literal',
                        $aggregate_attributes_nb = 10, $resultsLocationAggregator = '',
@@ -617,33 +609,6 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
 
     $this->distanceFilter = $distanceFilter;
     $this->rangeFilter = $rangeFilter;
-    
-    $this->requester_ip = $requester_ip;
-
-    if($registered_ip == "")
-    {
-      $this->registered_ip = $requester_ip;
-    }
-    else
-    {
-      $this->registered_ip = $registered_ip;
-    }
-
-    if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
-    {
-      $pos = strpos($this->registered_ip, "::");
-
-      if($pos !== FALSE)
-      {
-        $account = substr($this->registered_ip, $pos + 2, strlen($this->registered_ip) - ($pos + 2));
-
-        $this->registered_ip = $requester_ip . "::" . $account;
-      }
-      else
-      {
-        $this->registered_ip = $requester_ip;
-      }
-    }
     
     $this->sort = $sort;
     

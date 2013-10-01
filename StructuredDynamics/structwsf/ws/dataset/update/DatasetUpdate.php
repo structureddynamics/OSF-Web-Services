@@ -26,9 +26,6 @@ class DatasetUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServic
   /** URL where the DTD of the XML document can be located on the Web */
   private $dtdURL;
 
-  /** IP of the requester */
-  private $requester_ip = "";
-
   /** URI of the dataset to update */
   private $datasetUri = "";
 
@@ -165,8 +162,6 @@ class DatasetUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServic
       @param $description (optional).Description of the dataset to update
       @param $contributors (optional).List of contributor URIs seperated by ";"
       @param $modified (optional).Date of the modification of the dataset
-      @param $registered_ip Target IP address registered in the WSF  
-      @param $requester_ip IP address of the requester
       @param $requestedInterfaceVersion Version used for the requested source interface. The default is the latest 
                                         version of the interface.
 
@@ -175,8 +170,7 @@ class DatasetUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServic
       @author Frederick Giasson, Structured Dynamics LLC.
   */
   function __construct($uri, $title, $description, $contributors, $modified, 
-                       $registered_ip, $requester_ip, $interface='default', 
-                       $requestedInterfaceVersion="")
+                       $interface='default', $requestedInterfaceVersion="")
   {
     parent::__construct();
     
@@ -189,16 +183,6 @@ class DatasetUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServic
     $this->description = $description;
     $this->contributors = $contributors;
     $this->modified = $modified;
-    $this->requester_ip = $requester_ip;
-    
-    if($registered_ip == "")
-    {
-      $this->registered_ip = $requester_ip;
-    }
-    else
-    {
-      $this->registered_ip = $registered_ip;
-    }
     
     $this->requestedInterfaceVersion = $requestedInterfaceVersion;
     
@@ -210,22 +194,6 @@ class DatasetUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServic
     {
       $this->interface = $interface;
     }
-
-    if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
-    {
-      $pos = strpos($this->registered_ip, "::");
-
-      if($pos !== FALSE)
-      {
-        $account = substr($this->registered_ip, $pos + 2, strlen($this->registered_ip) - ($pos + 2));
-
-        $this->registered_ip = $requester_ip . "::" . $account;
-      }
-      else
-      {
-        $this->registered_ip = $requester_ip;
-      }
-    }    
 
     $this->uri = $this->wsf_base_url . "/wsf/ws/dataset/update/";
     $this->title = "Dataset Update Web Service";

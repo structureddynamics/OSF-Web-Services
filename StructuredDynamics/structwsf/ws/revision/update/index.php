@@ -39,13 +39,6 @@ if(isset($_GET['version']))
   $version = $_GET['version'];
 }
 
-$registered_ip = "";
-
-if(isset($_GET['registered_ip']))
-{
-  $registered_ip = $_GET['registered_ip'];
-}
-
 $dataset = "";
 
 if(isset($_GET['dataset']))
@@ -67,13 +60,6 @@ if(isset($_GET['revuri']))
   $revuri = $_GET['revuri'];
 }
 
-$requester_ip = "0.0.0.0";
-
-if(isset($_SERVER['REMOTE_ADDR']))
-{
-  $requester_ip = $_SERVER['REMOTE_ADDR'];
-}
-
 $parameters = "";
 
 if(isset($_SERVER['REQUEST_URI']))
@@ -92,7 +78,7 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_ru = new RevisionUpdate($revuri, $dataset, $lifecycle, $registered_ip, $requester_ip, $interface, $version);
+$ws_ru = new RevisionUpdate($revuri, $dataset, $lifecycle, $interface, $version);
 
 $ws_ru->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                   (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

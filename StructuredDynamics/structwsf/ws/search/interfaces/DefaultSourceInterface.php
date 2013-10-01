@@ -205,7 +205,7 @@
         // Get all datasets accessible to that user
         $accessibleDatasets = array();
 
-        $ws_al = new AuthLister("access_user", "", $this->ws->registered_ip, $this->ws->wsf_local_ip, "none");
+        $ws_al = new AuthLister("access_user", "", "");
 
         $ws_al->pipeline_conneg($this->ws->conneg->getAccept(), $this->ws->conneg->getAcceptCharset(),
           $this->ws->conneg->getAcceptEncoding(), $this->ws->conneg->getAcceptLanguage());
@@ -235,54 +235,6 @@
         
         unset($ws_al);
         
-        /*
-          if registered_ip != requester_ip, this means that the query is sent by a registered system
-          on the behalf of someone else. In this case, we want to make sure that that system 
-          (the one that send the actual query) has access to the same datasets. Otherwise, it means that
-          it tries to personificate that registered_ip user.
-        */
-        if($this->ws->registered_ip != $this->ws->requester_ip)
-        {
-          // Get all datasets accessible to that system
-          $accessibleDatasetsSystem = array();
-
-          $ws_al = new AuthLister("access_user", "", $this->ws->requester_ip, $this->ws->wsf_local_ip, "none");
-
-          $ws_al->pipeline_conneg($this->ws->conneg->getAccept(), $this->ws->conneg->getAcceptCharset(),
-            $this->ws->conneg->getAcceptEncoding(), $this->ws->conneg->getAcceptLanguage());
-
-          $ws_al->process();
-
-          $xml = new ProcessorXML();
-          $xml->loadXML($ws_al->pipeline_getResultset());
-
-          $accesses = $xml->getSubjectsByType("wsf:Access");
-
-          foreach($accesses as $access)
-          {
-            $predicates = $xml->getPredicatesByType($access, "wsf:datasetAccess");
-            $objects = $xml->getObjects($predicates->item(0));
-            $datasetUri = $xml->getURI($objects->item(0));
-
-            $predicates = $xml->getPredicatesByType($access, "wsf:read");
-            $objects = $xml->getObjects($predicates->item(0));
-            $read = $xml->getContent($objects->item(0));
-
-            if(strtolower($read) == "true")
-            {
-              array_push($accessibleDatasetsSystem, $datasetUri);
-            }
-          }      
-          
-          unset($ws_al);         
-        
-          /*
-            Finally we use the intersection of the two set of dataset URIs as the list of accessible
-            datasets to include for the query.
-          */ 
-          $accessibleDatasets = array_intersect($accessibleDatasets, $accessibleDatasetsSystem);
-        }
-
         if(count($accessibleDatasets) <= 0)
         {
           $this->ws->conneg->setStatus(400);

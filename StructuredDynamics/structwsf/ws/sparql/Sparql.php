@@ -33,17 +33,11 @@ class Sparql extends \StructuredDynamics\structwsf\ws\framework\WebService
   /** Dataset where t send the query */
   private $dataset = "";
 
-  /** IP of the requester */
-  private $requester_ip = "";
-
   /** Limit of the number of results to return in the resultset */
   private $limit = "";
 
   /** Offset of the "sub-resultset" from the total resultset of the query */
   private $offset = "";
-
-  /** Requested IP */
-  private $registered_ip = "";
 
   /** SPARQL query content resultset */
   public $sparqlContent = "";
@@ -175,8 +169,6 @@ class Sparql extends \StructuredDynamics\structwsf\ws\framework\WebService
       @param $dataset Dataset URI where to send the query
       @param $limit Limit of the number of results to return in the resultset
       @param $offset Offset of the "sub-resultset" from the total resultset of the query
-      @param $registered_ip Target IP address registered in the WSF
-      @param $requester_ip IP address of the requester
       @param $interface Name of the source interface to use for this web service query. Default value: 'default'                                 
       @param $requestedInterfaceVersion Version used for the requested source interface. The default is the latest 
                                         version of the interface.
@@ -186,8 +178,7 @@ class Sparql extends \StructuredDynamics\structwsf\ws\framework\WebService
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($query, $dataset, $limit, $offset, $registered_ip, $requester_ip,
-                       $interface='default', $requestedInterfaceVersion="")
+  function __construct($query, $dataset, $limit, $offset, $interface='default', $requestedInterfaceVersion="")
   {
     parent::__construct();
 
@@ -199,7 +190,6 @@ class Sparql extends \StructuredDynamics\structwsf\ws\framework\WebService
     $this->limit = $limit;
     $this->offset = $offset;
     $this->dataset = $dataset;
-    $this->requester_ip = $requester_ip;
     
     if(strtolower($interface) == "default")
     {
@@ -210,32 +200,7 @@ class Sparql extends \StructuredDynamics\structwsf\ws\framework\WebService
       $this->interface = $interface;
     }
 
-    if($registered_ip == "")
-    {
-      $this->registered_ip = $requester_ip;
-    }
-    else
-    {
-      $this->registered_ip = $registered_ip;
-    }
-    
     $this->requestedInterfaceVersion = $requestedInterfaceVersion;
-
-    if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
-    {
-      $pos = strpos($this->registered_ip, "::");
-
-      if($pos !== FALSE)
-      {
-        $account = substr($this->registered_ip, $pos + 2, strlen($this->registered_ip) - ($pos + 2));
-
-        $this->registered_ip = $requester_ip . "::" . $account;
-      }
-      else
-      {
-        $this->registered_ip = $requester_ip;
-      }
-    }
 
     $this->uri = $this->wsf_base_url . "/wsf/ws/sparql/";
     $this->title = "Sparql Web Service";

@@ -32,14 +32,8 @@ class OntologyCreate extends \StructuredDynamics\structwsf\ws\framework\WebServi
     array ("application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*",
       "*/*");
 
-  /** IP being registered */
-  private $registered_ip = "";
-
   /** URI where the web service can fetch the ontology document */
   private $ontologyUri = "";
-
-  /** Requester's IP used for request validation */
-  private $requester_ip = "";
 
   /** URI of the inference rules set to use to create the ontological structure. */
   private $rulesSetURI = "";
@@ -147,15 +141,13 @@ class OntologyCreate extends \StructuredDynamics\structwsf\ws\framework\WebServi
   /** Constructor
           
       @param $ontologyUri URI where the webservice can fetch the ontology file
-      @param $registered_ip Target IP address registered in the WSF
-      @param $requester_ip IP address of the requester
       @param $interface Name of the source interface to use for this web service query. Default value: 'default'                            
       
       @return returns NULL
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($ontologyUri, $registered_ip, $requester_ip, $interface='default', $requestedInterfaceVersion="")
+  function __construct($ontologyUri, $interface='default', $requestedInterfaceVersion="")
   {
     parent::__construct();
     
@@ -163,15 +155,8 @@ class OntologyCreate extends \StructuredDynamics\structwsf\ws\framework\WebServi
 
     $this->db = new DBVirtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
     
-    $this->registered_ip = $registered_ip;
-    $this->requester_ip = $requester_ip;
     $this->ontologyUri = $ontologyUri;
 
-    if($this->registered_ip == "")
-    {
-      $this->registered_ip = $requester_ip;
-    }
-    
     if(strtolower($interface) == "default")
     {
       $this->interface = $this->default_interfaces["ontology_create"];
@@ -182,22 +167,6 @@ class OntologyCreate extends \StructuredDynamics\structwsf\ws\framework\WebServi
     }
     
     $this->requestedInterfaceVersion = $requestedInterfaceVersion;
-
-    if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
-    {
-      $pos = strpos($this->registered_ip, "::");
-
-      if($pos !== FALSE)
-      {
-        $account = substr($this->registered_ip, $pos + 2, strlen($this->registered_ip) - ($pos + 2));
-
-        $this->registered_ip = $requester_ip . "::" . $account;
-      }
-      else
-      {
-        $this->registered_ip = $requester_ip;
-      }
-    }
 
     $this->uri = $this->wsf_base_url . "/wsf/ws/ontology/create/";
     $this->title = "Ontology Create Web Service";

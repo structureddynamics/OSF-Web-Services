@@ -35,9 +35,6 @@ class CrudUpdate extends \StructuredDynamics\structwsf\ws\framework\WebService
     array ("application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*",
       "*/*");
 
-  /** IP being registered */
-  private $registered_ip = "";
-
   /** Dataset where to index the resource*/
   private $dataset;
 
@@ -52,9 +49,6 @@ class CrudUpdate extends \StructuredDynamics\structwsf\ws\framework\WebService
 
   /** Mime of the RDF document serialization */
   private $mime = "";
-
-  /** Requester's IP used for request validation */
-  private $requester_ip = "";
 
   /** Error messages of this web service */
   private $errorMessenger =
@@ -205,7 +199,7 @@ class CrudUpdate extends \StructuredDynamics\structwsf\ws\framework\WebService
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($document, $mime, $dataset, $registered_ip, $requester_ip, $interface='default', 
+  function __construct($document, $mime, $dataset, $interface='default', 
                        $requestedInterfaceVersion="", $lifecycle = 'published', $revision = 'true')
   {
     parent::__construct();
@@ -214,7 +208,6 @@ class CrudUpdate extends \StructuredDynamics\structwsf\ws\framework\WebService
 
     $this->db = new DBVirtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 
-    $this->requester_ip = $requester_ip;
     $this->dataset = $dataset;
     $this->mime = $mime;
     $this->lifecycle = strtolower($lifecycle);
@@ -234,15 +227,6 @@ class CrudUpdate extends \StructuredDynamics\structwsf\ws\framework\WebService
       $this->document = $document;
     }    
     
-    if($registered_ip == "")
-    {
-      $this->registered_ip = $requester_ip;
-    }
-    else
-    {
-      $this->registered_ip = $registered_ip;
-    }
-    
     if(strtolower($interface) == "default")
     {
       $this->interface = $this->default_interfaces["crud_update"];
@@ -253,22 +237,6 @@ class CrudUpdate extends \StructuredDynamics\structwsf\ws\framework\WebService
     }    
     
     $this->requestedInterfaceVersion = $requestedInterfaceVersion;
-
-    if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
-    {
-      $pos = strpos($this->registered_ip, "::");
-
-      if($pos !== FALSE)
-      {
-        $account = substr($this->registered_ip, $pos + 2, strlen($this->registered_ip) - ($pos + 2));
-
-        $this->registered_ip = $requester_ip . "::" . $account;
-      }
-      else
-      {
-        $this->registered_ip = $requester_ip;
-      }
-    }
 
     $this->uri = $this->wsf_base_url . "/wsf/ws/crud/update/";
     $this->title = "Crud Update Web Service";
@@ -337,9 +305,7 @@ class CrudUpdate extends \StructuredDynamics\structwsf\ws\framework\WebService
       }
 
       // Check if the dataset is created
-      $ws_dr = new DatasetRead($this->dataset, "false", "self",
-        $this->wsf_local_ip); // Here the one that makes the request is the WSF (internal request).
-      //    $ws_dr = new DatasetRead($this->dataset, "false", $this->registered_ip, $this->requester_ip);
+      $ws_dr = new DatasetRead($this->dataset, "false");
 
       $ws_dr->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
         $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());

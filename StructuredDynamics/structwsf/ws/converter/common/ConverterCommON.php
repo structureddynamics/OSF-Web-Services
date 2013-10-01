@@ -39,12 +39,6 @@ class ConverterCommON extends \StructuredDynamics\structwsf\ws\framework\WebServ
   /** Error message to report */
   private $errorMessages = "";
 
-  /** IP of the requester */
-  private $requester_ip = "";
-
-  /** Requested IP */
-  private $registered_ip = "";
-
   /** Parser */
   private $parser;
 
@@ -101,47 +95,18 @@ class ConverterCommON extends \StructuredDynamics\structwsf\ws\framework\WebServ
 
       @param $document Text of a commON document
       @param $docmime Mime type of the document
-      @param $registered_ip Target IP address registered in the WSF
-      @param $requester_ip IP address of the requester
     
       @return returns NULL
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($document = "", $docmime = "application/iron+csv", $registered_ip, $requester_ip)
+  function __construct($document = "", $docmime = "application/iron+csv")
   {
     parent::__construct();
 
     $this->text = $document;
     $this->docmime = $docmime;
          
-    $this->requester_ip = $requester_ip;
-
-    if($registered_ip == "")
-    {
-      $this->registered_ip = $requester_ip;
-    }
-    else
-    {
-      $this->registered_ip = $registered_ip;
-    }
-
-    if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
-    {
-      $pos = strpos($this->registered_ip, "::");
-
-      if($pos !== FALSE)
-      {
-        $account = substr($this->registered_ip, $pos + 2, strlen($this->registered_ip) - ($pos + 2));
-
-        $this->registered_ip = $requester_ip . "::" . $account;
-      }
-      else
-      {
-        $this->registered_ip = $requester_ip;
-      }
-    }
-
     $this->irJSONResources = array();
 
     $this->uri = $this->wsf_base_url . "/wsf/ws/converter/common/";

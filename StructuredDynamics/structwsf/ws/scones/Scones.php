@@ -33,12 +33,6 @@ class Scones extends \StructuredDynamics\structwsf\ws\framework\WebService
              administrator of the node. */
   private $application = "";
 
-  /** IP of the requester */
-  private $requester_ip = "";
-
-  /** Requested IP */
-  private $registered_ip = "";
-  
   /** Configuration file of the Scones web service endpoint. */
   private $config_ini;
   
@@ -148,16 +142,13 @@ class Scones extends \StructuredDynamics\structwsf\ws\framework\WebService
       @param $docmime Document content's MIME type
       @param $application Name of the GATE application used to perform the tagging. This name is 
                               pre-defined by the administrator of the node.
-      @param $registered_ip Target IP address registered in the WSF
-      @param $requester_ip IP address of the requester
       @param $interface Name of the source interface to use for this web service query. Default value: 'default'                            
 
       @return returns NULL
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($document, $docmime, $application, $registered_ip, $requester_ip, 
-                       $interface='default', $requestedInterfaceVersion="")
+  function __construct($document, $docmime, $application, $interface='default', $requestedInterfaceVersion="")
   {
     parent::__construct();
     
@@ -166,17 +157,7 @@ class Scones extends \StructuredDynamics\structwsf\ws\framework\WebService
     $this->document = $document;
     $this->docmime = $docmime;
     $this->application = $application;
-    $this->requester_ip = $requester_ip;
 
-    if($registered_ip == "")
-    {
-      $this->registered_ip = $requester_ip;
-    }
-    else
-    {
-      $this->registered_ip = $registered_ip;
-    }
-    
     $this->requestedInterfaceVersion = $requestedInterfaceVersion;
     
     if(strtolower($interface) == "default")
@@ -187,22 +168,6 @@ class Scones extends \StructuredDynamics\structwsf\ws\framework\WebService
     {
       $this->interface = $interface;
     }    
-
-    if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
-    {
-      $pos = strpos($this->registered_ip, "::");
-
-      if($pos !== FALSE)
-      {
-        $account = substr($this->registered_ip, $pos + 2, strlen($this->registered_ip) - ($pos + 2));
-
-        $this->registered_ip = $requester_ip . "::" . $account;
-      }
-      else
-      {
-        $this->registered_ip = $requester_ip;
-      }
-    }
 
     $this->uri = $this->wsf_base_url . "/wsf/ws/scones/";
     $this->title = "Scones Web Service";

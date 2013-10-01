@@ -256,21 +256,6 @@ if(isset($_POST['phrase_boost_distance']))
   $phraseBoostDistance = $_POST['phrase_boost_distance'];
 }
 
-// Optional IP
-$registered_ip = "";
-
-if(isset($_POST['registered_ip']))
-{
-  $registered_ip = $_POST['registered_ip'];
-}
-
-$requester_ip = "0.0.0.0";
-
-if(isset($_SERVER['REMOTE_ADDR']))
-{
-  $requester_ip = $_SERVER['REMOTE_ADDR'];
-}
-
 $parameters = "";
 
 if(isset($_SERVER['REQUEST_URI']))
@@ -290,7 +275,7 @@ elseif(isset($_SERVER['PHP_SELF']))
 }
 
 $ws_s = new Search($query, $types, $attributes, $datasets, $items, $page, $inference, $include_aggregates, 
-                   $registered_ip, $requester_ip, $distanceFilter, $rangeFilter, $aggregate_attributes, 
+                   $distanceFilter, $rangeFilter, $aggregate_attributes, 
                    $attributesBooleanOperator, $includeAttributesList,$aggregateAttributesObjectType,
                    $aggregateAttributesNb, $resultsLocationAggregator, $interface, $version, $lang,
                    $sort, $extendedFilters, $typesBoost, $attributesBoost, $datasetsBoost, $searchRestrictions,

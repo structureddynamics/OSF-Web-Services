@@ -45,9 +45,6 @@ class AuthRegistrarAccess extends \StructuredDynamics\structwsf\ws\framework\Web
   /** Dataset being registered */
   private $dataset = "";
 
-  /** Requester's IP used for request validation */
-  private $requester_ip = "";
-
   /** URI of the access to update if action=update */
   private $target_access_uri = "";
 
@@ -190,7 +187,6 @@ class AuthRegistrarAccess extends \StructuredDynamics\structwsf\ws\framework\Web
                               (5) "update": Update an existing access description 
       @param $target_access_uri Target URI of the access resource to update. Only used when param4 = update
       @param $group Target Group URI related to the acces record being created
-      @param $requester_ip IP address of the requester
       @param $interface Name of the source interface to use for this web service query. Default value: 'default'                                  
       @param $requestedInterfaceVersion Version used for the requested source interface. The default is the latest 
                                         version of the interface.
@@ -200,7 +196,7 @@ class AuthRegistrarAccess extends \StructuredDynamics\structwsf\ws\framework\Web
       @author Frederick Giasson, Structured Dynamics LLC.
   */
   function __construct($crud, $ws_uris, $dataset, $action, $target_access_uri, $group, 
-                       $requester_ip, $interface='default', $requestedInterfaceVersion="")
+                       $interface='default', $requestedInterfaceVersion="")
   {
     parent::__construct();
     
@@ -219,7 +215,6 @@ class AuthRegistrarAccess extends \StructuredDynamics\structwsf\ws\framework\Web
 
     $this->ws_uris = explode(";", $ws_uris);
     $this->dataset = $dataset;
-    $this->requester_ip = $requester_ip;
     $this->action = $action;
     
     if(strtolower($interface) == "default")

@@ -20,58 +20,26 @@
       // Make sure there was no conneg error prior to this process call
       if($this->ws->conneg->getStatus() == 200)
       {
-        /*
-          In the future, this single query should be used for that ALL purpose.
-          There is currently a bug in virtuoso that doesnt return anything in the resultset (virtuoso v5.0.10)
-          if one of the OPTIONAL pattern is not existing in the triple store (so, OPTIONAL doesn't work)
-          
-          sparql
-          select * 
-          from named </wsf/datasets/>
-          from named </wsf/>
-          where
-          {
-            graph </wsf/>
-            {
-              ?access <http://purl.org/ontology/wsf#registeredIP> "174.129.251.47::1" ;
-              <http://purl.org/ontology/wsf#read> "True" ;
-              <http://purl.org/ontology/wsf#datasetAccess> ?dataset .
-            }
-            
-            graph </wsf/datasets/> 
-            {
-              ?dataset a <http://rdfs.org/ns/void#Dataset> ;
-              <http://purl.org/dc/terms/created> ?created.
-          
-              OPTIONAL{?dataset <http://purl.org/dc/terms/title> ?title.}
-              OPTIONAL{?dataset <http://purl.org/dc/terms/description> ?description.}
-              OPTIONAL{?dataset <http://purl.org/dc/terms/creator> ?creator.}
-              OPTIONAL{?dataset <http://purl.org/dc/terms/modified> ?modified.}
-            }    
-          };
-        */
-
         $query = "";
         $nbDatasets = 0;
         
         if($this->ws->datasetUri == "all")
         {
-          $query = "  select distinct ?dataset ?title ?description ?creator ?created ?modified ?contributor ?meta
+          $query = "select distinct ?dataset ?title ?description ?creator ?created ?modified ?contributor ?meta
                     from named <" . $this->ws->wsf_graph . ">
                     from named <" . $this->ws->wsf_graph . "datasets/>
                     where
                     {
                       graph <" . $this->ws->wsf_graph . ">
                       {
-                        ?access <http://purl.org/ontology/wsf#registeredIP> ?ip ;
-                              <http://purl.org/ontology/wsf#read> \"True\" ;
-                        <http://purl.org/ontology/wsf#datasetAccess> ?dataset .
-                        filter( str(?ip) = \"".$this->ws->registered_ip."\" or str(?ip) = \"0.0.0.0\") .
+                        <". $this->ws->headers['OSF-USER-URI'] ."> a wsf:User ;
+                          wsf:hasGroup ?group .
+                          
+                        ?access wsf:groupAccess ?group ;
+                                wsf:datasetAccess ?dataset .                      
                       }
                       
-                      graph <"
-            . $this->ws->wsf_graph
-            . "datasets/>
+                      graph <". $this->ws->wsf_graph ."datasets/>
                       {
                         ?dataset a <http://rdfs.org/ns/void#Dataset> ;
                         <http://purl.org/dc/terms/created> ?created.

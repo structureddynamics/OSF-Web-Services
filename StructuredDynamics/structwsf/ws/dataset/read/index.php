@@ -47,27 +47,12 @@ if(isset($_GET['uri']))
   $uri = $_GET['uri'];
 }
 
-// Optional IP
-$registered_ip = "";
-
-if(isset($_GET['registered_ip']))
-{
-  $registered_ip = $_GET['registered_ip'];
-}
-
 // Optional Meta information
 $meta = "false";
 
 if(isset($_GET['meta']))
 {
   $meta = $_GET['meta'];
-}
-
-$requester_ip = "0.0.0.0";
-
-if(isset($_SERVER['REMOTE_ADDR']))
-{
-  $requester_ip = $_SERVER['REMOTE_ADDR'];
 }
 
 $parameters = "";
@@ -88,7 +73,7 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_dr = new DatasetRead($uri, $meta, $registered_ip, $requester_ip, $interface, $version);
+$ws_dr = new DatasetRead($uri, $meta, $interface, $version);
 
 $ws_dr->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                   (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

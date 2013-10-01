@@ -43,20 +43,6 @@ if(isset($_POST['docmime']))
   $docmime = str_replace('\"', '"', $_POST['docmime']);
 }
 
-$registered_ip = "";
-
-if(isset($_POST['registered_ip']))
-{
-  $registered_ip = $_POST['registered_ip'];
-}
-
-$requester_ip = "0.0.0.0";
-
-if(isset($_SERVER['REMOTE_ADDR']))
-{
-  $requester_ip = $_SERVER['REMOTE_ADDR'];
-}
-
 $parameters = "";
 
 if(isset($_SERVER['REQUEST_URI']))
@@ -75,7 +61,7 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_common = new ConverterCommon($document, $docmime, $registered_ip, $requester_ip);
+$ws_common = new ConverterCommon($document, $docmime);
 
 $ws_common->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                       (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

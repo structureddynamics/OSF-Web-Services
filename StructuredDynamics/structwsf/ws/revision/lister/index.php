@@ -47,13 +47,6 @@ if(isset($_GET['mode']))
   $mode = $_GET['mode'];
 }
 
-$registered_ip = "";
-
-if(isset($_GET['registered_ip']))
-{
-  $registered_ip = $_GET['registered_ip'];
-}
-
 $dataset = "";
 
 if(isset($_GET['dataset']))
@@ -66,13 +59,6 @@ $uri = "";
 if(isset($_GET['uri']))
 {
   $uri = $_GET['uri'];
-}
-
-$requester_ip = "0.0.0.0";
-
-if(isset($_SERVER['REMOTE_ADDR']))
-{
-  $requester_ip = $_SERVER['REMOTE_ADDR'];
 }
 
 $parameters = "";
@@ -93,7 +79,7 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_rl = new RevisionLister($uri, $dataset, $mode, $registered_ip, $requester_ip, $interface, $version);
+$ws_rl = new RevisionLister($uri, $dataset, $mode, $interface, $version);
 
 $ws_rl->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                   (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

@@ -27,12 +27,6 @@ class RevisionRead extends \StructuredDynamics\structwsf\ws\framework\WebService
   /** URL where the DTD of the XML document can be located on the Web */
   private $dtdURL;
 
-  /** IP of the requester */
-  private $requester_ip = "";
-
-  /** Requested IP (ex: a node wants to see all web services or datasets accessible for one of its user) */
-  private $registered_ip = "";
-
   /** Dataset URI where to index the RDF document. Note: this is the Dataset URI, and not the Dataset Revisions URI  */
   private $dataset = "";
 
@@ -145,8 +139,6 @@ class RevisionRead extends \StructuredDynamics\structwsf\ws\framework\WebService
     @param $mode mode Specify if you want to get the full revision record description, or simply the record (without the triples related to the revision)
                   (1) "revision" (default): return the full revision record, with all the information specific to the revision (status, revision time, performed, etc). The URI of the record that will be returned will be the same as the one used for the revuri parameter
                   (2) "record": return the record of that revision, without all the meta information about the revision. The URI of the record that will be returned will be different the one specified in revuri. The URI that will be used is the one of the actual record, so the one specified by the wsf:revisionUri property if the mode revision is used
-    @param $registered_ip Target IP address registered in the WSF
-    @param $requester_ip IP address of the requester
     @param $interface Name of the source interface to use for this web service query. Default value: 'default'                            
     @param $requestedInterfaceVersion Version used for the requested source interface. The default is the latest 
                                       version of the interface.
@@ -156,8 +148,7 @@ class RevisionRead extends \StructuredDynamics\structwsf\ws\framework\WebService
   
     @author Frederick Giasson, Structured Dynamics LLC.
 */
-  function __construct($revuri, $dataset, $mode, $registered_ip, $requester_ip, 
-                       $interface='default', $requestedInterfaceVersion="")
+  function __construct($revuri, $dataset, $mode, $interface='default', $requestedInterfaceVersion="")
   {
     parent::__construct();
 
@@ -165,7 +156,6 @@ class RevisionRead extends \StructuredDynamics\structwsf\ws\framework\WebService
 
     $this->db = new DBVirtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 
-    $this->requester_ip = $requester_ip;
     $this->dataset = $dataset;
     $this->revuri = $revuri;
     $this->mode = $mode;
@@ -181,31 +171,6 @@ class RevisionRead extends \StructuredDynamics\structwsf\ws\framework\WebService
     
     $this->requestedInterfaceVersion = $requestedInterfaceVersion;    
     
-    if($registered_ip == "")
-    {
-      $this->registered_ip = $requester_ip;
-    }
-    else
-    {
-      $this->registered_ip = $registered_ip;
-    }
-
-    if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
-    {
-      $pos = strpos($this->registered_ip, "::");
-
-      if($pos !== FALSE)
-      {
-        $account = substr($this->registered_ip, $pos + 2, strlen($this->registered_ip) - ($pos + 2));
-
-        $this->registered_ip = $requester_ip . "::" . $account;
-      }
-      else
-      {
-        $this->registered_ip = $requester_ip;
-      }
-    }
-
     $this->uri = $this->wsf_base_url . "/wsf/ws/revision/read/";
     $this->title = "Revision Read Web Service";
     $this->crud_usage = new CrudUsage(FALSE, TRUE, FALSE, FALSE);

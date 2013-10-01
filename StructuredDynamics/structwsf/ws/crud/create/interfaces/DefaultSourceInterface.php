@@ -315,7 +315,7 @@
                 }
               }                
               
-              $crudRead = new CrudRead(implode(';', $irsUri), implode(';', array_fill(0, count($irsUri), $this->ws->dataset)), 'false', 'true', $this->ws->registered_ip, $this->ws->requester_ip);
+              $crudRead = new CrudRead(implode(';', $irsUri), implode(';', array_fill(0, count($irsUri), $this->ws->dataset)), 'false', 'true');
               
               $crudRead->ws_conneg('application/rdf+xml', $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
                                    $_SERVER['HTTP_ACCEPT_LANGUAGE']);

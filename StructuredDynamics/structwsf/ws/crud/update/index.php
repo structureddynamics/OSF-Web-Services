@@ -38,14 +38,6 @@ if(isset($_POST['version']))
   $version = $_POST['version'];
 }
 
-// IP being registered
-$registered_ip = "";
-
-if(isset($_POST['registered_ip']))
-{
-  $registered_ip = $_POST['registered_ip'];
-}
-
 // Dataset where to index the resource
 $dataset = "";
 
@@ -86,13 +78,6 @@ if(isset($_POST['lifecycle']))
   $lifecycle = $_POST['lifecycle'];
 }
 
-$requester_ip = "0.0.0.0";
-
-if(isset($_SERVER['REMOTE_ADDR']))
-{
-  $requester_ip = $_SERVER['REMOTE_ADDR'];
-}
-
 $parameters = "";
 
 if(isset($_SERVER['REQUEST_URI']))
@@ -111,8 +96,7 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_crudupdate = new CrudUpdate($document, $mime, $dataset, $registered_ip, $requester_ip, 
-                                $interface, $version, $lifecycle, $revision);
+$ws_crudupdate = new CrudUpdate($document, $mime, $dataset, $interface, $version, $lifecycle, $revision);
 
 $ws_crudupdate->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                           (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

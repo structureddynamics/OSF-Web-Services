@@ -38,14 +38,6 @@ if(isset($_POST['version']))
   $version = $_POST['version'];
 }
 
-// IP being registered
-$registered_ip = "";
-
-if(isset($_POST['registered_ip']))
-{
-  $registered_ip = $_POST['registered_ip'];
-}
-
 // URI of the the ontology to query
 $ontology = "";
 
@@ -70,14 +62,7 @@ if(isset($_POST['parameters']))
   $params = $_POST['parameters'];
 }
 
-$requester_ip = "0.0.0.0";
-
-if(isset($_SERVER['REMOTE_ADDR']))
-{
-  $requester_ip = $_SERVER['REMOTE_ADDR'];
-}
-
-$ws_ontologydelete = new OntologyDelete($ontology, $registered_ip, $requester_ip, $interface, $version);
+$ws_ontologydelete = new OntologyDelete($ontology, $interface, $version);
 
 $ws_ontologydelete->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                               (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

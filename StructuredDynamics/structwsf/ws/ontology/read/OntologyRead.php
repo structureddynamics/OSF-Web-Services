@@ -34,12 +34,6 @@ class OntologyRead extends \StructuredDynamics\structwsf\ws\framework\WebService
              parameters are split with a ";" and are encoded */
   private $parameters = array();
 
-  /** IP of the requester */
-  private $requester_ip = "";
-
-  /** Requested IP */
-  private $registered_ip = "";
-  
   public $OwlApiSession = null;
 
   /**
@@ -184,8 +178,6 @@ class OntologyRead extends \StructuredDynamics\structwsf\ws\framework\WebService
                              The parameter and its value are defined as "param-1=value-1". This tuple has to be
                              encoded. So, the parameters should be constructed that way in the URL:
                              &parameters=urlencode("param-1=value-1");urlencode("param-2=value-2")...
-      @param $registered_ip Target IP address registered in the WSF
-      @param $requester_ip IP address of the requester
       @param $interface Name of the source interface to use for this web service query. Default value: 'default'                            
       @param $requestedInterfaceVersion Version used for the requested source interface. The default is the latest 
                                         version of the interface.
@@ -199,8 +191,7 @@ class OntologyRead extends \StructuredDynamics\structwsf\ws\framework\WebService
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($ontologyUri, $function, $parameters, $registered_ip, $requester_ip, 
-                       $interface='default', $requestedInterfaceVersion="", $lang="en")
+  function __construct($ontologyUri, $function, $parameters, $interface='default', $requestedInterfaceVersion="", $lang="en")
   {
     parent::__construct();
     
@@ -218,17 +209,6 @@ class OntologyRead extends \StructuredDynamics\structwsf\ws\framework\WebService
       $this->parameters[$p[0]] = urldecode($p[1]);
     }
 
-    $this->requester_ip = $requester_ip;
-
-    if($registered_ip == "")
-    {
-      $this->registered_ip = $requester_ip;
-    }
-    else
-    {
-      $this->registered_ip = $registered_ip;
-    }
-    
     $this->requestedInterfaceVersion = $requestedInterfaceVersion;
     
     if(strtolower($interface) == "default")
@@ -240,22 +220,6 @@ class OntologyRead extends \StructuredDynamics\structwsf\ws\framework\WebService
       $this->interface = $interface;
     }
 
-    if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
-    {
-      $pos = strpos($this->registered_ip, "::");
-
-      if($pos !== FALSE)
-      {
-        $account = substr($this->registered_ip, $pos + 2, strlen($this->registered_ip) - ($pos + 2));
-
-        $this->registered_ip = $requester_ip . "::" . $account;
-      }
-      else
-      {
-        $this->registered_ip = $requester_ip;
-      }
-    }     
-    
     $this->lang = $lang;
 
     $this->uri = $this->wsf_base_url . "/wsf/ws/ontology/read/";

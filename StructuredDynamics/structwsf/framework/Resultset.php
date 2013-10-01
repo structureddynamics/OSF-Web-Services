@@ -968,7 +968,7 @@ class Resultset
   */   
   public function getResultsetIronJSON()
   {
-    $ws_irv = new ConverterIrJSON($this->getResultsetXML(), "text/xml", "true", "self", "self");
+    $ws_irv = new ConverterIrJSON($this->getResultsetXML(), "text/xml", "true");
 
     $ws_irv->pipeline_conneg("application/iron+json", "", "text/xml", "");
 
@@ -1000,7 +1000,7 @@ class Resultset
   */     
   public function getResultsetIronCOMMON()
   {
-    $ws_irc = new ConverterCommON($this->getResultsetXML(), "text/xml", "true", "self", "self");
+    $ws_irc = new ConverterCommON($this->getResultsetXML(), "text/xml", "true");
 
     $ws_irc->pipeline_conneg("application/iron+csv", "", "text/xml", "");
 

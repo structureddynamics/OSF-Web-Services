@@ -224,7 +224,7 @@
         $ontologyDescription = $this->getDescription($ontologyDescription);
 
         // Get the list of webservices that will be accessible for this ontology dataset.
-        $authLister = new AuthLister("ws", $this->ws->ontologyUri, $this->ws->requester_ip, $this->ws->wsf_local_ip);
+        $authLister = new AuthLister("ws", $this->ws->ontologyUri);
 
         $authLister->pipeline_conneg($this->ws->conneg->getAccept(), $this->ws->conneg->getAcceptCharset(),
           $this->ws->conneg->getAcceptEncoding(), $this->ws->conneg->getAcceptLanguage());
@@ -318,9 +318,7 @@
           $globalPermissions .= "True";
         }
         
-        $datasetCreate =
-          new DatasetCreate($this->ws->ontologyUri, $ontologyName, $ontologyDescription, "", $this->ws->registered_ip,
-            $this->ws->requester_ip, $webservices, $globalPermissions);
+        $datasetCreate = new DatasetCreate($this->ws->ontologyUri, $ontologyName, $ontologyDescription, "", $webservices, $globalPermissions);
 
         $datasetCreate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'],
           $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
@@ -501,23 +499,16 @@
                 "document=" . urlencode($subjectDescription) .
                 "&dataset=" . urlencode($this->ws->ontologyUri) .
                 "&mime=" . urlencode("application/rdf+n3") .
-                "&mode=full" .
-                "&registered_ip=" . urlencode($this->ws->registered_ip));
+                "&mode=full");
 
               if($wsq->getStatus() != 200)
               {
                 $this->ws->conneg->setStatus($wsq->getStatus());
                 $this->ws->conneg->setStatusMsg($wsq->getStatusMessage());
                 $this->ws->conneg->setStatusMsgExt($wsq->getStatusMessageDescription());
-                /*
-                $this->ws->conneg->setError($wsq->pipeline_getError()->id,
-                  $crudCreate->pipeline_getError()->webservice, $crudCreate->pipeline_getError()->name,
-                  $crudCreate->pipeline_getError()->description, $crudCreate->pipeline_getError()->debugInfo,
-                  $crudCreate->pipeline_getError()->level);               
-                */
                 
                 // In case of error, we delete the dataset we previously created.
-                $ontologyDelete = new OntologyDelete($this->ws->ontologyUri, $this->ws->registered_ip, $this->ws->requester_ip);
+                $ontologyDelete = new OntologyDelete($this->ws->ontologyUri);
 
                 $ontologyDelete->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'],
                   $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
@@ -577,8 +568,7 @@
             for($i = 0; $i < $nbClasses; $i += $sliceSize)
             {
               $ontologyRead =
-                new OntologyRead($this->ws->ontologyUri, "getClasses", "mode=descriptions;limit=$sliceSize;offset=$i",
-                  $this->ws->registered_ip, $this->ws->requester_ip);
+                new OntologyRead($this->ws->ontologyUri, "getClasses", "mode=descriptions;limit=$sliceSize;offset=$i");
 
               // Since we are in pipeline mode, we have to set the owlapisession using the current one.
               // otherwise the java bridge will return an error
@@ -616,7 +606,7 @@
             for($i = 0; $i < $nbProperties; $i += $sliceSize)
             {
               $ontologyRead = new OntologyRead($this->ws->ontologyUri, "getProperties",
-                "mode=descriptions;limit=$sliceSize;offset=$i;type=all", $this->ws->registered_ip, $this->ws->requester_ip);
+                "mode=descriptions;limit=$sliceSize;offset=$i;type=all");
 
               // Since we are in pipeline mode, we have to set the owlapisession using the current one.
               // otherwise the java bridge will return an error
@@ -651,7 +641,7 @@
             for($i = 0; $i < $nbNamedIndividuals; $i += $sliceSize)
             {
               $ontologyRead = new OntologyRead($this->ws->ontologyUri, "getNamedIndividuals",
-                "classuri=all;mode=descriptions;limit=$sliceSize;offset=$i", $this->ws->registered_ip, $this->ws->requester_ip);
+                "classuri=all;mode=descriptions;limit=$sliceSize;offset=$i");
 
               // Since we are in pipeline mode, we have to set the owlapisession using the current one.
               // otherwise the java bridge will return an error
@@ -694,8 +684,7 @@
               $resourcesRDF = $rdfxmlSerializer->getSerializedIndex($slicedResourcesIndex);
               
               $crudCreate =
-                new CrudCreate($resourcesRDF, "application/rdf+xml", "full", $this->ws->ontologyUri, $this->ws->registered_ip,
-                  $this->ws->requester_ip);
+                new CrudCreate($resourcesRDF, "application/rdf+xml", "full", $this->ws->ontologyUri);
 
               $crudCreate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'],
                 $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
@@ -713,7 +702,7 @@
                   $crudCreate->pipeline_getError()->level);
 
                 // In case of error, we delete the dataset we previously created.
-                $ontologyDelete = new OntologyDelete($this->ws->ontologyUri, $this->ws->registered_ip, $this->ws->requester_ip);
+                $ontologyDelete = new OntologyDelete($this->ws->ontologyUri);
 
                 $ontologyDelete->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'],
                   $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);

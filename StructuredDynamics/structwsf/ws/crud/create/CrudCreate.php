@@ -35,9 +35,6 @@ class CrudCreate extends \StructuredDynamics\structwsf\ws\framework\WebService
     array ("application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*",
       "*/*");
 
-  /** IP being registered */
-  private $registered_ip = "";
-
   /** Dataset where to index the resource*/
   private $dataset;
 
@@ -46,9 +43,6 @@ class CrudCreate extends \StructuredDynamics\structwsf\ws\framework\WebService
 
   /** Mime of the RDF document serialization */
   private $mime = "";
-
-  /** Requester's IP used for request validation */
-  private $requester_ip = "";
 
   /** Error messages of this web service */
   private $errorMessenger =
@@ -183,8 +177,6 @@ class CrudCreate extends \StructuredDynamics\structwsf\ws\framework\WebService
       @param $mime One of: (1) application/rdf+xml? RDF document serialized in XML (2) application/rdf+n3? RDF document serialized in N3 
       @param $mode One of: (1) full ? Index in both the triple store (Virtuoso) and search index (Solr) (2) triplestore ? Index in the triple store (Virtuoso) only (3) searchindex ? Index in the search index (Solr) only
       @param $dataset Dataset URI where to index the RDF document
-      @param $registered_ip Target IP address registered in the WSF
-      @param $requester_ip IP address of the requester
       @param $interface Name of the source interface to use for this web service query. Default value: 'default'                            
       @param $requestedInterfaceVersion Version used for the requested source interface. The default is the latest 
                                         version of the interface.
@@ -193,8 +185,7 @@ class CrudCreate extends \StructuredDynamics\structwsf\ws\framework\WebService
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($document, $mime, $mode, $dataset, $registered_ip, $requester_ip, 
-                       $interface='default', $requestedInterfaceVersion="")
+  function __construct($document, $mime, $mode, $dataset, $interface='default', $requestedInterfaceVersion="")
   {
     parent::__construct();
     
@@ -202,7 +193,6 @@ class CrudCreate extends \StructuredDynamics\structwsf\ws\framework\WebService
     
     $this->db = new DBVirtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 
-    $this->requester_ip = $requester_ip;
     $this->dataset = $dataset;
     
     if (extension_loaded("mbstring") && mb_detect_encoding($document, "UTF-8", TRUE) != "UTF-8")
@@ -227,31 +217,6 @@ class CrudCreate extends \StructuredDynamics\structwsf\ws\framework\WebService
     
     $this->mime = $mime;
     $this->mode = $mode;
-
-    if($registered_ip == "")
-    {
-      $this->registered_ip = $requester_ip;
-    }
-    else
-    {
-      $this->registered_ip = $registered_ip;
-    }
-    
-    if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
-    {
-      $pos = strpos($this->registered_ip, "::");
-
-      if($pos !== FALSE)
-      {
-        $account = substr($this->registered_ip, $pos + 2, strlen($this->registered_ip) - ($pos + 2));
-
-        $this->registered_ip = $requester_ip . "::" . $account;
-      }
-      else
-      {
-        $this->registered_ip = $requester_ip;
-      }
-    }
     
     $this->uri = $this->wsf_base_url . "/wsf/ws/crud/create/";
     $this->title = "Crud Create Web Service";
@@ -318,8 +283,7 @@ class CrudCreate extends \StructuredDynamics\structwsf\ws\framework\WebService
       }
 
       // Check if the dataset is created
-      $ws_dr = new DatasetRead($this->dataset, "false", "self",
-        $this->wsf_local_ip); // Here the one that makes the request is the WSF (internal request).
+      $ws_dr = new DatasetRead($this->dataset, "false"); // Here the one that makes the request is the WSF (internal request).
 
       $ws_dr->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
         $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());

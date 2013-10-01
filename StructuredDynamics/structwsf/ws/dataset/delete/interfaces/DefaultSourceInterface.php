@@ -130,7 +130,7 @@
         }
 
         // Removing all accesses for this graph
-        $ws_ara = new AuthRegistrarAccess("", "", $this->ws->datasetUri, "delete_all", "", "", $this->ws->registered_ip);
+        $ws_ara = new AuthRegistrarAccess("", "", $this->ws->datasetUri, "delete_all", "", "");
 
         $ws_ara->pipeline_conneg($this->ws->conneg->getAccept(), $this->ws->conneg->getAcceptCharset(),
           $this->ws->conneg->getAcceptEncoding(), $this->ws->conneg->getAcceptLanguage());

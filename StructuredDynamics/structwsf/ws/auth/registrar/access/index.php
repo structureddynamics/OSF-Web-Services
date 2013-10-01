@@ -88,13 +88,6 @@ if(isset($_POST['target_access_uri']))
   $target_access_uri = $_POST['target_access_uri'];
 }
 
-$requester_ip = "0.0.0.0";
-
-if(isset($_SERVER['REMOTE_ADDR']))
-{
-  $requester_ip = $_SERVER['REMOTE_ADDR'];
-}
-
 $parameters = "";
 
 if(isset($_SERVER['REQUEST_URI']))
@@ -113,9 +106,7 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_araccess =
-  new AuthRegistrarAccess($crud, $ws_uris, $dataset, $action, $target_access_uri, 
-                          $group, $requester_ip, $interface, $version);
+$ws_araccess = new AuthRegistrarAccess($crud, $ws_uris, $dataset, $action, $target_access_uri, $group, $interface, $version);
 
 $ws_araccess->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                   (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

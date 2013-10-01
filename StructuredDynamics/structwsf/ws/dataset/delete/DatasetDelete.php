@@ -26,9 +26,6 @@ class DatasetDelete extends \StructuredDynamics\structwsf\ws\framework\WebServic
   /** URL where the DTD of the XML document can be located on the Web */
   private $dtdURL;
 
-  /** Requested IP */
-  private $registered_ip = "";
-
   /** URI of the dataset to delete */
   private $datasetUri = "";
 
@@ -156,8 +153,6 @@ class DatasetDelete extends \StructuredDynamics\structwsf\ws\framework\WebServic
   /** Constructor
           
       @param $uri URI of the dataset to delete
-      @param $registered_ip Target IP address registered in the WSF
-      @param $requester_ip IP address of the requester
       @param $requestedInterfaceVersion Version used for the requested source interface. The default is the latest 
                                         version of the interface.
 
@@ -165,7 +160,7 @@ class DatasetDelete extends \StructuredDynamics\structwsf\ws\framework\WebServic
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($uri, $registered_ip, $requester_ip, $interface='default', $requestedInterfaceVersion="")
+  function __construct($uri, $interface='default', $requestedInterfaceVersion="")
   {
     parent::__construct();
     
@@ -174,15 +169,6 @@ class DatasetDelete extends \StructuredDynamics\structwsf\ws\framework\WebServic
     $this->db = new DBVirtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 
     $this->datasetUri = $uri; 
-    
-    if($registered_ip == "")
-    {
-      $this->registered_ip = $requester_ip;
-    }
-    else
-    {
-      $this->registered_ip = $registered_ip;
-    }
     
     if(strtolower($interface) == "default")
     {
@@ -194,22 +180,6 @@ class DatasetDelete extends \StructuredDynamics\structwsf\ws\framework\WebServic
     }    
     
     $this->requestedInterfaceVersion = $requestedInterfaceVersion;
-
-    if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
-    {
-      $pos = strpos($this->registered_ip, "::");
-
-      if($pos !== FALSE)
-      {
-        $account = substr($this->registered_ip, $pos + 2, strlen($this->registered_ip) - ($pos + 2));
-
-        $this->registered_ip = $requester_ip . "::" . $account;
-      }
-      else
-      {
-        $this->registered_ip = $requester_ip;
-      }
-    }        
 
     $this->uri = $this->wsf_base_url . "/wsf/ws/dataset/delete/";
     $this->title = "Dataset Delete Web Service";

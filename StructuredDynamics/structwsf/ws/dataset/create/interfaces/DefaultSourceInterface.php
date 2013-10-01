@@ -4,7 +4,6 @@
   
   use \StructuredDynamics\structwsf\framework\Namespaces;  
   use \StructuredDynamics\structwsf\ws\framework\SourceInterface;
-  use \StructuredDynamics\structwsf\ws\auth\registrar\access\AuthRegistrarAccess;
   use \StructuredDynamics\structwsf\ws\auth\lister\AuthLister;
   use \StructuredDynamics\structwsf\ws\framework\ProcessorXML;
   
@@ -55,7 +54,7 @@
         /* Get the list of web services registered to this structWSF instance. */
         if(strtolower($this->ws->webservices) == "all")
         {      
-          $ws_al = new AuthLister("ws", $this->ws->datasetUri, $this->ws->requester_ip, $this->ws->wsf_local_ip);
+          $ws_al = new AuthLister("ws", $this->ws->datasetUri);
 
           $ws_al->pipeline_conneg($this->ws->conneg->getAccept(), $this->ws->conneg->getAcceptCharset(),
             $this->ws->conneg->getAcceptEncoding(), $this->ws->conneg->getAcceptLanguage());
@@ -94,57 +93,6 @@
           
           $this->ws->webservices = $webservices;
         }
-
-
-
-        /* Register full CRUD for the creator of the dataset, for the dataset's ID */
-
-        $ws_ara = new AuthRegistrarAccess("True;True;True;True", $this->ws->webservices, $this->ws->datasetUri, "create", "",
-          $this->ws->requester_ip, $this->ws->wsf_local_ip);
-
-        $ws_ara->pipeline_conneg($this->ws->conneg->getAccept(), $this->ws->conneg->getAcceptCharset(),
-          $this->ws->conneg->getAcceptEncoding(), $this->ws->conneg->getAcceptLanguage());
-
-        $ws_ara->process();
-
-        if($ws_ara->pipeline_getResponseHeaderStatus() != 200)
-        {
-          $this->ws->conneg->setStatus($ws_ara->pipeline_getResponseHeaderStatus());
-          $this->ws->conneg->setStatusMsg($ws_ara->pipeline_getResponseHeaderStatusMsg());
-          $this->ws->conneg->setStatusMsgExt($ws_ara->pipeline_getResponseHeaderStatusMsgExt());
-          $this->ws->conneg->setError($ws_ara->pipeline_getError()->id, $ws_ara->pipeline_getError()->webservice,
-            $ws_ara->pipeline_getError()->name, $ws_ara->pipeline_getError()->description,
-            $ws_ara->pipeline_getError()->debugInfo, $ws_ara->pipeline_getError()->level);
-
-          return;
-        }
-
-        unset($ws_ara);
-
-        /* Register no CRUD for the public user, for the dataset's ID */
-
-        $ws_ara =
-          new AuthRegistrarAccess($this->ws->globalPermissions, $this->ws->webservices, $this->ws->datasetUri, "create", "", "0.0.0.0",
-            $this->ws->wsf_local_ip);
-
-        $ws_ara->pipeline_conneg($this->ws->conneg->getAccept(), $this->ws->conneg->getAcceptCharset(),
-          $this->ws->conneg->getAcceptEncoding(), $this->ws->conneg->getAcceptLanguage());
-
-        $ws_ara->process();
-
-        if($ws_ara->pipeline_getResponseHeaderStatus() != 200)
-        {
-          $this->ws->conneg->setStatus($ws_ara->pipeline_getResponseHeaderStatus());
-          $this->ws->conneg->setStatusMsg($ws_ara->pipeline_getResponseHeaderStatusMsg());
-          $this->ws->conneg->setStatusMsgExt($ws_ara->pipeline_getResponseHeaderStatusMsgExt());
-          $this->ws->conneg->setError($ws_ara->pipeline_getError()->id, $ws_ara->pipeline_getError()->webservice,
-            $ws_ara->pipeline_getError()->name, $ws_ara->pipeline_getError()->description,
-            $ws_ara->pipeline_getError()->debugInfo, $ws_ara->pipeline_getError()->level);
-
-          return;
-        }
-
-        unset($ws_ara);
       }
     }
   }

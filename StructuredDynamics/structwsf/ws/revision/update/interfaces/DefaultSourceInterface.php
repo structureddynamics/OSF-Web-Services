@@ -114,8 +114,7 @@
           }
 
           // (3) Update the record, in the dataset, using the revision record.        
-          $revisionRead = new RevisionRead($this->ws->revuri, $this->ws->dataset, 'record', $this->ws->registered_ip, 
-                                           $this->ws->requester_ip);
+          $revisionRead = new RevisionRead($this->ws->revuri, $this->ws->dataset, 'record');
               
           $revisionRead->ws_conneg('application/rdf+xml', $_SERVER['HTTP_ACCEPT_CHARSET'], 
                                    $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
@@ -136,8 +135,7 @@
           }
 
           $crudUpdate = new CrudUpdate($revisionRead->ws_serialize(), "application/rdf+xml", $this->ws->dataset, 
-                                       $this->ws->registered_ip, $this->ws->requester_ip, 'default', '',
-                                       'published', 'false');
+                                       'default', '', 'published', 'false');
 
           $crudUpdate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
             $_SERVER['HTTP_ACCEPT_LANGUAGE']);
@@ -198,8 +196,7 @@
             {
               // Check to delete potential datasets that have been created within structWSF
               // Use the default 'soft' mode such that we keep all the revisions
-              $crudDelete = new CrudDelete($uri, $this->ws->dataset, $this->ws->registered_ip, 
-                                           $this->ws->requester_ip);
+              $crudDelete = new CrudDelete($uri, $this->ws->dataset);
 
               $crudDelete->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'],
                 $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);

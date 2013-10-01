@@ -73,21 +73,6 @@ if(isset($_GET['ws_uri']))
   $ws_uri = $_GET['ws_uri'];
 }
 
-$requester_ip = "0.0.0.0";
-
-if(isset($_SERVER['REMOTE_ADDR']))
-{
-  $requester_ip = $_SERVER['REMOTE_ADDR'];
-}
-
-// Optional IP
-$registered_ip = "";
-
-if(isset($_GET['registered_ip']))
-{
-  $registered_ip = $_GET['registered_ip'];
-}
-
 $parameters = "";
 
 if(isset($_SERVER['REQUEST_URI']))
@@ -106,8 +91,7 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_arws = new AuthRegistrarWs($title, $endpoint, $crud_usage, $ws_uri, $registered_ip, $requester_ip, 
-                               $interface, $version);
+$ws_arws = new AuthRegistrarWs($title, $endpoint, $crud_usage, $ws_uri, nterface, $version);
 
 $ws_arws->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                     (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

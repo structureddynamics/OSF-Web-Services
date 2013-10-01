@@ -44,25 +44,11 @@ if(isset($_POST['docmime']))
   $docmime = str_replace('\"', '"', $_POST['docmime']);
 }
 
-$registered_ip = "";
-
-if(isset($_POST['registered_ip']))
-{
-  $registered_ip = $_POST['registered_ip'];
-}
-
 $include_dataset_description = "false";
 
 if(isset($_POST['include_dataset_description']))
 {
   $include_dataset_description = strtolower($_POST['include_dataset_description']);
-}
-
-$requester_ip = "0.0.0.0";
-
-if(isset($_SERVER['REMOTE_ADDR']))
-{
-  $requester_ip = $_SERVER['REMOTE_ADDR'];
 }
 
 $parameters = "";
@@ -83,7 +69,7 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_irv = new ConverterIrJSON($document, $docmime, $include_dataset_description, $registered_ip, $requester_ip);
+$ws_irv = new ConverterIrJSON($document, $docmime, $include_dataset_description);
 
 $ws_irv->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                    (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

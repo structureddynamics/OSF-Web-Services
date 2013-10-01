@@ -78,21 +78,6 @@ if(isset($_POST['reasoner']))
 {
   $reasoner = $_POST['reasoner'];
 }
- 
-// Optional IP
-$registered_ip = "";
-
-if(isset($_POST['registered_ip']))
-{
-  $registered_ip = $_POST['registered_ip'];
-}
-
-$requester_ip = "0.0.0.0";
-
-if(isset($_SERVER['REMOTE_ADDR']))
-{
-  $requester_ip = $_SERVER['REMOTE_ADDR'];
-}
 
 $parameters = "";
 
@@ -112,8 +97,7 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_or = new OntologyRead($ontology, $function, $params, $registered_ip, $requester_ip, 
-                          $interface, $version, $lang);
+$ws_or = new OntologyRead($ontology, $function, $params, $interface, $version, $lang);
 
 $ws_or->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                   (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

@@ -34,18 +34,12 @@ class CrudDelete extends \StructuredDynamics\structwsf\ws\framework\WebService
     array ("application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*",
       "*/*");
 
-  /** IP being registered */
-  private $registered_ip = "";
-
   /** Dataset where to index the resource*/
   private $dataset;
 
   /** URI of the resource to delete */
   private $resourceUri;
 
-  /** Requester's IP used for request validation */
-  private $requester_ip = "";
-  
   /** Mode of the endpoint. Specify if we want to delete, or keep, the revisions related to this record */
   private $mode = 'soft';
 
@@ -151,8 +145,6 @@ class CrudDelete extends \StructuredDynamics\structwsf\ws\framework\WebService
       
       @param $uri URI of the instance record to delete
       @param $dataset URI of the dataset where the instance record is indexed
-      @param $registered_ip Target IP address registered in the WSF
-      @param $requester_ip IP address of the requester
       @param $interface Name of the source interface to use for this web service query. Default value: 'default'                            
       @param $requestedInterfaceVersion Version used for the requested source interface. The default is the latest 
                                         version of the interface.
@@ -161,8 +153,7 @@ class CrudDelete extends \StructuredDynamics\structwsf\ws\framework\WebService
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($uri, $dataset, $registered_ip, $requester_ip, $interface='default', 
-                       $requestedInterfaceVersion='', $mode='soft')
+  function __construct($uri, $dataset, $interface='default', $requestedInterfaceVersion='', $mode='soft')
   {
     parent::__construct();
     
@@ -170,20 +161,10 @@ class CrudDelete extends \StructuredDynamics\structwsf\ws\framework\WebService
 
     $this->db = new DBVirtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 
-    $this->requester_ip = $requester_ip;
     $this->dataset = $dataset;
     $this->resourceUri = $uri;
     $this->mode = strtolower($mode);
 
-    if($registered_ip == "")
-    {
-      $this->registered_ip = $requester_ip;
-    }
-    else
-    {
-      $this->registered_ip = $registered_ip;
-    }
-    
     if(strtolower($interface) == "default")
     {
       $this->interface = $this->default_interfaces["crud_delete"];
@@ -194,22 +175,6 @@ class CrudDelete extends \StructuredDynamics\structwsf\ws\framework\WebService
     }
     
     $this->requestedInterfaceVersion = $requestedInterfaceVersion;
-
-    if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
-    {
-      $pos = strpos($this->registered_ip, "::");
-
-      if($pos !== FALSE)
-      {
-        $account = substr($this->registered_ip, $pos + 2, strlen($this->registered_ip) - ($pos + 2));
-
-        $this->registered_ip = $requester_ip . "::" . $account;
-      }
-      else
-      {
-        $this->registered_ip = $requester_ip;
-      }
-    }
 
     $this->uri = $this->wsf_base_url . "/wsf/ws/crud/delete/";
     $this->title = "Crud Delete Web Service";
@@ -281,8 +246,7 @@ class CrudDelete extends \StructuredDynamics\structwsf\ws\framework\WebService
 
       // Check if the dataset is created
 
-      $ws_dr = new DatasetRead($this->dataset, "false", "self",
-        $this->wsf_local_ip); // Here the one that makes the request is the WSF (internal request).
+      $ws_dr = new DatasetRead($this->dataset, "false"); // Here the one that makes the request is the WSF (internal request).
 
       $ws_dr->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
         $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());

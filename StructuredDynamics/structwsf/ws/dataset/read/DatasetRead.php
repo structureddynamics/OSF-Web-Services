@@ -27,12 +27,6 @@ class DatasetRead extends \StructuredDynamics\structwsf\ws\framework\WebService
   /** URL where the DTD of the XML document can be located on the Web */
   private $dtdURL;
 
-  /** IP of the requester */
-  private $requester_ip = "";
-
-  /** Requested IP */
-  private $registered_ip = "";
-
   /** URI of the target dataset(s). "all" means all datasets visible to thatuser. */
   private $datasetUri = "";
 
@@ -162,15 +156,13 @@ class DatasetRead extends \StructuredDynamics\structwsf\ws\framework\WebService
               
       @param $uri URI of the dataset to read (get its description)
       @param $meta Add meta information with the resultset
-      @param $registered_ip Target IP address registered in the WSF
-      @param $requester_ip IP address of the requester
       @param $interface Name of the source interface to use for this web service query. Default value: 'default'                            
 
       @return returns NULL
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($uri, $meta, $registered_ip, $requester_ip, $interface='default', $requestedInterfaceVersion="")
+  function __construct($uri, $meta, $interface='default', $requestedInterfaceVersion="")
   {
     parent::__construct();
     
@@ -179,18 +171,8 @@ class DatasetRead extends \StructuredDynamics\structwsf\ws\framework\WebService
     $this->db = new DBVirtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 
     $this->datasetUri = $uri;
-    $this->requester_ip = $requester_ip;
     $this->addMeta = strtolower($meta);
 
-    if($registered_ip == "")
-    {
-      $this->registered_ip = $requester_ip;
-    }
-    else
-    {
-      $this->registered_ip = $registered_ip;
-    }
-    
     if(strtolower($interface) == "default")
     {
       $this->interface = $this->default_interfaces["dataset_read"];
@@ -201,22 +183,6 @@ class DatasetRead extends \StructuredDynamics\structwsf\ws\framework\WebService
     }
     
     $this->requestedInterfaceVersion = $requestedInterfaceVersion;
-
-    if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
-    {
-      $pos = strpos($this->registered_ip, "::");
-
-      if($pos !== FALSE)
-      {
-        $account = substr($this->registered_ip, $pos + 2, strlen($this->registered_ip) - ($pos + 2));
-
-        $this->registered_ip = $requester_ip . "::" . $account;
-      }
-      else
-      {
-        $this->registered_ip = $requester_ip;
-      }
-    }
 
     $this->uri = $this->wsf_base_url . "/wsf/ws/dataset/read/";
     $this->title = "Dataset Read Web Service";

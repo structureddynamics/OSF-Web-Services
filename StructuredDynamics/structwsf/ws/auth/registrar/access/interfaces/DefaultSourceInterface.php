@@ -87,7 +87,7 @@
                   insert
                   {
                     <"
-            . $this->ws->wsf_graph . "access/" . md5($this->ws->registered_ip . $this->ws->dataset)
+            . $this->ws->wsf_graph . "access/" . md5($this->ws->group . $this->ws->dataset)
             . "> a <http://purl.org/ontology/wsf#Access> ;
                     <http://purl.org/ontology/wsf#groupAccess> <".$this->ws->group."> ; 
                     <http://purl.org/ontology/wsf#datasetAccess> <".$this->ws->dataset."> ;";

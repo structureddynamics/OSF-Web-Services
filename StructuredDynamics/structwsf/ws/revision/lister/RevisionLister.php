@@ -26,12 +26,6 @@ class RevisionLister extends \StructuredDynamics\structwsf\ws\framework\WebServi
   /** URL where the DTD of the XML document can be located on the Web */
   private $dtdURL;
 
-  /** IP of the requester */
-  private $requester_ip = "";
-
-  /** Requested IP (ex: a node wants to see all web services or datasets accessible for one of its user) */
-  private $registered_ip = "";
-
   /**     Dataset URI where to index the RDF document  */
   private $dataset = "";
 
@@ -131,8 +125,6 @@ class RevisionLister extends \StructuredDynamics\structwsf\ws\framework\WebServi
     @param $dataset URI referring to a target dataset. Needed when param1 = "dataset" or param1 = "access_datase". Otherwise this parameter as to be ommited.
     @param $mode One of:  (1) "short": Get the list of all the URIs of all the revisions for that record and their date stamp (for ordering purposes)
                           (2) "long (default)": Get the list of all the URIs, revision performer, their lifecycle stage and their date stamp (for ordering purposes) for that record
-    @param $registered_ip Target IP address registered in the WSF
-    @param $requester_ip IP address of the requester
     @param $interface Name of the source interface to use for this web service query. Default value: 'default'                            
     @param $requestedInterfaceVersion Version used for the requested source interface. The default is the latest 
                                       version of the interface.
@@ -142,8 +134,7 @@ class RevisionLister extends \StructuredDynamics\structwsf\ws\framework\WebServi
   
     @author Frederick Giasson, Structured Dynamics LLC.
 */
-  function __construct($uri, $dataset, $mode='short', $registered_ip, $requester_ip, 
-                       $interface='default', $requestedInterfaceVersion="")
+  function __construct($uri, $dataset, $mode='short', $interface='default', $requestedInterfaceVersion="")
   {
     parent::__construct();
 
@@ -151,7 +142,6 @@ class RevisionLister extends \StructuredDynamics\structwsf\ws\framework\WebServi
 
     $this->db = new DBVirtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 
-    $this->requester_ip = $requester_ip;
     $this->mode = strtolower($mode);
     $this->dataset = $dataset;
     $this->recordUri = $uri;
@@ -167,31 +157,6 @@ class RevisionLister extends \StructuredDynamics\structwsf\ws\framework\WebServi
     
     $this->requestedInterfaceVersion = $requestedInterfaceVersion;    
     
-    if($registered_ip == "")
-    {
-      $this->registered_ip = $requester_ip;
-    }
-    else
-    {
-      $this->registered_ip = $registered_ip;
-    }
-
-    if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
-    {
-      $pos = strpos($this->registered_ip, "::");
-
-      if($pos !== FALSE)
-      {
-        $account = substr($this->registered_ip, $pos + 2, strlen($this->registered_ip) - ($pos + 2));
-
-        $this->registered_ip = $requester_ip . "::" . $account;
-      }
-      else
-      {
-        $this->registered_ip = $requester_ip;
-      }
-    }
-
     $this->uri = $this->wsf_base_url . "/wsf/ws/revision/lister/";
     $this->title = "Revision Lister Web Service";
     $this->crud_usage = new CrudUsage(FALSE, TRUE, FALSE, FALSE);

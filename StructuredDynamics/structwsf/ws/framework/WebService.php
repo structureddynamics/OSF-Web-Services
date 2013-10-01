@@ -64,9 +64,6 @@ abstract class WebService
   /** Local server path of the WSF files */
   protected $wsf_base_path = "";
 
-  /** Local server path of the WSF files */
-  protected $wsf_local_ip = "";
-
   /** The core to use for Solr; "" for no core */
   protected $wsf_solr_core = "";
 
@@ -329,10 +326,6 @@ abstract class WebService
     if(isset($network_ini["network"]["wsf_base_path"]))
     {
       $this->wsf_base_path = $network_ini["network"]["wsf_base_path"];
-    }
-    if(isset($network_ini["network"]["wsf_local_ip"]))
-    {
-      $this->wsf_local_ip = $network_ini["network"]["wsf_local_ip"];
     }
 
     if(isset($network_ini["network"]["log_enable"]))

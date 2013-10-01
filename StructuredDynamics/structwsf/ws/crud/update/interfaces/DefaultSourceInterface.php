@@ -201,7 +201,7 @@
               
               $revisionUris[] = $revisionUri;     
               
-              $crudRead = new CrudRead($subject, $this->ws->dataset, 'false', 'true', $this->ws->registered_ip, $this->ws->requester_ip);
+              $crudRead = new CrudRead($subject, $this->ws->dataset, 'false', 'true');
               
               $crudRead->ws_conneg('application/rdf+xml', $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
                                    $_SERVER['HTTP_ACCEPT_LANGUAGE']);
@@ -258,7 +258,7 @@
                                                                   
               $initialResourceIndex[$subject][Namespaces::$wsf.'performer'] = array(
                                                              array(
-                                                               'value' => $this->ws->requester_ip,
+                                                               'value' => $this->ws->headers['OSF-USER-URI'],
                                                                'type' => 'uri'
                                                              )
                                                            );
@@ -353,7 +353,7 @@
                                                                   
             $resourceRevisionsIndex[$subject][Namespaces::$wsf.'performer'] = array(
                                                                        array(
-                                                                         'value' => $this->ws->requester_ip,
+                                                                         'value' => $this->ws->headers['OSF-USER-URI'],
                                                                          'type' => 'uri'
                                                                        )
                                                                      );                

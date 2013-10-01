@@ -37,12 +37,6 @@ class OntologyDelete extends \StructuredDynamics\structwsf\ws\framework\WebServi
 
   /** Ontology object. */
   public $ontology;
-  
-  /** IP being registered */
-  private $registered_ip = "";
-
-  /** Requester's IP used for request validation */
-  private $requester_ip = "";
 
   /** URI of the inference rules set to use to delete the ontological structure. */
   private $rulesSetURI = "";      
@@ -141,8 +135,6 @@ class OntologyDelete extends \StructuredDynamics\structwsf\ws\framework\WebServi
   /** Constructor
           
       @param $ontologyUri URI of the ontology where to delete something
-      @param $registered_ip Target IP address registered in the WSF
-      @param $requester_ip IP address of the requester
       @param $requestedInterfaceVersion Version used for the requested source interface. The default is the latest 
                                         version of the interface.
 
@@ -150,7 +142,7 @@ class OntologyDelete extends \StructuredDynamics\structwsf\ws\framework\WebServi
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($ontologyUri, $registered_ip, $requester_ip, $interface='default', $requestedInterfaceVersion="")
+  function __construct($ontologyUri, $interface='default', $requestedInterfaceVersion="")
   {
     parent::__construct();
     
@@ -160,14 +152,6 @@ class OntologyDelete extends \StructuredDynamics\structwsf\ws\framework\WebServi
     
     $this->ontologyUri = $ontologyUri;
       
-    $this->registered_ip = $registered_ip;
-    $this->requester_ip = $requester_ip;
-
-    if($this->registered_ip == "")
-    {
-      $this->registered_ip = $requester_ip;
-    }
-    
     if(strtolower($interface) == "default")
     {
       $this->interface = $this->default_interfaces["ontology_delete"];
@@ -178,22 +162,6 @@ class OntologyDelete extends \StructuredDynamics\structwsf\ws\framework\WebServi
     }
     
     $this->requestedInterfaceVersion = $requestedInterfaceVersion;
-
-    if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
-    {
-      $pos = strpos($this->registered_ip, "::");
-
-      if($pos !== FALSE)
-      {
-        $account = substr($this->registered_ip, $pos + 2, strlen($this->registered_ip) - ($pos + 2));
-
-        $this->registered_ip = $requester_ip . "::" . $account;
-      }
-      else
-      {
-        $this->registered_ip = $requester_ip;
-      }
-    }
 
     $this->uri = $this->wsf_base_url . "/wsf/ws/ontology/delete/";
     $this->title = "Ontology Delete Web Service";

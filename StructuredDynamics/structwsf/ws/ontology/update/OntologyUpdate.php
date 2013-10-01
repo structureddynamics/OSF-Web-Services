@@ -30,9 +30,6 @@ class OntologyUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServi
     array ("application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*",
       "*/*");
 
-  /** IP being registered */
-  private $registered_ip = "";
-
   /** URI where the web service can fetch the ontology document */
   private $ontologyUri = "";
   
@@ -136,8 +133,6 @@ class OntologyUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServi
   /** Constructor
           
       @param $ontologyUri URI of the ontology where to delete something
-      @param $registered_ip Target IP address registered in the WSF
-      @param $requester_ip IP address of the requester
       @param $interface Name of the source interface to use for this web service query. Default value: 'default'                            
       @param $requestedInterfaceVersion Version used for the requested source interface. The default is the latest 
                                         version of the interface.
@@ -146,21 +141,13 @@ class OntologyUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServi
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($ontologyUri, $registered_ip, $requester_ip, $interface='default', $requestedInterfaceVersion="")
+  function __construct($ontologyUri, $interface='default', $requestedInterfaceVersion="")
   {
     parent::__construct();
     
     $this->version = "1.0";
 
-    $this->registered_ip = $registered_ip;
-    $this->requester_ip = $requester_ip;
-    
     $this->ontologyUri = $ontologyUri;
-    
-    if($this->registered_ip == "")
-    {
-      $this->registered_ip = $requester_ip;
-    }
     
     if(strtolower($interface) == "default")
     {
@@ -172,22 +159,6 @@ class OntologyUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServi
     }    
     
     $this->requestedInterfaceVersion = $requestedInterfaceVersion;
-
-    if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
-    {
-      $pos = strpos($this->registered_ip, "::");
-
-      if($pos !== FALSE)
-      {
-        $account = substr($this->registered_ip, $pos + 2, strlen($this->registered_ip) - ($pos + 2));
-
-        $this->registered_ip = $requester_ip . "::" . $account;
-      }
-      else
-      {
-        $this->registered_ip = $requester_ip;
-      }
-    }
 
     $this->uri = $this->wsf_base_url . "/wsf/ws/ontology/update/";
     $this->title = "Ontology Update Web Service";

@@ -41,12 +41,6 @@ class CrudRead extends \StructuredDynamics\structwsf\ws\framework\WebService
   /** URI of the resource to get its description */
   private $resourceUri = "";
 
-  /** IP of the requester */
-  private $requester_ip = "";
-
-  /** Requested IP */
-  private $registered_ip = "";
-
   /** URI of the target dataset. */
   private $dataset = "";
 
@@ -188,8 +182,6 @@ class CrudRead extends \StructuredDynamics\structwsf\ws\framework\WebService
                              links-back will be added 
 
       @param $include_reification Include possible reification statements for a record
-      @param $registered_ip Target IP address registered in the WSF
-      @param $requester_ip IP address of the requester
       @param $include_attributes_list A list of attribute URIs to include into the resultset. Sometime, you may 
                                           be dealing with datasets where the description of the entities are composed 
                                           of thousands of attributes/values. Since the Crud: Read web service endpoint 
@@ -211,10 +203,8 @@ class CrudRead extends \StructuredDynamics\structwsf\ws\framework\WebService
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($uri, $dataset, $include_linksback, $include_reification, 
-                       $registered_ip, $requester_ip, $include_attributes_list="",
-                       $interface='default', $requestedInterfaceVersion="",
-                       $lang="en")
+  function __construct($uri, $dataset, $include_linksback, $include_reification, $include_attributes_list="",
+                       $interface='default', $requestedInterfaceVersion="", $lang="en")
   {
     parent::__construct();
     
@@ -241,7 +231,6 @@ class CrudRead extends \StructuredDynamics\structwsf\ws\framework\WebService
 
     $this->include_linksback = $include_linksback;
     $this->include_reification = $include_reification;
-    $this->requester_ip = $requester_ip;
     
     if(strtolower($interface) == "default")
     {
@@ -253,31 +242,6 @@ class CrudRead extends \StructuredDynamics\structwsf\ws\framework\WebService
     }
     
     $this->requestedInterfaceVersion = $requestedInterfaceVersion;
-
-    if($registered_ip == "")
-    {
-      $this->registered_ip = $requester_ip;
-    }
-    else
-    {
-      $this->registered_ip = $registered_ip;
-    }
-
-    if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
-    {
-      $pos = strpos($this->registered_ip, "::");
-
-      if($pos !== FALSE)
-      {
-        $account = substr($this->registered_ip, $pos + 2, strlen($this->registered_ip) - ($pos + 2));
-
-        $this->registered_ip = $requester_ip . "::" . $account;
-      }
-      else
-      {
-        $this->registered_ip = $requester_ip;
-      }
-    }
 
     $this->uri = $this->wsf_base_url . "/wsf/ws/crud/read/";
     $this->title = "Crud Read Web Service";
@@ -331,7 +295,7 @@ class CrudRead extends \StructuredDynamics\structwsf\ws\framework\WebService
      */
     if($this->globalDataset === TRUE)
     {
-      $ws_al = new AuthLister("access_user", "", "", $this->wsf_local_ip, "none");
+      $ws_al = new AuthLister("access_user", "", "");
       
       $ws_al->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
         $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());

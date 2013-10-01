@@ -26,9 +26,6 @@ class DatasetCreate extends \StructuredDynamics\structwsf\ws\framework\WebServic
   /** URL where the DTD of the XML document can be located on the Web */
   private $dtdURL;
 
-  /** IP of the requester */
-  private $requester_ip = "";
-
   /** Unique ID for the dataset */
   private $datasetUri = "";
 
@@ -150,8 +147,6 @@ class DatasetCreate extends \StructuredDynamics\structwsf\ws\framework\WebServic
       @param $datasetTitle Title of the dataset to create
       @param $description Description of the dataset to create
       @param $creator Unique identifier used to refer to the creator of this dataset
-      @param $registered_ip Target IP address registered in the WSF  
-      @param $requester_ip IP address of the requester
       @param $webservices Web services that can be used to access and manage that dataset. It is list of ";" separated Web services URI
       @param $globalPermissions Permissions to set for the "public user" to access this new ontology dataset.
       @param $interface Name of the source interface to use for this web service query. Default value: 'default'                            
@@ -162,9 +157,9 @@ class DatasetCreate extends \StructuredDynamics\structwsf\ws\framework\WebServic
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($uri, $datasetTitle, $description, $creator, $registered_ip, $requester_ip, 
-                       $webservices = "all", $globalPermissions = "False;False;False;False",
-                       $interface='default', $requestedInterfaceVersion="")
+  function __construct($uri, $datasetTitle, $description, $creator, $webservices = "all", 
+                       $globalPermissions = "False;False;False;False", $interface='default', 
+                       $requestedInterfaceVersion="")
   {
     parent::__construct();
     
@@ -176,19 +171,9 @@ class DatasetCreate extends \StructuredDynamics\structwsf\ws\framework\WebServic
     $this->datasetTitle = $datasetTitle;
     $this->description = $description;
     $this->creator = $creator;
-    $this->requester_ip = $requester_ip;
     $this->globalPermissions = $globalPermissions;
     $this->webservices = $webservices;
 
-    if($registered_ip == "")
-    {
-      $this->registered_ip = $requester_ip;
-    }
-    else
-    {
-      $this->registered_ip = $registered_ip;
-    }
-    
     if(strtolower($interface) == "default")
     {
       $this->interface = $this->default_interfaces["dataset_create"];
@@ -200,22 +185,6 @@ class DatasetCreate extends \StructuredDynamics\structwsf\ws\framework\WebServic
     
     $this->requestedInterfaceVersion = $requestedInterfaceVersion;
 
-    if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
-    {
-      $pos = strpos($this->registered_ip, "::");
-
-      if($pos !== FALSE)
-      {
-        $account = substr($this->registered_ip, $pos + 2, strlen($this->registered_ip) - ($pos + 2));
-
-        $this->registered_ip = $requester_ip . "::" . $account;
-      }
-      else
-      {
-        $this->registered_ip = $requester_ip;
-      }
-    }    
-    
     $this->uri = $this->wsf_base_url . "/wsf/ws/dataset/create/";
     $this->title = "Dataset Create Web Service";
     $this->crud_usage = new CrudUsage(TRUE, FALSE, FALSE, FALSE);

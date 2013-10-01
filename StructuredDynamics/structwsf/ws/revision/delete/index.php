@@ -39,13 +39,6 @@ if(isset($_GET['version']))
   $version = $_GET['version'];
 }
 
-$registered_ip = "";
-
-if(isset($_GET['registered_ip']))
-{
-  $registered_ip = $_GET['registered_ip'];
-}
-
 $dataset = "";
 
 if(isset($_GET['dataset']))
@@ -58,13 +51,6 @@ $revuri = "";
 if(isset($_GET['revuri']))
 {
   $revuri = $_GET['revuri'];
-}
-
-$requester_ip = "0.0.0.0";
-
-if(isset($_SERVER['REMOTE_ADDR']))
-{
-  $requester_ip = $_SERVER['REMOTE_ADDR'];
 }
 
 $parameters = "";
@@ -85,7 +71,7 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_rr = new RevisionDelete($revuri, $dataset, $registered_ip, $requester_ip, $interface, $version);
+$ws_rr = new RevisionDelete($revuri, $dataset, $interface, $version);
 
 $ws_rr->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                   (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

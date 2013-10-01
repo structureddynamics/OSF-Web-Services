@@ -113,25 +113,6 @@ elseif(isset($_POST['include_attributes_list']))
   $include_attributes_list = $_POST['include_attributes_list'];
 }
 
-// Optional IP
-$registered_ip = "";
-
-if(isset($_GET['registered_ip']))
-{
-  $registered_ip = $_GET['registered_ip'];
-}
-elseif(isset($_POST['registered_ip']))
-{
-  $registered_ip = $_POST['registered_ip'];
-}
-
-$requester_ip = "0.0.0.0";
-
-if(isset($_SERVER['REMOTE_ADDR']))
-{
-  $requester_ip = $_SERVER['REMOTE_ADDR'];
-}
-
 $parameters = "";
 
 if(isset($_SERVER['REQUEST_URI']))
@@ -150,8 +131,8 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }          
 
-$ws_cr = new CrudRead($uri, $dataset, $include_linksback, $include_reification, $registered_ip, 
-                      $requester_ip, $include_attributes_list, $interface, $version, $lang);
+$ws_cr = new CrudRead($uri, $dataset, $include_linksback, $include_reification, 
+                      $include_attributes_list, $interface, $version, $lang);
 
 $ws_cr->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                   (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

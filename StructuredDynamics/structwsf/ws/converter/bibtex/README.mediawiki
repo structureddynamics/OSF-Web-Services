@@ -1,4 +1,0 @@
-== Endpoint Documentation ==
-  
-[http://techwiki.openstructs.org/index.php/Converter:_BibTeX Converter: BibTeX Web Service Endpoint Documentation]
-  

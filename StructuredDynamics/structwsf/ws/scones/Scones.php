@@ -257,6 +257,63 @@ class Scones extends \StructuredDynamics\structwsf\ws\framework\WebService
 
       return;
     }
+    
+    /*
+      Get the pool of stories to process
+      Can be a URL or a file reference.
+    */
+    $this->config_ini = parse_ini_file("config.ini", TRUE);   
+          
+    // Make sure the service if configured
+    if($this->config_ini === FALSE)
+    {
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
+      $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, "",
+        $this->errorMessenger->_201->level);
+
+      return;        
+    }
+
+    // Starts the GATE process/bridge  
+    require_once($this->config_ini["gate"]["gateBridgeURI"]);
+    
+    // Create a Scones session where we will save the Gate objects (started & loaded Gate application).
+    // Second param "false" => we re-use the pre-created session without destroying the previous one
+    // third param "0" => it nevers timeout.
+    $this->SconesSession = java_session($this->config_ini["gate"]["sessionName"], false, 0);   
+    
+    if(is_null(java_values($this->SconesSession->get("initialized")))) 
+    {
+      /* 
+        If the "initialized" session variable is null, it means that the Scone threads
+        are not initialized, and that they is no current in initialization.
+      */
+      
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_202->name);
+      $this->conneg->setError($this->errorMessenger->_202->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_202->name, $this->errorMessenger->_202->description, "",
+        $this->errorMessenger->_202->level);
+    }
+    
+    if(java_values($this->SconesSession->get("initialized")) === FALSE) 
+    {
+      /* 
+        If the "initialized" session variable is FALSE, it means that the Scone threads
+        are being initialized.
+      */
+      
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_203->name);
+      $this->conneg->setError($this->errorMessenger->_203->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_203->name, $this->errorMessenger->_203->description, "",
+        $this->errorMessenger->_203->level);
+    }    
   }
 
   /** Returns the error structure
@@ -309,73 +366,14 @@ class Scones extends \StructuredDynamics\structwsf\ws\framework\WebService
     $this->conneg =
       new Conneg($accept, $accept_charset, $accept_encoding, $accept_language, Scones::$supportedSerializations);
 
-    // If the query is still valid
+    // Validate call
+    $this->validateCall();  
+      
+    // Validate query
     if($this->conneg->getStatus() == 200)
     {
-      // Validate query
       $this->validateQuery();
-    }
-    
-    // If the query is still valid
-    if($this->conneg->getStatus() == 200)
-    {
-      /*
-        Get the pool of stories to process
-        Can be a URL or a file reference.
-      */
-      $this->config_ini = parse_ini_file("config.ini", TRUE);   
-            
-      // Make sure the service if configured
-      if($this->config_ini === FALSE)
-      {
-        $this->conneg->setStatus(400);
-        $this->conneg->setStatusMsg("Bad Request");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
-        $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, "",
-          $this->errorMessenger->_201->level);
-
-        return;        
-      }
-
-      // Starts the GATE process/bridge  
-      require_once($this->config_ini["gate"]["gateBridgeURI"]);
-      
-      // Create a Scones session where we will save the Gate objects (started & loaded Gate application).
-      // Second param "false" => we re-use the pre-created session without destroying the previous one
-      // third param "0" => it nevers timeout.
-      $this->SconesSession = java_session($this->config_ini["gate"]["sessionName"], false, 0);   
-      
-      if(is_null(java_values($this->SconesSession->get("initialized")))) 
-      {
-        /* 
-          If the "initialized" session variable is null, it means that the Scone threads
-          are not initialized, and that they is no current in initialization.
-        */
-        
-        $this->conneg->setStatus(400);
-        $this->conneg->setStatusMsg("Bad Request");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_202->name);
-        $this->conneg->setError($this->errorMessenger->_202->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_202->name, $this->errorMessenger->_202->description, "",
-          $this->errorMessenger->_202->level);
-      }
-      
-      if(java_values($this->SconesSession->get("initialized")) === FALSE) 
-      {
-        /* 
-          If the "initialized" session variable is FALSE, it means that the Scone threads
-          are being initialized.
-        */
-        
-        $this->conneg->setStatus(400);
-        $this->conneg->setStatusMsg("Bad Request");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_203->name);
-        $this->conneg->setError($this->errorMessenger->_203->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_203->name, $this->errorMessenger->_203->description, "",
-          $this->errorMessenger->_203->level);
-      }      
-    }    
+    }      
   }
 
   /** Do content negotiation as an internal, pipelined, Web Service that is part of a Compound Web Service

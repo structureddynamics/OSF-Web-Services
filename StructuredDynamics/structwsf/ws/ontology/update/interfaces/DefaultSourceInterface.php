@@ -86,13 +86,7 @@
       // Make sure there was no conneg error prior to this process call
       if($this->ws->conneg->getStatus() == 200)
       {
-        $this->ws->validateQuery();
-
-        // If the query is still valid
-        if($this->ws->conneg->getStatus() == 200)
-        {
-          return(TRUE);
-        }
+        return(TRUE);
       }
       
       return(FALSE);    

@@ -11,7 +11,6 @@ namespace StructuredDynamics\structwsf\ws\dataset\update;
 
 use \StructuredDynamics\structwsf\ws\framework\DBVirtuoso; 
 use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
-use \StructuredDynamics\structwsf\ws\auth\validator\AuthValidator;
 use \StructuredDynamics\structwsf\ws\framework\Conneg;
 
 /** Dataset Update Web Service. It updates description of dataset of the structWSF instance.
@@ -267,163 +266,99 @@ class DatasetUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServic
   */
   public function validateQuery()
   {
-    // Check if the dataset URI is missing.
-    if($this->datasetUri == "")
-    {
-      $this->conneg->setStatus(400);
-      $this->conneg->setStatusMsg("Bad Request");
-      $this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
-      $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
-        $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, "",
-        $this->errorMessenger->_200->level);
-
-      return;
-    }
-    
-    // Check if the dataset URI is valid
-    if(!$this->isValidIRI($this->datasetUri))
-    {
-      $this->conneg->setStatus(400);
-      $this->conneg->setStatusMsg("Bad Request");
-      $this->conneg->setStatusMsgExt($this->errorMessenger->_203->name);
-      $this->conneg->setError($this->errorMessenger->_203->id, $this->errorMessenger->ws,
-        $this->errorMessenger->_203->name, $this->errorMessenger->_203->description, "",
-        $this->errorMessenger->_203->level);
-
-      return;
-    }      
-
-    // Check if the dataset is existing
-    $query .= "  select ?dataset 
-              from <" . $this->wsf_graph . "datasets/>
-              where
-              {
-                <$this->datasetUri> a ?dataset .
-              }";
-
-    $resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
-      array( "dataset" ), FALSE));
-
-    if(odbc_error())
-    {
-      $this->conneg->setStatus(500);
-      $this->conneg->setStatusMsg("Internal Error");
-      $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
-      $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
-        $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, odbc_errormsg(),
-        $this->errorMessenger->_201->level);
-
-      return;
-    }
-    elseif(odbc_fetch_row($resultset) === FALSE)
-    {
-      $this->conneg->setStatus(400);
-      $this->conneg->setStatusMsg("Bad Request");
-      $this->conneg->setStatusMsgExt($this->errorMessenger->_202->name);
-      $this->conneg->setError($this->errorMessenger->_202->id, $this->errorMessenger->ws,
-        $this->errorMessenger->_202->name, $this->errorMessenger->_202->description, "",
-        $this->errorMessenger->_202->level);
-
-      unset($resultset);
-      return;
-    }
-
-    unset($resultset);   
-    
-    $contribs = array();
-    
-    if(strpos($this->contributors, ";") !== FALSE)
-    {
-      $contribs = explode(";", $this->contributors);
-    }
-    else
-    {
-      if($this->contributors != "")
-      {
-        array_push($contribs, $this->contributors);
-      }
-    }    
-
-    foreach($contribs as $contrib)
-    {
-      if($contrib != "-delete-" && !$this->isValidIRI($contrib))
+    if($this->validateUserAccess($this->wsf_graph . "datasets/"))
+    {    
+      // Check if the dataset URI is missing.
+      if($this->datasetUri == "")
       {
         $this->conneg->setStatus(400);
         $this->conneg->setStatusMsg("Bad Request");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_204->name);
-        $this->conneg->setError($this->errorMessenger->_204->id, $this->contributors."--".$this->errorMessenger->ws,
-          $this->errorMessenger->_204->name, $this->errorMessenger->_204->description, "",
-          $this->errorMessenger->_204->level);
-
-        unset($resultset);      
-        
-        return;    
-      }
-    }
-    
-    
-    // Check if the requester has access to the main "http://.../wsf/datasets/" graph.
-    $ws_av = new AuthValidator($this->requester_ip, $this->wsf_graph . "datasets/", $this->uri);
-
-    $ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
-      $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
-
-    $ws_av->process();
-
-    if($ws_av->pipeline_getResponseHeaderStatus() != 200)
-    {
-      // If he doesn't, then check if he has access to the dataset itself
-      $ws_av2 = new AuthValidator($this->requester_ip, $this->datasetUri, $this->uri);
-
-      $ws_av2->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
-        $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
-
-      $ws_av2->process();
-
-      if($ws_av2->pipeline_getResponseHeaderStatus() != 200)
-      {
-        $this->conneg->setStatus($ws_av2->pipeline_getResponseHeaderStatus());
-        $this->conneg->setStatusMsg($ws_av2->pipeline_getResponseHeaderStatusMsg());
-        $this->conneg->setStatusMsgExt($ws_av2->pipeline_getResponseHeaderStatusMsgExt());
-        $this->conneg->setError($ws_av2->pipeline_getError()->id, $ws_av2->pipeline_getError()->webservice,
-          $ws_av2->pipeline_getError()->name, $ws_av2->pipeline_getError()->description,
-          $ws_av2->pipeline_getError()->debugInfo, $ws_av2->pipeline_getError()->level);
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
+        $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, "",
+          $this->errorMessenger->_200->level);
 
         return;
       }
-    }
-    
-    // If the system send a query on the behalf of another user, we validate that other user as well
-    if($this->registered_ip != $this->requester_ip)
-    {
-      // Check if the requester has access to the main "http://.../wsf/datasets/" graph.
-      $ws_av = new AuthValidator($this->registered_ip, $this->wsf_graph . "datasets/", $this->uri);
-
-      $ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
-        $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
-
-      $ws_av->process();
-
-      if($ws_av->pipeline_getResponseHeaderStatus() != 200)
+      
+      // Check if the dataset URI is valid
+      if(!$this->isValidIRI($this->datasetUri))
       {
-        // If he doesn't, then check if he has access to the dataset itself
-        $ws_av2 = new AuthValidator($this->registered_ip, $this->datasetUri, $this->uri);
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_203->name);
+        $this->conneg->setError($this->errorMessenger->_203->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_203->name, $this->errorMessenger->_203->description, "",
+          $this->errorMessenger->_203->level);
 
-        $ws_av2->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
-          $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
+        return;
+      }      
 
-        $ws_av2->process();
+      // Check if the dataset is existing
+      $query .= "  select ?dataset 
+                from <" . $this->wsf_graph . "datasets/>
+                where
+                {
+                  <$this->datasetUri> a ?dataset .
+                }";
 
-        if($ws_av2->pipeline_getResponseHeaderStatus() != 200)
+      $resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
+        array( "dataset" ), FALSE));
+
+      if(odbc_error())
+      {
+        $this->conneg->setStatus(500);
+        $this->conneg->setStatusMsg("Internal Error");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
+        $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, odbc_errormsg(),
+          $this->errorMessenger->_201->level);
+
+        return;
+      }
+      elseif(odbc_fetch_row($resultset) === FALSE)
+      {
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_202->name);
+        $this->conneg->setError($this->errorMessenger->_202->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_202->name, $this->errorMessenger->_202->description, "",
+          $this->errorMessenger->_202->level);
+
+        unset($resultset);
+        return;
+      }
+
+      unset($resultset);   
+      
+      $contribs = array();
+      
+      if(strpos($this->contributors, ";") !== FALSE)
+      {
+        $contribs = explode(";", $this->contributors);
+      }
+      else
+      {
+        if($this->contributors != "")
         {
-          $this->conneg->setStatus($ws_av2->pipeline_getResponseHeaderStatus());
-          $this->conneg->setStatusMsg($ws_av2->pipeline_getResponseHeaderStatusMsg());
-          $this->conneg->setStatusMsgExt($ws_av2->pipeline_getResponseHeaderStatusMsgExt());
-          $this->conneg->setError($ws_av2->pipeline_getError()->id, $ws_av2->pipeline_getError()->webservice,
-            $ws_av2->pipeline_getError()->name, $ws_av2->pipeline_getError()->description,
-            $ws_av2->pipeline_getError()->debugInfo, $ws_av2->pipeline_getError()->level);
+          array_push($contribs, $this->contributors);
+        }
+      }    
 
-          return;
+      foreach($contribs as $contrib)
+      {
+        if($contrib != "-delete-" && !$this->isValidIRI($contrib))
+        {
+          $this->conneg->setStatus(400);
+          $this->conneg->setStatusMsg("Bad Request");
+          $this->conneg->setStatusMsgExt($this->errorMessenger->_204->name);
+          $this->conneg->setError($this->errorMessenger->_204->id, $this->contributors."--".$this->errorMessenger->ws,
+            $this->errorMessenger->_204->name, $this->errorMessenger->_204->description, "",
+            $this->errorMessenger->_204->level);
+
+          unset($resultset);      
+          
+          return;    
         }
       }
     }    
@@ -475,8 +410,14 @@ class DatasetUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServic
     $this->conneg =
       new Conneg($accept, $accept_charset, $accept_encoding, $accept_language, DatasetUpdate::$supportedSerializations);
 
+    // Validate call
+    $this->validateCall();  
+      
     // Validate query
-    $this->validateQuery();
+    if($this->conneg->getStatus() == 200)
+    {
+      $this->validateQuery();
+    }
   }
 
   /** Do content negotiation as an internal, pipelined, Web Service that is part of a Compound Web Service

@@ -11,7 +11,6 @@ namespace StructuredDynamics\structwsf\ws\sparql;
 
 use \StructuredDynamics\structwsf\ws\framework\DBVirtuoso; 
 use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
-use \StructuredDynamics\structwsf\ws\auth\validator\AuthValidator;
 use \StructuredDynamics\structwsf\ws\framework\Conneg;
 use \StructuredDynamics\structwsf\framework\Namespaces;
 
@@ -273,25 +272,36 @@ class Sparql extends \StructuredDynamics\structwsf\ws\framework\WebService
     // Validating the access of the dataset specified as input parameter if defined.
     if($this->dataset != "")
     {
-      $ws_av = new AuthValidator($this->registered_ip, $this->dataset, $this->uri);
-
-      $ws_av->pipeline_conneg("*/*", $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(),
-        $this->conneg->getAcceptLanguage());
-
-      $ws_av->process();
-
-      if($ws_av->pipeline_getResponseHeaderStatus() != 200)
-      {
-        $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
-        $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
-        $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-        $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
-          $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
-          $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
-
+      if(!$this->validateUserAccess($this->dataset))
+      {      
         return;
       }      
     }
+    
+    // Check for errors
+    if($this->query == "")
+    {
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
+      $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, "",
+        $this->errorMessenger->_200->level);
+
+      return;
+    }
+
+    if($this->limit > 2000)
+    {
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_202->name);
+      $this->conneg->setError($this->errorMessenger->_202->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_202->name, $this->errorMessenger->_202->description, "",
+        $this->errorMessenger->_202->level);
+
+      return;
+    }    
   }
 
   /** Returns the error structure
@@ -351,36 +361,13 @@ class Sparql extends \StructuredDynamics\structwsf\ws\framework\WebService
     $this->conneg =
       new Conneg($accept, $accept_charset, $accept_encoding, $accept_language, Sparql::$supportedSerializations);
 
+    // Validate call
+    $this->validateCall();  
+      
     // Validate query
-    $this->validateQuery();
-
-    // If the query is still valid
     if($this->conneg->getStatus() == 200)
     {
-      // Check for errors
-      if($this->query == "")
-      {
-        $this->conneg->setStatus(400);
-        $this->conneg->setStatusMsg("Bad Request");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
-        $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, "",
-          $this->errorMessenger->_200->level);
-
-        return;
-      }
-
-      if($this->limit > 2000)
-      {
-        $this->conneg->setStatus(400);
-        $this->conneg->setStatusMsg("Bad Request");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_202->name);
-        $this->conneg->setError($this->errorMessenger->_202->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_202->name, $this->errorMessenger->_202->description, "",
-          $this->errorMessenger->_202->level);
-
-        return;
-      }
+      $this->validateQuery();
     }
   }
 

@@ -10,7 +10,6 @@
 include_once("../../../../SplClassLoader.php");   
 
 use \StructuredDynamics\structwsf\ws\ontology\update\OntologyUpdate;
-use \StructuredDynamics\structwsf\ws\framework\Logger; 
  
  
 // Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
@@ -20,8 +19,8 @@ ini_set("memory_limit", "256M");
 
 if ($_SERVER['REQUEST_METHOD'] != 'POST') 
 {
-    header("HTTP/1.1 405 Method Not Allowed");  
-    die;
+  header("HTTP/1.1 405 Method Not Allowed");  
+  die;
 }
 
 // Interface to use for this query
@@ -85,13 +84,6 @@ if(isset($_POST['reasoner']))
     $reasoner = TRUE;
   }  
 }
-
-$mtime = microtime();
-$mtime = explode(' ', $mtime);
-$mtime = $mtime[1] + $mtime[0];
-$starttime = $mtime;
-
-$start_datetime = date("Y-m-d h:i:s");
 
 $requester_ip = "0.0.0.0";
 
@@ -182,31 +174,8 @@ switch(strtolower($function))
     $ws_ontologyupdate->returnError(400, "Bad Request", "_201");
   break;         
 }     
-
-
   
 $ws_ontologyupdate->ws_respond($ws_ontologyupdate->ws_serialize());
-
-$mtime = microtime();
-$mtime = explode(" ", $mtime);
-$mtime = $mtime[1] + $mtime[0];
-$endtime = $mtime;
-$totaltime = ($endtime - $starttime);
-
-if($ws_ontologyupdate->isLoggingEnabled())
-{
-  $logger = new Logger("ontology_update", 
-                       $requester_ip,
-                       "?ontology=" . substr($ontology, 0, 64) . 
-                       "&mime=" . $mime . 
-                       "&registered_ip=" . $registered_ip . 
-                       "&requester_ip=$requester_ip",
-                       $_SERVER['HTTP_ACCEPT'], 
-                       $start_datetime, 
-                       $totaltime, 
-                       $ws_ontologyupdate->pipeline_getResponseHeaderStatus(),
-                       $_SERVER['HTTP_USER_AGENT']);
-}
 
 //@}
 

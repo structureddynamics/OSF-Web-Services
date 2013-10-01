@@ -9,7 +9,6 @@
 
 namespace StructuredDynamics\structwsf\ws\revision\read;  
 
-use \StructuredDynamics\structwsf\ws\auth\validator\AuthValidator;
 use \StructuredDynamics\structwsf\ws\framework\DBVirtuoso; 
 use \StructuredDynamics\structwsf\ws\framework\Conneg;
 use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
@@ -237,59 +236,44 @@ class RevisionRead extends \StructuredDynamics\structwsf\ws\framework\WebService
   */
   public function validateQuery()
   {
-    // Validation of the "requester_ip" to make sure the system that is sending the query as the rights.
-    $ws_av = new AuthValidator($this->requester_ip, $this->dataset, $this->uri);
-
-    $ws_av->pipeline_conneg("text/xml", $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(),
-      $this->conneg->getAcceptLanguage());
-
-    $ws_av->process();
-
-    if($ws_av->pipeline_getResponseHeaderStatus() != 200)
-    {
-      $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
-      $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
-      $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-      $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
-        $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
-        $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
-
-      return;
-    }
-
-    unset($ws_av);
-
-    // Validation of the "registered_ip" to make sure the user of this system has the rights
-    $ws_av = new AuthValidator($this->registered_ip, $this->dataset, $this->uri);
-
-    $ws_av->pipeline_conneg("text/xml", $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(),
-      $this->conneg->getAcceptLanguage());
-
-    $ws_av->process();
-
-    if($ws_av->pipeline_getResponseHeaderStatus() != 200)
-    {
-      $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
-      $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
-      $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-      $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
-        $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
-        $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
-      return;
-    }    
-    
-    // Validate the modes
-    if($this->mode != 'revision' &&
-       $this->mode != 'record')
-    {
-      $this->conneg->setStatus(400);
-      $this->conneg->setStatusMsg("Bad Request");
-      $this->conneg->setStatusMsgExt($this->errorMessenger->_305->name);
-      $this->conneg->setError($this->errorMessenger->_305->id, $this->errorMessenger->ws,
-        $this->errorMessenger->_305->name, $this->errorMessenger->_305->description, odbc_errormsg(),
-        $this->errorMessenger->_305->level);      
-        
-      return;
+    if($this->validateUserAccess($this->dataset))
+    { 
+      // Validate the modes
+      if($this->mode != 'revision' &&
+         $this->mode != 'record')
+      {
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_305->name);
+        $this->conneg->setError($this->errorMessenger->_305->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_305->name, $this->errorMessenger->_305->description, odbc_errormsg(),
+          $this->errorMessenger->_305->level);      
+          
+        return;
+      }
+      
+      // Check for errors
+      if($this->dataset == "")
+      {
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
+        $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, odbc_errormsg(),
+          $this->errorMessenger->_200->level);
+        return;
+      }
+      
+      if($this->revuri == "")
+      {
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
+        $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, odbc_errormsg(),
+          $this->errorMessenger->_201->level);
+        return;
+      }    
     }
   }
 
@@ -349,28 +333,14 @@ class RevisionRead extends \StructuredDynamics\structwsf\ws\framework\WebService
     $this->conneg =
       new Conneg($accept, $accept_charset, $accept_encoding, $accept_language, RevisionRead::$supportedSerializations);
 
-    // Check for errors
-    if($this->dataset == "")
+    // Validate call
+    $this->validateCall();  
+      
+    // Validate query
+    if($this->conneg->getStatus() == 200)
     {
-      $this->conneg->setStatus(400);
-      $this->conneg->setStatusMsg("Bad Request");
-      $this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
-      $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
-        $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, odbc_errormsg(),
-        $this->errorMessenger->_200->level);
-      return;
-    }
-    
-    if($this->revuri == "")
-    {
-      $this->conneg->setStatus(400);
-      $this->conneg->setStatusMsg("Bad Request");
-      $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
-      $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
-        $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, odbc_errormsg(),
-        $this->errorMessenger->_201->level);
-      return;
-    }
+      $this->validateQuery();
+    }            
   }
 
   /** Do content negotiation as an internal, pipelined, Web Service that is part of a Compound Web Service

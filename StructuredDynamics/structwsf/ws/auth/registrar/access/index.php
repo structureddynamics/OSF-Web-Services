@@ -10,7 +10,6 @@
 include_once("../../../../../SplClassLoader.php"); 
  
 use \StructuredDynamics\structwsf\ws\auth\registrar\access\AuthRegistrarAccess;
-use \StructuredDynamics\structwsf\ws\framework\Logger; 
 
 // Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
 ini_set("display_errors", "Off"); 
@@ -20,8 +19,8 @@ ini_set("memory_limit", "64M");
 // Check if the HTTP method used by the requester is the good one
 if ($_SERVER['REQUEST_METHOD'] != 'POST') 
 {
-    header("HTTP/1.1 405 Method Not Allowed");  
-    die;
+  header("HTTP/1.1 405 Method Not Allowed");  
+  die;
 }
 
 // Interface to use for this query
@@ -40,12 +39,12 @@ if(isset($_POST['version']))
   $version = $_POST['version'];
 }
 
-// IP being registered
-$registered_ip = "";
+// Group related to this access record
+$group = "";
 
-if(isset($_POST['registered_ip']))
+if(isset($_POST['group']))
 {
-  $registered_ip = $_POST['registered_ip'];
+  $group = $_POST['group'];
 }
 
 // CRUD access
@@ -89,13 +88,6 @@ if(isset($_POST['target_access_uri']))
   $target_access_uri = $_POST['target_access_uri'];
 }
 
-$mtime = microtime();
-$mtime = explode(' ', $mtime);
-$mtime = $mtime[1] + $mtime[0];
-$starttime = $mtime;
-
-$start_datetime = date("Y-m-d h:i:s");
-
 $requester_ip = "0.0.0.0";
 
 if(isset($_SERVER['REMOTE_ADDR']))
@@ -123,7 +115,7 @@ elseif(isset($_SERVER['PHP_SELF']))
 
 $ws_araccess =
   new AuthRegistrarAccess($crud, $ws_uris, $dataset, $action, $target_access_uri, 
-                          $registered_ip, $requester_ip, $interface, $version);
+                          $group, $requester_ip, $interface, $version);
 
 $ws_araccess->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                   (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
@@ -133,30 +125,6 @@ $ws_araccess->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'
 $ws_araccess->process();
 
 $ws_araccess->ws_respond($ws_araccess->ws_serialize());
-
-$mtime = microtime();
-$mtime = explode(" ", $mtime);
-$mtime = $mtime[1] + $mtime[0];
-$endtime = $mtime;
-$totaltime = ($endtime - $starttime);
-
-if($ws_araccess->isLoggingEnabled())
-{
-  $logger = new Logger("auth_registrar_access", 
-                       $requester_ip,
-                       "?crud=" . $crud . 
-                       "&ws_uris=" . $ws_uris . 
-                       "&dataset=" . $dataset . 
-                       "$action=" . $action . 
-                       "&target_access_uri=" . $target_access_uri . 
-                       "&registered_ip=" . $registered_ip . 
-                       "&requester_ip=$requester_ip", 
-                       (isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER[''] : "HTTP_ACCEPT"),
-                       $start_datetime, 
-                       $totaltime, 
-                       $ws_araccess->pipeline_getResponseHeaderStatus(), 
-                       (isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : ""));
-}
 
 //@}
 

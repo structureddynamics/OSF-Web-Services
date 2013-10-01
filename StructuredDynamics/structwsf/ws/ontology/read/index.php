@@ -10,7 +10,6 @@
 include_once("../../../../SplClassLoader.php");   
  
 use \StructuredDynamics\structwsf\ws\ontology\read\OntologyRead;
-use \StructuredDynamics\structwsf\ws\framework\Logger; 
 
 // Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
 ini_set("display_errors", "Off"); 
@@ -21,8 +20,8 @@ set_time_limit(2700);
 
 if ($_SERVER['REQUEST_METHOD'] != 'POST') 
 {
-    header("HTTP/1.1 405 Method Not Allowed");  
-    die;
+  header("HTTP/1.1 405 Method Not Allowed");  
+  die;
 }
 
 // Interface to use for this query
@@ -88,13 +87,6 @@ if(isset($_POST['registered_ip']))
   $registered_ip = $_POST['registered_ip'];
 }
 
-$mtime = microtime();
-$mtime = explode(' ', $mtime);
-$mtime = $mtime[1] + $mtime[0];
-$starttime = $mtime;
-
-$start_datetime = date("Y-m-d h:i:s");
-
 $requester_ip = "0.0.0.0";
 
 if(isset($_SERVER['REMOTE_ADDR']))
@@ -127,8 +119,6 @@ $ws_or->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""
                   (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
                   (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
                   (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : "")); 
-
-                  
                   
 if(strtolower($reasoner) == "true" ||
    strtolower($reasoner) == "on"   ||
@@ -144,29 +134,6 @@ else
 $ws_or->process();
 
 $ws_or->ws_respond($ws_or->ws_serialize());
-
-$mtime = microtime();
-$mtime = explode(" ", $mtime);
-$mtime = $mtime[1] + $mtime[0];
-$endtime = $mtime;
-$totaltime = ($endtime - $starttime);
-
-if($ws_or->isLoggingEnabled())
-{
-  $logger = new Logger( "ontology_read", 
-                        $requester_ip,
-                        "?ontology=" . $ontology . 
-                        "&function=" . $function . 
-                        "&parameters=" . $params . 
-                        "&registered_ip="
-                        . $registered_ip . 
-                        "&requester_ip=$requester_ip",
-                        (isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""),
-                        $start_datetime, 
-                        $totaltime,
-                        $ws_or->pipeline_getResponseHeaderStatus(), 
-                        (isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : ""));
-}
 
 //@}
 

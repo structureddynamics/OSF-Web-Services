@@ -16,9 +16,9 @@
     
     public function processInterface()
     {
-    // Make sure there was no conneg error prior to this process call
-    if($this->ws->conneg->getStatus() == 200)
-    {
+      // Make sure there was no conneg error prior to this process call
+      if($this->ws->conneg->getStatus() == 200)
+      {
   /*    
         $query = "modify <".$this->ws->wsf_graph."datasets/>
                 delete

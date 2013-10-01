@@ -5,7 +5,6 @@
   use \StructuredDynamics\structwsf\framework\Namespaces;  
   use \StructuredDynamics\structwsf\ws\framework\SourceInterface;
   use \StructuredDynamics\structwsf\framework\Subject;
-  use \StructuredDynamics\structwsf\ws\auth\validator\AuthValidator;
 
   class DefaultSourceInterface extends SourceInterface
   {
@@ -354,70 +353,20 @@
         // Validate all graphs of the query for the IP of the requester of this query. 
         // If one of the graph is not accessible to the user, we just return
         // an error for this SPARQL query.
+        $datasets = array();
         foreach($graphs as $graph)
         {
           if(substr($graph, strlen($graph) - 12, 12) == "reification/")
           {
             $graph = substr($graph, 0, strlen($graph) - 12);
           }
-
-          $ws_av = new AuthValidator($this->ws->requester_ip, $graph, $this->ws->uri);
-
-          $ws_av->pipeline_conneg("*/*", $this->ws->conneg->getAcceptCharset(), $this->ws->conneg->getAcceptEncoding(),
-            $this->ws->conneg->getAcceptLanguage());
-
-          $ws_av->process();
-
-          if($ws_av->pipeline_getResponseHeaderStatus() != 200)
-          {
-            $this->ws->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
-            $this->ws->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
-            $this->ws->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-            $this->ws->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
-              $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
-              $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
-
-            return;
-          }
+          
+          $datasets[] = $graph;
         }        
         
-        /*
-          if registered_ip != requester_ip, this means that the query is sent by a registered system
-          on the behalf of someone else. In this case, we want to make sure that that system 
-          (the one that send the actual query) has access to the same datasets. Otherwise, it means that
-          it tries to personificate that registered_ip user.
-          
-          Validate all graphs of the query. If one of the graph is not accessible to the system, we just return
-          and error for this SPARQL query.  
-        */
-        if($this->ws->registered_ip != $this->ws->requester_ip)
+        if(!$this->validateUserAccess($datasets))
         {
-          foreach($graphs as $graph)
-          {
-            if(substr($graph, strlen($graph) - 12, 12) == "reification/")
-            {
-              $graph = substr($graph, 0, strlen($graph) - 12);
-            }
-
-            $ws_av = new AuthValidator($this->ws->registered_ip, $graph, $this->ws->uri);
-
-            $ws_av->pipeline_conneg("*/*", $this->ws->conneg->getAcceptCharset(), $this->ws->conneg->getAcceptEncoding(),
-              $this->ws->conneg->getAcceptLanguage());
-
-            $ws_av->process();
-
-            if($ws_av->pipeline_getResponseHeaderStatus() != 200)
-            {
-              $this->ws->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
-              $this->ws->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
-              $this->ws->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-              $this->ws->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
-                $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
-                $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
-
-              return;
-            }
-          }
+          return;
         }
 
         // Determine the query format

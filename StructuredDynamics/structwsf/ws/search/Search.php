@@ -788,6 +788,18 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
       }
     }
     
+    if($this->items < 0 || $this->items > 300)
+    {
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
+      $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, "",
+        $this->errorMessenger->_200->level);
+      return;
+    }
+    
+    
     // Here we can have a performance problem when "dataset = all" if we perform the authentication using AuthValidator.
     // Since AuthValidator doesn't support multiple datasets at the same time, we will use the AuthLister web service
     // in the process() function and check if the user has the permissions to "read" these datasets.
@@ -852,22 +864,13 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
     $this->conneg =
       new Conneg($accept, $accept_charset, $accept_encoding, $accept_language, Search::$supportedSerializations);
 
+    // Validate call
+    $this->validateCall();  
+      
     // Validate query
-    $this->validateQuery();
-
-    // If the query is still valid
     if($this->conneg->getStatus() == 200)
     {
-      if($this->items < 0 || $this->items > 300)
-      {
-        $this->conneg->setStatus(400);
-        $this->conneg->setStatusMsg("Bad Request");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
-        $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, "",
-          $this->errorMessenger->_200->level);
-        return;
-      }
+      $this->validateQuery();
     }
   }
 

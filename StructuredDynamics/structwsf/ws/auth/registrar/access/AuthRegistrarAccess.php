@@ -11,7 +11,6 @@ namespace StructuredDynamics\structwsf\ws\auth\registrar\access;
 
 use \StructuredDynamics\structwsf\ws\framework\DBVirtuoso; 
 use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
-use \StructuredDynamics\structwsf\ws\auth\validator\AuthValidator;
 use \StructuredDynamics\structwsf\ws\framework\Conneg;
 
 /** AuthRegister Access Web Service. It registers an Access on the structWSF instance. Register 
@@ -34,8 +33,8 @@ class AuthRegistrarAccess extends \StructuredDynamics\structwsf\ws\framework\Web
     array ("application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*",
       "*/*");
 
-  /** IP being registered */
-  private $registered_ip = "";
+  /** Group related to the access record being created */
+  private $group = "";
 
   /** CRUD access being registered */
   private $crud;
@@ -68,8 +67,8 @@ class AuthRegistrarAccess extends \StructuredDynamics\structwsf\ws\framework\Web
                         "_201": {
                           "id": "WS-AUTH-REGISTRAR-ACCESS-201",
                           "level": "Warning",
-                          "name": "No IP to register",
-                          "description": "No IP address has been defined for this query."
+                          "name": "No Group to register to",
+                          "description": "No Group URI has been defined for this query."
                         },
                         "_202": {
                           "id": "WS-AUTH-REGISTRAR-ACCESS-202",
@@ -190,7 +189,7 @@ class AuthRegistrarAccess extends \StructuredDynamics\structwsf\ws\framework\Web
                               (4) "delete_all": Delete all access descriptions for a target dataset
                               (5) "update": Update an existing access description 
       @param $target_access_uri Target URI of the access resource to update. Only used when param4 = update
-      @param $registered_ip Target IP address registered in the WSF
+      @param $group Target Group URI related to the acces record being created
       @param $requester_ip IP address of the requester
       @param $interface Name of the source interface to use for this web service query. Default value: 'default'                                  
       @param $requestedInterfaceVersion Version used for the requested source interface. The default is the latest 
@@ -200,7 +199,7 @@ class AuthRegistrarAccess extends \StructuredDynamics\structwsf\ws\framework\Web
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($crud, $ws_uris, $dataset, $action, $target_access_uri, $registered_ip, 
+  function __construct($crud, $ws_uris, $dataset, $action, $target_access_uri, $group, 
                        $requester_ip, $interface='default', $requestedInterfaceVersion="")
   {
     parent::__construct();
@@ -209,7 +208,7 @@ class AuthRegistrarAccess extends \StructuredDynamics\structwsf\ws\framework\Web
 
     $this->db = new DBVirtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 
-    $this->registered_ip = $registered_ip;
+    $this->group = $group;
     $this->target_access_uri = $target_access_uri;
 
     $crud = explode(";", $crud);
@@ -222,22 +221,6 @@ class AuthRegistrarAccess extends \StructuredDynamics\structwsf\ws\framework\Web
     $this->dataset = $dataset;
     $this->requester_ip = $requester_ip;
     $this->action = $action;
-
-    if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
-    {
-      $pos = strpos($this->registered_ip, "::");
-
-      if($pos !== FALSE)
-      {
-        $account = substr($this->registered_ip, $pos + 2, strlen($this->registered_ip) - ($pos + 2));
-
-        $this->registered_ip = $requester_ip . "::" . $account;
-      }
-      else
-      {
-        $this->registered_ip = $requester_ip;
-      }
-    }
     
     if(strtolower($interface) == "default")
     {
@@ -278,21 +261,92 @@ class AuthRegistrarAccess extends \StructuredDynamics\structwsf\ws\framework\Web
   */
   public function validateQuery()
   {
-    $ws_av = new AuthValidator($this->requester_ip, $this->wsf_graph, $this->uri);
-
-    $ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
-      $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
-
-    $ws_av->process();
-
-    if($ws_av->pipeline_getResponseHeaderStatus() != 200)
+    if($this->validateUserAccess($this->wsf_graph))
     {
-      $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
-      $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
-      $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-      $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
-        $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
-        $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
+      if(strtolower($this->action) != "create" && strtolower($this->action) != "delete_target"
+        && strtolower($this->action) != "delete_all" && strtolower($this->action) != "update"
+        && strtolower($this->action) != "delete_specific")
+      {
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
+        $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, "",
+          $this->errorMessenger->_200->level);
+        return;
+      }
+
+      if($this->group == "" && strtolower($this->action) != "delete_all" &&
+         strtolower($this->action) != "delete_specific")
+      {
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
+        $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, "",
+          $this->errorMessenger->_201->level);
+        return;
+      }
+
+      if(strtolower($this->action) != "delete_target" && strtolower($this->action) != "delete_all" && 
+         strtolower($this->action) != "delete_specific" )
+      {
+        // Only need this information for create/update
+        if($this->crud == "")
+        {
+          $this->conneg->setStatus(400);
+          $this->conneg->setStatusMsg("Bad Request");
+          $this->conneg->setStatusMsgExt($this->errorMessenger->_202->name);
+          $this->conneg->setError($this->errorMessenger->_202->id, $this->errorMessenger->ws,
+            $this->errorMessenger->_202->name, $this->errorMessenger->_202->description, "",
+            $this->errorMessenger->_202->level);
+
+          return;
+        }
+      }
+
+      if(strtolower($this->action) != "delete_target" && strtolower($this->action) != "delete_all" && 
+         strtolower($this->action) != "delete_specific" )
+      {
+        // Only need this information for create/update
+        if(count($this->ws_uris) <= 0 || $this->ws_uris[0] == "")
+        {
+          $this->conneg->setStatus(400);
+          $this->conneg->setStatusMsg("Bad Request");
+          $this->conneg->setStatusMsgExt($this->errorMessenger->_203->name);
+          $this->conneg->setError($this->errorMessenger->_203->id, $this->errorMessenger->ws,
+            $this->errorMessenger->_203->name, $this->errorMessenger->_203->description, "",
+            $this->errorMessenger->_203->level);
+          return;
+        }
+      }
+
+      if($this->dataset == "" && strtolower($this->action) != "delete_specific")
+      {
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_204->name);
+        $this->conneg->setError($this->errorMessenger->_204->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_204->name, $this->errorMessenger->_204->description, "",
+          $this->errorMessenger->_204->level);
+        return;
+      }
+
+      if((strtolower($this->action) == "update" || strtolower($this->action) == "delete_specific") 
+         && $this->target_access_uri == "")
+      {
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_205->name);
+        $this->conneg->setError($this->errorMessenger->_205->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_205->name, $this->errorMessenger->_205->description, "",
+          $this->errorMessenger->_205->level);
+        return;
+      }    
+      
+      // Make sure the dataset URI exists
+      
+      // Make sure the group URI exists
     }
   }
 
@@ -341,88 +395,14 @@ class AuthRegistrarAccess extends \StructuredDynamics\structwsf\ws\framework\Web
     $this->conneg = new Conneg($accept, $accept_charset, $accept_encoding, $accept_language,
       AuthRegistrarAccess::$supportedSerializations);
 
-    if(strtolower($this->action) != "create" && strtolower($this->action) != "delete_target"
-      && strtolower($this->action) != "delete_all" && strtolower($this->action) != "update"
-      && strtolower($this->action) != "delete_specific")
+    // Validate call
+    $this->validateCall();  
+      
+    // Validate query
+    if($this->conneg->getStatus() == 200)
     {
-      $this->conneg->setStatus(400);
-      $this->conneg->setStatusMsg("Bad Request");
-      $this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
-      $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
-        $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, "",
-        $this->errorMessenger->_200->level);
-      return;
-    }
-
-
-    // Check for errors
-    if($this->registered_ip == "" && strtolower($this->action) != "delete_all" &&
-       strtolower($this->action) != "delete_specific")
-    {
-      $this->conneg->setStatus(400);
-      $this->conneg->setStatusMsg("Bad Request");
-      $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
-      $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
-        $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, "",
-        $this->errorMessenger->_201->level);
-      return;
-    }
-
-    if(strtolower($this->action) != "delete_target" && strtolower($this->action) != "delete_all" && 
-       strtolower($this->action) != "delete_specific" )
-    {
-      // Only need this information for create/update
-      if($this->crud == "")
-      {
-        $this->conneg->setStatus(400);
-        $this->conneg->setStatusMsg("Bad Request");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_202->name);
-        $this->conneg->setError($this->errorMessenger->_202->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_202->name, $this->errorMessenger->_202->description, "",
-          $this->errorMessenger->_202->level);
-
-        return;
-      }
-    }
-
-    if(strtolower($this->action) != "delete_target" && strtolower($this->action) != "delete_all" && 
-       strtolower($this->action) != "delete_specific" )
-    {
-      // Only need this information for create/update
-      if(count($this->ws_uris) <= 0 || $this->ws_uris[0] == "")
-      {
-        $this->conneg->setStatus(400);
-        $this->conneg->setStatusMsg("Bad Request");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_203->name);
-        $this->conneg->setError($this->errorMessenger->_203->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_203->name, $this->errorMessenger->_203->description, "",
-          $this->errorMessenger->_203->level);
-        return;
-      }
-    }
-
-    if($this->dataset == "" && strtolower($this->action) != "delete_specific")
-    {
-      $this->conneg->setStatus(400);
-      $this->conneg->setStatusMsg("Bad Request");
-      $this->conneg->setStatusMsgExt($this->errorMessenger->_204->name);
-      $this->conneg->setError($this->errorMessenger->_204->id, $this->errorMessenger->ws,
-        $this->errorMessenger->_204->name, $this->errorMessenger->_204->description, "",
-        $this->errorMessenger->_204->level);
-      return;
-    }
-
-    if((strtolower($this->action) == "update" || strtolower($this->action) == "delete_specific") 
-       && $this->target_access_uri == "")
-    {
-      $this->conneg->setStatus(400);
-      $this->conneg->setStatusMsg("Bad Request");
-      $this->conneg->setStatusMsgExt($this->errorMessenger->_205->name);
-      $this->conneg->setError($this->errorMessenger->_205->id, $this->errorMessenger->ws,
-        $this->errorMessenger->_205->name, $this->errorMessenger->_205->description, "",
-        $this->errorMessenger->_205->level);
-      return;
-    }
+      $this->validateQuery();
+    }      
   }
 
   /** Do content negotiation as an internal, pipelined, Web Service that is part of a Compound Web Service

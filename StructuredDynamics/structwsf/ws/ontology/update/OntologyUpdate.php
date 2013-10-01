@@ -10,7 +10,6 @@
 namespace StructuredDynamics\structwsf\ws\ontology\update; 
 
 use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
-use \StructuredDynamics\structwsf\ws\auth\validator\AuthValidator;
 use \StructuredDynamics\structwsf\ws\framework\Conneg;
 use \StructuredDynamics\structwsf\framework\Namespaces;
 
@@ -218,69 +217,19 @@ class OntologyUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServi
   */
   public function validateQuery()
   {
-    $ws_av = new AuthValidator($this->requester_ip, $this->wsf_graph . "ontologies/", $this->uri);
-
-    $ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
-      $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
-
-    $ws_av->process();
-
-    if($ws_av->pipeline_getResponseHeaderStatus() != 200)
+    if($this->validateUserAccess($this->wsf_graph . "ontologies/"))    
     {
-      // If he doesn't, then check if he has access to the dataset itself
-      $ws_av2 = new AuthValidator($this->requester_ip, $this->ontologyUri, $this->uri);
-
-      $ws_av2->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
-        $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
-      
-      $ws_av2->process();
-
-      if($ws_av2->pipeline_getResponseHeaderStatus() != 200)
+      if($this->ontologyUri == "")
       {
-        $this->conneg->setStatus($ws_av2->pipeline_getResponseHeaderStatus());
-        $this->conneg->setStatusMsg($ws_av2->pipeline_getResponseHeaderStatusMsg());
-        $this->conneg->setStatusMsgExt($ws_av2->pipeline_getResponseHeaderStatusMsgExt());
-        $this->conneg->setError($ws_av2->pipeline_getError()->id, $ws_av2->pipeline_getError()->webservice,
-          $ws_av2->pipeline_getError()->name, $ws_av2->pipeline_getError()->description,
-          $ws_av2->pipeline_getError()->debugInfo, $ws_av2->pipeline_getError()->level);
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
+        $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, "",
+          $this->errorMessenger->_200->level);
 
         return;
-      }      
-    }
-
-    // If the system send a query on the behalf of another user, we validate that other user as well
-    if($this->registered_ip != $this->requester_ip)
-    {
-      // Validation of the "registered_ip" to make sure the user of this system has the rights
-      $ws_av = new AuthValidator($this->registered_ip, $this->wsf_graph . "ontologies/", $this->uri);
-
-      $ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
-        $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
-
-      $ws_av->process();
-
-      if($ws_av->pipeline_getResponseHeaderStatus() != 200)
-      {
-        // If he doesn't, then check if he has access to the dataset itself
-        $ws_av2 = new AuthValidator($this->registered_ip, $this->ontologyUri, $this->uri);
-
-        $ws_av2->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
-          $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
-        
-        $ws_av2->process();
-
-        if($ws_av2->pipeline_getResponseHeaderStatus() != 200)
-        {
-          $this->conneg->setStatus($ws_av2->pipeline_getResponseHeaderStatus());
-          $this->conneg->setStatusMsg($ws_av2->pipeline_getResponseHeaderStatusMsg());
-          $this->conneg->setStatusMsgExt($ws_av2->pipeline_getResponseHeaderStatusMsgExt());
-          $this->conneg->setError($ws_av2->pipeline_getError()->id, $ws_av2->pipeline_getError()->webservice,
-            $ws_av2->pipeline_getError()->name, $ws_av2->pipeline_getError()->description,
-            $ws_av2->pipeline_getError()->debugInfo, $ws_av2->pipeline_getError()->level);
-
-          return;
-        }      
-      }
+      }    
     }
   }
 
@@ -330,19 +279,14 @@ class OntologyUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServi
     $this->conneg = new Conneg($accept, $accept_charset, $accept_encoding, $accept_language,
       OntologyUpdate::$supportedSerializations);
 
-    // Check for errors
-
-    if($this->ontologyUri == "")
+    // Validate call
+    $this->validateCall();  
+      
+    // Validate query
+    if($this->conneg->getStatus() == 200)
     {
-      $this->conneg->setStatus(400);
-      $this->conneg->setStatusMsg("Bad Request");
-      $this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
-      $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
-        $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, "",
-        $this->errorMessenger->_200->level);
-
-      return;
-    }
+      $this->validateQuery();
+    }      
   }
 
   /** Do content negotiation as an internal, pipelined, Web Service that is part of a Compound Web Service

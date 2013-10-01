@@ -10,7 +10,6 @@
 include_once("../../../../SplClassLoader.php"); 
   
 use \StructuredDynamics\structwsf\ws\auth\lister\AuthLister;
-use \StructuredDynamics\structwsf\ws\framework\Logger; 
  
 // Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
 ini_set("display_errors", "Off"); 
@@ -20,8 +19,8 @@ ini_set("memory_limit", "64M");
 // Check if the HTTP method used by the requester is the good one
 if ($_SERVER['REQUEST_METHOD'] != 'GET') 
 {
-    header("HTTP/1.1 405 Method Not Allowed");  
-    die;
+  header("HTTP/1.1 405 Method Not Allowed");  
+  die;
 }
 
 // Interface to use for this query
@@ -48,11 +47,11 @@ if(isset($_GET['mode']))
   $mode = $_GET['mode'];
 }
 
-$registered_ip = "";
+$group = "";
 
-if(isset($_GET['registered_ip']))
+if(isset($_GET['group']))
 {
-  $registered_ip = $_GET['registered_ip'];
+  $group = $_GET['group'];
 }
 
 $dataset = "";
@@ -69,14 +68,6 @@ if(isset($_GET['target_webservice']))
 {
   $target_webservice = $_GET['target_webservice'];
 }
-
-
-$mtime = microtime();
-$mtime = explode(' ', $mtime);
-$mtime = $mtime[1] + $mtime[0];
-$starttime = $mtime;
-
-$start_datetime = date("Y-m-d h:i:s");
 
 $requester_ip = "0.0.0.0";
 
@@ -103,7 +94,7 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_al = new AuthLister($mode, $dataset, $registered_ip, $requester_ip, $target_webservice, $interface, $version);
+$ws_al = new AuthLister($mode, $dataset, $group, $requester_ip, $target_webservice, $interface, $version);
 
 $ws_al->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                   (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
@@ -113,27 +104,6 @@ $ws_al->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""
 $ws_al->process();
 
 $ws_al->ws_respond($ws_al->ws_serialize());
-
-$mtime = microtime();
-$mtime = explode(" ", $mtime);
-$mtime = $mtime[1] + $mtime[0];
-$endtime = $mtime;
-$totaltime = ($endtime - $starttime);
-
-if($ws_al->isLoggingEnabled())
-{
-  $logger = new Logger("auth_lister", 
-                       $requester_ip,
-                       "?mode=" . $mode . 
-                       "&dataset=" . $dataset . 
-                       "&registered_ip=" . $registered_ip . 
-                       "&requester_ip=$requester_ip",
-                       (isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER[''] : "HTTP_ACCEPT"),
-                       $start_datetime, 
-                       $totaltime, 
-                       $ws_al->pipeline_getResponseHeaderStatus(),
-                       (isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER[''] : "HTTP_USER_AGENT"));
-}
 
 //@}
 

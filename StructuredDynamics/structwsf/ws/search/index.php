@@ -11,7 +11,6 @@
 include_once("../../../SplClassLoader.php"); 
  
 use \StructuredDynamics\structwsf\ws\search\Search;
-use \StructuredDynamics\structwsf\ws\framework\Logger; 
 
 // Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
 ini_set("display_errors", "Off"); 
@@ -20,8 +19,8 @@ ini_set("memory_limit", "64M");
 
 if ($_SERVER['REQUEST_METHOD'] != 'POST') 
 {
-    header("HTTP/1.1 405 Method Not Allowed");  
-    die;
+  header("HTTP/1.1 405 Method Not Allowed");  
+  die;
 }
 
 // Interface to use for this query
@@ -265,13 +264,6 @@ if(isset($_POST['registered_ip']))
   $registered_ip = $_POST['registered_ip'];
 }
 
-$mtime = microtime();
-$mtime = explode(' ', $mtime);
-$mtime = $mtime[1] + $mtime[0];
-$starttime = $mtime;
-
-$start_datetime = date("Y-m-d h:i:s");
-
 $requester_ip = "0.0.0.0";
 
 if(isset($_SERVER['REMOTE_ADDR']))
@@ -313,34 +305,6 @@ $ws_s->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : "")
 $ws_s->process();
 
 $ws_s->ws_respond($ws_s->ws_serialize());
-
-$mtime = microtime();
-$mtime = explode(" ", $mtime);
-$mtime = $mtime[1] + $mtime[0];
-$endtime = $mtime;
-$totaltime = ($endtime - $starttime);
-
-if($ws_s->isLoggingEnabled())
-{
-  $logger = new Logger("search", 
-                       $requester_ip,
-                       "?query=" . $query . 
-                       "&datasets=" . $datasets . 
-                       "&types=" . $types . 
-                       "&items=" . $items . 
-                       "&page=" . $page . 
-                       "&inference=" . $inference . 
-                       "&include_aggregates=" . $include_aggregates . 
-                       "&registered_ip=" . $registered_ip . 
-                       "&requester_ip=$requester_ip" . 
-                       "&distance_filter=$distanceFilter" . 
-                       "&range_filter=$rangeFilter",
-                       (isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""),
-                       $start_datetime, 
-                       $totaltime, 
-                       $ws_s->pipeline_getResponseHeaderStatus(),
-                       (isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : ""));
-}
 
 //@}
 

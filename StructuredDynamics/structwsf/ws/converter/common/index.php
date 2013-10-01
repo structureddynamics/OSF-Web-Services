@@ -10,7 +10,6 @@
 include_once("../../../../SplClassLoader.php");  
  
 use \StructuredDynamics\structwsf\ws\converter\common\ConverterCommON;
-use \StructuredDynamics\structwsf\ws\framework\Logger; 
 
 // Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
 ini_set("display_errors", "Off"); 
@@ -20,8 +19,8 @@ set_time_limit(2700);
 
 if ($_SERVER['REQUEST_METHOD'] != 'POST') 
 {
-    header("HTTP/1.1 405 Method Not Allowed");  
-    die;
+  header("HTTP/1.1 405 Method Not Allowed");  
+  die;
 }
 
 $document = "";
@@ -50,13 +49,6 @@ if(isset($_POST['registered_ip']))
 {
   $registered_ip = $_POST['registered_ip'];
 }
-
-$mtime = microtime();
-$mtime = explode(' ', $mtime);
-$mtime = $mtime[1] + $mtime[0];
-$starttime = $mtime;
-
-$start_datetime = date("Y-m-d h:i:s");
 
 $requester_ip = "0.0.0.0";
 
@@ -94,23 +86,6 @@ $ws_common->process();
 
 $ws_common->ws_respond($ws_common->ws_serialize());
 
-$mtime = microtime();
-$mtime = explode(" ", $mtime);
-$mtime = $mtime[1] + $mtime[0];
-$endtime = $mtime;
-$totaltime = ($endtime - $starttime);
-
-if($ws_common->isLoggingEnabled())
-{
-  $logger = new Logger("converter/common", 
-                       $requester_ip, 
-                       "--", 
-                       (isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""),
-                       $start_datetime, 
-                       $totaltime,
-                       $ws_common->pipeline_getResponseHeaderStatus(), 
-                       (isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : ""));
-}
 
 //@}
 

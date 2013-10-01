@@ -11,7 +11,6 @@ namespace StructuredDynamics\structwsf\ws\crud\update;
 
 use \StructuredDynamics\structwsf\ws\framework\DBVirtuoso; 
 use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
-use \StructuredDynamics\structwsf\ws\auth\validator\AuthValidator;
 use \StructuredDynamics\structwsf\ws\framework\Conneg;
 use \StructuredDynamics\structwsf\ws\dataset\read\DatasetRead;
 use \StructuredDynamics\structwsf\ws\crud\read\CrudRead;
@@ -299,50 +298,65 @@ class CrudUpdate extends \StructuredDynamics\structwsf\ws\framework\WebService
   */
   public function validateQuery()
   {
-    // Validation of the "requester_ip" to make sure the system that is sending the query as the rights.
-    $ws_av = new AuthValidator($this->requester_ip, $this->dataset, $this->uri);
-
-    $ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
-      $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
-
-    $ws_av->process();
-
-    if($ws_av->pipeline_getResponseHeaderStatus() != 200)
+    if($this->validateUserAccess($this->dataset))
     {
-      $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
-      $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
-      $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-      $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
-        $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
-        $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
-
-      return;
-    }
-
-    unset($ws_av);
-
-    // If the system send a query on the behalf of another user, we validate that other user as well
-    if($this->registered_ip != $this->requester_ip)
-    {    
-      // Validation of the "registered_ip" to make sure the user of this system has the rights
-      $ws_av = new AuthValidator($this->registered_ip, $this->dataset, $this->uri);
-
-      $ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
-        $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
-
-      $ws_av->process();
-
-      if($ws_av->pipeline_getResponseHeaderStatus() != 200)
+      // Check for errors
+      if($this->document == "")
       {
-        $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
-        $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
-        $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-        $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
-          $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
-          $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
+        $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, "",
+          $this->errorMessenger->_200->level);
+
         return;
       }
-    }
+
+      if($this->mime != "application/rdf+xml" && $this->mime != "application/rdf+n3")
+      {
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
+        $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, "",
+          $this->errorMessenger->_201->level);
+
+        return;
+      }
+
+      if($this->dataset == "")
+      {
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_202->name);
+        $this->conneg->setError($this->errorMessenger->_202->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_202->name, $this->errorMessenger->_202->description, "",
+          $this->errorMessenger->_202->level);
+        return;
+      }
+
+      // Check if the dataset is created
+      $ws_dr = new DatasetRead($this->dataset, "false", "self",
+        $this->wsf_local_ip); // Here the one that makes the request is the WSF (internal request).
+      //    $ws_dr = new DatasetRead($this->dataset, "false", $this->registered_ip, $this->requester_ip);
+
+      $ws_dr->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
+        $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
+
+      $ws_dr->process();
+
+      if($ws_dr->pipeline_getResponseHeaderStatus() != 200)
+      {
+        $this->conneg->setStatus($ws_dr->pipeline_getResponseHeaderStatus());
+        $this->conneg->setStatusMsg($ws_dr->pipeline_getResponseHeaderStatusMsg());
+        $this->conneg->setStatusMsgExt($ws_dr->pipeline_getResponseHeaderStatusMsgExt());
+        $this->conneg->setError($ws_dr->pipeline_getError()->id, $ws_dr->pipeline_getError()->webservice,
+          $ws_dr->pipeline_getError()->name, $ws_dr->pipeline_getError()->description,
+          $ws_dr->pipeline_getError()->debugInfo, $ws_dr->pipeline_getError()->level);
+        return;
+      } 
+    }   
   }
 
   /** Returns the error structure
@@ -391,64 +405,14 @@ class CrudUpdate extends \StructuredDynamics\structwsf\ws\framework\WebService
     $this->conneg =
       new Conneg($accept, $accept_charset, $accept_encoding, $accept_language, CrudUpdate::$supportedSerializations);
 
-    // Check for errors
-
-    if($this->document == "")
+    // Validate call
+    $this->validateCall();  
+      
+    // Validate query
+    if($this->conneg->getStatus() == 200)
     {
-      $this->conneg->setStatus(400);
-      $this->conneg->setStatusMsg("Bad Request");
-      $this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
-      $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
-        $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, "",
-        $this->errorMessenger->_200->level);
-
-      return;
-    }
-
-    if($this->mime != "application/rdf+xml" && $this->mime != "application/rdf+n3")
-    {
-      $this->conneg->setStatus(400);
-      $this->conneg->setStatusMsg("Bad Request");
-      $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
-      $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
-        $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, "",
-        $this->errorMessenger->_201->level);
-
-      return;
-    }
-
-    if($this->dataset == "")
-    {
-      $this->conneg->setStatus(400);
-      $this->conneg->setStatusMsg("Bad Request");
-      $this->conneg->setStatusMsgExt($this->errorMessenger->_202->name);
-      $this->conneg->setError($this->errorMessenger->_202->id, $this->errorMessenger->ws,
-        $this->errorMessenger->_202->name, $this->errorMessenger->_202->description, "",
-        $this->errorMessenger->_202->level);
-      return;
-    }
-
-    // Check if the dataset is created
-
-    $ws_dr = new DatasetRead($this->dataset, "false", "self",
-      $this->wsf_local_ip); // Here the one that makes the request is the WSF (internal request).
-    //    $ws_dr = new DatasetRead($this->dataset, "false", $this->registered_ip, $this->requester_ip);
-
-    $ws_dr->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
-      $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
-
-    $ws_dr->process();
-
-    if($ws_dr->pipeline_getResponseHeaderStatus() != 200)
-    {
-      $this->conneg->setStatus($ws_dr->pipeline_getResponseHeaderStatus());
-      $this->conneg->setStatusMsg($ws_dr->pipeline_getResponseHeaderStatusMsg());
-      $this->conneg->setStatusMsgExt($ws_dr->pipeline_getResponseHeaderStatusMsgExt());
-      $this->conneg->setError($ws_dr->pipeline_getError()->id, $ws_dr->pipeline_getError()->webservice,
-        $ws_dr->pipeline_getError()->name, $ws_dr->pipeline_getError()->description,
-        $ws_dr->pipeline_getError()->debugInfo, $ws_dr->pipeline_getError()->level);
-      return;
-    }
+      $this->validateQuery();
+    }            
   }
 
   /** Do content negotiation as an internal, pipelined, Web Service that is part of a Compound Web Service

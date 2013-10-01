@@ -15,12 +15,11 @@ ini_set("display_errors", "Off");
 ini_set("memory_limit", "64M");
 
 use \StructuredDynamics\structwsf\ws\dataset\read\DatasetRead;
-use \StructuredDynamics\structwsf\ws\framework\Logger; 
 
 if ($_SERVER['REQUEST_METHOD'] != 'GET') 
 {
-    header("HTTP/1.1 405 Method Not Allowed");  
-    die;
+  header("HTTP/1.1 405 Method Not Allowed");  
+  die;
 }
 
 // Interface to use for this query
@@ -64,13 +63,6 @@ if(isset($_GET['meta']))
   $meta = $_GET['meta'];
 }
 
-$mtime = microtime();
-$mtime = explode(' ', $mtime);
-$mtime = $mtime[1] + $mtime[0];
-$starttime = $mtime;
-
-$start_datetime = date("Y-m-d h:i:s");
-
 $requester_ip = "0.0.0.0";
 
 if(isset($_SERVER['REMOTE_ADDR']))
@@ -106,26 +98,6 @@ $ws_dr->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""
 $ws_dr->process();
 
 $ws_dr->ws_respond($ws_dr->ws_serialize());
-
-$mtime = microtime();
-$mtime = explode(" ", $mtime);
-$mtime = $mtime[1] + $mtime[0];
-$endtime = $mtime;
-$totaltime = ($endtime - $starttime);
-
-if($ws_dr->isLoggingEnabled())
-{
-  $logger = new Logger("dataset_read", 
-                       $requester_ip,
-                       "?uri=" . $uri . 
-                       "&registered_ip=" . $registered_ip . 
-                       "&requester_ip=$requester_ip", 
-                       (isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""),
-                       $start_datetime, 
-                       $totaltime, 
-                       $ws_dr->pipeline_getResponseHeaderStatus(), 
-                       (isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : ""));
-}
 
 //@}
 

@@ -28,6 +28,9 @@ abstract class WebService
   /** network.ini file folder */
   public static $network_ini = "/usr/share/structwsf/StructuredDynamics/structwsf/ws/";
 
+  /** keys.ini file folder */
+  public static $keys_ini = "/usr/share/structwsf/StructuredDynamics/structwsf/ws/";
+
   /** Main version of the Virtuoso server used by this structWSF instance (4, 5 or 6) */
   protected $virtuoso_main_version = "6";
 
@@ -35,8 +38,8 @@ abstract class WebService
   protected $enable_lrl = FALSE;
     
   /** Conneg object that manage the content negotiation capabilities of the web service */
-  protected $conneg;	
-	
+  protected $conneg;  
+  
   /** Database user name */
   protected $db_username = "";
 
@@ -82,9 +85,11 @@ abstract class WebService
   /** Port number where the Solr store server is reachable */
   protected $solr_port = "8983";
 
-  
   /** Name of the logging table on the Virtuoso instance */
   protected $log_table = "SD.WSF.ws_queries_log";
+  
+  /** The HTTP headers received for this query */
+  protected $headers = array();
 
   /** Determine if the logging capabilities of structWSF are enabled. */
   protected $log_enable = TRUE;
@@ -186,7 +191,9 @@ abstract class WebService
   protected $requestedInterfaceVersion;
   
   function __construct()
-  {    
+  { 
+    $this->headers = getallheaders();
+    
     // Load INI settings
     $data_ini = parse_ini_file(self::$data_ini . "data.ini", TRUE);
     $network_ini = parse_ini_file(self::$network_ini . "network.ini", TRUE);
@@ -846,7 +853,290 @@ abstract class WebService
       @author Frederick Giasson, Structured Dynamics LLC.
   */
   abstract public function validateQuery();
+  
+  private function securityHash($apiKey, $timeStamp)
+  {
+    $payload = "";
+    
+    if($_SERVER['REQUEST_METHOD'] == 'GET')
+    {
+      foreach($_GET as $key => $value)
+      {
+        $payload .= "$key=$value&";
+      }
+      
+      $payload = trim($payload, '&');
+    }
+    elseif($_SERVER['REQUEST_METHOD'] == 'POST')
+    {
+      foreach($_POST as $key => $value)
+      {
+        $payload .= "$key=$value&";
+      }
+      
+      $payload = trim($payload, '&');
+    }
+    
+    $md5_payload = base64_encode(md5($payload, true));
 
+    $request_timestamp = gmdate("U");
+
+    $data = $_SERVER['REQUEST_METHOD'] . $md5_payload . $_SERVER['REQUEST_URI'] . $timeStamp;
+
+    $hash = hash_hmac("sha1", $data, $apiKey, true);
+    $hash = base64_encode($hash);
+    
+    return($hash);
+  }
+
+  /** Validate a call to this web service. If the call is validated, then each implementation of a
+      web service endpoint will validate other things depending on their specificities using validateQuery().
+      
+      What this function does is to validate the call using the API Keys shared between the requester
+      and this OSF instance.
+ 
+      @return TRUE if valid; FALSE otherwise
+    
+      @author Frederick Giasson, Structured Dynamics LLC.
+  */
+  protected function validateCall()
+  {
+    return;
+    $timeStamp = $this->headers['OSF-TS'];
+    $appID = $this->headers['OSF-APP-ID'];
+    $authorization = $this->headers['Authorization'];
+    
+    // Use the Application ID to get the key of the requester.
+    $keys_ini = parse_ini_file(self::$keys_ini . "keys.ini", TRUE);
+    
+    $apikey = '';
+
+    // Check if we can read the files
+    if($keys_ini !== FALSE && isset($keys_ini['keys'][$appID]))
+    {
+      $apikey = $keys_ini['keys'][$appID];
+    }
+    else
+    {
+      $wsUri = $_SERVER['REQUEST_URI'];
+      if(!empty($_SERVER['QUERY_STRING']))
+      {
+        $wsUri = str_replace('?'.$_SERVER['QUERY_STRING'], '', $_SERVER['REQUEST_URI']);
+      }
+      
+      $this->conneg->setStatus(403);
+      $this->conneg->setStatusMsg("Forbidden");
+      $this->conneg->setStatusMsgExt('Unauthorized Access');
+      $this->conneg->setError('WS-AUTH-VALIDATION-100', 
+                              $wsUri, 
+                              'Unauthorized Request',
+                              'Your request cannot be authorized for this web service call',
+                              '',
+                              'Fatal');
+      return;
+    }
+    
+    $hash = $this->securityHash($apikey, $timeStamp);
+    
+    if($authorization != $hash)
+    {
+      $wsUri = $_SERVER['REQUEST_URI'];
+      if(!empty($_SERVER['QUERY_STRING']))
+      {
+        $wsUri = str_replace('?'.$_SERVER['QUERY_STRING'], '', $_SERVER['REQUEST_URI']);
+      }
+            
+      $this->conneg->setStatus(403);
+      $this->conneg->setStatusMsg("Forbidden");
+      $this->conneg->setStatusMsgExt('Unauthorized Access');
+      $this->conneg->setError('WS-AUTH-VALIDATION-101', 
+                              $wsUri, 
+                              'Unauthorized Request',
+                              'Your request cannot be authorized for this web service call',
+                              '',
+                              'Fatal');
+      return;
+    }
+  } 
+  
+  /**
+  * Validate that a user does have access to one or multiple datasets using a specific web service endpoint
+  *   
+  * @param mixed $datasets An array of datasets that needs to be validated for this web service call
+  *                        and the requesting user.
+  * @author Frederick Giasson, Structured Dynamics LLC.
+  */
+  protected function validateUserAccess($datasets)
+  {
+    if(!is_array($datasets))
+    {
+      $datasets = array($datasets);
+    }
+
+    // Check if the user is already existing
+    $resultset = $this->db->query($this->db->build_sparql_query("
+      prefix wsf: <http://purl.org/ontology/wsf#> 
+      select ?dataset ?create ?read ?update ?delete ?usageCreate ?usageRead ?usageUpdate ?usageDelete
+      from <". $this->wsf_graph .">
+      where
+      {
+        {
+          <". $this->headers['OSF-USER-URI'] ."> wsf:hasGroup ?group .
+                
+          ?access wsf:datasetAccess ?dataset ;
+                  wsf:webServiceAccess <". $this->uri ."> ;
+                  wsf:groupAccess ?group ; 
+                  wsf:create ?create ;
+                  wsf:read ?read ;
+                  wsf:update ?update ;
+                  wsf:delete ?delete .
+                  
+          ?group wsf:appID \"". $this->headers['OSF-APP-ID'] ."\" .
+                  
+          filter(?dataset in(<". implode('>, <', $datasets) .">)) .
+        }
+        union
+        {
+          <". $this->uri ."> wsf:hasCrudUsage ?crudUsage .
+          ?crudUsage         wsf:create ?usageCreate ;
+                             wsf:read ?usageRead ;
+                             wsf:update ?usageUpdate ;
+                             wsf:delete ?usageDelete .        
+        }
+      }",
+      array('dataset', 'create', 'read', 'update', 'delete', 
+            'usageCreate', 'usageRead', 'usageUpdate', 'usageDelete'), FALSE));
+
+    if(odbc_error())
+    {
+      $this->conneg->setStatus(500);
+      $this->conneg->setStatusMsg("Forbidden");
+      $this->conneg->setStatusMsgExt('Internal Error');
+      $this->conneg->setError('WS-AUTH-VALIDATION-102', 
+                              $this->uri, 
+                              'Couldn\'t authorize request',
+                              'An internal error occured when we tried to authorize this request',
+                              '',
+                              'Fatal');        
+
+      return;
+    }
+    else
+    {
+      $wsUsageCreate = FALSE;
+      $wsUsageRead = FALSE;
+      $wsUsageUpdate = FALSE;
+      $wsUsageDelete = FALSE;
+      $datasetsAccesses = array();
+      
+      while(odbc_fetch_row($resultset))
+      {
+        $dataset = odbc_result($resultset, 1);
+        $create = odbc_result($resultset, 2);
+        $read = odbc_result($resultset, 3);
+        $update = odbc_result($resultset, 4);
+        $delete = odbc_result($resultset, 5);
+        $usageCreate = odbc_result($resultset, 6);
+        $usageRead = odbc_result($resultset, 7);
+        $usageUpdate = odbc_result($resultset, 8);
+        $usageDelete = odbc_result($resultset, 9);
+        
+        if(!empty($usageCreate))
+        {
+          $wsUsageCreate = filter_var($usageCreate, FILTER_VALIDATE_BOOLEAN);
+          $wsUsageRead = filter_var($usageRead, FILTER_VALIDATE_BOOLEAN);
+          $wsUsageUpdate = filter_var($usageUpdate, FILTER_VALIDATE_BOOLEAN);
+          $wsUsageDelete = filter_var($usageDelete, FILTER_VALIDATE_BOOLEAN);
+        }
+        else
+        {
+          if(!isset($datasetsAccesses[$dataset]))          
+          {
+            $datasetsAccesses[$dataset] = array();
+          }
+          
+          array_push($datasetsAccesses[$dataset], array('create' => filter_var($create, FILTER_VALIDATE_BOOLEAN),
+                                                        'read' => filter_var($read, FILTER_VALIDATE_BOOLEAN),
+                                                        'update' => filter_var($update, FILTER_VALIDATE_BOOLEAN),
+                                                        'delete' => filter_var($delete, FILTER_VALIDATE_BOOLEAN)));
+        }
+      }
+      
+      // Now we want to validate that for all the input datasets, that the user has the right accesses to them
+      // using this web service endpoint
+      $unauthorized = TRUE;
+      
+      foreach($datasets as $dataset)
+      {                                  
+        foreach($datasetsAccesses[$dataset] as $accessRecord)
+        {
+          $partialAuthorization = TRUE;
+          
+          if($wsUsageCreate)
+          {
+            if(!$accessRecord['create'])
+            {
+              $partialAuthorization = FALSE;
+            }
+          }
+          if($wsUsageRead && $partialAuthorization)
+          {
+            if(!$accessRecord['read'])
+            {
+              $partialAuthorization = FALSE;
+            }
+          }
+          if($wsUsageUpdate && $partialAuthorization)
+          {
+            if(!$accessRecord['update'])
+            {
+              $partialAuthorization = FALSE;
+            }
+          }
+          if($wsUsageDelete && $partialAuthorization)
+          {
+            if(!$accessRecord['delete'])
+            {
+              $partialAuthorization = FALSE;
+            }
+          }
+          
+          if($partialAuthorization)
+          {
+            $unauthorized = FALSE;
+            break;
+          }
+        }
+
+        if(!$unauthorized)
+        {
+          break;
+        }
+      }
+      
+      if($unauthorized)
+      {
+        $this->conneg->setStatus(403);
+        $this->conneg->setStatusMsg("Forbidden");
+        $this->conneg->setStatusMsgExt('Unauthorized Access');
+        $this->conneg->setError('WS-AUTH-VALIDATION-103', 
+                                $this->uri, 
+                                'Unauthorized Request',
+                                'Your request cannot be authorized for this user: "'.$this->headers['OSF-USER-URI'].'", on this dataset: "'.$dataset.'", using this web service endpoint: "'.$this->uri.'"',
+                                '',
+                                'Fatal');      
+        
+        unset($resultset);
+        
+        return(FALSE);
+      }
+    }
+
+    unset($resultset);    
+    
+    return(TRUE);
+  }  
+  
   /** Determine if the logging capabilities of this endpoint are enabled.
 
       @return returns TRUE if enabled, FALSE otherwise.

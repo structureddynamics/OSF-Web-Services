@@ -11,7 +11,6 @@ namespace StructuredDynamics\structwsf\ws\crud\read;
 
 use \StructuredDynamics\structwsf\ws\framework\DBVirtuoso; 
 use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
-use \StructuredDynamics\structwsf\ws\auth\validator\AuthValidator;
 use \StructuredDynamics\structwsf\ws\auth\lister\AuthLister;
 use \StructuredDynamics\structwsf\ws\framework\ProcessorXML;
 use \StructuredDynamics\structwsf\ws\framework\Conneg;
@@ -324,7 +323,7 @@ class CrudRead extends \StructuredDynamics\structwsf\ws\framework\WebService
 
       return;      
     }    
-    
+
     /*
       Check if dataset(s) URI(s) have been defined for this request. If not, then we query the
       AuthLister web service endpoint to get the list of datasets accessible by this user to see
@@ -332,8 +331,8 @@ class CrudRead extends \StructuredDynamics\structwsf\ws\framework\WebService
      */
     if($this->globalDataset === TRUE)
     {
-      $ws_al = new AuthLister("access_user", "", $this->registered_ip, $this->wsf_local_ip, "none");
-
+      $ws_al = new AuthLister("access_user", "", "", $this->wsf_local_ip, "none");
+      
       $ws_al->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
         $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
 
@@ -379,57 +378,40 @@ class CrudRead extends \StructuredDynamics\structwsf\ws\framework\WebService
 
       $this->dataset = rtrim($this->dataset, ";");
     }
-    else
+
+    $this->validateUserAccess(explode(";", $this->dataset));
+    
+    // Check for errors
+    if($this->resourceUri == "")
     {
+      $this->conneg->setStatus(400);
+      $this->conneg->setStatusMsg("Bad Request");
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
+      $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, "",
+        $this->errorMessenger->_200->level);
+
+      return;
+    }
+    
+    // Check if we have the same number of URIs than Dataset URIs (only if at least one dataset URI is defined).    
+    if($this->globalDataset === FALSE)
+    {
+      $uris = explode(";", $this->resourceUri);
       $datasets = explode(";", $this->dataset);
 
-      $datasets = array_unique($datasets);
-
-      // Validate for each requested records of each dataset
-      foreach($datasets as $dataset)
+      if(count($uris) != count($datasets))
       {
-        // Validation of the "requester_ip" to make sure the system that is sending the query as the rights.
-        $ws_av = new AuthValidator($this->requester_ip, $dataset, $this->uri);
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
+        $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, "",
+          $this->errorMessenger->_201->level);
 
-        $ws_av->pipeline_conneg("text/xml", $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(),
-          $this->conneg->getAcceptLanguage());
-
-        $ws_av->process();
-
-        if($ws_av->pipeline_getResponseHeaderStatus() != 200)
-        {
-          $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
-          $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
-          $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-          $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
-            $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
-            $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
-
-          return;
-        }
-
-        unset($ws_av);
-
-        // Validation of the "registered_ip" to make sure the user of this system has the rights
-        $ws_av = new AuthValidator($this->registered_ip, $dataset, $this->uri);
-
-        $ws_av->pipeline_conneg("text/xml", $this->conneg->getAcceptCharset(), $this->conneg->getAcceptEncoding(),
-          $this->conneg->getAcceptLanguage());
-
-        $ws_av->process();
-
-        if($ws_av->pipeline_getResponseHeaderStatus() != 200)
-        {
-          $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
-          $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
-          $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-          $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
-            $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
-            $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
-          return;
-        }
+        return;
       }
-    }
+    }     
   }
 
   /** Returns the error structure
@@ -489,44 +471,13 @@ class CrudRead extends \StructuredDynamics\structwsf\ws\framework\WebService
     $this->conneg =
       new Conneg($accept, $accept_charset, $accept_encoding, $accept_language, CrudRead::$supportedSerializations);
 
+    // Validate call
+    $this->validateCall();  
+      
     // Validate query
-    $this->validateQuery();
-
-    // If the query is still valid
     if($this->conneg->getStatus() == 200)
     {
-      // Check for errors
-      if($this->resourceUri == "")
-      {
-        $this->conneg->setStatus(400);
-        $this->conneg->setStatusMsg("Bad Request");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
-        $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, "",
-          $this->errorMessenger->_200->level);
-
-        return;
-      }
-    }
-
-    // Check if we have the same number of URIs than Dataset URIs (only if at least one dataset URI is defined).
-    
-    if($this->globalDataset === FALSE)
-    {
-      $uris = explode(";", $this->resourceUri);
-      $datasets = explode(";", $this->dataset);
-
-      if(count($uris) != count($datasets))
-      {
-        $this->conneg->setStatus(400);
-        $this->conneg->setStatusMsg("Bad Request");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
-        $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, "",
-          $this->errorMessenger->_201->level);
-
-        return;
-      }
+      $this->validateQuery();
     }
   }
 

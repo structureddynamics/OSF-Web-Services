@@ -10,7 +10,6 @@
 namespace StructuredDynamics\structwsf\ws\ontology\read; 
 
 use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
-use \StructuredDynamics\structwsf\ws\auth\validator\AuthValidator;
 use \StructuredDynamics\structwsf\ws\framework\Conneg;
 use \StructuredDynamics\structwsf\framework\Namespaces;
 
@@ -309,47 +308,7 @@ class OntologyRead extends \StructuredDynamics\structwsf\ws\framework\WebService
     
     if($this->ontologyUri != "")
     {
-      $ws_av = new AuthValidator($this->requester_ip, $this->ontologyUri, $this->uri);
-
-      $ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
-        $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
-
-      $ws_av->process();
-
-      if($ws_av->pipeline_getResponseHeaderStatus() != 200)
-      {
-        $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
-        $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
-        $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-        $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
-          $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
-          $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
-
-        return;
-      }
-
-      // If the system send a query on the behalf of another user, we validate that other user as well
-      if($this->registered_ip != $this->requester_ip)
-      {
-        // Validation of the "registered_ip" to make sure the user of this system has the rights
-        $ws_av = new AuthValidator($this->registered_ip, $this->ontologyUri, $this->uri);
-
-        $ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
-          $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
-
-        $ws_av->process();
-
-        if($ws_av->pipeline_getResponseHeaderStatus() != 200)
-        {
-          $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
-          $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
-          $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-          $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
-            $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
-            $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
-          return;
-        }
-      }  
+      $this->validateUserAccess($this->ontologyUri);
     }  
   }
 
@@ -410,14 +369,13 @@ class OntologyRead extends \StructuredDynamics\structwsf\ws\framework\WebService
     $this->conneg =
       new Conneg($accept, $accept_charset, $accept_encoding, $accept_language, OntologyRead::$supportedSerializations);
 
+    // Validate call
+    $this->validateCall();  
+      
     // Validate query
-    $this->validateQuery();
-
-    // If the query is still valid
     if($this->conneg->getStatus() == 200)
     {
-      // Check for errors
-
+      $this->validateQuery();
     }
   }
 

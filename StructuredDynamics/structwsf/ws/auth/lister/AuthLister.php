@@ -11,7 +11,6 @@ namespace StructuredDynamics\structwsf\ws\auth\lister;
 
 use \StructuredDynamics\structwsf\ws\framework\DBVirtuoso; 
 use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
-use \StructuredDynamics\structwsf\ws\auth\validator\AuthValidator;
 use \StructuredDynamics\structwsf\ws\framework\Conneg;
 
 /** AuthLister Web Service. It lists registered web services and available dataset
@@ -30,8 +29,8 @@ class AuthLister extends \StructuredDynamics\structwsf\ws\framework\WebService
   /** IP of the requester */
   private $requester_ip = "";
 
-  /** Requested IP (ex: a node wants to see all web services or datasets accessible for one of its user) */
-  private $registered_ip = "";
+  /** Group URI */
+  private $group = "";
 
   /** Target dataset URI if action = "access_dataset" */
   private $dataset = "";
@@ -57,6 +56,12 @@ class AuthLister extends \StructuredDynamics\structwsf\ws\framework\WebService
                           "level": "Warning",
                           "name": "No Target Dataset URI",
                           "description": "No target dataset URI defined for this request. A target dataset URI is needed for the mode \'ws\' and \'dataset\'"
+                        },
+                        "_202": {
+                          "id": "WS-AUTH-LISTER-202",
+                          "level": "Warning",
+                          "name": "No Target Group URI",
+                          "description": "No target group URI defined for this request. A target group URI is needed for the mode \'group_users\'"
                         },
                         "_300": {
                           "id": "WS-AUTH-LISTER-300",
@@ -146,12 +151,16 @@ class AuthLister extends \StructuredDynamics\structwsf\ws\framework\WebService
            
   /** Constructor
 
-    @param $mode One of:  (1) "dataset (default)": List all datasets URI accessible by a user, 
-                          (2) "ws": List all Web services registered in a WSF
-                          (3) "access_dataset": List all the registered IP addresses and their CRUD permissions for a given dataset URI
-                          (4) "access_user": List all datasets URI and CRUD permissions accessible by a user 
+    @param $mode One of: (1) "dataset (default)": List all datasets URI accessible by a user
+                         (2) "ws": List all Web services registered in a WSF
+                         (3) "groups": List all existing groups
+                         (4) "group_users": List all users that belongs to a group
+                         (5) "user_groups": List all groups URI for which the user is a member
+                         (6) "access_dataset": List all the group URIs and their CRUD permissions for a given dataset URI
+                         (7) "access_user": List all datasets URI and CRUD permissions accessible by a user based on its groups 
+
     @param $dataset URI referring to a target dataset. Needed when param1 = "dataset" or param1 = "access_datase". Otherwise this parameter as to be ommited.
-    @param $registered_ip Target IP address registered in the WSF
+    @param $group Target Group URI
     @param $requester_ip IP address of the requester
     @param $target_webservice Determine on what web service URI(s) we should focus on for the listing of the access records.
                               This parameter is used to improve the performance of the web service endpoint depending on the 
@@ -173,7 +182,7 @@ class AuthLister extends \StructuredDynamics\structwsf\ws\framework\WebService
   
     @author Frederick Giasson, Structured Dynamics LLC.
 */
-  function __construct($mode, $dataset, $registered_ip, $requester_ip, $target_webservice = "all", 
+  function __construct($mode, $dataset, $group, $requester_ip, $target_webservice = "all", 
                        $interface='default', $requestedInterfaceVersion="")
   {
     parent::__construct();
@@ -198,30 +207,7 @@ class AuthLister extends \StructuredDynamics\structwsf\ws\framework\WebService
     
     $this->requestedInterfaceVersion = $requestedInterfaceVersion;    
     
-    if($registered_ip == "")
-    {
-      $this->registered_ip = $requester_ip;
-    }
-    else
-    {
-      $this->registered_ip = $registered_ip;
-    }
-
-    if(strtolower(substr($this->registered_ip, 0, 4)) == "self")
-    {
-      $pos = strpos($this->registered_ip, "::");
-
-      if($pos !== FALSE)
-      {
-        $account = substr($this->registered_ip, $pos + 2, strlen($this->registered_ip) - ($pos + 2));
-
-        $this->registered_ip = $requester_ip . "::" . $account;
-      }
-      else
-      {
-        $this->registered_ip = $requester_ip;
-      }
-    }
+    $this->group = $group;
 
     $this->uri = $this->wsf_base_url . "/wsf/ws/auth/lister/";
     $this->title = "Authentication Lister Web Service";
@@ -254,25 +240,53 @@ class AuthLister extends \StructuredDynamics\structwsf\ws\framework\WebService
   public function validateQuery()
   {
     // publicly accessible users
-    if($this->mode != "dataset" && $this->mode != "access_user")
+    if($this->mode != "dataset" && $this->mode != "access_user" && $this->mode != "user_groups")
     {
-      $ws_av = new AuthValidator($this->requester_ip, $this->wsf_graph, $this->uri);
-
-      $ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
-        $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
-
-      $ws_av->process();
-
-      if($ws_av->pipeline_getResponseHeaderStatus() != 200)
+      // Only the users that have access to the /wsf/ core dataset can have access to the modes:
+      //  * ws
+      //  * groups
+      //  * access_dataset
+      
+      $this->validateUserAccess($this->wsf_graph);
+    }
+    
+    if($this->conneg->getStatus() == 200)
+    {
+      if(strtolower($this->mode) != "ws" && strtolower($this->mode) != "dataset"
+        && strtolower($this->mode) != "access_dataset" && strtolower($this->mode) != "access_user" &&
+        strtolower($this->mode) != "groups" && strtolower($this->mode) != "group_users" &&
+        strtolower($this->mode) != "user_groups")
       {
-        $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
-        $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
-        $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-        $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
-          $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
-          $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt("Unknown listing type");
+        $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, odbc_errormsg(),
+          $this->errorMessenger->_200->level);
         return;
       }
+
+      if(strtolower($this->mode) != "access_dataset" && $dataset = "")
+      {
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
+        $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, odbc_errormsg(),
+          $this->errorMessenger->_201->level);
+        return;
+      }    
+
+      if(strtolower($this->mode) != "group_users" && $group = "")
+      {
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_202->name);
+        $this->conneg->setError($this->errorMessenger->_202->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_202->name, $this->errorMessenger->_202->description, odbc_errormsg(),
+          $this->errorMessenger->_202->level);
+        return;
+      }    
     }
   }
 
@@ -332,29 +346,13 @@ class AuthLister extends \StructuredDynamics\structwsf\ws\framework\WebService
     $this->conneg =
       new Conneg($accept, $accept_charset, $accept_encoding, $accept_language, AuthLister::$supportedSerializations);
 
-    // Check for errors
-    if(strtolower($this->mode) != "ws" && strtolower($this->mode) != "dataset"
-      && strtolower($this->mode) != "access_dataset" && strtolower($this->mode) != "access_user")
+    // Validate call
+    $this->validateCall();  
+      
+    // Validate query
+    if($this->conneg->getStatus() == 200)
     {
-      $this->conneg->setStatus(400);
-      $this->conneg->setStatusMsg("Bad Request");
-      $this->conneg->setStatusMsgExt("Unknown listing type");
-      $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
-        $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, odbc_errormsg(),
-        $this->errorMessenger->_200->level);
-      return;
-    }
-
-    // Check for errors
-    if(strtolower($this->mode) != "access_dataset" && $dataset = "")
-    {
-      $this->conneg->setStatus(400);
-      $this->conneg->setStatusMsg("Bad Request");
-      $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
-      $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
-        $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, odbc_errormsg(),
-        $this->errorMessenger->_201->level);
-      return;
+      $this->validateQuery();
     }
   }
 

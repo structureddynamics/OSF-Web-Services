@@ -11,7 +11,6 @@ namespace StructuredDynamics\structwsf\ws\auth\registrar\ws;
 
 use \StructuredDynamics\structwsf\ws\framework\DBVirtuoso; 
 use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
-use \StructuredDynamics\structwsf\ws\auth\validator\AuthValidator;
 use \StructuredDynamics\structwsf\ws\framework\Conneg;
 
 /** AuthRegister WS Web Service. It registers a Web Service endpoint on the structWSF instance
@@ -237,43 +236,81 @@ class AuthRegistrarWs extends \StructuredDynamics\structwsf\ws\framework\WebServ
   */
   public function validateQuery()
   {
-    $ws_av = new AuthValidator($this->requester_ip, $this->wsf_graph, $this->uri);
-
-    $ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
-      $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
-
-    $ws_av->process();
-
-    if($ws_av->pipeline_getResponseHeaderStatus() != 200)
-    {
-      $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
-      $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
-      $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-      $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
-        $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
-        $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
-    }
-    
-    // If the system send a query on the behalf of another user, we validate that other user as well
-    if($this->registered_ip != $this->requester_ip)
-    {
-      $ws_av = new AuthValidator($this->registered_ip, $this->wsf_graph, $this->uri);
-
-      $ws_av->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
-        $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
-
-      $ws_av->process();
-
-      if($ws_av->pipeline_getResponseHeaderStatus() != 200)
+    if($this->validateUserAccess($this->wsf_graph))
+    {      
+      if($this->registered_endpoint == "")
       {
-        $this->conneg->setStatus($ws_av->pipeline_getResponseHeaderStatus());
-        $this->conneg->setStatusMsg($ws_av->pipeline_getResponseHeaderStatusMsg());
-        $this->conneg->setStatusMsgExt($ws_av->pipeline_getResponseHeaderStatusMsgExt());
-        $this->conneg->setError($ws_av->pipeline_getError()->id, $ws_av->pipeline_getError()->webservice,
-          $ws_av->pipeline_getError()->name, $ws_av->pipeline_getError()->description,
-          $ws_av->pipeline_getError()->debugInfo, $ws_av->pipeline_getError()->level);
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
+        $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, "",
+          $this->errorMessenger->_200->level);
+        return;
       }
-    }    
+
+      if($this->registered_crud_usage == "")
+      {
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
+        $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, "",
+          $this->errorMessenger->_201->level);
+
+        return;
+      }
+
+      if($this->registered_uri == "")
+      {
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_202->name);
+        $this->conneg->setError($this->errorMessenger->_202->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_202->name, $this->errorMessenger->_202->description, "",
+          $this->errorMessenger->_202->level);
+
+        return;
+      }
+
+      // Check if the web service is already registered
+      $resultset =
+        $this->db->query($this->db->build_sparql_query("select ?wsf ?crudUsage from <" . $this->wsf_graph
+          . "> where {?wsf a <http://purl.org/ontology/wsf#WebServiceFramework>. ?wsf <http://purl.org/ontology/wsf#hasWebService> <$this->registered_uri>. <$this->registered_uri> <http://purl.org/ontology/wsf#hasCrudUsage> ?crudUsage.}",
+          array ('wsf', 'crudUsage'), FALSE));
+
+      if(odbc_error())
+      {
+        $this->conneg->setStatus(500);
+        $this->conneg->setStatusMsg("Internal Error");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_203->name);
+        $this->conneg->setError($this->errorMessenger->_203->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_203->name, $this->errorMessenger->_203->description, "",
+          $this->errorMessenger->_203->level);
+
+        return;
+      }
+      elseif(odbc_fetch_row($resultset))
+      {
+        $wsf = odbc_result($resultset, 1);
+        $crud_usage = odbc_result($resultset, 2);
+
+        if($wsf != "" && $crud_usage != "")
+        {
+          $this->conneg->setStatus(400);
+          $this->conneg->setStatusMsg("Bad Request");
+          $this->conneg->setStatusMsgExt($this->errorMessenger->_204->name);
+          $this->conneg->setError($this->errorMessenger->_204->id, $this->errorMessenger->ws,
+            $this->errorMessenger->_204->name, $this->errorMessenger->_204->description, "",
+            $this->errorMessenger->_204->level);
+
+          unset($resultset);
+          return;
+        }
+      }
+
+      unset($resultset);  
+    }     
   }
 
   /** Returns the error structure
@@ -322,79 +359,14 @@ class AuthRegistrarWs extends \StructuredDynamics\structwsf\ws\framework\WebServ
     $this->conneg = new Conneg($accept, $accept_charset, $accept_encoding, $accept_language,
       AuthRegistrarWs::$supportedSerializations);
 
-    // Check for errors
-    if($this->registered_endpoint == "")
+    // Validate call
+    $this->validateCall();  
+      
+    // Validate query
+    if($this->conneg->getStatus() == 200)
     {
-      $this->conneg->setStatus(400);
-      $this->conneg->setStatusMsg("Bad Request");
-      $this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
-      $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
-        $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, "",
-        $this->errorMessenger->_200->level);
-      return;
-    }
-
-    if($this->registered_crud_usage == "")
-    {
-      $this->conneg->setStatus(400);
-      $this->conneg->setStatusMsg("Bad Request");
-      $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
-      $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
-        $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, "",
-        $this->errorMessenger->_201->level);
-
-      return;
-    }
-
-    if($this->registered_uri == "")
-    {
-      $this->conneg->setStatus(400);
-      $this->conneg->setStatusMsg("Bad Request");
-      $this->conneg->setStatusMsgExt($this->errorMessenger->_202->name);
-      $this->conneg->setError($this->errorMessenger->_202->id, $this->errorMessenger->ws,
-        $this->errorMessenger->_202->name, $this->errorMessenger->_202->description, "",
-        $this->errorMessenger->_202->level);
-
-      return;
-    }
-
-    // Check if the web service is already registered
-    $resultset =
-      $this->db->query($this->db->build_sparql_query("select ?wsf ?crudUsage from <" . $this->wsf_graph
-        . "> where {?wsf a <http://purl.org/ontology/wsf#WebServiceFramework>. ?wsf <http://purl.org/ontology/wsf#hasWebService> <$this->registered_uri>. <$this->registered_uri> <http://purl.org/ontology/wsf#hasCrudUsage> ?crudUsage.}",
-        array ('wsf', 'crudUsage'), FALSE));
-
-    if(odbc_error())
-    {
-      $this->conneg->setStatus(500);
-      $this->conneg->setStatusMsg("Internal Error");
-      $this->conneg->setStatusMsgExt($this->errorMessenger->_203->name);
-      $this->conneg->setError($this->errorMessenger->_203->id, $this->errorMessenger->ws,
-        $this->errorMessenger->_203->name, $this->errorMessenger->_203->description, "",
-        $this->errorMessenger->_203->level);
-
-      return;
-    }
-    elseif(odbc_fetch_row($resultset))
-    {
-      $wsf = odbc_result($resultset, 1);
-      $crud_usage = odbc_result($resultset, 2);
-
-      if($wsf != "" && $crud_usage != "")
-      {
-        $this->conneg->setStatus(400);
-        $this->conneg->setStatusMsg("Bad Request");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_204->name);
-        $this->conneg->setError($this->errorMessenger->_204->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_204->name, $this->errorMessenger->_204->description, "",
-          $this->errorMessenger->_204->level);
-
-        unset($resultset);
-        return;
-      }
-    }
-
-    unset($resultset);
+      $this->validateQuery();
+    }      
   }
 
   /** Do content negotiation as an internal, pipelined, Web Service that is part of a Compound Web Service

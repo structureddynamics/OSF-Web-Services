@@ -635,15 +635,22 @@ class ConverterIrJSON extends \StructuredDynamics\structwsf\ws\framework\WebServ
     $this->conneg = new Conneg($accept, $accept_charset, $accept_encoding, $accept_language,
       ConverterIrJSON::$supportedSerializations);
 
-    // No text to process? Throw an error.
-    if($this->text == "")
+    // Validate call
+    $this->validateCall();  
+      
+    // Validate query
+    if($this->conneg->getStatus() == 200)
     {
-      $this->conneg->setStatus(400);
-      $this->conneg->setStatusMsg("Bad Request");
-      $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
-      $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
-        $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, "",
-        $this->errorMessenger->_201->level);
+      // No text to process? Throw an error.
+      if($this->text == "")
+      {
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
+        $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, "",
+          $this->errorMessenger->_201->level);
+      }
     }
   }
 

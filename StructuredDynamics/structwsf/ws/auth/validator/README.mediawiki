@@ -1,5 +1,0 @@
-== Endpoint Documentation ==
-  
-[http://techwiki.openstructs.org/index.php/Auth:_Validator Auth: Validator Web Service Endpoint Documentation]
-  
-  

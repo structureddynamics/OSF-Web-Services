@@ -11,7 +11,7 @@
     {   
       parent::__construct($webservice);
       
-      $this->compatibleWith = "1.0";
+      $this->compatibleWith = "3.0";
     }
     
     public function processInterface()
@@ -21,6 +21,21 @@
       {
         if(strtolower($this->ws->mode) == "dataset")
         {
+          if($this->ws->memcached_enabled)
+          {
+            $key = $this->ws->generateCacheKey('auth-lister:dataset', array(
+              $this->ws->wsf_graph,
+              $this->ws->headers['OSF-USER-URI'],
+            ));
+            
+            if($return = $this->ws->memcached->get($key))
+            {
+              $this->ws->setResultset($return);
+              
+              return;
+            }
+          }
+          
           $query =
             " prefix wsf: <http://purl.org/ontology/wsf#>
               select distinct ?dataset 
@@ -59,13 +74,31 @@
             $subject->setObjectAttribute("rdf:li", $dataset, null, "void:Dataset");
           }
           
-          $this->ws->rset->addSubject($subject);            
+          $this->ws->rset->addSubject($subject);                     
+          
+          if($this->ws->memcached_enabled)
+          {
+            $this->ws->memcached->set($key, $this->ws->rset, NULL, $this->ws->memcached_auth_lister_expire);
+          }          
         }
         elseif(strtolower($this->ws->mode) == "ws")
         {
+          if($this->ws->memcached_enabled)
+          {
+            $key = $this->ws->generateCacheKey('auth-lister:ws', array(
+              $this->ws->wsf_graph,
+            ));
+            
+            if($return = $this->ws->memcached->get($key))
+            {
+              $this->ws->setResultset($return);
+              
+              return;
+            }
+          }
+          
           $query =
-            "  select distinct ?ws from <" . $this->ws->wsf_graph
-            . ">
+            "  select distinct ?ws from <". $this->ws->wsf_graph  .">
                   where
                   {
                     ?wsf a <http://purl.org/ontology/wsf#WebServiceFramework> ;
@@ -97,10 +130,29 @@
             $subject->setObjectAttribute("rdf:li", $ws, null, "wsf:WebService");
           }
           
-          $this->ws->rset->addSubject($subject);    
+          $this->ws->rset->addSubject($subject);   
+          
+          if($this->ws->memcached_enabled)
+          {
+            $this->ws->memcached->set($key, $this->ws->rset, NULL, $this->ws->memcached_auth_lister_expire);
+          }
         }
         elseif(strtolower($this->ws->mode) == "groups")
         {
+          if($this->ws->memcached_enabled)
+          {
+            $key = $this->ws->generateCacheKey('auth-lister:groups', array(
+              $this->ws->wsf_graph,
+            ));
+            
+            if($return = $this->ws->memcached->get($key))
+            {
+              $this->ws->setResultset($return);
+              
+              return;
+            }
+          }          
+          
           $query =
             " prefix wsf: <http://purl.org/ontology/wsf#>
               select distinct ?group 
@@ -135,10 +187,30 @@
             $subject->setObjectAttribute("rdf:li", $group, null, "wsf:Group");
           }
           
-          $this->ws->rset->addSubject($subject);           
+          $this->ws->rset->addSubject($subject);   
+          
+          if($this->ws->memcached_enabled)
+          {
+            $this->ws->memcached->set($key, $this->ws->rset, NULL, $this->ws->memcached_auth_lister_expire);
+          }                  
         }
         elseif(strtolower($this->ws->mode) == "group_users")
         {
+          if($this->ws->memcached_enabled)
+          {
+            $key = $this->ws->generateCacheKey('auth-lister:group_users', array(
+              $this->ws->wsf_graph,
+              $this->ws->group,
+            ));
+            
+            if($return = $this->ws->memcached->get($key))
+            {
+              $this->ws->setResultset($return);
+              
+              return;
+            }
+          }
+          
           $query =
             " prefix wsf: <http://purl.org/ontology/wsf#>
               select distinct ?user 
@@ -173,7 +245,12 @@
             $subject->setObjectAttribute("rdf:li", $user, null, "wsf:User");
           }
           
-          $this->ws->rset->addSubject($subject);             
+          $this->ws->rset->addSubject($subject);     
+          
+          if($this->ws->memcached_enabled)
+          {
+            $this->ws->memcached->set($key, $this->ws->rset, NULL, $this->ws->memcached_auth_lister_expire);
+          }                  
         }
         elseif(strtolower($this->ws->mode) == "user_groups")
         {
@@ -216,27 +293,64 @@
         else
         { 
           if(strtolower($this->ws->mode) == "access_user")
-          { 
-            $query = "  select ?access ?datasetAccess ?create ?read ?update ?delete ?group ".($this->ws->targetWebservice == "all" ? "?webServiceAccess" : "")."
-                    from <" . $this->ws->wsf_graph . ">
-                    where
-                    {
-                      <".$this->ws->headers['OSF-USER-URI']."> a <http://purl.org/ontology/wsf#User> ;
-                            <http://purl.org/ontology/wsf#hasGroup> ?group .
-                            
-                      ?access a <http://purl.org/ontology/wsf#Access> ;
-                            <http://purl.org/ontology/wsf#create> ?create ;
-                            <http://purl.org/ontology/wsf#read> ?read ;
-                            <http://purl.org/ontology/wsf#update> ?update ;
-                            <http://purl.org/ontology/wsf#delete> ?delete ;
-                            <http://purl.org/ontology/wsf#datasetAccess> ?datasetAccess ;
-                            ".($this->ws->targetWebservice == "all" ? "<http://purl.org/ontology/wsf#webServiceAccess> ?webServiceAccess ;" : "")."
-                            ".($this->ws->targetWebservice != "none" && $this->ws->targetWebservice != "all" ? "<http://purl.org/ontology/wsf#webServiceAccess> <".$this->ws->targetWebservice."> ;" : "")."
-                            <http://purl.org/ontology/wsf#groupAccess> ?group .
-                    }"; 
+          {   
+            if($this->ws->memcached_enabled)
+            {
+              $key = $this->ws->generateCacheKey('auth-lister:access_user', array(
+                $this->ws->wsf_graph,
+                $this->ws->headers['OSF-USER-URI'],
+                $this->ws->targetWebservice,
+              ));
+              
+              if($return = $this->ws->memcached->get($key))
+              {
+                $this->ws->setResultset($return);
+                
+                return;
+              }
+            }
+            
+            $query = "select ?access ?datasetAccess ?create ?read ?update ?delete ?group ".($this->ws->targetWebservice == "all" ? "?webServiceAccess" : "")."
+                      from <" . $this->ws->wsf_graph . ">
+                      where
+                      {
+                        <".$this->ws->headers['OSF-USER-URI']."> a <http://purl.org/ontology/wsf#User> ;
+                              <http://purl.org/ontology/wsf#hasGroup> ?group .
+                              
+                        ?access a <http://purl.org/ontology/wsf#Access> ;
+                              <http://purl.org/ontology/wsf#datasetAccess> ?datasetAccess ;
+                              ".($this->ws->targetWebservice == "all" ? "<http://purl.org/ontology/wsf#webServiceAccess> ?webServiceAccess ;" : "")."
+                              ".($this->ws->targetWebservice != "none" && $this->ws->targetWebservice != "all" ? "<http://purl.org/ontology/wsf#webServiceAccess> <".$this->ws->targetWebservice."> ;" : "")."
+                              <http://purl.org/ontology/wsf#groupAccess> ?group .
+                              
+                        optional
+                        {
+                          ?access <http://purl.org/ontology/wsf#create> ?create ;
+                                  <http://purl.org/ontology/wsf#read> ?read ;
+                                  <http://purl.org/ontology/wsf#update> ?update ;
+                                  <http://purl.org/ontology/wsf#delete> ?delete .
+                        }
+                              
+                      }"; 
           }
           else // access_dataset
           {
+            if($this->ws->memcached_enabled)
+            {
+              $key = $this->ws->generateCacheKey('auth-lister:access_dataset', array(
+                $this->ws->wsf_graph,
+                $this->ws->targetWebservice,
+                $this->ws->dataset
+              ));
+              
+              if($return = $this->ws->memcached->get($key))
+              {
+                $this->ws->setResultset($return);
+                
+                return;
+              }
+            }
+                        
             $query = "  select ?access ?group ?create ?read ?update ?delete ".($this->ws->targetWebservice == "all" ? "?webServiceAccess" : "")." 
                     from <" . $this->ws->wsf_graph
               . ">
@@ -244,13 +358,17 @@
                     {
                       ?access a <http://purl.org/ontology/wsf#Access> ;
                             <http://purl.org/ontology/wsf#groupAccess> ?group ;
-                            <http://purl.org/ontology/wsf#create> ?create ;
-                            <http://purl.org/ontology/wsf#read> ?read ;
-                            <http://purl.org/ontology/wsf#update> ?update ;
-                            <http://purl.org/ontology/wsf#delete> ?delete ;
                             ".($this->ws->targetWebservice == "all" ? "<http://purl.org/ontology/wsf#webServiceAccess> ?webServiceAccess ;" : "")."
                             ".($this->ws->targetWebservice != "none" && $this->ws->targetWebservice != "all" ? "<http://purl.org/ontology/wsf#webServiceAccess> <".$this->ws->targetWebservice."> ;" : "")."
                             <http://purl.org/ontology/wsf#datasetAccess> <".$this->ws->dataset."> .
+                            
+                      optional
+                      {
+                        ?access <http://purl.org/ontology/wsf#create> ?create ;
+                                <http://purl.org/ontology/wsf#read> ?read ;
+                                <http://purl.org/ontology/wsf#update> ?update ;
+                                <http://purl.org/ontology/wsf#delete> ?delete .                      
+                      }
                     }";
           }
 
@@ -347,6 +465,11 @@
           
           // Add the last subject
           $this->ws->rset->addSubject($subject);
+          
+          if($this->ws->memcached_enabled)
+          {
+            $this->ws->memcached->set($key, $this->ws->rset, NULL, $this->ws->memcached_auth_lister_expire);
+          }          
         }
       }    
     }  

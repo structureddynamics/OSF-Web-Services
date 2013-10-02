@@ -14,7 +14,7 @@
     {   
       parent::__construct($webservice);
       
-      $this->compatibleWith = "1.0";
+      $this->compatibleWith = "3.0";
     }
     
     public function processInterface()
@@ -65,41 +65,7 @@
           }
         }
 
-        unset($resultset);      
-        
-        // Remove  all the possible other meta descriptions
-        // of the dataset introduced by the wsf:meta property.
-
-        $query = "  delete from <" . $this->ws->wsf_graph . "datasets/> 
-                { 
-                  ?meta ?p_meta ?o_meta.
-                }
-                where
-                {
-                  graph <"
-          . $this->ws->wsf_graph
-          . "datasets/>
-                  {
-                    <".$this->ws->datasetUri."> <http://purl.org/ontology/wsf#meta> ?meta.
-                    ?meta ?p_meta ?o_meta.
-                  }
-                }";
-
-        @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-          FALSE));
-
-        if(odbc_error())
-        {
-          $this->ws->conneg->setStatus(500);
-          $this->ws->conneg->setStatusMsg("Internal Error");
-          $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_300->name);
-          $this->ws->conneg->setError($this->ws->errorMessenger->_300->id, $this->ws->errorMessenger->ws,
-            $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, odbc_errormsg(),
-            $this->ws->errorMessenger->_300->level);
-
-          return;
-        }
-
+        unset($resultset);            
 
         // Remove the Graph description in the ".../datasets/"
 
@@ -233,6 +199,23 @@
           }
         }
 
+        // Invalidate caches
+        if($this->ws->memcached_enabled)
+        {
+          $this->ws->invalidateCache('auth-validator');
+          $this->ws->invalidateCache('auth-lister:dataset');
+          $this->ws->invalidateCache('auth-lister:ws');
+          $this->ws->invalidateCache('auth-lister:groups');
+          $this->ws->invalidateCache('auth-lister:groups_users');
+          $this->ws->invalidateCache('auth-lister:access_user');
+          $this->ws->invalidateCache('auth-lister:access_dataset');
+          $this->ws->invalidateCache('crud-read');
+          $this->ws->invalidateCache('dataset-read');
+          $this->ws->invalidateCache('revision-read');
+          $this->ws->invalidateCache('revision-lister');
+          $this->ws->invalidateCache('search');
+          $this->ws->invalidateCache('sparql');   
+        }
 
       /*      
             if(!$solr->optimize())

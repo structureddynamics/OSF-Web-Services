@@ -12,7 +12,7 @@
     {   
       parent::__construct($webservice);
       
-      $this->compatibleWith = "1.0";
+      $this->compatibleWith = "3.0";
     }
     
     public function processInterface()
@@ -22,6 +22,21 @@
       {
         $revisionsDataset = rtrim($this->ws->dataset, '/').'/revisions/';
         $query = '';
+        
+        if($this->ws->memcached_enabled)
+        {
+          $key = $this->ws->generateCacheKey('revision-lister:'.$this->ws->mode.':', array(
+            $revisionsDataset,
+            $this->ws->recordUri
+          ));
+          
+          if($return = $this->ws->memcached->get($key))
+          {
+            $this->ws->setResultset($return);
+            
+            return;
+          }
+        }          
 
         switch($this->ws->mode)
         {
@@ -111,6 +126,11 @@
             }
           }
         }
+        
+        if($this->ws->memcached_enabled)
+        {
+          $this->ws->memcached->set($key, $this->ws->rset, NULL, $this->ws->memcached_revision_lister_expire);
+        }             
       }
     }      
   }

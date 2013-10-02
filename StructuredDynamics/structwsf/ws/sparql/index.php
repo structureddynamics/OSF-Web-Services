@@ -66,23 +66,6 @@ if(isset($_POST['named-graph-uri']) && $dataset == "")
   $dataset = $_POST['named-graph-uri'];
 }
 
-
-// Limit of the number of results to return in the resultset
-$limit = 2000;
-
-if(isset($_POST['limit']))
-{
-  $limit = $_POST['limit'];
-}
-
-// Offset of the "sub-resultset" from the total resultset of the query
-$offset = 0;
-
-if(isset($_POST['offset']))
-{
-  $offset = $_POST['offset'];
-}
-
 $parameters = "";
 
 if(isset($_SERVER['REQUEST_URI']))
@@ -101,7 +84,7 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_sparql = new Sparql($query, $dataset, $limit, $offset, $interface, $version);
+$ws_sparql = new Sparql($query, $dataset, $interface, $version);
 
 $ws_sparql->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                       (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

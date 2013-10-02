@@ -19,7 +19,7 @@
     {   
       parent::__construct($webservice);
       
-      $this->compatibleWith = "1.0";
+      $this->compatibleWith = "3.0";
     }
     
     public function processInterface()
@@ -229,39 +229,7 @@
               return;
             }
 
-            unset($statements);
-
-            /* Link the dataset description of the file, by using the wsf:meta property, 
-               to its internal description (dataset graph description)
-            */
-            if($datasetUri != "")
-            {
-              $datasetRes[$datasetUri] = $resourceIndex[$datasetUri];
-
-              $datasetRes[$this->ws->dataset] =
-                array( "http://purl.org/ontology/wsf#meta" => array( array ("value" => $datasetUri, "type" => "uri") ) );
-
-              $datasetDescription = $resourceIndex[$datasetRes];
-
-              /*  Make the link between the dataset description and its "meta" description (all other 
-                  information than its basic description)
-              */
-              $this->ws->db->query("DB.DBA.RDF_LOAD_RDFXML_MT('"
-                . str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($datasetRes)) . "', '" . $this->ws->wsf_graph
-                  . "datasets/', '" . $this->ws->wsf_graph . "datasets/')");
-
-              if(odbc_error())
-              {
-                $this->ws->conneg->setStatus(400);
-                $this->ws->conneg->setStatusMsg("Bad Request");
-                $this->ws->conneg->setError($this->ws->errorMessenger->_302->id, $this->ws->errorMessenger->ws,
-                  $this->ws->errorMessenger->_302->name, $this->ws->errorMessenger->_302->description, "",
-                  $this->ws->errorMessenger->_302->level);
-                return;
-              }
-
-              unset($datasetRes);
-            }
+            unset($statements);         
           }
           
           // Index everything in Solr
@@ -1208,6 +1176,15 @@
               $solr->updateFieldsIndex();
             }
           } 
+          
+          // Invalidate caches
+          if($this->ws->memcached_enabled)
+          {
+            $this->ws->invalidateCache('crud-read');
+            $this->ws->invalidateCache('search');
+            $this->ws->invalidateCache('sparql');
+          }
+          
         /*        
                 // Optimisation can be time consuming "on-the-fly" (which decrease user's experience)
                 if(!$solr->optimize())

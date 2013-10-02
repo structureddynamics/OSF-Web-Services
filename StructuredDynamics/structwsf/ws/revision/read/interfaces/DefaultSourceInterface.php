@@ -12,7 +12,7 @@
     {   
       parent::__construct($webservice);
       
-      $this->compatibleWith = "1.0";
+      $this->compatibleWith = "3.0";
     }
     
     public function processInterface()
@@ -23,6 +23,21 @@
         $subjectUri = $this->ws->revuri;
             
         $revisionsDataset = rtrim($this->ws->dataset, '/').'/revisions/';
+        
+        if($this->ws->memcached_enabled)
+        {
+          $key = $this->ws->generateCacheKey('revision-read', array(
+            $subjectUri,
+            $revisionsDataset
+          ));
+          
+          if($return = $this->ws->memcached->get($key))
+          {
+            $this->ws->setResultset($return);
+            
+            return;
+          }
+        }          
         
         // Archiving suject triples
         $query = $this->ws->db->build_sparql_query("
@@ -203,6 +218,11 @@
           unset($resultset);
 
           $this->ws->rset->setResultset(Array($this->ws->dataset => array($subjectUri => $subject)));
+          
+          if($this->ws->memcached_enabled)
+          {
+            $this->ws->memcached->set($key, $this->ws->rset, NULL, $this->ws->memcached_revision_read_expire);
+          }     
         }
         else
         {

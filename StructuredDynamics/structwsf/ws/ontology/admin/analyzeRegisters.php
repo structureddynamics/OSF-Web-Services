@@ -12,10 +12,10 @@
 
   use \StructuredDynamics\structwsf\ws\framework\WebService;
       
-  $network_ini = parse_ini_file(WebService::$network_ini . "network.ini", TRUE);
+  $osf_ini = parse_ini_file(WebService::$osf_ini . "osf.ini", TRUE);
 
   // Starts the GATE process/bridge
-  require_once($network_ini["owlapi"]["bridge_uri"]);
+  require_once($osf_ini["owlapi"]["bridge_uri"]);
 
   // Attach to the screen sessions
   // Second param "false" => we re-use the pre-created session without destroying the previous one

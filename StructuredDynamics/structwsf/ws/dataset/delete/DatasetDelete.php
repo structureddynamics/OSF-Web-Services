@@ -50,12 +50,6 @@ class DatasetDelete extends \StructuredDynamics\structwsf\ws\framework\WebServic
                           "name": "Invalid dataset URI",
                           "description": "The URI of the dataset is not valid."
                         },                        
-                        "_300": {
-                          "id": "WS-DATASET-DELETE-300",
-                          "level": "Fatal",
-                          "name": "Can\'t delete meta-data information about the dataset",
-                          "description": "An error occured when we tried to remove any meta-information about this dataset in our system"
-                        },
                         "_301": {
                           "id": "WS-DATASET-DELETE-301",
                           "level": "Fatal",
@@ -164,7 +158,7 @@ class DatasetDelete extends \StructuredDynamics\structwsf\ws\framework\WebServic
   {
     parent::__construct();
     
-    $this->version = "1.0";
+    $this->version = "3.0";
 
     $this->db = new DBVirtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 

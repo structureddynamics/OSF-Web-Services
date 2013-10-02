@@ -33,12 +33,6 @@ class Sparql extends \StructuredDynamics\structwsf\ws\framework\WebService
   /** Dataset where t send the query */
   private $dataset = "";
 
-  /** Limit of the number of results to return in the resultset */
-  private $limit = "";
-
-  /** Offset of the "sub-resultset" from the total resultset of the query */
-  private $offset = "";
-
   /** SPARQL query content resultset */
   public $sparqlContent = "";
 
@@ -69,12 +63,6 @@ class Sparql extends \StructuredDynamics\structwsf\ws\framework\WebService
                           "level": "Warning",
                           "name": "No dataset specified for this request",
                           "description": "No dataset specified for this request"
-                        },
-                        "_202": {
-                          "id": "WS-SPARQL-202",
-                          "level": "Warning",
-                          "name": "The maximum number of records returned within the same slice is 2000. Use multiple queries with the OFFSET parameter to build-up the entire resultset.",
-                          "description": "The maximum number of records returned within the same slice is 2000. Use multiple queries with the OFFSET parameter to build-up the entire resultset."
                         },
                         "_203": {
                           "id": "WS-SPARQL-203",
@@ -167,8 +155,6 @@ class Sparql extends \StructuredDynamics\structwsf\ws\framework\WebService
         
       @param $query SPARQL query to send to the triple store of the WSF
       @param $dataset Dataset URI where to send the query
-      @param $limit Limit of the number of results to return in the resultset
-      @param $offset Offset of the "sub-resultset" from the total resultset of the query
       @param $interface Name of the source interface to use for this web service query. Default value: 'default'                                 
       @param $requestedInterfaceVersion Version used for the requested source interface. The default is the latest 
                                         version of the interface.
@@ -178,17 +164,15 @@ class Sparql extends \StructuredDynamics\structwsf\ws\framework\WebService
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($query, $dataset, $limit, $offset, $interface='default', $requestedInterfaceVersion="")
+  function __construct($query, $dataset, $interface='default', $requestedInterfaceVersion="")
   {
     parent::__construct();
 
-    $this->version = "1.0";
+    $this->version = "3.0";
     
     $this->db = new DBVirtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 
     $this->query = $query;
-    $this->limit = $limit;
-    $this->offset = $offset;
     $this->dataset = $dataset;
     
     if(strtolower($interface) == "default")
@@ -255,18 +239,6 @@ class Sparql extends \StructuredDynamics\structwsf\ws\framework\WebService
 
       return;
     }
-
-    if($this->limit > 2000)
-    {
-      $this->conneg->setStatus(400);
-      $this->conneg->setStatusMsg("Bad Request");
-      $this->conneg->setStatusMsgExt($this->errorMessenger->_202->name);
-      $this->conneg->setError($this->errorMessenger->_202->id, $this->errorMessenger->ws,
-        $this->errorMessenger->_202->name, $this->errorMessenger->_202->description, "",
-        $this->errorMessenger->_202->level);
-
-      return;
-    }    
   }
 
   /** Returns the error structure

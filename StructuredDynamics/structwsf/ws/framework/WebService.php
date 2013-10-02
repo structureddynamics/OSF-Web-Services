@@ -22,11 +22,8 @@ use \StructuredDynamics\structwsf\framework\Resultset;
 */
 abstract class WebService
 {
-  /** data.ini file folder */
-  public static $data_ini = "/usr/share/structwsf/StructuredDynamics/structwsf/ws/";
-
-  /** network.ini file folder */
-  public static $network_ini = "/usr/share/structwsf/StructuredDynamics/structwsf/ws/";
+  /** osf.ini file folder */
+  public static $osf_ini = "/usr/share/structwsf/StructuredDynamics/structwsf/ws/";
 
   /** keys.ini file folder */
   public static $keys_ini = "/usr/share/structwsf/StructuredDynamics/structwsf/ws/";
@@ -82,14 +79,8 @@ abstract class WebService
   /** Port number where the Solr store server is reachable */
   protected $solr_port = "8983";
 
-  /** Name of the logging table on the Virtuoso instance */
-  protected $log_table = "SD.WSF.ws_queries_log";
-  
   /** The HTTP headers received for this query */
   protected $headers = array();
-
-  /** Determine if the logging capabilities of structWSF are enabled. */
-  protected $log_enable = TRUE;
 
 /**   Auto commit handled by the Solr data management systems. If this parameter is true, then this means
  *         Solr will handle the commit operation by itself. If it is false, then the web services will trigger the commit
@@ -184,6 +175,28 @@ abstract class WebService
   */
   protected $version;
   
+  /** The server's host were to reach the Memcached server */
+  protected $memcached_host = 'localhost';
+  
+  /** The port of the Memcached server */
+  protected $memcached_port = '11211';
+  
+  /** Memcached connection */
+  protected $memcached;
+  
+  /** Determine if Memcached is enabled on this instance */
+  protected $memcached_enabled = TRUE;
+  
+  protected $memcached_auth_validator_expire = 0;
+  protected $memcached_auth_lister_expire = 0;
+  protected $memcached_crud_read_expire = 0;
+  protected $memcached_dataset_read_expire = 0;
+  protected $memcached_ontology_read_expire = 0;
+  protected $memcached_revision_lister_expire = 0;
+  protected $memcached_revision_read_expire = 0;
+  protected $memcached_search_expire = 0;
+  protected $memcached_sparql_expire = 0;
+  
   /** Version of the interface requested by the user */
   protected $requestedInterfaceVersion;
   
@@ -192,11 +205,10 @@ abstract class WebService
     $this->headers = getallheaders();
     
     // Load INI settings
-    $data_ini = parse_ini_file(self::$data_ini . "data.ini", TRUE);
-    $network_ini = parse_ini_file(self::$network_ini . "network.ini", TRUE);
+    $osf_ini = parse_ini_file(self::$osf_ini . "osf.ini", TRUE);
     
     // Check if we can read the files
-    if($data_ini === FALSE || $network_ini === FALSE)
+    if($osf_ini === FALSE || $osf_ini === FALSE)
     {
       // Get the web service reference
       $webservice = substr($_SERVER["SCRIPT_NAME"], 0, strrpos($_SERVER["SCRIPT_NAME"], "/") + 1);
@@ -275,7 +287,7 @@ abstract class WebService
       
       // Create the error object
       $error = new Error("HTTP-500", $webservice, "Error", 
-                         "Can't read the data.ini and/or the network.ini configuration files on the server.",
+                         "Can't read the osf.ini configuration files on the server.",
                          "", $errorMime, "Fatal");
 
       // Return the error according to the requested mime.
@@ -287,356 +299,408 @@ abstract class WebService
       die;      
     }
     
-    if(isset($data_ini["triplestore"]["username"]))
+    if(isset($osf_ini["triplestore"]["username"]))
     {
-      $this->db_username = $data_ini["triplestore"]["username"];
+      $this->db_username = $osf_ini["triplestore"]["username"];
     }
     
-    if(isset($data_ini["triplestore"]["password"]))
+    if(isset($osf_ini["triplestore"]["password"]))
     {
-      $this->db_password = $data_ini["triplestore"]["password"];
+      $this->db_password = $osf_ini["triplestore"]["password"];
     }
-    if(isset($data_ini["triplestore"]["dsn"]))
+    if(isset($osf_ini["triplestore"]["dsn"]))
     {
-      $this->db_dsn = $data_ini["triplestore"]["dsn"];
+      $this->db_dsn = $osf_ini["triplestore"]["dsn"];
     }
-    if(isset($data_ini["triplestore"]["host"]))
+    if(isset($osf_ini["triplestore"]["host"]))
     {
-      $this->db_host = $data_ini["triplestore"]["host"];
-    }
-    if(isset($data_ini["triplestore"]["log_table"]))
-    {
-      $this->log_table = $data_ini["triplestore"]["log_table"];
+      $this->db_host = $osf_ini["triplestore"]["host"];
     }
     
-    if(isset($data_ini["datasets"]["dtd_base"]))
+    if(isset($osf_ini["datasets"]["dtd_base"]))
     {
-      $this->dtdBaseUrl = $data_ini["datasets"]["dtd_base"];
+      $this->dtdBaseUrl = $osf_ini["datasets"]["dtd_base"];
     }
-    if(isset($data_ini["datasets"]["wsf_graph"]))
+    if(isset($osf_ini["datasets"]["wsf_graph"]))
     {
-      $this->wsf_graph = $data_ini["datasets"]["wsf_graph"];
+      $this->wsf_graph = $osf_ini["datasets"]["wsf_graph"];
     }
     
     
-    if(isset($network_ini["network"]["wsf_base_url"]))
+    if(isset($osf_ini["network"]["wsf_base_url"]))
     {
-      $this->wsf_base_url = $network_ini["network"]["wsf_base_url"];
+      $this->wsf_base_url = $osf_ini["network"]["wsf_base_url"];
     }
-    if(isset($network_ini["network"]["wsf_base_path"]))
+    if(isset($osf_ini["network"]["wsf_base_path"]))
     {
-      $this->wsf_base_path = $network_ini["network"]["wsf_base_path"];
-    }
-
-    if(isset($network_ini["network"]["log_enable"]))
-    {
-      if(strtolower($network_ini["network"]["log_enable"]) == "true" || $network_ini["network"]["log_enable"] == "1")
-      {
-        $this->log_enable = TRUE;
-      }
-      else
-      {
-        $this->log_enable = FALSE;
-      }
-    }        
+      $this->wsf_base_path = $osf_ini["network"]["wsf_base_path"];
+    }       
     
-    if(isset($network_ini["owlapi"]["nb_sessions"]))
+    if(isset($osf_ini["owlapi"]["nb_sessions"]))
     {
-      $this->owlapiNbSessions = $network_ini["owlapi"]["nb_sessions"];
+      $this->owlapiNbSessions = $osf_ini["owlapi"]["nb_sessions"];
     } 
     
-    if(isset($network_ini["owlapi"]["bridge_uri"]))
+    if(isset($osf_ini["owlapi"]["bridge_uri"]))
     {
-      $this->owlapiBridgeURI = $network_ini["owlapi"]["bridge_uri"];
+      $this->owlapiBridgeURI = $osf_ini["owlapi"]["bridge_uri"];
     } 
 
-    if(isset($network_ini["owlapi"]["reasoner"]))
+    if(isset($osf_ini["owlapi"]["reasoner"]))
     {
-      $this->owlapiReasoner = $network_ini["owlapi"]["reasoner"];
+      $this->owlapiReasoner = $osf_ini["owlapi"]["reasoner"];
     } 
     
-    if(isset($network_ini["geo"]["geoenabled"]))
+    if(isset($osf_ini["geo"]["geoenabled"]))
     {
-      if(strtolower($network_ini["geo"]["geoenabled"]) == "true" || $network_ini["geo"]["geoenabled"] == "1")
+      if(strtolower($osf_ini["geo"]["geoenabled"]) == "true" || $osf_ini["geo"]["geoenabled"] == "1")
       {
         $this->geoEnabled = TRUE;
       }      
     } 
     
-    if(isset($network_ini["search"]["exclude_attributes"]))  
+    if(isset($osf_ini["search"]["exclude_attributes"]))  
     {
-      $this->searchExcludedAttributes = $network_ini["search"]["exclude_attributes"];
+      $this->searchExcludedAttributes = $osf_ini["search"]["exclude_attributes"];
     }
 
-    if(isset($network_ini["lang"]["supported_languages"]))  
+    if(isset($osf_ini["lang"]["supported_languages"]))  
     {
-      $this->supportedLanguages = $network_ini["lang"]["supported_languages"];
+      $this->supportedLanguages = $osf_ini["lang"]["supported_languages"];
     }
     
-    if(isset($data_ini["solr"]["wsf_solr_core"]))
+    if(isset($osf_ini["solr"]["wsf_solr_core"]))
     {
-      $this->wsf_solr_core = $data_ini["solr"]["wsf_solr_core"];
+      $this->wsf_solr_core = $osf_ini["solr"]["wsf_solr_core"];
     }
     
-    if(isset($data_ini["solr"]["host"]))
+    if(isset($osf_ini["solr"]["host"]))
     {
-      $this->solr_host = $data_ini["solr"]["host"];
+      $this->solr_host = $osf_ini["solr"]["host"];
     }
 
-    if(isset($data_ini["ontologies"]["ontologies_files_folder"]))
+    if(isset($osf_ini["ontologies"]["ontologies_files_folder"]))
     {
-      $this->ontologies_files_folder = $data_ini["ontologies"]["ontologies_files_folder"];
+      $this->ontologies_files_folder = $osf_ini["ontologies"]["ontologies_files_folder"];
     }
-    if(isset($data_ini["ontologies"]["ontological_structure_folder"]))
+    if(isset($osf_ini["ontologies"]["ontological_structure_folder"]))
     {
-      $this->ontological_structure_folder = $data_ini["ontologies"]["ontological_structure_folder"];
+      $this->ontological_structure_folder = $osf_ini["ontologies"]["ontological_structure_folder"];
     }
-    if(isset($data_ini["triplestore"]["port"]))
+    if(isset($osf_ini["triplestore"]["port"]))
     {
-      $this->triplestore_port = $data_ini["triplestore"]["port"];
+      $this->triplestore_port = $osf_ini["triplestore"]["port"];
     }
-    if(isset($data_ini["triplestore"]["virtuoso_main_version"]))
+    if(isset($osf_ini["triplestore"]["virtuoso_main_version"]))
     {
-      $this->virtuoso_main_version = $data_ini["triplestore"]["virtuoso_main_version"];
+      $this->virtuoso_main_version = $osf_ini["triplestore"]["virtuoso_main_version"];
     }    
-    if(strtolower($data_ini["triplestore"]["enable_lrl"]) == "true" || $data_ini["triplestore"]["enable_lrl"] == "1")
+    if(strtolower($osf_ini["triplestore"]["enable_lrl"]) == "true" || $osf_ini["triplestore"]["enable_lrl"] == "1")
     {
       $this->enable_lrl = TRUE;
     }    
-    if(isset($data_ini["solr"]["port"]))
+    if(isset($osf_ini["solr"]["port"]))
     {
-      $this->solr_port = $data_ini["solr"]["port"];
+      $this->solr_port = $osf_ini["solr"]["port"];
     }
-    if(isset($data_ini["solr"]["fields_index_folder"]))
+    if(isset($osf_ini["solr"]["fields_index_folder"]))
     {
-      $this->fields_index_folder = $data_ini["solr"]["fields_index_folder"];
+      $this->fields_index_folder = $osf_ini["solr"]["fields_index_folder"];
     }
-    if(strtolower($data_ini["solr"]["solr_auto_commit"]) == "true" || $data_ini["solr"]["solr_auto_commit"] == "1")
+    if(strtolower($osf_ini["solr"]["solr_auto_commit"]) == "true" || $osf_ini["solr"]["solr_auto_commit"] == "1")
     {
       $this->solr_auto_commit = TRUE;
     }
     
-    if(isset($network_ini["default-interfaces"]["auth_lister"]))  
+    if(isset($osf_ini["default-interfaces"]["auth_lister"]))  
     {
-      $this->default_interfaces["auth_lister"] = $network_ini["default-interfaces"]["auth_lister"];
+      $this->default_interfaces["auth_lister"] = $osf_ini["default-interfaces"]["auth_lister"];
     }    
     else
     {
       $this->default_interfaces["auth_lister"] = "DefaultSourceInterface";
     }
     
-    if(isset($network_ini["default-interfaces"]["auth_registrar_access"]))  
+    if(isset($osf_ini["default-interfaces"]["auth_registrar_access"]))  
     {
-      $this->default_interfaces["auth_registrar_access"] = $network_ini["default-interfaces"]["auth_registrar_access"];
+      $this->default_interfaces["auth_registrar_access"] = $osf_ini["default-interfaces"]["auth_registrar_access"];
     }    
     else
     {
       $this->default_interfaces["auth_registrar_access"] = "DefaultSourceInterface";
     }
     
-    if(isset($network_ini["default-interfaces"]["auth_registrar_ws"]))  
+    if(isset($osf_ini["default-interfaces"]["auth_registrar_ws"]))  
     {
-      $this->default_interfaces["auth_registrar_ws"] = $network_ini["default-interfaces"]["auth_registrar_ws"];
+      $this->default_interfaces["auth_registrar_ws"] = $osf_ini["default-interfaces"]["auth_registrar_ws"];
     }    
     else
     {
       $this->default_interfaces["auth_registrar_ws"] = "DefaultSourceInterface";
     }
     
-    if(isset($network_ini["default-interfaces"]["auth_validator"]))  
+    if(isset($osf_ini["default-interfaces"]["auth_validator"]))  
     {
-      $this->default_interfaces["auth_validator"] = $network_ini["default-interfaces"]["auth_validator"];
+      $this->default_interfaces["auth_validator"] = $osf_ini["default-interfaces"]["auth_validator"];
     }    
     else
     {
       $this->default_interfaces["auth_validator"] = "DefaultSourceInterface";
     }
     
-    if(isset($network_ini["default-interfaces"]["crud_create"]))  
+    if(isset($osf_ini["default-interfaces"]["crud_create"]))  
     {
-      $this->default_interfaces["crud_create"] = $network_ini["default-interfaces"]["crud_create"];
+      $this->default_interfaces["crud_create"] = $osf_ini["default-interfaces"]["crud_create"];
     }    
     else
     {
       $this->default_interfaces["crud_create"] = "DefaultSourceInterface";
     }
     
-    if(isset($network_ini["default-interfaces"]["crud_read"]))  
+    if(isset($osf_ini["default-interfaces"]["crud_read"]))  
     {
-      $this->default_interfaces["crud_read"] = $network_ini["default-interfaces"]["crud_read"];
+      $this->default_interfaces["crud_read"] = $osf_ini["default-interfaces"]["crud_read"];
     }    
     else
     {
       $this->default_interfaces["crud_read"] = "DefaultSourceInterface";
     }
     
-    if(isset($network_ini["default-interfaces"]["crud_delete"]))  
+    if(isset($osf_ini["default-interfaces"]["crud_delete"]))  
     {
-      $this->default_interfaces["crud_delete"] = $network_ini["default-interfaces"]["crud_delete"];
+      $this->default_interfaces["crud_delete"] = $osf_ini["default-interfaces"]["crud_delete"];
     }    
     else
     {
       $this->default_interfaces["crud_delete"] = "DefaultSourceInterface";
     }
     
-    if(isset($network_ini["default-interfaces"]["crud_update"]))  
+    if(isset($osf_ini["default-interfaces"]["crud_update"]))  
     {
-      $this->default_interfaces["crud_update"] = $network_ini["default-interfaces"]["crud_update"];
+      $this->default_interfaces["crud_update"] = $osf_ini["default-interfaces"]["crud_update"];
     }    
     else
     {
       $this->default_interfaces["crud_update"] = "DefaultSourceInterface";
     }
     
-    if(isset($network_ini["default-interfaces"]["dataset_create"]))  
+    if(isset($osf_ini["default-interfaces"]["dataset_create"]))  
     {
-      $this->default_interfaces["dataset_create"] = $network_ini["default-interfaces"]["dataset_create"];
+      $this->default_interfaces["dataset_create"] = $osf_ini["default-interfaces"]["dataset_create"];
     }    
     else
     {
       $this->default_interfaces["dataset_create"] = "DefaultSourceInterface";
     }
     
-    if(isset($network_ini["default-interfaces"]["dataset_read"]))  
+    if(isset($osf_ini["default-interfaces"]["dataset_read"]))  
     {
-      $this->default_interfaces["dataset_read"] = $network_ini["default-interfaces"]["dataset_read"];
+      $this->default_interfaces["dataset_read"] = $osf_ini["default-interfaces"]["dataset_read"];
     }    
     else
     {
       $this->default_interfaces["dataset_read"] = "DefaultSourceInterface";
     }
     
-    if(isset($network_ini["default-interfaces"]["dataset_update"]))  
+    if(isset($osf_ini["default-interfaces"]["dataset_update"]))  
     {
-      $this->default_interfaces["dataset_update"] = $network_ini["default-interfaces"]["dataset_update"];
+      $this->default_interfaces["dataset_update"] = $osf_ini["default-interfaces"]["dataset_update"];
     }    
     else
     {
       $this->default_interfaces["dataset_update"] = "DefaultSourceInterface";
     }
     
-    if(isset($network_ini["default-interfaces"]["dataset_delete"]))  
+    if(isset($osf_ini["default-interfaces"]["dataset_delete"]))  
     {
-      $this->default_interfaces["dataset_delete"] = $network_ini["default-interfaces"]["dataset_delete"];
+      $this->default_interfaces["dataset_delete"] = $osf_ini["default-interfaces"]["dataset_delete"];
     }    
     else
     {
       $this->default_interfaces["dataset_delete"] = "DefaultSourceInterface";
     }
     
-    if(isset($network_ini["default-interfaces"]["ontology_create"]))  
+    if(isset($osf_ini["default-interfaces"]["ontology_create"]))  
     {
-      $this->default_interfaces["ontology_create"] = $network_ini["default-interfaces"]["ontology_create"];
+      $this->default_interfaces["ontology_create"] = $osf_ini["default-interfaces"]["ontology_create"];
     }    
     else
     {
       $this->default_interfaces["ontology_create"] = "DefaultSourceInterface";
     }
     
-    if(isset($network_ini["default-interfaces"]["ontology_read"]))  
+    if(isset($osf_ini["default-interfaces"]["ontology_read"]))  
     {
-      $this->default_interfaces["ontology_read"] = $network_ini["default-interfaces"]["ontology_read"];
+      $this->default_interfaces["ontology_read"] = $osf_ini["default-interfaces"]["ontology_read"];
     }    
     else
     {
       $this->default_interfaces["ontology_read"] = "DefaultSourceInterface";
     }
     
-    if(isset($network_ini["default-interfaces"]["ontology_update"]))  
+    if(isset($osf_ini["default-interfaces"]["ontology_update"]))  
     {
-      $this->default_interfaces["ontology_update"] = $network_ini["default-interfaces"]["ontology_update"];
+      $this->default_interfaces["ontology_update"] = $osf_ini["default-interfaces"]["ontology_update"];
     }    
     else
     {
       $this->default_interfaces["ontology_update"] = "DefaultSourceInterface";
     }
     
-    if(isset($network_ini["default-interfaces"]["ontology_delete"]))  
+    if(isset($osf_ini["default-interfaces"]["ontology_delete"]))  
     {
-      $this->default_interfaces["ontology_delete"] = $network_ini["default-interfaces"]["ontology_delete"];
+      $this->default_interfaces["ontology_delete"] = $osf_ini["default-interfaces"]["ontology_delete"];
     }    
     else
     {
       $this->default_interfaces["ontology_delete"] = "DefaultSourceInterface";
     }
     
-    if(isset($network_ini["default-interfaces"]["scones"]))  
+    if(isset($osf_ini["default-interfaces"]["scones"]))  
     {
-      $this->default_interfaces["scones"] = $network_ini["default-interfaces"]["scones"];
+      $this->default_interfaces["scones"] = $osf_ini["default-interfaces"]["scones"];
     }    
     else
     {
       $this->default_interfaces["scones"] = "DefaultSourceInterface";
     }
     
-    if(isset($network_ini["default-interfaces"]["search"]))  
+    if(isset($osf_ini["default-interfaces"]["search"]))  
     {
-      $this->default_interfaces["search"] = $network_ini["default-interfaces"]["search"];
+      $this->default_interfaces["search"] = $osf_ini["default-interfaces"]["search"];
     }    
     else
     {
       $this->default_interfaces["search"] = "DefaultSourceInterface";
     }
     
-    if(isset($network_ini["default-interfaces"]["sparql"]))  
+    if(isset($osf_ini["default-interfaces"]["sparql"]))  
     {
-      $this->default_interfaces["sparql"] = $network_ini["default-interfaces"]["sparql"];
+      $this->default_interfaces["sparql"] = $osf_ini["default-interfaces"]["sparql"];
     }    
     else
     {
       $this->default_interfaces["sparql"] = "DefaultSourceInterface";
     }    
     
-    if(isset($network_ini["default-interfaces"]["revision_lister"]))  
+    if(isset($osf_ini["default-interfaces"]["revision_lister"]))  
     {
-      $this->default_interfaces["revision_lister"] = $network_ini["default-interfaces"]["revision_lister"];
+      $this->default_interfaces["revision_lister"] = $osf_ini["default-interfaces"]["revision_lister"];
     }    
     else
     {
       $this->default_interfaces["revision_lister"] = "DefaultSourceInterface";
     }   
          
-    if(isset($network_ini["default-interfaces"]["revision_read"]))  
+    if(isset($osf_ini["default-interfaces"]["revision_read"]))  
     {
-      $this->default_interfaces["revision_read"] = $network_ini["default-interfaces"]["revision_read"];
+      $this->default_interfaces["revision_read"] = $osf_ini["default-interfaces"]["revision_read"];
     }    
     else
     {
       $this->default_interfaces["revision_read"] = "DefaultSourceInterface";
     }  
          
-    if(isset($network_ini["default-interfaces"]["revision_update"]))  
+    if(isset($osf_ini["default-interfaces"]["revision_update"]))  
     {
-      $this->default_interfaces["revision_update"] = $network_ini["default-interfaces"]["revision_update"];
+      $this->default_interfaces["revision_update"] = $osf_ini["default-interfaces"]["revision_update"];
     }    
     else
     {
       $this->default_interfaces["revision_update"] = "DefaultSourceInterface";
     }  
          
-    if(isset($network_ini["default-interfaces"]["revision_delete"]))  
+    if(isset($osf_ini["default-interfaces"]["revision_delete"]))  
     {
-      $this->default_interfaces["revision_delete"] = $network_ini["default-interfaces"]["revision_delete"];
+      $this->default_interfaces["revision_delete"] = $osf_ini["default-interfaces"]["revision_delete"];
     }    
     else
     {
       $this->default_interfaces["revision_delete"] = "DefaultSourceInterface";
     }  
          
-    if(isset($network_ini["default-interfaces"]["revision_diff"]))  
+    if(isset($osf_ini["default-interfaces"]["revision_diff"]))  
     {
-      $this->default_interfaces["revision_diff"] = $network_ini["default-interfaces"]["revision_diff"];
+      $this->default_interfaces["revision_diff"] = $osf_ini["default-interfaces"]["revision_diff"];
     }    
     else
     {
       $this->default_interfaces["revision_diff"] = "DefaultSourceInterface";
     }  
+         
+    if(isset($osf_ini["memcached"]["memcached_enabled"]))  
+    {
+      $this->memcached_enabled = $osf_ini["memcached"]["memcached_enabled"];
+    }    
+         
+    if(isset($osf_ini["memcached"]["memcached_host"]))  
+    {
+      $this->memcached_host = $osf_ini["memcached"]["memcached_host"];
+    }    
+         
+    if(isset($osf_ini["memcached"]["memcached_port"]))  
+    {
+      $this->memcached_port = $osf_ini["memcached"]["memcached_port"];
+    }    
+         
+    if(isset($osf_ini["memcached"]["memcached_auth_validator_expire"]))  
+    {
+      $this->memcached_auth_validator_expire = $osf_ini["memcached"]["memcached_auth_validator_expire"];
+    }    
+         
+    if(isset($osf_ini["memcached"]["memcached_auth_lister_expire"]))  
+    {
+      $this->memcached_auth_lister_expire = $osf_ini["memcached"]["memcached_auth_lister_expire"];
+    }    
+         
+    if(isset($osf_ini["memcached"]["memcached_crud_read_expire"]))  
+    {
+      $this->memcached_crud_read_expire = $osf_ini["memcached"]["memcached_crud_read_expire"];
+    }    
+         
+    if(isset($osf_ini["memcached"]["memcached_dataset_read_expire"]))  
+    {
+      $this->memcached_dataset_read_expire = $osf_ini["memcached"]["memcached_dataset_read_expire"];
+    }    
+         
+    if(isset($osf_ini["memcached"]["memcached_ontology_read_expire"]))  
+    {
+      $this->memcached_ontology_read_expire = $osf_ini["memcached"]["memcached_ontology_read_expire"];
+    }    
+         
+    if(isset($osf_ini["memcached"]["memcached_revision_lister_expire"]))  
+    {
+      $this->memcached_revision_lister_expire = $osf_ini["memcached"]["memcached_revision_lister_expire"];
+    }    
+         
+    if(isset($osf_ini["memcached"]["memcached_revision_read_expire"]))  
+    {
+      $this->memcached_revision_read_expire = $osf_ini["memcached"]["memcached_revision_read_expire"];
+    }    
+         
+    if(isset($osf_ini["memcached"]["memcached_search_expire"]))  
+    {
+      $this->memcached_search_expire = $osf_ini["memcached"]["memcached_search_expire"];
+    }    
+         
+    if(isset($osf_ini["memcached"]["memcached_sparql_expire"]))  
+    {
+      $this->memcached_sparql_expire = $osf_ini["memcached"]["memcached_sparql_expire"];
+    }    
 
     // This handler is defined for the fatal script errors. If a script can't be finished because a fatal error
     // occured, then the handleFatalPhpError function is used to return the error message to the requester.
     register_shutdown_function('StructuredDynamics\structwsf\ws\framework\handleFatalPhpError');
     
-    $this->rset = new Resultset($this->wsf_base_path);    
+    $this->rset = new Resultset($this->wsf_base_path); 
+    
+    // Connect to memcached
+    if($this->memcached_enabled)
+    {
+      $this->memcached = new \Memcache;
+      $this->memcached->connect($this->memcached_host, $this->memcached_port);
+      $this->memcached->setCompressThreshold(50000); // 50k 
+    }
   }
 
   function __destruct() { }
@@ -872,9 +936,13 @@ abstract class WebService
     
     $md5_payload = base64_encode(md5($payload, true));
 
-    $request_timestamp = gmdate("U");
+    $wsUri = $_SERVER['REQUEST_URI'];
+    if(!empty($_SERVER['QUERY_STRING']))
+    {
+      $wsUri = str_replace('?'.$_SERVER['QUERY_STRING'], '', $_SERVER['REQUEST_URI']);
+    }    
 
-    $data = $_SERVER['REQUEST_METHOD'] . $md5_payload . $_SERVER['REQUEST_URI'] . $timeStamp;
+    $data = $_SERVER['REQUEST_METHOD'] . $md5_payload . $wsUri . $timeStamp;
 
     $hash = hash_hmac("sha1", $data, $apiKey, true);
     $hash = base64_encode($hash);
@@ -893,8 +961,7 @@ abstract class WebService
       @author Frederick Giasson, Structured Dynamics LLC.
   */
   protected function validateCall()
-  {
-    return;
+  { 
     $timeStamp = $this->headers['OSF-TS'];
     $appID = $this->headers['OSF-APP-ID'];
     $authorization = $this->headers['Authorization'];
@@ -928,7 +995,7 @@ abstract class WebService
                               'Fatal');
       return;
     }
-    
+
     $hash = $this->securityHash($apikey, $timeStamp);
     
     if($authorization != $hash)
@@ -950,7 +1017,7 @@ abstract class WebService
                               'Fatal');
       return;
     }
-  } 
+  }
   
   /**
   * Validate that a user does have access to one or multiple datasets using a specific web service endpoint
@@ -959,46 +1026,60 @@ abstract class WebService
   *                        and the requesting user.
   * @author Frederick Giasson, Structured Dynamics LLC.
   */
-  protected function validateUserAccess($datasets)
+  public function validateUserAccess($datasets)
   {
+    return(TRUE);
     if(!is_array($datasets))
     {
       $datasets = array($datasets);
     }
 
+    // At this point, validateCall() validated the call, so there shouldn't be
+    // any issues caching the result of this query validation
+
+    if($this->memcached_enabled)
+    {
+      $key = $this->generateCacheKey('auth-validator', array(
+        $this->wsf_graph,
+        $this->headers['OSF-USER-URI'],
+        $this->uri,
+        $this->headers['OSF-APP-ID'],
+        implode(' ', $datasets)
+      ));
+      
+      if($return = $this->memcached->get($key))
+      {
+        return($return);
+      }
+    }
+    
     // Check if the user is already existing
     $resultset = $this->db->query($this->db->build_sparql_query("
       prefix wsf: <http://purl.org/ontology/wsf#> 
-      select ?dataset ?create ?read ?update ?delete ?usageCreate ?usageRead ?usageUpdate ?usageDelete
+      select ?dataset ?create ?read ?update ?delete
       from <". $this->wsf_graph .">
       where
-      {
-        {
-          <". $this->headers['OSF-USER-URI'] ."> wsf:hasGroup ?group .
+      {                                
+        ?group a wsf:Group ;
+               wsf:appID \"". $this->headers['OSF-APP-ID'] ."\" .
+      
+        <". $this->headers['OSF-USER-URI'] ."> wsf:hasGroup ?group .
+              
+        ?access wsf:datasetAccess ?dataset ;
+                wsf:webServiceAccess <". $this->uri ."> ;
+                wsf:groupAccess ?group .
                 
-          ?access wsf:datasetAccess ?dataset ;
-                  wsf:webServiceAccess <". $this->uri ."> ;
-                  wsf:groupAccess ?group ; 
-                  wsf:create ?create ;
+        filter(?dataset in(<". implode('>, <', $datasets) .">)) .
+        
+        optional
+        {        
+          ?access wsf:create ?create ;
                   wsf:read ?read ;
                   wsf:update ?update ;
                   wsf:delete ?delete .
-                  
-          ?group wsf:appID \"". $this->headers['OSF-APP-ID'] ."\" .
-                  
-          filter(?dataset in(<". implode('>, <', $datasets) .">)) .
-        }
-        union
-        {
-          <". $this->uri ."> wsf:hasCrudUsage ?crudUsage .
-          ?crudUsage         wsf:create ?usageCreate ;
-                             wsf:read ?usageRead ;
-                             wsf:update ?usageUpdate ;
-                             wsf:delete ?usageDelete .        
         }
       }",
-      array('dataset', 'create', 'read', 'update', 'delete', 
-            'usageCreate', 'usageRead', 'usageUpdate', 'usageDelete'), FALSE));
+      array('dataset', 'create', 'read', 'update', 'delete'), FALSE));
 
     if(odbc_error())
     {
@@ -1016,10 +1097,6 @@ abstract class WebService
     }
     else
     {
-      $wsUsageCreate = FALSE;
-      $wsUsageRead = FALSE;
-      $wsUsageUpdate = FALSE;
-      $wsUsageDelete = FALSE;
       $datasetsAccesses = array();
       
       while(odbc_fetch_row($resultset))
@@ -1029,32 +1106,18 @@ abstract class WebService
         $read = odbc_result($resultset, 3);
         $update = odbc_result($resultset, 4);
         $delete = odbc_result($resultset, 5);
-        $usageCreate = odbc_result($resultset, 6);
-        $usageRead = odbc_result($resultset, 7);
-        $usageUpdate = odbc_result($resultset, 8);
-        $usageDelete = odbc_result($resultset, 9);
         
-        if(!empty($usageCreate))
+        if(!isset($datasetsAccesses[$dataset]))          
         {
-          $wsUsageCreate = filter_var($usageCreate, FILTER_VALIDATE_BOOLEAN);
-          $wsUsageRead = filter_var($usageRead, FILTER_VALIDATE_BOOLEAN);
-          $wsUsageUpdate = filter_var($usageUpdate, FILTER_VALIDATE_BOOLEAN);
-          $wsUsageDelete = filter_var($usageDelete, FILTER_VALIDATE_BOOLEAN);
+          $datasetsAccesses[$dataset] = array();
         }
-        else
-        {
-          if(!isset($datasetsAccesses[$dataset]))          
-          {
-            $datasetsAccesses[$dataset] = array();
-          }
-          
-          array_push($datasetsAccesses[$dataset], array('create' => filter_var($create, FILTER_VALIDATE_BOOLEAN),
-                                                        'read' => filter_var($read, FILTER_VALIDATE_BOOLEAN),
-                                                        'update' => filter_var($update, FILTER_VALIDATE_BOOLEAN),
-                                                        'delete' => filter_var($delete, FILTER_VALIDATE_BOOLEAN)));
-        }
+        
+        array_push($datasetsAccesses[$dataset], array('create' => filter_var($create, FILTER_VALIDATE_BOOLEAN),
+                                                      'read' => filter_var($read, FILTER_VALIDATE_BOOLEAN),
+                                                      'update' => filter_var($update, FILTER_VALIDATE_BOOLEAN),
+                                                      'delete' => filter_var($delete, FILTER_VALIDATE_BOOLEAN)));
       }
-      
+            
       // Now we want to validate that for all the input datasets, that the user has the right accesses to them
       // using this web service endpoint
       $unauthorized = TRUE;
@@ -1065,28 +1128,28 @@ abstract class WebService
         {
           $partialAuthorization = TRUE;
           
-          if($wsUsageCreate)
+          if($this->crud_usage->create)
           {
             if(!$accessRecord['create'])
             {
               $partialAuthorization = FALSE;
             }
           }
-          if($wsUsageRead && $partialAuthorization)
+          if($this->crud_usage->read && $partialAuthorization)
           {
             if(!$accessRecord['read'])
             {
               $partialAuthorization = FALSE;
             }
           }
-          if($wsUsageUpdate && $partialAuthorization)
+          if($this->crud_usage->update && $partialAuthorization)
           {
             if(!$accessRecord['update'])
             {
               $partialAuthorization = FALSE;
             }
           }
-          if($wsUsageDelete && $partialAuthorization)
+          if($this->crud_usage->delete && $partialAuthorization)
           {
             if(!$accessRecord['delete'])
             {
@@ -1121,25 +1184,76 @@ abstract class WebService
         
         unset($resultset);
         
+        if($this->memcached_enabled)
+        {
+          $this->memcached->set($key, FALSE, NULL, $this->memcached_auth_validator_expire);
+        }
+        
         return(FALSE);
       }
     }
 
     unset($resultset);    
+  
+    if($this->memcached_enabled)
+    {
+      $this->memcached->set($key, TRUE, NULL, $this->memcached_auth_validator_expire);
+    }
     
     return(TRUE);
-  }  
-  
-  /** Determine if the logging capabilities of this endpoint are enabled.
-
-      @return returns TRUE if enabled, FALSE otherwise.
+  }
+        
+  public function generateCacheKey($prefix, $vars)
+  {
+    $values = '';
     
-      @author Frederick Giasson, Structured Dynamics LLC.
+    if(is_array($vars))
+    {
+      foreach($vars as $var)
+      {
+        if(is_array($var))
+        {
+          $values = implode(' ', $var);
+        }
+        else
+        {
+          $values .= ' '.$var;
+        }
+      }
+    }
+
+    // Here we use an iterator to create the final prefix for the key.
+    // We will invalidate the prefix simply by incrementing the iterator
+    // once we have to remove them (because data changed, etc)
+    $ns_key_iterator = $this->memcached->get($prefix);
+    
+    // if not set, initialize it
+    if(empty($ns_key_iterator))
+    {
+      $ns_key_iterator = 1;
+      $this->memcached->set($prefix, $ns_key_iterator, NULL, 0); 
+    }
+    
+    return($prefix.':'.$ns_key_iterator.(!empty($values) ? ':'.md5($values) : ''));    
+  }
+
+  /**
+  * Invalidate the cache based on a key prefix. What this does is to increment an
+  * iterator such that the existing keys become unavailable. Then, eventually,
+  * Memcached will clear them out when they will get at the end of the queue.
+  *   
+  * @param mixed $prefix Prefix to invalidate
   */
-  public function isLoggingEnabled()
-  { 
-    return($this->log_enable);
-  }  
+  public function invalidateCache($prefix)
+  {
+    $ns_key_iterator = $this->memcached->get($prefix);
+    
+    // Only invalidate if this cache is currently used
+    if(!empty($ns_key_iterator))
+    {    
+      $this->memcached->increment($prefix);
+    }
+  }
   
   /** Encode content to be included in XML files
 
@@ -1181,6 +1295,11 @@ abstract class WebService
   public function isValidIRI($iri)
   {
     return((bool) preg_match('/^[a-z](?:[-a-z0-9\+\.])*:(?:\/\/(?:(?:%[0-9a-f][0-9a-f]|[-a-z0-9\._~\x{A0}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFEF}\x{10000}-\x{1FFFD}\x{20000}-\x{2FFFD}\x{30000}-\x{3FFFD}\x{40000}-\x{4FFFD}\x{50000}-\x{5FFFD}\x{60000}-\x{6FFFD}\x{70000}-\x{7FFFD}\x{80000}-\x{8FFFD}\x{90000}-\x{9FFFD}\x{A0000}-\x{AFFFD}\x{B0000}-\x{BFFFD}\x{C0000}-\x{CFFFD}\x{D0000}-\x{DFFFD}\x{E1000}-\x{EFFFD}!\$&\'\(\)\*\+,;=:])*@)?(?:\[(?:(?:(?:[0-9a-f]{1,4}:){6}(?:[0-9a-f]{1,4}:[0-9a-f]{1,4}|(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(?:\.(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){3})|::(?:[0-9a-f]{1,4}:){5}(?:[0-9a-f]{1,4}:[0-9a-f]{1,4}|(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(?:\.(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){3})|(?:[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){4}(?:[0-9a-f]{1,4}:[0-9a-f]{1,4}|(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(?:\.(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){3})|(?:[0-9a-f]{1,4}:[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){3}(?:[0-9a-f]{1,4}:[0-9a-f]{1,4}|(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(?:\.(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){3})|(?:(?:[0-9a-f]{1,4}:){0,2}[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){2}(?:[0-9a-f]{1,4}:[0-9a-f]{1,4}|(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(?:\.(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){3})|(?:(?:[0-9a-f]{1,4}:){0,3}[0-9a-f]{1,4})?::[0-9a-f]{1,4}:(?:[0-9a-f]{1,4}:[0-9a-f]{1,4}|(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(?:\.(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){3})|(?:(?:[0-9a-f]{1,4}:){0,4}[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:[0-9a-f]{1,4}|(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(?:\.(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){3})|(?:(?:[0-9a-f]{1,4}:){0,5}[0-9a-f]{1,4})?::[0-9a-f]{1,4}|(?:(?:[0-9a-f]{1,4}:){0,6}[0-9a-f]{1,4})?::)|v[0-9a-f]+[-a-z0-9\._~!\$&\'\(\)\*\+,;=:]+)\]|(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(?:\.(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){3}|(?:%[0-9a-f][0-9a-f]|[-a-z0-9\._~\x{A0}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFEF}\x{10000}-\x{1FFFD}\x{20000}-\x{2FFFD}\x{30000}-\x{3FFFD}\x{40000}-\x{4FFFD}\x{50000}-\x{5FFFD}\x{60000}-\x{6FFFD}\x{70000}-\x{7FFFD}\x{80000}-\x{8FFFD}\x{90000}-\x{9FFFD}\x{A0000}-\x{AFFFD}\x{B0000}-\x{BFFFD}\x{C0000}-\x{CFFFD}\x{D0000}-\x{DFFFD}\x{E1000}-\x{EFFFD}!\$&\'\(\)\*\+,;=@])*)(?::[0-9]*)?(?:\/(?:(?:%[0-9a-f][0-9a-f]|[-a-z0-9\._~\x{A0}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFEF}\x{10000}-\x{1FFFD}\x{20000}-\x{2FFFD}\x{30000}-\x{3FFFD}\x{40000}-\x{4FFFD}\x{50000}-\x{5FFFD}\x{60000}-\x{6FFFD}\x{70000}-\x{7FFFD}\x{80000}-\x{8FFFD}\x{90000}-\x{9FFFD}\x{A0000}-\x{AFFFD}\x{B0000}-\x{BFFFD}\x{C0000}-\x{CFFFD}\x{D0000}-\x{DFFFD}\x{E1000}-\x{EFFFD}!\$&\'\(\)\*\+,;=:@]))*)*|\/(?:(?:(?:(?:%[0-9a-f][0-9a-f]|[-a-z0-9\._~\x{A0}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFEF}\x{10000}-\x{1FFFD}\x{20000}-\x{2FFFD}\x{30000}-\x{3FFFD}\x{40000}-\x{4FFFD}\x{50000}-\x{5FFFD}\x{60000}-\x{6FFFD}\x{70000}-\x{7FFFD}\x{80000}-\x{8FFFD}\x{90000}-\x{9FFFD}\x{A0000}-\x{AFFFD}\x{B0000}-\x{BFFFD}\x{C0000}-\x{CFFFD}\x{D0000}-\x{DFFFD}\x{E1000}-\x{EFFFD}!\$&\'\(\)\*\+,;=:@]))+)(?:\/(?:(?:%[0-9a-f][0-9a-f]|[-a-z0-9\._~\x{A0}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFEF}\x{10000}-\x{1FFFD}\x{20000}-\x{2FFFD}\x{30000}-\x{3FFFD}\x{40000}-\x{4FFFD}\x{50000}-\x{5FFFD}\x{60000}-\x{6FFFD}\x{70000}-\x{7FFFD}\x{80000}-\x{8FFFD}\x{90000}-\x{9FFFD}\x{A0000}-\x{AFFFD}\x{B0000}-\x{BFFFD}\x{C0000}-\x{CFFFD}\x{D0000}-\x{DFFFD}\x{E1000}-\x{EFFFD}!\$&\'\(\)\*\+,;=:@]))*)*)?|(?:(?:(?:%[0-9a-f][0-9a-f]|[-a-z0-9\._~\x{A0}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFEF}\x{10000}-\x{1FFFD}\x{20000}-\x{2FFFD}\x{30000}-\x{3FFFD}\x{40000}-\x{4FFFD}\x{50000}-\x{5FFFD}\x{60000}-\x{6FFFD}\x{70000}-\x{7FFFD}\x{80000}-\x{8FFFD}\x{90000}-\x{9FFFD}\x{A0000}-\x{AFFFD}\x{B0000}-\x{BFFFD}\x{C0000}-\x{CFFFD}\x{D0000}-\x{DFFFD}\x{E1000}-\x{EFFFD}!\$&\'\(\)\*\+,;=:@]))+)(?:\/(?:(?:%[0-9a-f][0-9a-f]|[-a-z0-9\._~\x{A0}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFEF}\x{10000}-\x{1FFFD}\x{20000}-\x{2FFFD}\x{30000}-\x{3FFFD}\x{40000}-\x{4FFFD}\x{50000}-\x{5FFFD}\x{60000}-\x{6FFFD}\x{70000}-\x{7FFFD}\x{80000}-\x{8FFFD}\x{90000}-\x{9FFFD}\x{A0000}-\x{AFFFD}\x{B0000}-\x{BFFFD}\x{C0000}-\x{CFFFD}\x{D0000}-\x{DFFFD}\x{E1000}-\x{EFFFD}!\$&\'\(\)\*\+,;=:@]))*)*|(?!(?:%[0-9a-f][0-9a-f]|[-a-z0-9\._~\x{A0}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFEF}\x{10000}-\x{1FFFD}\x{20000}-\x{2FFFD}\x{30000}-\x{3FFFD}\x{40000}-\x{4FFFD}\x{50000}-\x{5FFFD}\x{60000}-\x{6FFFD}\x{70000}-\x{7FFFD}\x{80000}-\x{8FFFD}\x{90000}-\x{9FFFD}\x{A0000}-\x{AFFFD}\x{B0000}-\x{BFFFD}\x{C0000}-\x{CFFFD}\x{D0000}-\x{DFFFD}\x{E1000}-\x{EFFFD}!\$&\'\(\)\*\+,;=:@])))(?:\?(?:(?:%[0-9a-f][0-9a-f]|[-a-z0-9\._~\x{A0}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFEF}\x{10000}-\x{1FFFD}\x{20000}-\x{2FFFD}\x{30000}-\x{3FFFD}\x{40000}-\x{4FFFD}\x{50000}-\x{5FFFD}\x{60000}-\x{6FFFD}\x{70000}-\x{7FFFD}\x{80000}-\x{8FFFD}\x{90000}-\x{9FFFD}\x{A0000}-\x{AFFFD}\x{B0000}-\x{BFFFD}\x{C0000}-\x{CFFFD}\x{D0000}-\x{DFFFD}\x{E1000}-\x{EFFFD}!\$&\'\(\)\*\+,;=:@])|[\x{E000}-\x{F8FF}\x{F0000}-\x{FFFFD}|\x{100000}-\x{10FFFD}\/\?])*)?(?:\#(?:(?:%[0-9a-f][0-9a-f]|[-a-z0-9\._~\x{A0}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFEF}\x{10000}-\x{1FFFD}\x{20000}-\x{2FFFD}\x{30000}-\x{3FFFD}\x{40000}-\x{4FFFD}\x{50000}-\x{5FFFD}\x{60000}-\x{6FFFD}\x{70000}-\x{7FFFD}\x{80000}-\x{8FFFD}\x{90000}-\x{9FFFD}\x{A0000}-\x{AFFFD}\x{B0000}-\x{BFFFD}\x{C0000}-\x{CFFFD}\x{D0000}-\x{DFFFD}\x{E1000}-\x{EFFFD}!\$&\'\(\)\*\+,;=:@])|[\/\?])*)?$/iu', $iri));
+  }
+  
+  public function setResultset(\StructuredDynamics\structwsf\framework\Resultset $resultset)
+  {
+    $this->rset = $resultset;
   }
   
   /**

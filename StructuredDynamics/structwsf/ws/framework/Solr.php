@@ -317,9 +317,9 @@ class Solr
       global $dbUsername, $dbPassword, $dbDSN, $dbHost;
       global $base_url;
 
-      $data_ini = parse_ini_file(WebService::$data_ini."data.ini", TRUE);    
+      $osf_ini = parse_ini_file(WebService::$osf_ini."osf.ini", TRUE);    
   
-      $this->db = new DBVirtuoso($data_ini["triplestore"]["username"], $data_ini["triplestore"]["password"], $data_ini["triplestore"]["dsn"], $data_ini["triplestore"]["host"]);
+      $this->db = new DBVirtuoso($osf_ini["triplestore"]["username"], $osf_ini["triplestore"]["password"], $osf_ini["triplestore"]["dsn"], $osf_ini["triplestore"]["host"]);
 
 
       $db = new DBVirtuoso($dbUsername, $dbPassword, $dbDSN, $dbHost);  

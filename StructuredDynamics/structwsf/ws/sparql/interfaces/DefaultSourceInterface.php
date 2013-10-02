@@ -15,7 +15,7 @@
     {   
       parent::__construct($webservice);
       
-      $this->compatibleWith = "1.0";
+      $this->compatibleWith = "3.0";
       
       $this->query = $this->ws->query;
     }
@@ -364,7 +364,7 @@
           $datasets[] = $graph;
         }        
         
-        if(!$this->validateUserAccess($datasets))
+        if(!$this->ws->validateUserAccess($datasets))
         {
           return;
         }
@@ -390,49 +390,73 @@
           $queryFormat = "application/sparql-results+xml";
         }      
         
-        // Add a limit to the query
-
-        // Disable limits and offset for now until we figure out what to do (not limit on triples, but resources)
-        //      $this->query .= " limit ".$this->ws->limit." offset ".$this->ws->offset;
-
-        curl_setopt($ch, CURLOPT_URL,
-          $this->ws->db_host . ":" . $this->ws->triplestore_port . "/sparql?default-graph-uri=" . urlencode($this->ws->dataset) . "&query="
-          . urlencode($this->query) . "&format=" . urlencode($queryFormat));
-
-        //curl_setopt($ch, CURLOPT_HTTPHEADER, array( "Accept: " . $queryFormat ));
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_HEADER, TRUE);
-
-        $xml_data = curl_exec($ch);
-
-        $header = substr($xml_data, 0, strpos($xml_data, "\r\n\r\n"));
-
-        $data =
-          substr($xml_data, strpos($xml_data, "\r\n\r\n") + 4, strlen($xml_data) - (strpos($xml_data, "\r\n\r\n") - 4));
-
-        curl_close($ch);
-
-        // check returned message
-
-        $httpMsgNum = substr($header, 9, 3);
-        $httpMsg = substr($header, 13, strpos($header, "\r\n") - 13);
-
-        if($httpMsgNum == "200")
+        if($this->ws->memcached_enabled)
         {
-          $this->ws->sparqlContent = $data;
+          $key = $this->ws->generateCacheKey('sparql', array(
+            $this->ws->dataset,
+            $this->query,
+            $this->ws->conneg->getMime()
+          ));
+          
+          if($return = $this->ws->memcached->get($key))
+          {
+            if($queryFormat !== 'application/sparql-results+xml')
+            {
+              $this->ws->sparqlContent = $return;
+            }
+            else
+            {
+              $this->ws->setResultset($return);
+              return;
+            }
+          }
         }
-        else
-        {
-          $this->ws->conneg->setStatus($httpMsgNum);
-          $this->ws->conneg->setStatusMsg($httpMsg);
-          $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_300->name);
-          $this->ws->conneg->setError($this->ws->errorMessenger->_300->id, $this->ws->errorMessenger->ws,
-            $this->ws->errorMessenger->_300 > name, $this->ws->errorMessenger->_300->description, $data,
-            $this->ws->errorMessenger->_300->level);
+        
+        if(empty($this->ws->sparqlContent))
+        {          
+          curl_setopt($ch, CURLOPT_URL,
+            $this->ws->db_host . ":" . $this->ws->triplestore_port . "/sparql?default-graph-uri=" . urlencode($this->ws->dataset) . "&query="
+            . urlencode($this->query) . "&format=" . urlencode($queryFormat));
 
-          $this->ws->sparqlContent = "";
-          return;
+          curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+          curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+          curl_setopt($ch, CURLOPT_HEADER, TRUE);
+
+          $xml_data = curl_exec($ch);
+
+          $header = substr($xml_data, 0, strpos($xml_data, "\r\n\r\n"));
+
+          $data =
+            substr($xml_data, strpos($xml_data, "\r\n\r\n") + 4, strlen($xml_data) - (strpos($xml_data, "\r\n\r\n") - 4));
+
+          curl_close($ch);
+
+          // check returned message
+
+          $httpMsgNum = substr($header, 9, 3);
+          $httpMsg = substr($header, 13, strpos($header, "\r\n") - 13);
+
+          if($httpMsgNum == "200")
+          {
+            $this->ws->sparqlContent = $data;
+            
+            if($this->ws->memcached_enabled)
+            {
+              $this->ws->memcached->set($key, $this->ws->sparqlContent, NULL, $this->ws->memcached_sparql_expire);
+            }     
+          }
+          else
+          {
+            $this->ws->conneg->setStatus($httpMsgNum);
+            $this->ws->conneg->setStatusMsg($httpMsg);
+            $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_300->name);
+            $this->ws->conneg->setError($this->ws->errorMessenger->_300->id, $this->ws->errorMessenger->ws,
+              $this->ws->errorMessenger->_300 > name, $this->ws->errorMessenger->_300->description, $data,
+              $this->ws->errorMessenger->_300->level);
+
+            $this->ws->sparqlContent = "";
+            return;
+          }
         }
 
         // If a DESCRIBE query as been requested by the user, then we simply returns what is returned by
@@ -564,6 +588,11 @@
               $this->ws->rset->addSubject($subject);          
             }
           }
+          
+          if($this->ws->memcached_enabled)
+          {
+            $this->ws->memcached->set($key, $this->ws->rset, NULL, $this->ws->memcached_sparql_expire);
+          }     
           
           if(count($this->ws->rset->getResultset()) <= 0)
           {

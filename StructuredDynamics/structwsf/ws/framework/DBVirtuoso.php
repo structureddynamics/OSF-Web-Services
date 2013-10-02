@@ -56,10 +56,10 @@ class DBVirtuoso
   */
   public function __construct($username, $password, $dsn, $host)
   {
-    $data_ini = parse_ini_file(WebService::$data_ini . "data.ini", TRUE);
+    $osf_ini = parse_ini_file(WebService::$osf_ini . "osf.ini", TRUE);
 
-    $this->virtuoso_main_version = $data_ini["triplestore"]["virtuoso_main_version"];    
-    $this->enable_lrl = $data_ini["triplestore"]["enable_lrl"];
+    $this->virtuoso_main_version = $osf_ini["triplestore"]["virtuoso_main_version"];    
+    $this->enable_lrl = $osf_ini["triplestore"]["enable_lrl"];
     
     // Connection Database informations
     $this->db_host = $host;

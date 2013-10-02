@@ -152,7 +152,7 @@ class Scones extends \StructuredDynamics\structwsf\ws\framework\WebService
   {
     parent::__construct();
     
-    $this->version = "1.0";
+    $this->version = "3.0";
 
     $this->document = $document;
     $this->docmime = $docmime;

@@ -23,10 +23,10 @@
     Get the pool of stories to process
     Can be a URL or a file reference.
   */
-  $network_ini = parse_ini_file(WebService::$network_ini . "network.ini", TRUE);
+  $osf_ini = parse_ini_file(WebService::$osf_ini . "osf.ini", TRUE);
 
   // Starts the OLAPI process/bridge
-  require_once($network_ini["owlapi"]["bridge_uri"]);
+  require_once($osf_ini["owlapi"]["bridge_uri"]);
 
   // Destroy the scones session
   // Second param "false" => we re-use the pre-created session without destroying the previous one

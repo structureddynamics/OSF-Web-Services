@@ -11,7 +11,7 @@
     {   
       parent::__construct($webservice);
       
-      $this->compatibleWith = "1.0";
+      $this->compatibleWith = "3.0";
     }
     
     public function processInterface()
@@ -40,6 +40,25 @@
           // Decode potentially encoded ";" character.
           $u = str_ireplace("%3B", ";", $u);
           $d = str_ireplace("%3B", ";", $datasets[$key]);
+          
+          if($this->ws->memcached_enabled)
+          {
+            $key = $this->ws->generateCacheKey('crud-read', array(
+              $this->ws->include_linksback,
+              $this->ws->include_reification,
+              md5($this->ws->include_attributes_list),
+              $this->ws->lang,
+              md5($u.' '.$d)
+            ));
+            
+            if($return = $this->ws->memcached->get($key))
+            {
+              $subjects[$u] = $return;
+              
+              continue;
+            }
+          }          
+          
 
           $query = "";
 
@@ -468,6 +487,11 @@
 
             unset($resultset);
           }
+          
+          if($this->ws->memcached_enabled)
+          {
+            $this->ws->memcached->set($key, $subjects[$u], NULL, $this->ws->memcached_crud_read_expire);
+          }
         }
 
         if(count($subjects) <= 0)
@@ -483,7 +507,7 @@
         {
           $this->ws->rset->setResultset(Array("unspecified" => $subjects));
         }
-      }      
+      }          
     }
   }
 ?>

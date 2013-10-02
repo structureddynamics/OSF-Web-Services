@@ -19,7 +19,7 @@
     {   
       parent::__construct($webservice);
       
-      $this->compatibleWith = "1.0";
+      $this->compatibleWith = "3.0";
     }
     
     public function processInterface()
@@ -1535,6 +1535,13 @@
             $solr->updateFieldsIndex();
           }        
 
+          // Invalidate caches
+          if($this->ws->memcached_enabled)
+          {
+            $this->ws->invalidateCache('crud-read');
+            $this->ws->invalidateCache('search');
+            $this->ws->invalidateCache('sparql');          
+          }
           
           /*        
           if(!$solr->optimize())

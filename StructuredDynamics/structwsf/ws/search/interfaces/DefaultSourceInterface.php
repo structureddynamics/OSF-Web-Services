@@ -18,7 +18,7 @@
     {   
       parent::__construct($webservice);
       
-      $this->compatibleWith = "1.0";
+      $this->compatibleWith = "3.0";
     }
     
     private function escapeSolrValue($string)
@@ -245,6 +245,48 @@
             $this->ws->errorMessenger->_300->level);
           return;
         }
+        
+        
+        if($this->ws->memcached_enabled)
+        {
+          $memcachedKey = $this->ws->generateCacheKey('search', array(
+            $this->query,
+            $this->attributes,
+            $this->items,
+            $this->page,
+            $this->inference,
+            $this->includeAggregates,
+            $this->attributesBooleanOperator,
+            $this->aggregateAttributesObjectType,
+            $this->aggregateAttributesNb,
+            $this->resultsLocationAggregator,
+            $this->lang,
+            $this->defaultOperator,
+            $this->attributesPhraseBoost,
+            $this->phraseBoostDistance,
+            $this->searchRestrictions,
+            $this->includeScores,
+            $this->spellcheck,
+            $this->extendedFilters,
+            $this->typesBoost,
+            $this->attributesBoost,
+            $this->datasetsBoost,
+            $this->aggregateAttributes,
+            $this->types,
+            $this->datasets,
+            $this->distanceFilter,
+            $this->rangeFilter,
+            $this->sort,
+            $accessibleDatasets));
+          
+          if($return = $this->ws->memcached->get($memcachedKey))
+          {
+            $this->ws->setResultset($return);
+            
+            return;
+          }
+        }        
+        
         
         $indexedFields = array();
 
@@ -2007,6 +2049,11 @@
           
           $this->ws->rset->addSubject($subject, $resultDatasetURI->item(0)->nodeValue);
         }
+        
+        if($this->ws->memcached_enabled)
+        {
+          $this->ws->memcached->set($memcachedKey, $this->ws->rset, NULL, $this->ws->memcached_search_expire);
+        }             
       }     
     }
     

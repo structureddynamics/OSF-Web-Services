@@ -1231,7 +1231,7 @@ class Resultset
         $json .= '<'.$recordURI.'> a '.$this->prefixize($firstType).' ;'."\n";
         
         $jsonPaddingSize = "";
-        
+                           
         for($i = 0; $i < strlen('<'.$recordURI.'> '); $i++)
         {
           $jsonPaddingSize .= " ";

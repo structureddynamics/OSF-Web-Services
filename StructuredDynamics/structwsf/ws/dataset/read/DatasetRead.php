@@ -30,9 +30,6 @@ class DatasetRead extends \StructuredDynamics\structwsf\ws\framework\WebService
   /** URI of the target dataset(s). "all" means all datasets visible to thatuser. */
   private $datasetUri = "";
 
-  /** Add meta information to the resultset */
-  private $addMeta = "false";
-
   /** Namespaces/Prefixes binding */
   private $namespaces =
     array ("http://www.w3.org/2002/07/owl#" => "owl", "http://www.w3.org/1999/02/22-rdf-syntax-ns#" => "rdf",
@@ -76,12 +73,6 @@ class DatasetRead extends \StructuredDynamics\structwsf\ws\framework\WebService
                           "name": "Can\'t get the description of the target dataset",
                           "description": "An error occured when we tried to get information about the target dataset"
                         },
-                        "_302": {
-                          "id": "WS-DATASET-READ-302",
-                          "level": "Fatal",
-                          "name": "Can\'t get meta-information about the dataset(s)",
-                          "description": "An error occured when we tried to get meta-information about the dataset(s)"
-                        },
                         "_303": {
                           "id": "WS-DATASET-READ-303",
                           "level": "Fatal",
@@ -93,12 +84,6 @@ class DatasetRead extends \StructuredDynamics\structwsf\ws\framework\WebService
                           "level": "Warning",
                           "name": "This dataset doesn\'t exist in this WSF",
                           "description": "The target dataset doesn\'t exist in this web service framework"
-                        },
-                        "_305": {
-                          "id": "WS-DATASET-READ-305",
-                          "level": "Fatal",
-                          "name": "Can\'t get meta-information about the dataset(s)",
-                          "description": "An error occured when we tried to get meta-information about the dataset(s)"
                         },
                         "_306": {
                           "id": "WS-DATASET-READ-306",
@@ -155,23 +140,21 @@ class DatasetRead extends \StructuredDynamics\structwsf\ws\framework\WebService
   /** Constructor
               
       @param $uri URI of the dataset to read (get its description)
-      @param $meta Add meta information with the resultset
       @param $interface Name of the source interface to use for this web service query. Default value: 'default'                            
 
       @return returns NULL
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($uri, $meta, $interface='default', $requestedInterfaceVersion="")
+  function __construct($uri, $interface='default', $requestedInterfaceVersion="")
   {
     parent::__construct();
     
-    $this->version = "1.0";
+    $this->version = "3.0";
 
     $this->db = new DBVirtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 
     $this->datasetUri = $uri;
-    $this->addMeta = strtolower($meta);
 
     if(strtolower($interface) == "default")
     {

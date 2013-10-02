@@ -233,7 +233,7 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
                           "id": "WS-SEARCH-312",
                           "level": "Fatal",
                           "name": "fieldsIndex.srz unexisting",
-                          "description": "The file fieldsIndex.srz is unexisting. Make sure it can be created by the CRUD: Create and CRUD: Update web service endpoints at the folder location specified by the fields_index_folder setting of the data.ini file."
+                          "description": "The file fieldsIndex.srz is unexisting. Make sure it can be created by the CRUD: Create and CRUD: Update web service endpoints at the folder location specified by the fields_index_folder setting of the osf.ini file."
                         },
                         "_313": {
                           "id": "WS-SEARCH-313",
@@ -527,7 +527,7 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
   {
     parent::__construct();
  
-    $this->version = "1.0";
+    $this->version = "3.0";
  
     $this->query = $query;
     

@@ -23,8 +23,38 @@
     {   
       parent::__construct($webservice);
       
-      $this->compatibleWith = "1.0";
+      $this->compatibleWith = "3.0";
     }
+    
+    private function invalidateOntologiesCache()
+    {
+      if($this->ws->memcached_enabled)
+      {
+        $this->ws->invalidateCache('crud-read');
+        $this->ws->invalidateCache('search');
+        $this->ws->invalidateCache('sparql');  
+        $this->ws->invalidateCache('ontology-read:getserialized');
+        $this->ws->invalidateCache('ontology-read:getclass');
+        $this->ws->invalidateCache('ontology-read:getclasses');
+        $this->ws->invalidateCache('ontology-read:getnamedindividual');
+        $this->ws->invalidateCache('ontology-read:getnamedindividuals');
+        $this->ws->invalidateCache('ontology-read:getsubclasses');
+        $this->ws->invalidateCache('ontology-read:getsuperclasses');
+        $this->ws->invalidateCache('ontology-read:getequivalentclasses');
+        $this->ws->invalidateCache('ontology-read:getdisjointclasses');
+        $this->ws->invalidateCache('ontology-read:getontologies');
+        $this->ws->invalidateCache('ontology-read:getloadedontologies');
+        $this->ws->invalidateCache('ontology-read:getserializedclasshierarchy');
+        $this->ws->invalidateCache('ontology-read:getserializedpropertyhierarchy');
+        $this->ws->invalidateCache('ontology-read:getironxmlschema');
+        $this->ws->invalidateCache('ontology-read:getironjsonschema');
+        $this->ws->invalidateCache('ontology-read:getproperty');
+        $this->ws->invalidateCache('ontology-read:getsubproperties');
+        $this->ws->invalidateCache('ontology-read:getsuperproperties');
+        $this->ws->invalidateCache('ontology-read:getequivalentproperties');
+        $this->ws->invalidateCache('ontology-read:getdisjointproperties');      
+      }
+    }    
     
     /**
     * 
@@ -107,6 +137,8 @@
       {
         // Remove the "ontologyModified" annotation property value
         $this->ws->ontology->removeOntologyAnnotation("http://purl.org/ontology/wsf#ontologyModified", "true");
+        
+        $this->invalidateOntologiesCache();
       }
     }
     
@@ -538,6 +570,8 @@
         
         // Update the name of the file of the ontology to mark it as "changed"
         $this->ws->ontology->addOntologyAnnotation("http://purl.org/ontology/wsf#ontologyModified", "true");    
+        
+        $this->invalidateOntologiesCache();
       }
     }    
     
@@ -692,6 +726,8 @@
             
         // Update the name of the file of the ontology to mark it as "changed"
         $this->ws->ontology->addOntologyAnnotation("http://purl.org/ontology/wsf#ontologyModified", "true");
+        
+        $this->invalidateOntologiesCache();
       }
     }
     

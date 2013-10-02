@@ -149,7 +149,7 @@ class RevisionDiff extends \StructuredDynamics\structwsf\ws\framework\WebService
   {
     parent::__construct();
 
-    $this->version = "1.0";
+    $this->version = "3.0";
 
     $this->db = new DBVirtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 

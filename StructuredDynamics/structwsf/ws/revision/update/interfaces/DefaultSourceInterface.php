@@ -15,7 +15,7 @@
     {   
       parent::__construct($webservice);
       
-      $this->compatibleWith = "1.0";
+      $this->compatibleWith = "3.0";
     }
     
     public function processInterface()
@@ -246,7 +246,17 @@
               return;
             }              
           }
-        }                    
+        }
+        
+        // Invalidate caches
+        if($this->ws->memcached_enabled)
+        {
+          $this->ws->invalidateCache('revision-read');
+          $this->ws->invalidateCache('revision-lister');
+          $this->ws->invalidateCache('search');
+          $this->ws->invalidateCache('sparql');        
+          $this->ws->invalidateCache('crud-read');         
+        }
       }      
     }
   }

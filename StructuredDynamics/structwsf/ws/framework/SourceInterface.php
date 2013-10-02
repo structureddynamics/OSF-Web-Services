@@ -75,7 +75,7 @@
     
     function __construct($webservice)
     {       
-      $this->version = "1.0";
+      $this->version = "3.0";
       
       $this->ws = $webservice;
     }

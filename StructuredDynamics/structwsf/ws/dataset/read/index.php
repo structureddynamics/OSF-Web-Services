@@ -47,14 +47,6 @@ if(isset($_GET['uri']))
   $uri = $_GET['uri'];
 }
 
-// Optional Meta information
-$meta = "false";
-
-if(isset($_GET['meta']))
-{
-  $meta = $_GET['meta'];
-}
-
 $parameters = "";
 
 if(isset($_SERVER['REQUEST_URI']))
@@ -73,7 +65,7 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_dr = new DatasetRead($uri, $meta, $interface, $version);
+$ws_dr = new DatasetRead($uri, $interface, $version);
 
 $ws_dr->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                   (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

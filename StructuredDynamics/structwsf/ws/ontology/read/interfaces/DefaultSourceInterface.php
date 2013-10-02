@@ -16,7 +16,7 @@
     {   
       parent::__construct($webservice);
       
-      $this->compatibleWith = "1.0";
+      $this->compatibleWith = "3.0";
     }
     
     private function generationSerializedClassHierarchy($OwlApiSession)
@@ -418,9 +418,32 @@
         switch(strtolower($this->ws->function))
         {
           case "getserialized":
+          
+            if($this->ws->memcached_enabled)
+            {
+              $key = $this->ws->generateCacheKey('ontology-read:getserialized', array(
+                $this->ws->ontologyUri,
+                $this->ws->parameters,
+                $this->ws->lang
+              ));
+              
+              if($return = $this->ws->memcached->get($key))
+              {
+                $this->ws->getSerialized = $return;
+                
+                return;
+              }
+            }            
+          
             $this->ws->conneg->setStatus(200);
             $this->ws->conneg->setStatusMsg("OK");        
             $this->ws->getSerialized = $ontology->getSerialization();        
+            
+            if($this->ws->memcached_enabled)
+            {
+              $this->ws->memcached->set($key, $this->ws->getSerialized, NULL, $this->ws->memcached_ontology_read_expire);
+            }     
+            
             return;
           break;
           
@@ -430,6 +453,22 @@
               $this->returnError(400, "Bad Request", "_202");
               return;              
             }
+            
+            if($this->ws->memcached_enabled)
+            {
+              $key = $this->ws->generateCacheKey('ontology-read:getclass', array(
+                $this->ws->ontologyUri,
+                $this->ws->parameters,
+                $this->ws->lang
+              ));
+              
+              if($return = $this->ws->memcached->get($key))
+              {
+                $this->ws->setResultset($return);
+                
+                return;
+              }
+            } 
 
             $class = $ontology->_getClass($this->ws->parameters["uri"]);
             
@@ -452,11 +491,32 @@
                 $subject->setSubject($restriction);
                 $this->ws->rset->addSubject($subject);
               } 
-            }          
+              
+              if($this->ws->memcached_enabled)
+              {
+                $this->ws->memcached->set($key, $this->ws->rset, NULL, $this->ws->memcached_ontology_read_expire);
+              }  
+            }   
           break;
           
           case "getclasses":
 
+            if($this->ws->memcached_enabled)
+            {
+              $key = $this->ws->generateCacheKey('ontology-read:getclasses', array(
+                $this->ws->ontologyUri,
+                $this->ws->parameters,
+                $this->ws->lang
+              ));
+              
+              if($return = $this->ws->memcached->get($key))
+              {
+                $this->ws->setResultset($return);
+                
+                return;
+              }
+            }           
+          
             $limit = -1;
             $offset = 0;
             
@@ -494,9 +554,30 @@
               break;            
             }
             
+            if($this->ws->memcached_enabled)
+            {
+              $this->ws->memcached->set($key, $this->ws->rset, NULL, $this->ws->memcached_ontology_read_expire);
+            }              
           break;
           
           case "getnamedindividual":
+          
+            if($this->ws->memcached_enabled)
+            {
+              $key = $this->ws->generateCacheKey('ontology-read:getnamedindividual', array(
+                $this->ws->ontologyUri,
+                $this->ws->parameters,
+                $this->ws->lang
+              ));
+              
+              if($return = $this->ws->memcached->get($key))
+              {
+                $this->ws->setResultset($return);
+                
+                return;
+              }
+            }           
+          
             if(!isset($this->ws->parameters["uri"]) || $this->ws->parameters["uri"] == "")
             {
               $this->returnError(400, "Bad Request", "_202");
@@ -515,10 +596,31 @@
               $subject->setSubject($ontology->_getNamedIndividualDescription($namedIndividual));
               $this->ws->rset->addSubject($subject);
             }
+            
+            if($this->ws->memcached_enabled)
+            {
+              $this->ws->memcached->set($key, $this->ws->rset, NULL, $this->ws->memcached_ontology_read_expire);
+            }                          
           break;        
           
           case "getnamedindividuals":
 
+            if($this->ws->memcached_enabled)
+            {
+              $key = $this->ws->generateCacheKey('ontology-read:getnamedindividuals', array(
+                $this->ws->ontologyUri,
+                $this->ws->parameters,
+                $this->ws->lang
+              ));
+              
+              if($return = $this->ws->memcached->get($key))
+              {
+                $this->ws->setResultset($return);
+                
+                return;
+              }
+            }                     
+          
             $limit = -1;
             $offset = 0;
             
@@ -581,9 +683,30 @@
               break;            
             }
             
+            if($this->ws->memcached_enabled)
+            {
+              $this->ws->memcached->set($key, $this->ws->rset, NULL, $this->ws->memcached_ontology_read_expire);
+            }              
+            
           break;
           
           case "getsubclasses":
+          
+            if($this->ws->memcached_enabled)
+            {
+              $key = $this->ws->generateCacheKey('ontology-read:getsubclasses', array(
+                $this->ws->ontologyUri,
+                $this->ws->parameters,
+                $this->ws->lang
+              ));
+              
+              if($return = $this->ws->memcached->get($key))
+              {
+                $this->ws->setResultset($return);
+                
+                return;
+              }
+            }           
 
             if(!isset($this->ws->parameters["uri"]) || $this->ws->parameters["uri"] == "")
             {
@@ -618,9 +741,29 @@
               break;
             }
             
+            if($this->ws->memcached_enabled)
+            {
+              $this->ws->memcached->set($key, $this->ws->rset, NULL, $this->ws->memcached_ontology_read_expire);
+            }              
           break;
           
           case "getsuperclasses":
+          
+            if($this->ws->memcached_enabled)
+            {
+              $key = $this->ws->generateCacheKey('ontology-read:getsuperclasses', array(
+                $this->ws->ontologyUri,
+                $this->ws->parameters,
+                $this->ws->lang
+              ));
+              
+              if($return = $this->ws->memcached->get($key))
+              {
+                $this->ws->setResultset($return);
+                
+                return;
+              }
+            }           
 
             if(!isset($this->ws->parameters["uri"]) || $this->ws->parameters["uri"] == "")
             {
@@ -651,9 +794,30 @@
               break;
             }
             
+            if($this->ws->memcached_enabled)
+            {
+              $this->ws->memcached->set($key, $this->ws->rset, NULL, $this->ws->memcached_ontology_read_expire);
+            }              
+            
           break;        
           
           case "getequivalentclasses":
+
+            if($this->ws->memcached_enabled)
+            {
+              $key = $this->ws->generateCacheKey('ontology-read:getequivalentclasses', array(
+                $this->ws->ontologyUri,
+                $this->ws->parameters,
+                $this->ws->lang
+              ));
+              
+              if($return = $this->ws->memcached->get($key))
+              {
+                $this->ws->setResultset($return);
+                
+                return;
+              }
+            }           
 
             if(!isset($this->ws->parameters["uri"]) || $this->ws->parameters["uri"] == "")
             {
@@ -684,10 +848,31 @@
               break;
             }
             
+            if($this->ws->memcached_enabled)
+            {
+              $this->ws->memcached->set($key, $this->ws->rset, NULL, $this->ws->memcached_ontology_read_expire);
+            }              
+            
           break;                
                   
           case "getdisjointclasses":
 
+            if($this->ws->memcached_enabled)
+            {
+              $key = $this->ws->generateCacheKey('ontology-read:getdisjointclasses', array(
+                $this->ws->ontologyUri,
+                $this->ws->parameters,
+                $this->ws->lang
+              ));
+              
+              if($return = $this->ws->memcached->get($key))
+              {
+                $this->ws->setResultset($return);
+                
+                return;
+              }
+            }           
+          
             if(!isset($this->ws->parameters["uri"]) || $this->ws->parameters["uri"] == "")
             {
               $this->returnError(400, "Bad Request", "_202");
@@ -717,9 +902,30 @@
               break;
             }
             
+            if($this->ws->memcached_enabled)
+            {
+              $this->ws->memcached->set($key, $this->ws->rset, NULL, $this->ws->memcached_ontology_read_expire);
+            }              
+            
           break;  
           
           case "getontologies":
+          
+            if($this->ws->memcached_enabled)
+            {
+              $key = $this->ws->generateCacheKey('ontology-read:getontologies', array(
+                $this->ws->ontologyUri,
+                $this->ws->parameters,
+                $this->ws->lang
+              ));
+              
+              if($return = $this->ws->memcached->get($key))
+              {
+                $this->ws->setResultset($return);
+                
+                return;
+              }
+            }           
          
             switch(strtolower($this->ws->parameters["mode"]))
             {
@@ -740,9 +946,30 @@
               break;
             }
             
+            if($this->ws->memcached_enabled)
+            {
+              $this->ws->memcached->set($key, $this->ws->rset, NULL, $this->ws->memcached_ontology_read_expire);
+            }              
+            
           break;        
           
           case "getloadedontologies":
+          
+            if($this->ws->memcached_enabled)
+            {
+              $key = $this->ws->generateCacheKey('ontology-read:getloadedontologies', array(
+                $this->ws->ontologyUri,
+                $this->ws->parameters,
+                $this->ws->lang
+              ));
+              
+              if($return = $this->ws->memcached->get($key))
+              {
+                $this->ws->setResultset($return);
+                
+                return;
+              }
+            }           
           
             switch(strtolower($this->ws->parameters["mode"]))
             {
@@ -772,9 +999,31 @@
               break;
             }
             
+            if($this->ws->memcached_enabled)
+            {
+              $this->ws->memcached->set($key, $this->ws->rset, NULL, $this->ws->memcached_ontology_read_expire);
+            }              
+            
           break;
           
           case "getserializedclasshierarchy":
+          
+            if($this->ws->memcached_enabled)
+            {
+              $key = $this->ws->generateCacheKey('ontology-read:getserializedclasshierarchy', array(
+                $this->ws->ontologyUri,
+                $this->ws->parameters,
+                $this->ws->lang
+              ));
+              
+              if($return = $this->ws->memcached->get($key))
+              {
+                $this->ws->setResultset($return);
+                
+                return;
+              }
+            }           
+          
             $sch = $this->generationSerializedClassHierarchy($this->ws->OwlApiSession);
 
             $subject = new Subject($this->ws->ontologyUri);
@@ -782,19 +1031,63 @@
             $subject->setDataAttribute(Namespaces::$wsf."serializedClassHierarchy", $sch);
             $this->ws->rset->addSubject($subject);
             
+            if($this->ws->memcached_enabled)
+            {
+              $this->ws->memcached->set($key, $this->ws->rset, NULL, $this->ws->memcached_ontology_read_expire);
+            }              
+            
           break;
           
           case "getserializedpropertyhierarchy":
+
+            if($this->ws->memcached_enabled)
+            {
+              $key = $this->ws->generateCacheKey('ontology-read:getserializedpropertyhierarchy', array(
+                $this->ws->ontologyUri,
+                $this->ws->parameters,
+                $this->ws->lang
+              ));
+              
+              if($return = $this->ws->memcached->get($key))
+              {
+                $this->ws->setResultset($return);
+                
+                return;
+              }
+            }                     
+          
             $sch = $this->generationSerializedPropertyHierarchy($this->ws->OwlApiSession);
 
             $subject = new Subject($this->ws->ontologyUri);
             $subject->setType("owl:Ontology");
             $subject->setDataAttribute(Namespaces::$wsf."serializedPropertyHierarchy", $sch);
             $this->ws->rset->addSubject($subject);          
+            
+            if($this->ws->memcached_enabled)
+            {
+              $this->ws->memcached->set($key, $this->ws->rset, NULL, $this->ws->memcached_ontology_read_expire);
+            }              
                         
           break;
           
           case "getironxmlschema":
+          
+            if($this->ws->memcached_enabled)
+            {
+              $key = $this->ws->generateCacheKey('ontology-read:getironxmlschema', array(
+                $this->ws->ontologyUri,
+                $this->ws->parameters,
+                $this->ws->lang
+              ));
+              
+              if($return = $this->ws->memcached->get($key))
+              {
+                $this->ws->setResultset($return);
+                
+                return;
+              }
+            }           
+          
             $subjectTriples = $ontology->getClassesDescription($limit, $offset);
             
             $schema = '<schema><version>0.1</version><typeList>';
@@ -1203,7 +1496,13 @@
             $subject->setType("owl:Ontology");
             $subject->setDataAttribute(Namespaces::$wsf."serializedIronXMLSchema", str_replace('&amp;', '&amp;amp;', str_replace(array ("\\", "&", "<", ">"), array ("%5C", "&amp;", "&lt;", "&gt;"), $schema)));
             
-            $this->ws->rset->addSubject($subject);          
+            $this->ws->rset->addSubject($subject);       
+            
+            if($this->ws->memcached_enabled)
+            {
+              $this->ws->memcached->set($key, $this->ws->rset, NULL, $this->ws->memcached_ontology_read_expire);
+            }              
+               
             
   /*
             <schema>
@@ -1241,6 +1540,23 @@
           
           
           case "getironjsonschema":
+          
+            if($this->ws->memcached_enabled)
+            {
+              $key = $this->ws->generateCacheKey('ontology-read:getironjsonschema', array(
+                $this->ws->ontologyUri,
+                $this->ws->parameters,
+                $this->ws->lang
+              ));
+              
+              if($return = $this->ws->memcached->get($key))
+              {
+                $this->ws->setResultset($return);
+                
+                return;
+              }
+            }           
+          
             $subjectTriples = $ontology->getClassesDescription($limit, $offset);
             
             $schema = '{ "schema": { "version": "0.1", "typeList": {';
@@ -1875,7 +2191,12 @@
             $subject->setDataAttribute(Namespaces::$wsf."serializedIronJSONSchema", $schema);
             $this->ws->rset->addSubject($subject);                     
             
-  /*
+            if($this->ws->memcached_enabled)
+            {
+              $this->ws->memcached->set($key, $this->ws->rset, NULL, $this->ws->memcached_ontology_read_expire);
+            }              
+            
+  /*                                                          
       
   {
       "schema": {
@@ -1950,6 +2271,23 @@
           break;        
           
           case "getproperty":
+          
+            if($this->ws->memcached_enabled)
+            {
+              $key = $this->ws->generateCacheKey('ontology-read:getproperty', array(
+                $this->ws->ontologyUri,
+                $this->ws->parameters,
+                $this->ws->lang
+              ));
+              
+              if($return = $this->ws->memcached->get($key))
+              {
+                $this->ws->setResultset($return);
+                
+                return;
+              }
+            }           
+          
             if(!isset($this->ws->parameters["uri"]) || $this->ws->parameters["uri"] == "")
             {
               $this->returnError(400, "Bad Request", "_202");
@@ -1968,9 +2306,31 @@
               $subject->setSubject($ontology->_getPropertyDescription($property));
               $this->ws->rset->addSubject($subject);
             }
+            
+            if($this->ws->memcached_enabled)
+            {
+              $this->ws->memcached->set($key, $this->ws->rset, NULL, $this->ws->memcached_ontology_read_expire);
+            }              
+            
           break;
           
           case "getproperties":
+          
+            if($this->ws->memcached_enabled)
+            {
+              $key = $this->ws->generateCacheKey('ontology-read:getproperties', array(
+                $this->ws->ontologyUri,
+                $this->ws->parameters,
+                $this->ws->lang
+              ));
+              
+              if($return = $this->ws->memcached->get($key))
+              {
+                $this->ws->setResultset($return);
+                
+                return;
+              }
+            }           
           
             $limit = -1;
             $offset = 0;
@@ -2076,9 +2436,31 @@
                 return;
               break;         
             }
+            
+            if($this->ws->memcached_enabled)
+            {
+              $this->ws->memcached->set($key, $this->ws->rset, NULL, $this->ws->memcached_ontology_read_expire);
+            }              
+            
           break;
           
           case "getsubproperties":
+          
+            if($this->ws->memcached_enabled)
+            {
+              $key = $this->ws->generateCacheKey('ontology-read:getsubproperties', array(
+                $this->ws->ontologyUri,
+                $this->ws->parameters,
+                $this->ws->lang
+              ));
+              
+              if($return = $this->ws->memcached->get($key))
+              {
+                $this->ws->setResultset($return);
+                
+                return;
+              }
+            }                     
           
             if(!isset($this->ws->parameters["uri"]) || $this->ws->parameters["uri"] == "")
             {
@@ -2143,9 +2525,31 @@
                 return;
               break;         
             }
+            
+            if($this->ws->memcached_enabled)
+            {
+              $this->ws->memcached->set($key, $this->ws->rset, NULL, $this->ws->memcached_ontology_read_expire);
+            }              
+            
           break;        
           
           case "getsuperproperties":
+          
+            if($this->ws->memcached_enabled)
+            {
+              $key = $this->ws->generateCacheKey('ontology-read:getsuperproperties', array(
+                $this->ws->ontologyUri,
+                $this->ws->parameters,
+                $this->ws->lang
+              ));
+              
+              if($return = $this->ws->memcached->get($key))
+              {
+                $this->ws->setResultset($return);
+                
+                return;
+              }
+            }           
           
             if(!isset($this->ws->parameters["uri"]) || $this->ws->parameters["uri"] == "")
             {
@@ -2211,9 +2615,31 @@
                 return;
               break;         
             }
+            
+            if($this->ws->memcached_enabled)
+            {
+              $this->ws->memcached->set($key, $this->ws->rset, NULL, $this->ws->memcached_ontology_read_expire);
+            }              
+            
           break;   
           
           case "getequivalentproperties":
+          
+            if($this->ws->memcached_enabled)
+            {
+              $key = $this->ws->generateCacheKey('ontology-read:getequivalentproperties', array(
+                $this->ws->ontologyUri,
+                $this->ws->parameters,
+                $this->ws->lang
+              ));
+              
+              if($return = $this->ws->memcached->get($key))
+              {
+                $this->ws->setResultset($return);
+                
+                return;
+              }
+            }           
           
             if(!isset($this->ws->parameters["uri"]) || $this->ws->parameters["uri"] == "")
             {
@@ -2278,9 +2704,31 @@
                 return;
               break;         
             }
+            
+            if($this->ws->memcached_enabled)
+            {
+              $this->ws->memcached->set($key, $this->ws->rset, NULL, $this->ws->memcached_ontology_read_expire);
+            }              
+            
           break;
           
           case "getdisjointproperties":
+          
+            if($this->ws->memcached_enabled)
+            {
+              $key = $this->ws->generateCacheKey('ontology-read:getdisjointproperties', array(
+                $this->ws->ontologyUri,
+                $this->ws->parameters,
+                $this->ws->lang
+              ));
+              
+              if($return = $this->ws->memcached->get($key))
+              {
+                $this->ws->setResultset($return);
+                
+                return;
+              }
+            }           
           
             if(!isset($this->ws->parameters["uri"]) || $this->ws->parameters["uri"] == "")
             {
@@ -2345,6 +2793,12 @@
                 return;
               break;         
             }
+            
+            if($this->ws->memcached_enabled)
+            {
+              $this->ws->memcached->set($key, $this->ws->rset, NULL, $this->ws->memcached_ontology_read_expire);
+            }              
+            
           break;        
           
           default:

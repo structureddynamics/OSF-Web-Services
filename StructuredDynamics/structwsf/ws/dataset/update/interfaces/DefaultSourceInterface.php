@@ -11,7 +11,7 @@
     {   
       parent::__construct($webservice);
       
-      $this->compatibleWith = "1.0";
+      $this->compatibleWith = "3.0";
     }
     
     public function processInterface()
@@ -225,6 +225,12 @@
             $this->ws->errorMessenger->_303->level);
 
           return;
+        }
+        
+        // Invalidate caches
+        if($this->ws->memcached_enabled)
+        {
+          $this->ws->invalidateCache('dataset-read');
         }
       }      
     }

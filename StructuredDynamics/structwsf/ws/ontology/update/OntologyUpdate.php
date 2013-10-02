@@ -145,7 +145,7 @@ class OntologyUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServi
   {
     parent::__construct();
     
-    $this->version = "1.0";
+    $this->version = "3.0";
 
     $this->ontologyUri = $ontologyUri;
     

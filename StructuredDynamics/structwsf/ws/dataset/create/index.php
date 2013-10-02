@@ -70,14 +70,6 @@ if(isset($_POST['creator']))
   $creator = $_POST['creator'];
 }
 
-// Permissions to set for the "public user" to access this new ontology dataset.
-$globalPermissions = "False;False;False;False";
-
-if(isset($_POST['globalPermissions']))
-{
-  $globalPermissions = $_POST['globalPermissions'];
-}
-
 // Web services that can be used to access and manage that dataset. It is list of ";" separated Web services URI
 $webservices = "all";
 
@@ -104,7 +96,7 @@ elseif(isset($_SERVER['PHP_SELF']))
   $parameters = $_SERVER['PHP_SELF'];
 }
 
-$ws_dc = new DatasetCreate($uri, $title, $description, $creator, $webservices, $globalPermissions, $interface, $version);
+$ws_dc = new DatasetCreate($uri, $title, $description, $creator, $webservices, $interface, $version);
 
 $ws_dc->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                   (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

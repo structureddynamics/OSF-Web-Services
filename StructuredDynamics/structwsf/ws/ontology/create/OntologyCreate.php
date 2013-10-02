@@ -38,18 +38,6 @@ class OntologyCreate extends \StructuredDynamics\structwsf\ws\framework\WebServi
   /** URI of the inference rules set to use to create the ontological structure. */
   private $rulesSetURI = "";
 
-  /** Create permissions for the global user */
-  private $globalPermissionCreate = FALSE;
-
-  /** Read permissions for the global user */
-  private $globalPermissionRead = FALSE;
-
-  /** Update permissions for the global user */
-  private $globalPermissionUpdate = FALSE;
-
-  /** Delete permissions for the global user */
-  private $globalPermissionDelete = FALSE;
-
   /** If this parameter is set, the Ontology Create web service endpoint will index
              the ontology in the normal structWSF data stores. That way, the ontology
              will also become queryable via the standard services such as Search and Browse.
@@ -432,58 +420,6 @@ class OntologyCreate extends \StructuredDynamics\structwsf\ws\framework\WebServi
   {
     $this->reasoner = FALSE;
   }
-  
-  /**
-  * @brief Set the global Create permission to the ontology being created. The global permission is what is
-  *        defined for *all* users. This should be set before running process().
-  * 
-  * @param mixed $create Create permission: TRUE or FALSE.
-  * 
-  * @author Frederick Giasson, Structured Dynamics LLC.
-  */
-  public function setGlobalPermissionCreate($create)
-  {
-    $this->globalPermissionCreate = $create;
-  }
-  
-  /**
-  * @brief Set the global Read permission to the ontology being created. The global permission is what is
-  *        defined for *all* users. This should be set before running process().
-  * 
-  * @param mixed $read Create permission: TRUE or FALSE.
-  * 
-  * @author Frederick Giasson, Structured Dynamics LLC.
-  */
-  public function setGlobalPermissionRead($read)
-  {
-    $this->globalPermissionRead = $read;
-  }
-  
-  /**
-  * @brief Set the global Update permission to the ontology being created. The global permission is what is
-  *        defined for *all* users. This should be set before running process().
-  * 
-  * @param mixed $update Create permission: TRUE or FALSE.
-  * 
-  * @author Frederick Giasson, Structured Dynamics LLC.
-  */
-  public function setGlobalPermissionUpdate($update)
-  {
-    $this->globalPermissionUpdate = $update;
-  }
-  
-  /**
-  * @brief Set the global Delete permission to the ontology being created. The global permission is what is
-  *        defined for *all* users. This should be set before running process().
-  * 
-  * @param mixed $delete Create permission: TRUE or FALSE.
-  * 
-  * @author Frederick Giasson, Structured Dynamics LLC.
-  */
-  public function setGlobalPermissionDelete($delete)
-  {
-    $this->globalPermissionDelete = $delete;
-  } 
 }
 
 //@}

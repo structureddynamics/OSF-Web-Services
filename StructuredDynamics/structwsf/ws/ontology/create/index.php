@@ -46,14 +46,6 @@ if(isset($_POST['uri']))
   $ontologyUri = $_POST['uri'];
 }
 
-// Permissions to set for the "public user" to access this new ontology dataset.
-$globalPermissions = "False;True;False;False";
-
-if(isset($_POST['globalPermissions']))
-{
-  $globalPermissions = $_POST['globalPermissions'];
-}
-
 // If this parameter is set, the Ontology Create web service endpoint will index
 // the ontology in the normal structWSF data stores. That way, the ontology
 // will also become queryable via the standard services such as Search and Browse.
@@ -112,45 +104,6 @@ $ws_ontologycreate->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_A
 
 // Set the advanced indexation
 $ws_ontologycreate->setAdvancedIndexation($advancedIndexation);
-  
-// Set global permissions
-$permissions = explode(";", $globalPermissions);
-
-if(strtolower($permissions[0]) == "false")
-{
-  $ws_ontologycreate->setGlobalPermissionCreate(FALSE);
-}  
-else
-{
-  $ws_ontologycreate->setGlobalPermissionCreate(TRUE);
-}
-
-if(strtolower($permissions[1]) == "false")
-{
-  $ws_ontologycreate->setGlobalPermissionRead(FALSE);
-}  
-else
-{
-  $ws_ontologycreate->setGlobalPermissionRead(TRUE);
-}
-
-if(strtolower($permissions[2]) == "false")
-{
-  $ws_ontologycreate->setGlobalPermissionUpdate(FALSE);
-}  
-else
-{
-  $ws_ontologycreate->setGlobalPermissionUpdate(TRUE);
-}
-
-if(strtolower($permissions[3]) == "false")
-{
-  $ws_ontologycreate->setGlobalPermissionDelete(FALSE);
-}  
-else
-{
-  $ws_ontologycreate->setGlobalPermissionDelete(TRUE);
-}
 
 // set reasoner
 if($reasoner)

@@ -277,47 +277,8 @@
 
         unset($xml);
         unset($authLister);
-
-        // Create a new dataset for this ontology
-        $globalPermissions = "";
         
-        if($this->ws->globalPermissionCreate === FALSE)
-        {
-          $globalPermissions .= "False;";
-        }
-        else
-        {
-          $globalPermissions .= "True;";
-        }
-        
-        if($this->ws->globalPermissionRead === FALSE)
-        {
-          $globalPermissions .= "False;";
-        }
-        else
-        {
-          $globalPermissions .= "True;";
-        }
-        
-        if($this->ws->globalPermissionUpdate === FALSE)
-        {
-          $globalPermissions .= "False;";
-        }
-        else
-        {
-          $globalPermissions .= "True;";
-        }
-        
-        if($this->ws->globalPermissionDelete === FALSE)
-        {
-          $globalPermissions .= "False";
-        }
-        else
-        {
-          $globalPermissions .= "True";
-        }
-        
-        $datasetCreate = new DatasetCreate($this->ws->ontologyUri, $ontologyName, $ontologyDescription, "", $webservices, $globalPermissions);
+        $datasetCreate = new DatasetCreate($this->ws->ontologyUri, $ontologyName, $ontologyDescription, "", $webservices);
 
         $datasetCreate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'],
           $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);

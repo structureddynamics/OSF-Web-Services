@@ -45,54 +45,6 @@
 
           return;
         }
-
-        /* 
-          If the dataset has been created, the next step is to create the permissions for this user (full crud)
-          and for the public one (no crud).
-        */
-
-        /* Get the list of web services registered to this structWSF instance. */
-        if(strtolower($this->ws->webservices) == "all")
-        {      
-          $ws_al = new AuthLister("ws", $this->ws->datasetUri);
-
-          $ws_al->pipeline_conneg($this->ws->conneg->getAccept(), $this->ws->conneg->getAcceptCharset(),
-            $this->ws->conneg->getAcceptEncoding(), $this->ws->conneg->getAcceptLanguage());
-
-          $ws_al->process();
-
-          if($ws_al->pipeline_getResponseHeaderStatus() != 200)
-          {
-            $this->ws->conneg->setStatus($ws_al->pipeline_getResponseHeaderStatus());
-            $this->ws->conneg->setStatusMsg($ws_al->pipeline_getResponseHeaderStatusMsg());
-            $this->ws->conneg->setStatusMsgExt($ws_al->pipeline_getResponseHeaderStatusMsgExt());
-            $this->ws->conneg->setError($ws_al->pipeline_getError()->id, $ws_al->pipeline_getError()->webservice,
-              $ws_al->pipeline_getError()->name, $ws_al->pipeline_getError()->description,
-              $ws_al->pipeline_getError()->debugInfo, $ws_al->pipeline_getError()->level);
-
-            return;
-          }
-
-          /* Get all web services */
-
-          $webservices = "";
-
-          $xml = new ProcessorXML();
-          $xml->loadXML($ws_al->pipeline_getResultset());
-
-          $webServiceElements = $xml->getXPath('//predicate/object[attribute::type="wsf:WebService"]');
-
-          foreach($webServiceElements as $element)
-          {
-            $webservices .= $xml->getURI($element) . ";";
-          }
-
-          $webservices = substr($webservices, 0, strlen($webservices) - 1);
-          unset($xml);
-          unset($ws_al);         
-          
-          $this->ws->webservices = $webservices;
-        }
       }
     }
   }

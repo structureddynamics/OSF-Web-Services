@@ -53,7 +53,6 @@ class QuerierExtension {
    * @param $curl_handle cURL handle that will be executed
    */
   function alterQuery(WebServiceQuerier $wsq, $curl_handle) {
-    curl_setopt($curl_handle, CURLOPT_SSL_VERIFYPEER, FALSE);
   }
 
   /**

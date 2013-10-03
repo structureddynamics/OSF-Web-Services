@@ -6,7 +6,6 @@
   use \StructuredDynamics\osf\ws\framework\SourceInterface;
   use \StructuredDynamics\osf\ws\framework\Solr;
   use \StructuredDynamics\osf\ws\crud\read\CrudRead;  
-  use \StructuredDynamics\osf\framework\WebServiceQuerier;  
   use \StructuredDynamics\osf\ws\revision\lister\RevisionLister;
   use \StructuredDynamics\osf\ws\revision\delete\RevisionDelete;
   use \StructuredDynamics\osf\framework\Resultset;

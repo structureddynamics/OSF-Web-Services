@@ -8,7 +8,6 @@
   use \StructuredDynamics\osf\ws\auth\lister\AuthLister;
   use \StructuredDynamics\osf\ws\framework\ProcessorXML;
   use \StructuredDynamics\osf\ws\dataset\create\DatasetCreate;
-  use \StructuredDynamics\osf\framework\WebServiceQuerier;
   use \StructuredDynamics\osf\ws\ontology\delete\OntologyDelete;
   use \StructuredDynamics\osf\ws\ontology\read\OntologyRead;
   use \StructuredDynamics\osf\ws\crud\create\CrudCreate;
@@ -453,20 +452,23 @@
               
               unset($resultset);  
 
-             
-              $wsq = new WebServiceQuerier(rtrim($this->ws->wsf_base_url, "/") . "/ws/crud/create/", "post",
-                "application/rdf+xml", 
-                "document=" . urlencode($subjectDescription) .
-                "&dataset=" . urlencode($this->ws->ontologyUri) .
-                "&mime=" . urlencode("application/rdf+n3") .
-                "&mode=full");
+              $crudCreate = new CrudCreate($subjectDescription, "application/rdf+n3", "full", $this->ws->ontologyUri);
 
-              if($wsq->getStatus() != 200)
+              $crudCreate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'],
+                $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+
+              $crudCreate->process();
+
+              if($crudCreate->pipeline_getResponseHeaderStatus() != 200)
               {
-                $this->ws->conneg->setStatus($wsq->getStatus());
-                $this->ws->conneg->setStatusMsg($wsq->getStatusMessage());
-                $this->ws->conneg->setStatusMsgExt($wsq->getStatusMessageDescription());
-                
+                $this->ws->conneg->setStatus($crudCreate->pipeline_getResponseHeaderStatus());
+                $this->ws->conneg->setStatusMsg($crudCreate->pipeline_getResponseHeaderStatusMsg());
+                $this->ws->conneg->setStatusMsgExt($crudCreate->pipeline_getResponseHeaderStatusMsgExt());
+                $this->ws->conneg->setError($crudCreate->pipeline_getError()->id,
+                  $crudCreate->pipeline_getError()->webservice, $crudCreate->pipeline_getError()->name,
+                  $crudCreate->pipeline_getError()->description, $crudCreate->pipeline_getError()->debugInfo,
+                  $crudCreate->pipeline_getError()->level);
+                                  
                 // In case of error, we delete the dataset we previously created.
                 $ontologyDelete = new OntologyDelete($this->ws->ontologyUri);
 

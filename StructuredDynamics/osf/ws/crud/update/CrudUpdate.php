@@ -14,7 +14,6 @@ use \StructuredDynamics\osf\ws\framework\CrudUsage;
 use \StructuredDynamics\osf\ws\framework\Conneg;
 use \StructuredDynamics\osf\ws\dataset\read\DatasetRead;
 use \StructuredDynamics\osf\ws\crud\read\CrudRead;
-use \StructuredDynamics\osf\framework\WebServiceQuerier;
 use \StructuredDynamics\osf\framework\Namespaces;
 
 /** CRUD Update web service. It updates instance records descriptions from dataset indexes on different systems (Virtuoso, Solr, etc).

@@ -14,7 +14,6 @@ use \StructuredDynamics\osf\ws\framework\CrudUsage;
 use \StructuredDynamics\osf\ws\framework\Conneg;
 use \StructuredDynamics\osf\ws\dataset\read\DatasetRead;
 use \StructuredDynamics\osf\ws\crud\read\CrudRead;
-use \StructuredDynamics\osf\framework\WebServiceQuerier;
 
 /** CRUD Delete web service. It removes record instances within dataset indexes on different systems (Virtuoso, Solr, etc).
 

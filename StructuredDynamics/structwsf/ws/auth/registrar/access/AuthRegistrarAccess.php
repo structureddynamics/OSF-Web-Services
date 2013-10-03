@@ -3,26 +3,26 @@
 /*! @ingroup WsAuth Authentication / Registration Web Service */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\auth\registrar\access\AuthRegistrarAccess.php
+/*! @file \StructuredDynamics\osf\ws\auth\registrar\access\AuthRegistrarAccess.php
     @brief Define the Authentication / Registration web service
  */
 
-namespace StructuredDynamics\structwsf\ws\auth\registrar\access;  
+namespace StructuredDynamics\osf\ws\auth\registrar\access;  
 
-use \StructuredDynamics\structwsf\ws\framework\DBVirtuoso; 
-use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
-use \StructuredDynamics\structwsf\ws\framework\Conneg;
-use \StructuredDynamics\structwsf\ws\auth\lister\AuthLister;
-use \StructuredDynamics\structwsf\ws\dataset\read\DatasetRead;
+use \StructuredDynamics\osf\ws\framework\DBVirtuoso; 
+use \StructuredDynamics\osf\ws\framework\CrudUsage;
+use \StructuredDynamics\osf\ws\framework\Conneg;
+use \StructuredDynamics\osf\ws\auth\lister\AuthLister;
+use \StructuredDynamics\osf\ws\dataset\read\DatasetRead;
 
-/** AuthRegister Access Web Service. It registers an Access on the structWSF instance. Register 
+/** AuthRegister Access Web Service. It registers an Access on the OSF instance. Register 
     an Access (user access to a dataset, for a given set of web services, with some CRUD permissions) 
-    on the structWSF instance
+    on the OSF instance
     
     @author Frederick Giasson, Structured Dynamics LLC.
 */
 
-class AuthRegistrarAccess extends \StructuredDynamics\structwsf\ws\framework\WebService
+class AuthRegistrarAccess extends \StructuredDynamics\osf\ws\framework\WebService
 {
   /** Database connection */
   private $db;
@@ -97,13 +97,13 @@ class AuthRegistrarAccess extends \StructuredDynamics\structwsf\ws\framework\Web
                           "id": "WS-AUTH-REGISTRAR-ACCESS-206",
                           "level": "Warning",
                           "name": "Unexisting dataset",
-                          "description": "The dataset URI you provided is not existing in this structWSF network instance"
+                          "description": "The dataset URI you provided is not existing in this OSF network instance"
                         },
                         "_207": {
                           "id": "WS-AUTH-REGISTRAR-ACCESS-207",
                           "level": "Warning",
                           "name": "Unexisting group",
-                          "description": "The group URI you provided is not existing in this structWSF network instance"
+                          "description": "The group URI you provided is not existing in this OSF network instance"
                         },
                         "_300": {
                           "id": "WS-AUTH-REGISTRAR-ACCESS-300",
@@ -514,7 +514,7 @@ class AuthRegistrarAccess extends \StructuredDynamics\structwsf\ws\framework\Web
     
     if($class != "")
     {    
-      $class = 'StructuredDynamics\structwsf\ws\auth\registrar\access\interfaces\\'.$class;
+      $class = 'StructuredDynamics\osf\ws\auth\registrar\access\interfaces\\'.$class;
       
       $interface = new $class($this);
       

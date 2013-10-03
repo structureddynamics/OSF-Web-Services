@@ -3,13 +3,13 @@
 /** @defgroup WsFramework Framework for the Web Services */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\framework\DBVirtuoso.php
+/*! @file \StructuredDynamics\osf\ws\framework\DBVirtuoso.php
     @brief Database connectivity layer
 */
 
-namespace StructuredDynamics\structwsf\ws\framework; 
+namespace StructuredDynamics\osf\ws\framework; 
 
-use \StructuredDynamics\structwsf\ws\framework\WebService;
+use \StructuredDynamics\osf\ws\framework\WebService;
 
 /** Database connector to the Virtuoso datastore
             
@@ -39,7 +39,7 @@ class DBVirtuoso
   /** Query process time in milliseconds; This is used for benchmarking purposes */
   private $queryProcessTime = 0; // In milliseconds
   
-  /** Main version of the Virtuoso server used by this structWSF instance (4, 5 or 6) */
+  /** Main version of the Virtuoso server used by this OSF instance (4, 5 or 6) */
   private $virtuoso_main_version = "6";
   
   /** Enable the Long Read Len feature of Virtuoso. */

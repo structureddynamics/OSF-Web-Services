@@ -1,14 +1,14 @@
 <?php
   
-  namespace StructuredDynamics\structwsf\ws\search\interfaces; 
+  namespace StructuredDynamics\osf\ws\search\interfaces; 
   
-  use \StructuredDynamics\structwsf\framework\Namespaces;  
-  use \StructuredDynamics\structwsf\ws\framework\SourceInterface;
-  use \StructuredDynamics\structwsf\ws\framework\ProcessorXML;
-  use \StructuredDynamics\structwsf\ws\framework\Solr;
-  use \StructuredDynamics\structwsf\framework\Subject;
-  use \StructuredDynamics\structwsf\ws\auth\lister\AuthLister;
-  use \StructuredDynamics\structwsf\framework\Datatypes;
+  use \StructuredDynamics\osf\framework\Namespaces;  
+  use \StructuredDynamics\osf\ws\framework\SourceInterface;
+  use \StructuredDynamics\osf\ws\framework\ProcessorXML;
+  use \StructuredDynamics\osf\ws\framework\Solr;
+  use \StructuredDynamics\osf\framework\Subject;
+  use \StructuredDynamics\osf\ws\auth\lister\AuthLister;
+  use \StructuredDynamics\osf\framework\Datatypes;
   use \DOMDocument;
   use \DOMXPath;  
   

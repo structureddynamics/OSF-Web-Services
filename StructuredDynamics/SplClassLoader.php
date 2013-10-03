@@ -2,20 +2,20 @@
 
 /*
  Automatically register all the paths under:
-    /StructuredDynamics/structwsf/*
+    /StructuredDynamics/osf/*
 
- This means that all the classes for structWSF and the structWSF-PHP-API
+ This means that all the classes for OSF and the OSF-WS-PHP-API
  will be automatically loaded.
 */
 $wsf_folder = dirname(dirname(__FILE__));
 
-$entries = scandir($wsf_folder.'/StructuredDynamics/structwsf/');
+$entries = scandir($wsf_folder.'/StructuredDynamics/osf/');
 
 foreach($entries as $entry)
 {
-  if($entry != '.' && $entry != '..' && is_dir($wsf_folder.'/StructuredDynamics/structwsf/'.$entry))
+  if($entry != '.' && $entry != '..' && is_dir($wsf_folder.'/StructuredDynamics/osf/'.$entry))
   {
-    $loader_core_framework = new SplClassLoader('StructuredDynamics\structwsf\\'.$entry, $wsf_folder);
+    $loader_core_framework = new SplClassLoader('StructuredDynamics\osf\\'.$entry, $wsf_folder);
     $loader_core_framework->register();
   }
 }

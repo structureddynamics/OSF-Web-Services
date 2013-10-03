@@ -4,16 +4,16 @@
 /*! @ingroup WsFramework Framework for the Web Services */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\framework\OWLOntology.php
-    @brief This class is a PHP wrapper over the Java OWLAPI. This manages all the ontologies existing in a structWSF 
+/*! @file \StructuredDynamics\osf\ws\framework\OWLOntology.php
+    @brief This class is a PHP wrapper over the Java OWLAPI. This manages all the ontologies existing in a OSF 
            instance.
  */
 
-namespace StructuredDynamics\structwsf\ws\framework;  
+namespace StructuredDynamics\osf\ws\framework;  
  
 use \java;
 use \Exception; 
-use \StructuredDynamics\structwsf\framework\Namespaces;
+use \StructuredDynamics\osf\framework\Namespaces;
  
 /**
 * An OWL ontology object that get persisted in an OWAPI tomcat instance.
@@ -265,7 +265,7 @@ class OWLOntology
   /**
   * Convert the OWLAPI named individual description into an array describing the class. This array is a simplification
   * of the OWLAPI that is used by other parts of this API, along with other scripts that uses this
-  * API such as the various ontology related structWSF endpoints.
+  * API such as the various ontology related OSF endpoints.
   * 
   * Note: annotations on are converted into non-annotation attribute/value with this API call.
   * 
@@ -403,7 +403,7 @@ class OWLOntology
   /**
   * Convert the OWLAPI named individual description into an array describing the class. This array is a simplification
   * of the OWLAPI that is used by other parts of this API, along with other scripts that uses this
-  * API such as the various ontology related structWSF endpoints.
+  * API such as the various ontology related OSF endpoints.
   * 
   * This array is optimized for displaying the named individual references in some list controls. This function
   * only returns the prefLabel, and types of the named individual.
@@ -1889,7 +1889,7 @@ class OWLOntology
   /**
   * Convert the OWLAPI datatype property description into an array describing the class. This array is a simplification
   * of the OWLAPI that is used by other parts of this API, along with other scripts that uses this
-  * API such as the various ontology related structWSF endpoints.
+  * API such as the various ontology related OSF endpoints.
   * 
   * The array is defined as:
   *   
@@ -2428,7 +2428,7 @@ class OWLOntology
   /**
   * Convert the OWLAPI class description into an array describing the class. This array is a simplification
   * of the OWLAPI that is used by other parts of this API, along with other scripts that uses this
-  * API such as the various ontology related structWSF endpoints.
+  * API such as the various ontology related OSF endpoints.
   * 
   * The array is defined as:
   *   

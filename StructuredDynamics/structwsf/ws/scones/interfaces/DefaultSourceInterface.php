@@ -1,9 +1,9 @@
 <?php
   
-  namespace StructuredDynamics\structwsf\ws\scones\interfaces; 
+  namespace StructuredDynamics\osf\ws\scones\interfaces; 
   
-  use \StructuredDynamics\structwsf\framework\Namespaces;  
-  use \StructuredDynamics\structwsf\ws\framework\SourceInterface;
+  use \StructuredDynamics\osf\framework\Namespaces;  
+  use \StructuredDynamics\osf\ws\framework\SourceInterface;
   use \Exception;
   use \java;
   use \SimpleXMLElement;

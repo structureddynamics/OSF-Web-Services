@@ -3,14 +3,14 @@
 /** @defgroup WsCrud Crud Web Service */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\crud\read\index.php
+/*! @file \StructuredDynamics\osf\ws\crud\read\index.php
     @brief Entry point of a query for the Crud Read web service
  */
 
 // Auto-load classes
 include_once("../../../../SplClassLoader.php"); 
  
-use \StructuredDynamics\structwsf\ws\crud\read\CrudRead;
+use \StructuredDynamics\osf\ws\crud\read\CrudRead;
 
 // Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
 ini_set("display_errors", "Off"); 

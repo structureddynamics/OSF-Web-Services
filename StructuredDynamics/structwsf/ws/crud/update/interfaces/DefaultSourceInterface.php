@@ -1,17 +1,17 @@
 <?php
   
-  namespace StructuredDynamics\structwsf\ws\crud\update\interfaces; 
+  namespace StructuredDynamics\osf\ws\crud\update\interfaces; 
   
-  use \StructuredDynamics\structwsf\framework\Namespaces;  
-  use \StructuredDynamics\structwsf\ws\framework\SourceInterface;
+  use \StructuredDynamics\osf\framework\Namespaces;  
+  use \StructuredDynamics\osf\ws\framework\SourceInterface;
   use \ARC2;
-  use \StructuredDynamics\structwsf\ws\framework\Solr;
-  use \StructuredDynamics\structwsf\ws\framework\ClassHierarchy;
-  use \StructuredDynamics\structwsf\ws\framework\ClassNode;
-  use \StructuredDynamics\structwsf\framework\WebServiceQuerier;  
-  use \StructuredDynamics\structwsf\ws\framework\PropertyHierarchy;
-  use \StructuredDynamics\structwsf\ws\framework\propertyNode;
-  use \StructuredDynamics\structwsf\ws\crud\read\CrudRead;  
+  use \StructuredDynamics\osf\ws\framework\Solr;
+  use \StructuredDynamics\osf\ws\framework\ClassHierarchy;
+  use \StructuredDynamics\osf\ws\framework\ClassNode;
+  use \StructuredDynamics\osf\framework\WebServiceQuerier;  
+  use \StructuredDynamics\osf\ws\framework\PropertyHierarchy;
+  use \StructuredDynamics\osf\ws\framework\propertyNode;
+  use \StructuredDynamics\osf\ws\crud\read\CrudRead;  
   
   class DefaultSourceInterface extends SourceInterface
   {
@@ -795,7 +795,7 @@
                   else
                   {
                     // The language is not defined for this string, so we simply consider that it uses
-                    // the default language supported by the structWSF instance
+                    // the default language supported by the OSF instance
                     $lang = $this->ws->supportedLanguages[0];                        
                   }
                   
@@ -874,7 +874,7 @@
                   else
                   {
                     // The language is not defined for this string, so we simply consider that it uses
-                    // the default language supported by the structWSF instance
+                    // the default language supported by the OSF instance
                     $lang = $this->ws->supportedLanguages[0];                        
                   }
                   
@@ -898,7 +898,7 @@
                 . "</field>";
             }
             
-            // If enabled, and supported by the structWSF setting, let's add any lat/long positionning to the index.
+            // If enabled, and supported by the OSF setting, let's add any lat/long positionning to the index.
             if($this->ws->geoEnabled)
             {
               // Check if there exists a lat-long coordinate for that resource.
@@ -1094,7 +1094,7 @@
                     else
                     {
                       // The language is not defined for this string, so we simply consider that it uses
-                      // the default language supported by the structWSF instance
+                      // the default language supported by the OSF instance
                       $lang = $this->ws->supportedLanguages[0];                        
                     }                        
                     
@@ -1245,7 +1245,7 @@
                               else
                               {
                                 // The language is not defined for this string, so we simply consider that it uses
-                                // the default language supported by the structWSF instance
+                                // the default language supported by the OSF instance
                                 $reiLang = $this->ws->supportedLanguages[0];                        
                               }                                   
                               if($reiValue["type"] == "literal")
@@ -1440,7 +1440,7 @@
                                 else
                                 {
                                   // The language is not defined for this string, so we simply consider that it uses
-                                  // the default language supported by the structWSF instance
+                                  // the default language supported by the OSF instance
                                   $reiLang = $this->ws->supportedLanguages[0];                        
                                 }                                 
                                 

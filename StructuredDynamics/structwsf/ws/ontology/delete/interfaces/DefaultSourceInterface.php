@@ -1,13 +1,13 @@
 <?php
   
-  namespace StructuredDynamics\structwsf\ws\ontology\delete\interfaces; 
+  namespace StructuredDynamics\osf\ws\ontology\delete\interfaces; 
   
-  use \StructuredDynamics\structwsf\framework\Namespaces;  
-  use \StructuredDynamics\structwsf\ws\framework\SourceInterface;
-  use \StructuredDynamics\structwsf\ws\crud\delete\CrudDelete;
-  use \StructuredDynamics\structwsf\ws\dataset\delete;
-  use \StructuredDynamics\structwsf\ws\framework\OWLOntology;
-  use \StructuredDynamics\structwsf\ws\dataset\delete\DatasetDelete;
+  use \StructuredDynamics\osf\framework\Namespaces;  
+  use \StructuredDynamics\osf\ws\framework\SourceInterface;
+  use \StructuredDynamics\osf\ws\crud\delete\CrudDelete;
+  use \StructuredDynamics\osf\ws\dataset\delete;
+  use \StructuredDynamics\osf\ws\framework\OWLOntology;
+  use \StructuredDynamics\osf\ws\dataset\delete\DatasetDelete;
   use \Exception;
   
   class DefaultSourceInterface extends SourceInterface
@@ -127,7 +127,7 @@
         // Delete the OWLAPI class entity
         $this->ws->ontology->removeClass($uri);
 
-        // Check to delete potential datasets that have been created within structWSF
+        // Check to delete potential datasets that have been created within OSF
         // Use the default 'soft' mode such that we keep all the ontologies changes by default
         // This means that we "unpublish" the current record, with the current URI.
         $crudDelete = new CrudDelete($uri, $this->ws->ontologyUri);
@@ -181,7 +181,7 @@
         // Delete the OWLAPI named individual entity
         $this->ws->ontology->removeNamedIndividual($uri);
 
-        // Check to delete potential datasets that have been created within structWSF
+        // Check to delete potential datasets that have been created within OSF
         // Use the default 'soft' mode such that we keep all the ontologies changes by default
         // This means that we "unpublish" the current record, with the current URI.
         $crudDelete =
@@ -240,7 +240,7 @@
         @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
           FALSE));    
 
-        // Check to delete potential datasets that have been created within structWSF
+        // Check to delete potential datasets that have been created within OSF
         $datasetDelete = new DatasetDelete($this->ws->ontologyUri);
 
         $datasetDelete->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'],
@@ -289,7 +289,7 @@
         // Delete the OWLAPI property entity
         $this->ws->ontology->removeProperty($uri);
 
-        // Check to delete potential datasets that have been created within structWSF
+        // Check to delete potential datasets that have been created within OSF
         // Use the default 'soft' mode such that we keep all the ontologies changes by default
         // This means that we "unpublish" the current record, with the current URI.
         $crudDelete = new CrudDelete($uri, $this->ws->ontologyUri);

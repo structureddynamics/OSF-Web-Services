@@ -3,13 +3,13 @@
 /*! @ingroup WsConverterIrJSON */
 //@{
  
-/*! @file \StructuredDynamics\structwsf\ws\converter\irjson\index.php
+/*! @file \StructuredDynamics\osf\ws\converter\irjson\index.php
     @brief Entry point of a query the irJSON Converter web service
  */
 
 include_once("../../../../SplClassLoader.php"); 
  
-use \StructuredDynamics\structwsf\ws\converter\irjson\ConverterIrJSON;
+use \StructuredDynamics\osf\ws\converter\irjson\ConverterIrJSON;
  
 // Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
 ini_set("display_errors", "Off"); 

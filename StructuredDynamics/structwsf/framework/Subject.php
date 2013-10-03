@@ -1,15 +1,15 @@
 <?php
 
-/*! @ingroup StructWSFPHPAPIFramework Framework of the structWSF PHP API library */
+/*! @ingroup OSFPHPAPIFramework Framework of the OSF PHP API library */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\framework\Subject.php
+/*! @file \StructuredDynamics\osf\framework\Subject.php
     @brief An internal Subject class
 
 */
 
 
-namespace StructuredDynamics\structwsf\framework;
+namespace StructuredDynamics\osf\framework;
 
 /**
 * Class used to create Subjects to add to a Resultset

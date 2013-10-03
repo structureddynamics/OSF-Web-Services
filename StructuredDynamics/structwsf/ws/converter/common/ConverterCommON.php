@@ -3,23 +3,23 @@
 /** @defgroup WsConverterCommON Converter commON Web Service */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\converter\common\ConverterCommON.php
+/*! @file \StructuredDynamics\osf\ws\converter\common\ConverterCommON.php
     @brief Define the commON converter class
  */
 
-namespace StructuredDynamics\structwsf\ws\converter\common; 
+namespace StructuredDynamics\osf\ws\converter\common; 
 
-use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
-use \StructuredDynamics\structwsf\ws\framework\Conneg;
-use \StructuredDynamics\structwsf\ws\framework\ProcessorXML;
-use \StructuredDynamics\structwsf\ws\converter\common\CommonParser;
+use \StructuredDynamics\osf\ws\framework\CrudUsage;
+use \StructuredDynamics\osf\ws\framework\Conneg;
+use \StructuredDynamics\osf\ws\framework\ProcessorXML;
+use \StructuredDynamics\osf\ws\converter\common\CommonParser;
 
 /** Convert commON data into RDF. This class takes commON files as input, convert 
     them into RDF using linkage schemas, and output RDF in different formats.
 
     @author Frederick Giasson, Structured Dynamics LLC.
 */
-class ConverterCommON extends \StructuredDynamics\structwsf\ws\framework\WebService
+class ConverterCommON extends \StructuredDynamics\osf\ws\framework\WebService
 {
   /** Database connection */
   private $db;

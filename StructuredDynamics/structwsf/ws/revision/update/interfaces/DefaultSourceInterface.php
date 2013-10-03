@@ -1,13 +1,13 @@
 <?php
   
-  namespace StructuredDynamics\structwsf\ws\revision\update\interfaces; 
+  namespace StructuredDynamics\osf\ws\revision\update\interfaces; 
   
-  use \StructuredDynamics\structwsf\ws\framework\SourceInterface;
-  use \StructuredDynamics\structwsf\framework\Subject;
-  use \StructuredDynamics\structwsf\framework\Namespaces;
-  use \StructuredDynamics\structwsf\ws\crud\update\CrudUpdate;
-  use \StructuredDynamics\structwsf\ws\revision\read\RevisionRead;
-  use \StructuredDynamics\structwsf\ws\crud\delete\CrudDelete;
+  use \StructuredDynamics\osf\ws\framework\SourceInterface;
+  use \StructuredDynamics\osf\framework\Subject;
+  use \StructuredDynamics\osf\framework\Namespaces;
+  use \StructuredDynamics\osf\ws\crud\update\CrudUpdate;
+  use \StructuredDynamics\osf\ws\revision\read\RevisionRead;
+  use \StructuredDynamics\osf\ws\crud\delete\CrudDelete;
   
   class DefaultSourceInterface extends SourceInterface
   {
@@ -194,7 +194,7 @@
             // "public" dataset anymore (until it gets re-published)
             if($status == Namespaces::$wsf.'published')
             {
-              // Check to delete potential datasets that have been created within structWSF
+              // Check to delete potential datasets that have been created within OSF
               // Use the default 'soft' mode such that we keep all the revisions
               $crudDelete = new CrudDelete($uri, $this->ws->dataset);
 

@@ -3,25 +3,25 @@
 /** @defgroup WsCrud Crud Web Service */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\crud\delete\CrudDelete.php
+/*! @file \StructuredDynamics\osf\ws\crud\delete\CrudDelete.php
     @brief Define the Crud Delete web service
  */
 
-namespace StructuredDynamics\structwsf\ws\crud\delete;
+namespace StructuredDynamics\osf\ws\crud\delete;
 
-use \StructuredDynamics\structwsf\ws\framework\DBVirtuoso; 
-use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
-use \StructuredDynamics\structwsf\ws\framework\Conneg;
-use \StructuredDynamics\structwsf\ws\dataset\read\DatasetRead;
-use \StructuredDynamics\structwsf\ws\crud\read\CrudRead;
-use \StructuredDynamics\structwsf\framework\WebServiceQuerier;
+use \StructuredDynamics\osf\ws\framework\DBVirtuoso; 
+use \StructuredDynamics\osf\ws\framework\CrudUsage;
+use \StructuredDynamics\osf\ws\framework\Conneg;
+use \StructuredDynamics\osf\ws\dataset\read\DatasetRead;
+use \StructuredDynamics\osf\ws\crud\read\CrudRead;
+use \StructuredDynamics\osf\framework\WebServiceQuerier;
 
 /** CRUD Delete web service. It removes record instances within dataset indexes on different systems (Virtuoso, Solr, etc).
 
     @author Frederick Giasson, Structured Dynamics LLC.
 */
 
-class CrudDelete extends \StructuredDynamics\structwsf\ws\framework\WebService
+class CrudDelete extends \StructuredDynamics\osf\ws\framework\WebService
 {
   /** Database connection */
   private $db;
@@ -389,7 +389,7 @@ class CrudDelete extends \StructuredDynamics\structwsf\ws\framework\WebService
     
     if($class != "")
     {    
-      $class = 'StructuredDynamics\structwsf\ws\crud\delete\interfaces\\'.$class;
+      $class = 'StructuredDynamics\osf\ws\crud\delete\interfaces\\'.$class;
       
       $interface = new $class($this);
       

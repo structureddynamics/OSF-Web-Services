@@ -1,9 +1,9 @@
 <?php
   
-  namespace StructuredDynamics\structwsf\ws\crud\read\interfaces; 
+  namespace StructuredDynamics\osf\ws\crud\read\interfaces; 
   
-  use \StructuredDynamics\structwsf\framework\Namespaces;  
-  use \StructuredDynamics\structwsf\ws\framework\SourceInterface;
+  use \StructuredDynamics\osf\framework\Namespaces;  
+  use \StructuredDynamics\osf\ws\framework\SourceInterface;
   
   class DefaultSourceInterface extends SourceInterface
   {
@@ -64,7 +64,7 @@
 
           $attributesFilter = "";
           
-          // If the structWSF instance uses Virtuoso 6, then we use the new FILTER...IN... statement
+          // If the OSF instance uses Virtuoso 6, then we use the new FILTER...IN... statement
           // instead of the FILTER...regex. This makes the queries much faster and fix an issue
           // when the Virtuoso instance has been fixed with the LRL (long read length) path
           if($this->ws->virtuoso_main_version != 6)

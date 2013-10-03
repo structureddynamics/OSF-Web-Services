@@ -1,8 +1,8 @@
 <?php
   
-  namespace StructuredDynamics\structwsf\ws\auth\registrar\access\interfaces; 
+  namespace StructuredDynamics\osf\ws\auth\registrar\access\interfaces; 
   
-  use \StructuredDynamics\structwsf\ws\framework\SourceInterface;
+  use \StructuredDynamics\osf\ws\framework\SourceInterface;
   
   class DefaultSourceInterface extends SourceInterface
   {

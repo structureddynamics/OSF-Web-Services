@@ -3,25 +3,25 @@
 /** @defgroup WsCrud Crud Web Service */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\crud\read\CrudRead.php
+/*! @file \StructuredDynamics\osf\ws\crud\read\CrudRead.php
     @brief Define the Crud Read web service
  */
 
-namespace StructuredDynamics\structwsf\ws\crud\read; 
+namespace StructuredDynamics\osf\ws\crud\read; 
 
-use \StructuredDynamics\structwsf\ws\framework\DBVirtuoso; 
-use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
-use \StructuredDynamics\structwsf\ws\auth\lister\AuthLister;
-use \StructuredDynamics\structwsf\ws\framework\ProcessorXML;
-use \StructuredDynamics\structwsf\ws\framework\Conneg;
-use \StructuredDynamics\structwsf\framework\Namespaces;
+use \StructuredDynamics\osf\ws\framework\DBVirtuoso; 
+use \StructuredDynamics\osf\ws\framework\CrudUsage;
+use \StructuredDynamics\osf\ws\auth\lister\AuthLister;
+use \StructuredDynamics\osf\ws\framework\ProcessorXML;
+use \StructuredDynamics\osf\ws\framework\Conneg;
+use \StructuredDynamics\osf\framework\Namespaces;
 
 /** CRUD Read web service. It reads instance records description within dataset indexes on different systems (Virtuoso, Solr, etc).
 
     @author Frederick Giasson, Structured Dynamics LLC.
 */
 
-class CrudRead extends \StructuredDynamics\structwsf\ws\framework\WebService
+class CrudRead extends \StructuredDynamics\osf\ws\framework\WebService
 {
   /** Database connection */
   private $db;
@@ -84,7 +84,7 @@ class CrudRead extends \StructuredDynamics\structwsf\ws\framework\WebService
                           "id": "WS-CRUD-READ-202",
                           "level": "Warning",
                           "name": "Record URI(s) not existing or not accessible",
-                          "description": "The requested record URI(s) are not existing in this structWSF instance, or are not accessible to the requester. This error is only sent when no data URI are defined."
+                          "description": "The requested record URI(s) are not existing in this OSF instance, or are not accessible to the requester. This error is only sent when no data URI are defined."
                         },
                         "_300": {
                           "id": "WS-CRUD-READ-300",
@@ -514,7 +514,7 @@ class CrudRead extends \StructuredDynamics\structwsf\ws\framework\WebService
     
     if($class != "")
     {    
-      $class = 'StructuredDynamics\structwsf\ws\crud\read\interfaces\\'.$class;
+      $class = 'StructuredDynamics\osf\ws\crud\read\interfaces\\'.$class;
       
       $interface = new $class($this);
       

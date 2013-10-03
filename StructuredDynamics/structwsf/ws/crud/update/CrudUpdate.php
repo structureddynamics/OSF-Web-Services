@@ -3,26 +3,26 @@
 /** @defgroup WsAuth Authentication / Registration Web Service */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\crud\update\CrudUpdate.php
+/*! @file \StructuredDynamics\osf\ws\crud\update\CrudUpdate.php
     @brief Define the Crud Update web service
  */
 
-namespace StructuredDynamics\structwsf\ws\crud\update; 
+namespace StructuredDynamics\osf\ws\crud\update; 
 
-use \StructuredDynamics\structwsf\ws\framework\DBVirtuoso; 
-use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
-use \StructuredDynamics\structwsf\ws\framework\Conneg;
-use \StructuredDynamics\structwsf\ws\dataset\read\DatasetRead;
-use \StructuredDynamics\structwsf\ws\crud\read\CrudRead;
-use \StructuredDynamics\structwsf\framework\WebServiceQuerier;
-use \StructuredDynamics\structwsf\framework\Namespaces;
+use \StructuredDynamics\osf\ws\framework\DBVirtuoso; 
+use \StructuredDynamics\osf\ws\framework\CrudUsage;
+use \StructuredDynamics\osf\ws\framework\Conneg;
+use \StructuredDynamics\osf\ws\dataset\read\DatasetRead;
+use \StructuredDynamics\osf\ws\crud\read\CrudRead;
+use \StructuredDynamics\osf\framework\WebServiceQuerier;
+use \StructuredDynamics\osf\framework\Namespaces;
 
 /** CRUD Update web service. It updates instance records descriptions from dataset indexes on different systems (Virtuoso, Solr, etc).
 
     @author Frederick Giasson, Structured Dynamics LLC.
 */
 
-class CrudUpdate extends \StructuredDynamics\structwsf\ws\framework\WebService
+class CrudUpdate extends \StructuredDynamics\osf\ws\framework\WebService
 {
   /** Database connection */
   private $db;
@@ -447,7 +447,7 @@ class CrudUpdate extends \StructuredDynamics\structwsf\ws\framework\WebService
     
     if($class != "")
     {    
-      $class = 'StructuredDynamics\structwsf\ws\crud\update\interfaces\\'.$class;
+      $class = 'StructuredDynamics\osf\ws\crud\update\interfaces\\'.$class;
       
       $interface = new $class($this);
       

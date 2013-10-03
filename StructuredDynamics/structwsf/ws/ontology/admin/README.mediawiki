@@ -1,4 +1,4 @@
-These are structWSF administrator scripts. Each of these scripts have their own specificities, so make sure you read 
+These are OSF administrator scripts. Each of these scripts have their own specificities, so make sure you read 
 each of them below.
 
 == analyzeRegisters.php ==
@@ -27,7 +27,7 @@ Otherwise, make sure to delete it from the file server if you can't restrict (or
 
 == load_ontologies.php ==
 
-This script is used to load a batch of ontologies into an structWSF instance. 
+This script is used to load a batch of ontologies into an OSF instance. 
 
 === Security Considerations ===
 

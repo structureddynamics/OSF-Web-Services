@@ -3,13 +3,13 @@
 /*! @ingroup WsOntology Ontology Management Web Service  */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\ontology\delete\index.php
+/*! @file \StructuredDynamics\osf\ws\ontology\delete\index.php
     @brief Entry point of a query for the Ontology Delete web service
  */
  
 include_once("../../../../SplClassLoader.php");   
  
-use \StructuredDynamics\structwsf\ws\ontology\delete\OntologyDelete;
+use \StructuredDynamics\osf\ws\ontology\delete\OntologyDelete;
 
 // Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
 ini_set("display_errors", "Off"); 

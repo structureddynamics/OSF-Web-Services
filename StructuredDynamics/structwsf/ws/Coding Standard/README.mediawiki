@@ -1,4 +1,4 @@
-This the PHP style suite (PolyStyle, see http://polystyle.com) used to format the code of the structWSFand conStruct projects. The file example.php-code defines the coding standards for these projects. Additionally we have these additional requirements:
+This the PHP style suite (PolyStyle, see http://polystyle.com) used to format the code of the OSFand conStruct projects. The file example.php-code defines the coding standards for these projects. Additionally we have these additional requirements:
 
 * Indent character: space
 * Tab width: 2

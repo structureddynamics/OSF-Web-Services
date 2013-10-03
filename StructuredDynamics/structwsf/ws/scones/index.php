@@ -3,13 +3,13 @@
 /** @defgroup WsScones SCONES Web Service */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\scones\index.php
+/*! @file \StructuredDynamics\osf\ws\scones\index.php
     @brief Entry point of a query for the SCONES web service
  */
  
 include_once("../../../SplClassLoader.php");   
  
-use \StructuredDynamics\structwsf\ws\scones\Scones;
+use \StructuredDynamics\osf\ws\scones\Scones;
 
 // Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
 ini_set("display_errors", "Off"); 

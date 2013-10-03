@@ -1,10 +1,10 @@
 <?php
   
-  namespace StructuredDynamics\structwsf\ws\revision\read\interfaces; 
+  namespace StructuredDynamics\osf\ws\revision\read\interfaces; 
   
-  use \StructuredDynamics\structwsf\ws\framework\SourceInterface;
-  use \StructuredDynamics\structwsf\framework\Subject;
-  use \StructuredDynamics\structwsf\framework\Namespaces;
+  use \StructuredDynamics\osf\ws\framework\SourceInterface;
+  use \StructuredDynamics\osf\framework\Subject;
+  use \StructuredDynamics\osf\framework\Namespaces;
   
   class DefaultSourceInterface extends SourceInterface
   {

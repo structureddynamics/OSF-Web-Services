@@ -3,15 +3,15 @@
 /** @defgroup WsRevision Revisioning Web Service */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\revision\read\RevisionRead.php
+/*! @file \StructuredDynamics\osf\ws\revision\read\RevisionRead.php
     @brief Read a specific revision of a record. All of the triples that are part of this revision will be returned.
  */
 
-namespace StructuredDynamics\structwsf\ws\revision\read;  
+namespace StructuredDynamics\osf\ws\revision\read;  
 
-use \StructuredDynamics\structwsf\ws\framework\DBVirtuoso; 
-use \StructuredDynamics\structwsf\ws\framework\Conneg;
-use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
+use \StructuredDynamics\osf\ws\framework\DBVirtuoso; 
+use \StructuredDynamics\osf\ws\framework\Conneg;
+use \StructuredDynamics\osf\ws\framework\CrudUsage;
 
 /** RevisionRead Web Service. Read a specific revision of a record. All of the triples that are part of this 
     revision will be returned.
@@ -19,7 +19,7 @@ use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
     @author Frederick Giasson, Structured Dynamics LLC.
 */
 
-class RevisionRead extends \StructuredDynamics\structwsf\ws\framework\WebService
+class RevisionRead extends \StructuredDynamics\osf\ws\framework\WebService
 {
   /** Database connection */
   private $db;
@@ -379,7 +379,7 @@ class RevisionRead extends \StructuredDynamics\structwsf\ws\framework\WebService
     
     if($class != "")
     {    
-      $class = 'StructuredDynamics\structwsf\ws\revision\read\interfaces\\'.$class;
+      $class = 'StructuredDynamics\osf\ws\revision\read\interfaces\\'.$class;
       
       $interface = new $class($this);
       

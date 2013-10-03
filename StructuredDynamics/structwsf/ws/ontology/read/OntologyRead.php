@@ -3,15 +3,15 @@
 /** @defgroup WsOntologyRead Ontology Read Web Service */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\ontology\read\OntologyRead.php
+/*! @file \StructuredDynamics\osf\ws\ontology\read\OntologyRead.php
     @brief Define the Ontology Read web service
  */
 
-namespace StructuredDynamics\structwsf\ws\ontology\read; 
+namespace StructuredDynamics\osf\ws\ontology\read; 
 
-use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
-use \StructuredDynamics\structwsf\ws\framework\Conneg;
-use \StructuredDynamics\structwsf\framework\Namespaces;
+use \StructuredDynamics\osf\ws\framework\CrudUsage;
+use \StructuredDynamics\osf\ws\framework\Conneg;
+use \StructuredDynamics\osf\framework\Namespaces;
 
 /** Ontology Read web service. It reads different kind of information from the ontological structure
              of the system.
@@ -19,7 +19,7 @@ use \StructuredDynamics\structwsf\framework\Namespaces;
     @author Frederick Giasson, Structured Dynamics LLC.
 */
 
-class OntologyRead extends \StructuredDynamics\structwsf\ws\framework\WebService
+class OntologyRead extends \StructuredDynamics\osf\ws\framework\WebService
 {
   /** URL where the DTD of the XML document can be located on the Web */
   private $dtdURL;
@@ -433,7 +433,7 @@ class OntologyRead extends \StructuredDynamics\structwsf\ws\framework\WebService
     
     if($class != "")
     {    
-      $class = 'StructuredDynamics\structwsf\ws\ontology\read\interfaces\\'.$class;
+      $class = 'StructuredDynamics\osf\ws\ontology\read\interfaces\\'.$class;
       
       $interface = new $class($this);
       

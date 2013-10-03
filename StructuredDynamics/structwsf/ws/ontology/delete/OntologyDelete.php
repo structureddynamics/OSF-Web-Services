@@ -3,15 +3,15 @@
 /** @defgroup WsOntology Ontology Management Web Service */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\ontology\delete\OntologyDelete.php
+/*! @file \StructuredDynamics\osf\ws\ontology\delete\OntologyDelete.php
     @brief Delete entire ontologies from the system, or parts of it (resources of type class or property)
  */
 
-namespace StructuredDynamics\structwsf\ws\ontology\delete; 
+namespace StructuredDynamics\osf\ws\ontology\delete; 
 
-use \StructuredDynamics\structwsf\ws\framework\DBVirtuoso; 
-use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
-use \StructuredDynamics\structwsf\ws\framework\Conneg;
+use \StructuredDynamics\osf\ws\framework\DBVirtuoso; 
+use \StructuredDynamics\osf\ws\framework\CrudUsage;
+use \StructuredDynamics\osf\ws\framework\Conneg;
 
 /** Ontology Delete Web Service. Delete entire ontologies from the system, or parts of it 
             (resources of type class or property)
@@ -19,7 +19,7 @@ use \StructuredDynamics\structwsf\ws\framework\Conneg;
     @author Frederick Giasson, Structured Dynamics LLC.
 */
 
-class OntologyDelete extends \StructuredDynamics\structwsf\ws\framework\WebService
+class OntologyDelete extends \StructuredDynamics\osf\ws\framework\WebService
 {
   /** Database connection */
   private $db;
@@ -340,7 +340,7 @@ class OntologyDelete extends \StructuredDynamics\structwsf\ws\framework\WebServi
 
     if($class != "")
     {    
-      $class = 'StructuredDynamics\structwsf\ws\ontology\delete\interfaces\\'.$class;
+      $class = 'StructuredDynamics\osf\ws\ontology\delete\interfaces\\'.$class;
       
       $interface = new $class($this);      
       

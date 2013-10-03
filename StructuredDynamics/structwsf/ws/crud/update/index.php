@@ -3,13 +3,13 @@
 /*! @ingroup WsCrud Crud Web Service  */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\crud\update\index.php
+/*! @file \StructuredDynamics\osf\ws\crud\update\index.php
     @brief Entry point of a query for the Update web service
  */
  
 include_once("../../../../SplClassLoader.php");   
  
-use \StructuredDynamics\structwsf\ws\crud\update\CrudUpdate;
+use \StructuredDynamics\osf\ws\crud\update\CrudUpdate;
 
 // Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
 ini_set("display_errors", "Off"); 

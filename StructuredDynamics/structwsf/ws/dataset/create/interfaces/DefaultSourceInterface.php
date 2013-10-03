@@ -1,11 +1,11 @@
 <?php
   
-  namespace StructuredDynamics\structwsf\ws\dataset\create\interfaces; 
+  namespace StructuredDynamics\osf\ws\dataset\create\interfaces; 
   
-  use \StructuredDynamics\structwsf\framework\Namespaces;  
-  use \StructuredDynamics\structwsf\ws\framework\SourceInterface;
-  use \StructuredDynamics\structwsf\ws\auth\lister\AuthLister;
-  use \StructuredDynamics\structwsf\ws\framework\ProcessorXML;
+  use \StructuredDynamics\osf\framework\Namespaces;  
+  use \StructuredDynamics\osf\ws\framework\SourceInterface;
+  use \StructuredDynamics\osf\ws\auth\lister\AuthLister;
+  use \StructuredDynamics\osf\ws\framework\ProcessorXML;
   
   
   class DefaultSourceInterface extends SourceInterface

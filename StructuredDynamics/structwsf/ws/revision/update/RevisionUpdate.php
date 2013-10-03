@@ -3,22 +3,22 @@
 /** @defgroup WsRevision Revisioning Web Service */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\revision\update\RevisionUpdate.php
+/*! @file \StructuredDynamics\osf\ws\revision\update\RevisionUpdate.php
     @brief Change the lifestage status of a revision record.
  */
 
-namespace StructuredDynamics\structwsf\ws\revision\update;  
+namespace StructuredDynamics\osf\ws\revision\update;  
 
-use \StructuredDynamics\structwsf\ws\framework\DBVirtuoso; 
-use \StructuredDynamics\structwsf\ws\framework\Conneg;
-use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
+use \StructuredDynamics\osf\ws\framework\DBVirtuoso; 
+use \StructuredDynamics\osf\ws\framework\Conneg;
+use \StructuredDynamics\osf\ws\framework\CrudUsage;
 
 /** RevisionUpdate Web Service. Change the lifestage status of a revision record.
             
     @author Frederick Giasson, Structured Dynamics LLC.
 */
 
-class RevisionUpdate extends \StructuredDynamics\structwsf\ws\framework\WebService
+class RevisionUpdate extends \StructuredDynamics\osf\ws\framework\WebService
 {
   /** Database connection */
   private $db;
@@ -355,7 +355,7 @@ class RevisionUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServi
     
     if($class != "")
     {    
-      $class = 'StructuredDynamics\structwsf\ws\revision\update\interfaces\\'.$class;
+      $class = 'StructuredDynamics\osf\ws\revision\update\interfaces\\'.$class;
       
       $interface = new $class($this);
       

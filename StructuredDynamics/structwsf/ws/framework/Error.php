@@ -3,11 +3,11 @@
 /*! @ingroup WsFramework Framework for the Web Services */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\framework\Error.php
+/*! @file \StructuredDynamics\osf\ws\framework\Error.php
     @brief The class managing creation of error messages
  */
 
-namespace StructuredDynamics\structwsf\ws\framework;  
+namespace StructuredDynamics\osf\ws\framework;  
 
 /** The class managing creation of error messages
 

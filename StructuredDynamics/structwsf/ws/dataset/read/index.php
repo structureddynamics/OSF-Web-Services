@@ -3,7 +3,7 @@
 /*! @ingroup WsDataset Dataset Management Web Service  */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\dataset\read\index.php
+/*! @file \StructuredDynamics\osf\ws\dataset\read\index.php
     @brief Entry point of a query for the Dataset Read web service
  */
  
@@ -14,7 +14,7 @@ ini_set("display_errors", "Off");
 
 ini_set("memory_limit", "64M");
 
-use \StructuredDynamics\structwsf\ws\dataset\read\DatasetRead;
+use \StructuredDynamics\osf\ws\dataset\read\DatasetRead;
 
 if ($_SERVER['REQUEST_METHOD'] != 'GET') 
 {

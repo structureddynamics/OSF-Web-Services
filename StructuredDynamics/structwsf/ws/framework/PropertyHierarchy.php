@@ -3,11 +3,11 @@
 /*! @ingroup WsFramework Framework for the Web Services */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\framework\PropertyHierarchy.php
+/*! @file \StructuredDynamics\osf\ws\framework\PropertyHierarchy.php
     @brief The property hierarchy of the system.
 */
 
-namespace StructuredDynamics\structwsf\ws\framework;
+namespace StructuredDynamics\osf\ws\framework;
 
 /** The property hierarchy of the system. This property structure is used by multiple modules to 
     leverage the properties structure of a node. It is used to get the super-properties-of, sub-properties-of, 

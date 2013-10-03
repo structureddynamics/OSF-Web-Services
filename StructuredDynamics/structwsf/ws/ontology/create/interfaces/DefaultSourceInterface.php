@@ -1,17 +1,17 @@
 <?php
   
-  namespace StructuredDynamics\structwsf\ws\ontology\create\interfaces; 
+  namespace StructuredDynamics\osf\ws\ontology\create\interfaces; 
   
-  use \StructuredDynamics\structwsf\framework\Namespaces;  
-  use \StructuredDynamics\structwsf\ws\framework\SourceInterface;
-  use \StructuredDynamics\structwsf\ws\framework\OWLOntology;
-  use \StructuredDynamics\structwsf\ws\auth\lister\AuthLister;
-  use \StructuredDynamics\structwsf\ws\framework\ProcessorXML;
-  use \StructuredDynamics\structwsf\ws\dataset\create\DatasetCreate;
-  use \StructuredDynamics\structwsf\framework\WebServiceQuerier;
-  use \StructuredDynamics\structwsf\ws\ontology\delete\OntologyDelete;
-  use \StructuredDynamics\structwsf\ws\ontology\read\OntologyRead;
-  use \StructuredDynamics\structwsf\ws\crud\create\CrudCreate;
+  use \StructuredDynamics\osf\framework\Namespaces;  
+  use \StructuredDynamics\osf\ws\framework\SourceInterface;
+  use \StructuredDynamics\osf\ws\framework\OWLOntology;
+  use \StructuredDynamics\osf\ws\auth\lister\AuthLister;
+  use \StructuredDynamics\osf\ws\framework\ProcessorXML;
+  use \StructuredDynamics\osf\ws\dataset\create\DatasetCreate;
+  use \StructuredDynamics\osf\framework\WebServiceQuerier;
+  use \StructuredDynamics\osf\ws\ontology\delete\OntologyDelete;
+  use \StructuredDynamics\osf\ws\ontology\read\OntologyRead;
+  use \StructuredDynamics\osf\ws\crud\create\CrudCreate;
   use \ARC2;
   use \Exception;
 
@@ -330,7 +330,7 @@
         }        
 
         // Check if we want to enable the advanced indexation: so, if we want to import all the ontologies 
-        // description into the other structWSF data stores to enable search and filtering using the other
+        // description into the other OSF data stores to enable search and filtering using the other
         // endpoints such as search, sparql, read, etc.
         if($this->ws->advancedIndexation)
         {          
@@ -630,7 +630,7 @@
               unset($ontologyRead);
             }
             
-            // Now, let's index the resources of this ontology within structWSF (for the usage of browse, search 
+            // Now, let's index the resources of this ontology within OSF (for the usage of browse, search 
             // and sparql)
             
             // Split the aggregated resources in multiple slices

@@ -1,10 +1,10 @@
 <?php
   
-  namespace StructuredDynamics\structwsf\ws\sparql\interfaces; 
+  namespace StructuredDynamics\osf\ws\sparql\interfaces; 
   
-  use \StructuredDynamics\structwsf\framework\Namespaces;  
-  use \StructuredDynamics\structwsf\ws\framework\SourceInterface;
-  use \StructuredDynamics\structwsf\framework\Subject;
+  use \StructuredDynamics\osf\framework\Namespaces;  
+  use \StructuredDynamics\osf\ws\framework\SourceInterface;
+  use \StructuredDynamics\osf\framework\Subject;
 
   class DefaultSourceInterface extends SourceInterface
   {

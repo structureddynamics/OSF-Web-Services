@@ -3,14 +3,14 @@
 /** @defgroup WsOntology Ontology Management Web Service */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\ontology\admin\analyzeRegisters.php
+/*! @file \StructuredDynamics\osf\ws\ontology\admin\analyzeRegisters.php
     @brief Analyze the OWLAPI registers that are currently processed in Tomcat via the PHP/Java bridge.
     
     You may want to restrict the access to this /admin/ folder in your Apache settings so that
     not everybody has access to it.
  */
 
-  use \StructuredDynamics\structwsf\ws\framework\WebService;
+  use \StructuredDynamics\osf\ws\framework\WebService;
       
   $osf_ini = parse_ini_file(WebService::$osf_ini . "osf.ini", TRUE);
 

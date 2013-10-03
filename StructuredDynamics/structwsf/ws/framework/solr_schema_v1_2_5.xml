@@ -45,7 +45,7 @@
     that avoids logging every request
 -->
 
-<schema name="structWSF-1.2.5" version="1.0">
+<schema name="OSF-1.2.5" version="1.0">
   <!-- attribute "name" is the name of this schema and is only used for display purposes.
        Applications should change this to reflect the nature of the search collection.
        version="x.y" is Solr's version number for the schema syntax and semantics.  It should
@@ -956,7 +956,7 @@
    <field name="attribute" type="string" indexed="true" stored="true" multiValued="true"/>
 
    <!-- All text, from all properties, used when we search over all properties.
-        The default language supported by a structWSF instance is English. If
+        The default language supported by a OSF instance is English. If
         other languages are supported, then you have to create a new "all_text_xyz"
         field for these new supported languages where "xyz" is the code of the
         language. -->
@@ -997,7 +997,7 @@
  <copyField source="long"  dest="all_text" />
  <copyField source="geohash"  dest="all_text" />
  
- <!-- Note: for each subsequent languages handled by the structWSF 
+ <!-- Note: for each subsequent languages handled by the OSF 
       instance, you have to copyField the above fields as well, and 
     not just the one with the suffix "" -->
 

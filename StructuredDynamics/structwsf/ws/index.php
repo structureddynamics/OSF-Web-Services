@@ -4,7 +4,7 @@
 	//@{ 
 	
 	/** 
-  @file \StructuredDynamics\structwsf\ws\index.php
+  @file \StructuredDynamics\osf\ws\index.php
   @brief Server unique ID generator script.
  */	
 	

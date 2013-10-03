@@ -3,11 +3,11 @@
 /*! @ingroup WsConverterIrJSON */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\converter\irjson\Dataset.php
+/*! @file \StructuredDynamics\osf\ws\converter\irjson\Dataset.php
     @brief Define a dataset item
  */
 
-namespace StructuredDynamics\structwsf\ws\converter\irjson;   
+namespace StructuredDynamics\osf\ws\converter\irjson;   
 
 /** Dataset item description
 

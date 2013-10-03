@@ -3,13 +3,13 @@
 /*! @ingroup WsOntology Ontology Management Web Service  */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\ontology\update\index.php
+/*! @file \StructuredDynamics\osf\ws\ontology\update\index.php
     @brief Entry point of a query for the Ontology Update web service
  */
  
 include_once("../../../../SplClassLoader.php");   
 
-use \StructuredDynamics\structwsf\ws\ontology\update\OntologyUpdate;
+use \StructuredDynamics\osf\ws\ontology\update\OntologyUpdate;
  
  
 // Don't display errors to the users. Set it to "On" to see errors for debugging purposes.

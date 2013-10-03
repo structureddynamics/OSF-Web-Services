@@ -3,13 +3,13 @@
 /** @defgroup WsCrud Crud Web Service */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\crud\read\index.php
+/*! @file \StructuredDynamics\osf\ws\crud\read\index.php
     @brief Entry point of a query for the Crud Read web service
  */
  
 include_once("../../../../SplClassLoader.php");   
  
-use \StructuredDynamics\structwsf\ws\ontology\read\OntologyRead;
+use \StructuredDynamics\osf\ws\ontology\read\OntologyRead;
 
 // Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
 ini_set("display_errors", "Off"); 

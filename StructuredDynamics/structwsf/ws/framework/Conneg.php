@@ -3,11 +3,11 @@
 /*! @ingroup WsFramework Framework for the Web Services */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\framework\Conneg.php
+/*! @file \StructuredDynamics\osf\ws\framework\Conneg.php
     @brief The class that manage the content negotiation between any web service.
  */
 
-namespace StructuredDynamics\structwsf\ws\framework;  
+namespace StructuredDynamics\osf\ws\framework;  
  
 /** The class that manage the content negotiation between any web service.
 

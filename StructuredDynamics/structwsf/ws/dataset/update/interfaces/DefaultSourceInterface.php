@@ -1,9 +1,9 @@
 <?php
   
-  namespace StructuredDynamics\structwsf\ws\dataset\update\interfaces; 
+  namespace StructuredDynamics\osf\ws\dataset\update\interfaces; 
   
-  use \StructuredDynamics\structwsf\framework\Namespaces;  
-  use \StructuredDynamics\structwsf\ws\framework\SourceInterface;
+  use \StructuredDynamics\osf\framework\Namespaces;  
+  use \StructuredDynamics\osf\ws\framework\SourceInterface;
   
   class DefaultSourceInterface extends SourceInterface
   {

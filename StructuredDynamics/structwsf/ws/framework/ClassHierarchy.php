@@ -3,11 +3,11 @@
 /*! @ingroup WsFramework Framework for the Web Services */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\framework\ClassHierarchy.php
+/*! @file \StructuredDynamics\osf\ws\framework\ClassHierarchy.php
     @brief The class hierarchy of the system.
  */
  
-namespace StructuredDynamics\structwsf\ws\framework;
+namespace StructuredDynamics\osf\ws\framework;
  
 /** The class hierarchy of the system. This class structure is used by multiple modules to 
     leverage the class structure of a node. It is used to get the super-classes-of, sub-classes-of, 

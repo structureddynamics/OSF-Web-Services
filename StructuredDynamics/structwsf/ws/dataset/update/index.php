@@ -3,13 +3,13 @@
 /*! @ingroup WsDataset Dataset Management Web Service  */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\dataset\update\index.php
+/*! @file \StructuredDynamics\osf\ws\dataset\update\index.php
     @brief Entry point of a query for the Dataset Update web service
  */
 
 include_once("../../../../SplClassLoader.php");  
  
-use \StructuredDynamics\structwsf\ws\dataset\update\DatasetUpdate;
+use \StructuredDynamics\osf\ws\dataset\update\DatasetUpdate;
 
 // Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
 ini_set("display_errors", "Off"); 

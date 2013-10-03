@@ -3,23 +3,23 @@
 /** @defgroup WsDataset Dataset Management Web Service  */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\dataset\read\DatasetRead.php
+/*! @file \StructuredDynamics\osf\ws\dataset\read\DatasetRead.php
     @brief Read a graph for this dataset & indexation of its description
  */
 
-namespace StructuredDynamics\structwsf\ws\dataset\read; 
+namespace StructuredDynamics\osf\ws\dataset\read; 
 
-use \StructuredDynamics\structwsf\ws\framework\DBVirtuoso; 
-use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
-use \StructuredDynamics\structwsf\ws\framework\Conneg;
-use \StructuredDynamics\structwsf\framework\Namespaces;
+use \StructuredDynamics\osf\ws\framework\DBVirtuoso; 
+use \StructuredDynamics\osf\ws\framework\CrudUsage;
+use \StructuredDynamics\osf\ws\framework\Conneg;
+use \StructuredDynamics\osf\framework\Namespaces;
 
-/** Dataset Read Web Service. It reads description of datasets of a structWSF instance
+/** Dataset Read Web Service. It reads description of datasets of a OSF instance
 
     @author Frederick Giasson, Structured Dynamics LLC.
 */
 
-class DatasetRead extends \StructuredDynamics\structwsf\ws\framework\WebService
+class DatasetRead extends \StructuredDynamics\osf\ws\framework\WebService
 {
   /** Database connection */
   private $db;
@@ -191,12 +191,12 @@ class DatasetRead extends \StructuredDynamics\structwsf\ws\framework\WebService
 
   /** Validate a query to this web service
       
-      If a user wants to read information about a dataset on a given structWSF web service endpoint,
+      If a user wants to read information about a dataset on a given OSF web service endpoint,
       he has to have access to the "http://.../wsf/datasets/" graph with Read privileges, or to have
       Read privileges on the dataset URI itself. If the users doesn't have these permissions, 
       then he won't be able to read the description of the dataset on that instance.
       
-      By default, the administrators, and the creator of the dataset, have such an access on a structWSF instance. 
+      By default, the administrators, and the creator of the dataset, have such an access on a OSF instance. 
       However a system administrator can choose to make the "http://.../wsf/datasets/" world readable,
       which would mean that anybody could read information about the datasets on the instance.
 
@@ -373,7 +373,7 @@ class DatasetRead extends \StructuredDynamics\structwsf\ws\framework\WebService
     
     if($class != "")
     {    
-      $class = 'StructuredDynamics\structwsf\ws\dataset\read\interfaces\\'.$class;
+      $class = 'StructuredDynamics\osf\ws\dataset\read\interfaces\\'.$class;
       
       $interface = new $class($this);
       

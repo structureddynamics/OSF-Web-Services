@@ -3,13 +3,13 @@
 /*! @ingroup UserAuth Authentication / Registration Web Service */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\auth\registrar\user\index.php
+/*! @file \StructuredDynamics\osf\ws\auth\registrar\user\index.php
     @brief Entry point of a query for the Auth Registration User service
  */
 
 include_once("../../../../../SplClassLoader.php"); 
  
-use \StructuredDynamics\structwsf\ws\auth\registrar\user\AuthRegistrarUser;
+use \StructuredDynamics\osf\ws\auth\registrar\user\AuthRegistrarUser;
 
 // Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
 ini_set("display_errors", "Off"); 

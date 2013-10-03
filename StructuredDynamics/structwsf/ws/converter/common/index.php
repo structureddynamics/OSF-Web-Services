@@ -3,13 +3,13 @@
 /*! @ingroup WsConverterCommON */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\converter\common\index.php
+/*! @file \StructuredDynamics\osf\ws\converter\common\index.php
     @brief Entry point of a query the CommON Converter web service
  */
  
 include_once("../../../../SplClassLoader.php");  
  
-use \StructuredDynamics\structwsf\ws\converter\common\ConverterCommON;
+use \StructuredDynamics\osf\ws\converter\common\ConverterCommON;
 
 // Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
 ini_set("display_errors", "Off"); 

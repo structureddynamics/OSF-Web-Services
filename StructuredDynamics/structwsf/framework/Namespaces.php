@@ -1,13 +1,13 @@
 <?php
 
-/*! @ingroup StructWSFPHPAPIFramework Framework of the structWSF PHP API library */
+/*! @ingroup OSFPHPAPIFramework Framework of the OSF PHP API library */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\framework\Namespaces.php
+/*! @file \StructuredDynamics\osf\framework\Namespaces.php
     @brief  List of main ontologies used
  */
 
-namespace StructuredDynamics\structwsf\framework;
+namespace StructuredDynamics\osf\framework;
 
 /**
 * List of main ontologies used 
@@ -277,7 +277,7 @@ class Namespaces
   */
   public static function getNamespaces()
   {
-    $coreNamespaces = get_class_vars('\StructuredDynamics\structwsf\framework\Namespaces');
+    $coreNamespaces = get_class_vars('\StructuredDynamics\osf\framework\Namespaces');
     
     unset($coreNamespaces['namespaces']);
     

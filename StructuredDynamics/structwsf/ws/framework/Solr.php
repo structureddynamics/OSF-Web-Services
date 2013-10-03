@@ -3,17 +3,17 @@
 /*! @ingroup WsFramework Framework for the Web Services  */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\framework\Solr.php
+/*! @file \StructuredDynamics\osf\ws\framework\Solr.php
     @brief Query the Solr server.
  */
 
-namespace StructuredDynamics\structwsf\ws\framework;  
+namespace StructuredDynamics\osf\ws\framework;  
  
 use \DOMDocument;
 use \DOMXPath;
-use \StructuredDynamics\structwsf\ws\framework\ProcessorXML;
-use \StructuredDynamics\structwsf\ws\framework\DBVirtuoso;
-use \StructuredDynamics\structwsf\ws\framework\WebService;
+use \StructuredDynamics\osf\ws\framework\ProcessorXML;
+use \StructuredDynamics\osf\ws\framework\DBVirtuoso;
+use \StructuredDynamics\osf\ws\framework\WebService;
  
 /** Query the Solr server.
 

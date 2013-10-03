@@ -1,6 +1,6 @@
 <?php
 
-use \StructuredDynamics\structwsf\ws\converter\irjson\irJSONParser;
+use \StructuredDynamics\osf\ws\converter\irjson\irJSONParser;
 
 $irJSONFile =
   "{

@@ -1,11 +1,11 @@
 <?php
   
-  namespace StructuredDynamics\structwsf\ws\dataset\delete\interfaces; 
+  namespace StructuredDynamics\osf\ws\dataset\delete\interfaces; 
   
-  use \StructuredDynamics\structwsf\framework\Namespaces;  
-  use \StructuredDynamics\structwsf\ws\framework\SourceInterface;
-  use \StructuredDynamics\structwsf\ws\auth\registrar\access\AuthRegistrarAccess;
-  use \StructuredDynamics\structwsf\ws\framework\Solr;
+  use \StructuredDynamics\osf\framework\Namespaces;  
+  use \StructuredDynamics\osf\ws\framework\SourceInterface;
+  use \StructuredDynamics\osf\ws\auth\registrar\access\AuthRegistrarAccess;
+  use \StructuredDynamics\osf\ws\framework\Solr;
   
   
   class DefaultSourceInterface extends SourceInterface

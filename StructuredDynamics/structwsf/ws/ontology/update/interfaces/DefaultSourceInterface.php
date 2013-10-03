@@ -1,17 +1,17 @@
 <?php
   
-  namespace StructuredDynamics\structwsf\ws\ontology\update\interfaces; 
+  namespace StructuredDynamics\osf\ws\ontology\update\interfaces; 
   
-  use \StructuredDynamics\structwsf\framework\Namespaces;  
-  use \StructuredDynamics\structwsf\ws\framework\SourceInterface;
-  use \StructuredDynamics\structwsf\ws\framework\OWLOntology;
-  use \StructuredDynamics\structwsf\ws\ontology\read\OntologyRead;
-  use \StructuredDynamics\structwsf\ws\crud\delete\CrudDelete;
-  use \StructuredDynamics\structwsf\ws\crud\create\CrudCreate;
-  use \StructuredDynamics\structwsf\ws\crud\update\CrudUpdate;
-  use \StructuredDynamics\structwsf\ws\revision\update\RevisionUpdate;
-  use \StructuredDynamics\structwsf\ws\revision\lister\RevisionLister;
-  use \StructuredDynamics\structwsf\framework\Resultset;
+  use \StructuredDynamics\osf\framework\Namespaces;  
+  use \StructuredDynamics\osf\ws\framework\SourceInterface;
+  use \StructuredDynamics\osf\ws\framework\OWLOntology;
+  use \StructuredDynamics\osf\ws\ontology\read\OntologyRead;
+  use \StructuredDynamics\osf\ws\crud\delete\CrudDelete;
+  use \StructuredDynamics\osf\ws\crud\create\CrudCreate;
+  use \StructuredDynamics\osf\ws\crud\update\CrudUpdate;
+  use \StructuredDynamics\osf\ws\revision\update\RevisionUpdate;
+  use \StructuredDynamics\osf\ws\revision\lister\RevisionLister;
+  use \StructuredDynamics\osf\framework\Resultset;
   use \ARC2;
   use \Exception;
   
@@ -161,7 +161,7 @@
         // Now read the RDF file that we got as input to update the ontology with it.
         // Basically, we list all the entities (classes, properties and instance)
         // and we update each of them, one by one, in both the OWLAPI instance
-        // and structWSF if the advancedIndexation is enabled.
+        // and OSF if the advancedIndexation is enabled.
         include_once("../../framework/arc2/ARC2.php");
         $parser = ARC2::getRDFParser();
         $parser->parse($this->ws->ontology->getBaseUri(), $document);
@@ -385,7 +385,7 @@
               default:
               
                 // We have to check if this entity to update is punned. If yes, we have to merge all the
-                // punned descriptison together before updating them in structWSF (Virtuoso and Solr).
+                // punned descriptison together before updating them in OSF (Virtuoso and Solr).
                 // otherwise we will loose information in these other systems.
                 
                 // Once we start the ontology creation process, we have to make sure that even if the server
@@ -412,7 +412,7 @@
                   if($crudUpdate->pipeline_getError()->id == 'WS-CRUD-UPDATE-315')
                   {
                     // If the WS-CRUD-UPDATE-315 error is returned, it means that we are creating
-                    // this new entity into structWSF, so we have to re-issue the query using
+                    // this new entity into OSF, so we have to re-issue the query using
                     // the CRUD: Create endpoint
                     $crudCreate = new CrudCreate($serializedResource, "application/rdf+xml", 'full', $this->ws->ontologyUri);
 

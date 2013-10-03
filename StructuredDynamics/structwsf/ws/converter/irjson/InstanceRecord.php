@@ -3,11 +3,11 @@
 /*! @ingroup WsConverterIrJSON */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\converter\irjson\InstanceRecord.php
+/*! @file \StructuredDynamics\osf\ws\converter\irjson\InstanceRecord.php
    @brief Define an instance record item
  */
  
-namespace StructuredDynamics\structwsf\ws\converter\irjson;   
+namespace StructuredDynamics\osf\ws\converter\irjson;   
 
 /** Instance Record item description
 

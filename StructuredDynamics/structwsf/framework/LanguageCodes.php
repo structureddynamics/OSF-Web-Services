@@ -1,14 +1,14 @@
 <?php
 
-/*! @ingroup StructWSFPHPAPIFramework Framework of the structWSF PHP API library */
+/*! @ingroup OSFPHPAPIFramework Framework of the OSF PHP API library */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\framework\LanguageCodes.php
+/*! @file \StructuredDynamics\osf\framework\LanguageCodes.php
     @brief An internal Resultset class
 
 */
 
-namespace StructuredDynamics\structwsf\framework;
+namespace StructuredDynamics\osf\framework;
 
 /*
   As suggested ni RDF RFC 4646, these are the ISO639-1 language codes

@@ -3,13 +3,13 @@
 /*! @ingroup WsRevision Revisioning Web Service   */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\revision\diff\index.php
+/*! @file \StructuredDynamics\osf\ws\revision\diff\index.php
     @brief Entry point of a query for the Revision: Diff web service
  */
  
 include_once("../../../../SplClassLoader.php"); 
   
-use \StructuredDynamics\structwsf\ws\revision\diff\RevisionDiff;
+use \StructuredDynamics\osf\ws\revision\diff\RevisionDiff;
  
 // Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
 ini_set("display_errors", "Off"); 

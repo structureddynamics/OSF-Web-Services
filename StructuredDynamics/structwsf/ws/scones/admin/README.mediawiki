@@ -1,4 +1,4 @@
-These are structWSF administrator scripts. Each of these scripts have their own specificities, so make sure you read 
+These are OSF administrator scripts. Each of these scripts have their own specificities, so make sure you read 
 each of them below.
 
 == init.php ==

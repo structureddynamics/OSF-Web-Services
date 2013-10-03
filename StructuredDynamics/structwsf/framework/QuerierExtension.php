@@ -1,15 +1,15 @@
 <?php
 
-/*! @ingroup StructWSFPHPAPIFramework Framework of the structWSF PHP API library */
+/*! @ingroup OSFPHPAPIFramework Framework of the OSF PHP API library */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\framework\QuerierExtension.php
+/*! @file \StructuredDynamics\osf\framework\QuerierExtension.php
     @brief Querying a RESTFull web service endpoint
 
 */
 
-namespace StructuredDynamics\structwsf\framework;
-use StructuredDynamics\structwsf\php\api\framework\WebServiceQuery;
+namespace StructuredDynamics\osf\framework;
+use StructuredDynamics\osf\php\api\framework\WebServiceQuery;
 
 
 /**

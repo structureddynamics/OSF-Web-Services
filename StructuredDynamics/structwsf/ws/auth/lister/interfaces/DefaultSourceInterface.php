@@ -1,9 +1,9 @@
 <?php
   
-  namespace StructuredDynamics\structwsf\ws\auth\lister\interfaces; 
+  namespace StructuredDynamics\osf\ws\auth\lister\interfaces; 
   
-  use \StructuredDynamics\structwsf\ws\framework\SourceInterface;
-  use \StructuredDynamics\structwsf\framework\Subject;
+  use \StructuredDynamics\osf\ws\framework\SourceInterface;
+  use \StructuredDynamics\osf\framework\Subject;
   
   class DefaultSourceInterface extends SourceInterface
   {

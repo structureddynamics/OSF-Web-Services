@@ -3,13 +3,13 @@
 /*! @ingroup WsDataset Dataset Management Web Service  */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\dataset\delete\index.php
+/*! @file \StructuredDynamics\osf\ws\dataset\delete\index.php
     @brief Entry point of a query for the Dataset Delete web service
  */
  
 include_once("../../../../SplClassLoader.php");   
  
-use \StructuredDynamics\structwsf\ws\dataset\delete\DatasetDelete;
+use \StructuredDynamics\osf\ws\dataset\delete\DatasetDelete;
 
 // Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
 ini_set("display_errors", "Off"); 

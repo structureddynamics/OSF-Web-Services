@@ -3,26 +3,26 @@
 /** @defgroup WsCrud Crud Web Service */
 //@{
                                                   
-/*! @file \StructuredDynamics\structwsf\ws\crud\create\CrudCreate.php
+/*! @file \StructuredDynamics\osf\ws\crud\create\CrudCreate.php
     @brief Define the Crud Create web service
  */
 
-namespace StructuredDynamics\structwsf\ws\crud\create;
+namespace StructuredDynamics\osf\ws\crud\create;
 
-use \StructuredDynamics\structwsf\ws\framework\DBVirtuoso; 
-use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
-use \StructuredDynamics\structwsf\ws\framework\Conneg;
-use \StructuredDynamics\structwsf\ws\dataset\read\DatasetRead;
-use \StructuredDynamics\structwsf\ws\crud\read\CrudRead;
-use \StructuredDynamics\structwsf\framework\WebServiceQuerier;
-use \StructuredDynamics\structwsf\framework\Namespaces;
+use \StructuredDynamics\osf\ws\framework\DBVirtuoso; 
+use \StructuredDynamics\osf\ws\framework\CrudUsage;
+use \StructuredDynamics\osf\ws\framework\Conneg;
+use \StructuredDynamics\osf\ws\dataset\read\DatasetRead;
+use \StructuredDynamics\osf\ws\crud\read\CrudRead;
+use \StructuredDynamics\osf\framework\WebServiceQuerier;
+use \StructuredDynamics\osf\framework\Namespaces;
 
 /** CRUD Create web service. It populates dataset indexes on different systems (Virtuoso, Solr, etc).
 
     @author Frederick Giasson, Structured Dynamics LLC.
 */
 
-class CrudCreate extends \StructuredDynamics\structwsf\ws\framework\WebService
+class CrudCreate extends \StructuredDynamics\osf\ws\framework\WebService
 {
   /** Database connection */
   private $db;
@@ -426,7 +426,7 @@ class CrudCreate extends \StructuredDynamics\structwsf\ws\framework\WebService
     
     if($class != "")
     {    
-      $class = 'StructuredDynamics\structwsf\ws\crud\create\interfaces\\'.$class;
+      $class = 'StructuredDynamics\osf\ws\crud\create\interfaces\\'.$class;
       
       $interface = new $class($this);
       

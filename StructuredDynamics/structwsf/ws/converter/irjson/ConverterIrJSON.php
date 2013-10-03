@@ -3,24 +3,24 @@
 /** @defgroup WsConverterIrJSON Converter irJSON Web Service */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\converter\irjson\ConverterIrJSON.php
+/*! @file \StructuredDynamics\osf\ws\converter\irjson\ConverterIrJSON.php
     @brief Define the irJSON converter class
  */
 
-namespace StructuredDynamics\structwsf\ws\converter\irjson;  
+namespace StructuredDynamics\osf\ws\converter\irjson;  
 
-use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
-use \StructuredDynamics\structwsf\ws\framework\Conneg;
-use \StructuredDynamics\structwsf\ws\framework\ProcessorXML;
-use \StructuredDynamics\structwsf\ws\converter\irjson\LinkageSchema;
-use \StructuredDynamics\structwsf\ws\converter\irjson\irJSONParser;
+use \StructuredDynamics\osf\ws\framework\CrudUsage;
+use \StructuredDynamics\osf\ws\framework\Conneg;
+use \StructuredDynamics\osf\ws\framework\ProcessorXML;
+use \StructuredDynamics\osf\ws\converter\irjson\LinkageSchema;
+use \StructuredDynamics\osf\ws\converter\irjson\irJSONParser;
 
 /** Convert irJSON data into RDF. This class takes irJSON files as input, convert them 
     into RDF using linkage schemas, and output RDF in different formats.
 
     @author Frederick Giasson, Structured Dynamics LLC.
 */
-class ConverterIrJSON extends \StructuredDynamics\structwsf\ws\framework\WebService
+class ConverterIrJSON extends \StructuredDynamics\osf\ws\framework\WebService
 {
   /** Database connection */
   private $db;

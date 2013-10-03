@@ -3,13 +3,13 @@
 /*! @ingroup WsAuth Authentication / Registration Web Service */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\auth\registrar\ws\index.php
+/*! @file \StructuredDynamics\osf\ws\auth\registrar\ws\index.php
     @brief Entry point of a query for the Auth Registration web service
  */
 
 include_once("../../../../../SplClassLoader.php"); 
  
-use \StructuredDynamics\structwsf\ws\auth\registrar\ws\AuthRegistrarWs;
+use \StructuredDynamics\osf\ws\auth\registrar\ws\AuthRegistrarWs;
 
 // Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
 ini_set("display_errors", "Off"); 

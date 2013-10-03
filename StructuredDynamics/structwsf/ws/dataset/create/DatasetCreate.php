@@ -3,22 +3,22 @@
 /** @defgroup WsDataset Dataset Management Web Service  */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\dataset\create\DatasetCreate.php
+/*! @file \StructuredDynamics\osf\ws\dataset\create\DatasetCreate.php
     @brief Create a new graph for this dataset & indexation of its description
  */
 
-namespace StructuredDynamics\structwsf\ws\dataset\create; 
+namespace StructuredDynamics\osf\ws\dataset\create; 
 
-use \StructuredDynamics\structwsf\ws\framework\DBVirtuoso; 
-use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
-use \StructuredDynamics\structwsf\ws\framework\Conneg;
+use \StructuredDynamics\osf\ws\framework\DBVirtuoso; 
+use \StructuredDynamics\osf\ws\framework\CrudUsage;
+use \StructuredDynamics\osf\ws\framework\Conneg;
 
 /** Dataset Create Web Service. It creates a new graph for this dataset & indexation of its description
 
     @author Frederick Giasson, Structured Dynamics LLC.
 */
 
-class DatasetCreate extends \StructuredDynamics\structwsf\ws\framework\WebService
+class DatasetCreate extends \StructuredDynamics\osf\ws\framework\WebService
 {
   /** Database connection */
   private $db;
@@ -200,12 +200,12 @@ class DatasetCreate extends \StructuredDynamics\structwsf\ws\framework\WebServic
 
   /** Validate a query to this web service
   
-      If a user wants to create a new dataset on a given structWSF web service endpoint,
+      If a user wants to create a new dataset on a given OSF web service endpoint,
       he has to have access to the "http://.../wsf/datasets/" graph with Create privileges. If
       the users doesn't have these permissions, then he won't be able to create a new dataset
       on the instance.
       
-      By default, only the administrators have such an access on a structWSF instance. However
+      By default, only the administrators have such an access on a OSF instance. However
       a system administrator can choose to make the "http://.../wsf/datasets/" world creatable,
       which would mean that anybody could create new datasets on the instance. Additionally
       an administrator could setup these permissions for a single user too. This user could create
@@ -418,7 +418,7 @@ class DatasetCreate extends \StructuredDynamics\structwsf\ws\framework\WebServic
     
     if($class != "")
     {    
-      $class = 'StructuredDynamics\structwsf\ws\dataset\create\interfaces\\'.$class;
+      $class = 'StructuredDynamics\osf\ws\dataset\create\interfaces\\'.$class;
       
       $interface = new $class($this);
       

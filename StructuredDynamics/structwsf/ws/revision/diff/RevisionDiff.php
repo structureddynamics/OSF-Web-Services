@@ -3,22 +3,22 @@
 /** @defgroup WsRevision Revisioning Web Service */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\revision\diff\RevisionDiff.php
+/*! @file \StructuredDynamics\osf\ws\revision\diff\RevisionDiff.php
     @brief Compare two revisions of the same record.
  */
 
-namespace StructuredDynamics\structwsf\ws\revision\diff;  
+namespace StructuredDynamics\osf\ws\revision\diff;  
 
-use \StructuredDynamics\structwsf\ws\framework\DBVirtuoso; 
-use \StructuredDynamics\structwsf\ws\framework\Conneg;
-use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
+use \StructuredDynamics\osf\ws\framework\DBVirtuoso; 
+use \StructuredDynamics\osf\ws\framework\Conneg;
+use \StructuredDynamics\osf\ws\framework\CrudUsage;
 
 /** RevisionDiff Web Service. Mompare two revisions of the same record.
             
     @author Frederick Giasson, Structured Dynamics LLC.
 */
 
-class RevisionDiff extends \StructuredDynamics\structwsf\ws\framework\WebService
+class RevisionDiff extends \StructuredDynamics\osf\ws\framework\WebService
 {
   /** Database connection */
   private $db;
@@ -374,7 +374,7 @@ class RevisionDiff extends \StructuredDynamics\structwsf\ws\framework\WebService
     
     if($class != "")
     {    
-      $class = 'StructuredDynamics\structwsf\ws\revision\diff\interfaces\\'.$class;
+      $class = 'StructuredDynamics\osf\ws\revision\diff\interfaces\\'.$class;
       
       $interface = new $class($this);
       

@@ -3,16 +3,16 @@
 /*! @ingroup WsSearch */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\search\Search.php
+/*! @file \StructuredDynamics\osf\ws\search\Search.php
     @brief Define the Search web service
  */
 
-namespace StructuredDynamics\structwsf\ws\search; 
+namespace StructuredDynamics\osf\ws\search; 
 
 
-use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
-use \StructuredDynamics\structwsf\ws\framework\Conneg;
-use \StructuredDynamics\structwsf\framework\Namespaces;
+use \StructuredDynamics\osf\ws\framework\CrudUsage;
+use \StructuredDynamics\osf\ws\framework\Conneg;
+use \StructuredDynamics\osf\framework\Namespaces;
 
 /** Search Web Service. It searches datasets by using three filtering properties: 
     (1) datasets, (2) types and (3) attributes, (4) attribute/value
@@ -20,7 +20,7 @@ use \StructuredDynamics\structwsf\framework\Namespaces;
     @author Frederick Giasson, Structured Dynamics LLC.
 */
 
-class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
+class Search extends \StructuredDynamics\osf\ws\framework\WebService
 {
   /** URL where the DTD of the XML document can be located on the Web */
   private $dtdURL;
@@ -909,7 +909,7 @@ class Search extends \StructuredDynamics\structwsf\ws\framework\WebService
     
     if($class != "")
     {    
-      $class = 'StructuredDynamics\structwsf\ws\search\interfaces\\'.$class;
+      $class = 'StructuredDynamics\osf\ws\search\interfaces\\'.$class;
       
       $interface = new $class($this);
 

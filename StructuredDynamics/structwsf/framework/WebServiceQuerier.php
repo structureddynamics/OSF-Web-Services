@@ -1,15 +1,15 @@
 <?php
 
-/*! @ingroup StructWSFPHPAPIFramework Framework of the structWSF PHP API library */
+/*! @ingroup OSFPHPAPIFramework Framework of the OSF PHP API library */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\framework\WebServiceQuerier.php
+/*! @file \StructuredDynamics\osf\framework\WebServiceQuerier.php
     @brief Querying a RESTFull web service endpoint
 
 */
 
-namespace StructuredDynamics\structwsf\framework;
-use \StructuredDynamics\structwsf\framework\QuerierExtension;
+namespace StructuredDynamics\osf\framework;
+use \StructuredDynamics\osf\framework\QuerierExtension;
 
 /**
 * Query a RESTFul web service endpoint
@@ -141,7 +141,7 @@ class WebServiceQuerier
         else
         {
           $this->error = new QuerierError("WSF-600", "Fatal", $this->url, "Query too big", 
-                                   "The query sent to the structWSF endpoint is too big given
+                                   "The query sent to the OSF endpoint is too big given
                                     the current settings of the instance. The size of the
                                     query is ".number_format(strlen($this->parameters), 0, " ", " ")." bytes, 
                                     and the autorized size of the query is ".$uploadMaxFileSize." bytes", "");

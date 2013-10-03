@@ -3,13 +3,13 @@
 /*! @ingroup WsAuth Authentication / Registration Web Service  */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\auth\lister\index.php
+/*! @file \StructuredDynamics\osf\ws\auth\lister\index.php
     @brief Entry point of a query for the Auth Validator web service
  */
  
 include_once("../../../../SplClassLoader.php"); 
   
-use \StructuredDynamics\structwsf\ws\auth\lister\AuthLister;
+use \StructuredDynamics\osf\ws\auth\lister\AuthLister;
  
 // Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
 ini_set("display_errors", "Off"); 

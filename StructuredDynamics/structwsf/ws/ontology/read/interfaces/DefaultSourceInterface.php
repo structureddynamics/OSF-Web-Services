@@ -1,13 +1,13 @@
 <?php
   
-  namespace StructuredDynamics\structwsf\ws\ontology\read\interfaces; 
+  namespace StructuredDynamics\osf\ws\ontology\read\interfaces; 
   
-  use \StructuredDynamics\structwsf\framework\Namespaces;  
-  use \StructuredDynamics\structwsf\ws\framework\SourceInterface;
-  use \StructuredDynamics\structwsf\ws\framework\OWLOntology;
-  use \StructuredDynamics\structwsf\framework\Subject;
-  use \StructuredDynamics\structwsf\ws\framework\ClassHierarchy;
-  use \StructuredDynamics\structwsf\ws\framework\PropertyHierarchy;
+  use \StructuredDynamics\osf\framework\Namespaces;  
+  use \StructuredDynamics\osf\ws\framework\SourceInterface;
+  use \StructuredDynamics\osf\ws\framework\OWLOntology;
+  use \StructuredDynamics\osf\framework\Subject;
+  use \StructuredDynamics\osf\ws\framework\ClassHierarchy;
+  use \StructuredDynamics\osf\ws\framework\PropertyHierarchy;
   use \Exception;  
   
   class DefaultSourceInterface extends SourceInterface

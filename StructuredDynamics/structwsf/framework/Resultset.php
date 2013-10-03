@@ -1,31 +1,31 @@
 <?php
 
-/*! @ingroup StructWSFPHPAPIFramework Framework of the structWSF PHP API library */
+/*! @ingroup OSFPHPAPIFramework Framework of the OSF PHP API library */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\framework\Resultset.php
+/*! @file \StructuredDynamics\osf\framework\Resultset.php
     @brief An internal Resultset class
 
 */
 
 
-namespace StructuredDynamics\structwsf\framework;
+namespace StructuredDynamics\osf\framework;
 
 use \SimpleXMLElement;
 
-use \StructuredDynamics\structwsf\framework\Namespaces;
-use \StructuredDynamics\structwsf\ws\converter\irjson\ConverterIrJSON;
-use \StructuredDynamics\structwsf\ws\converter\irjson\Dataset;
-use \StructuredDynamics\structwsf\ws\converter\irjson\InstanceRecord;
-use \StructuredDynamics\structwsf\ws\converter\irjson\irJSONParser;
-use \StructuredDynamics\structwsf\ws\converter\irjson\LinkageSchema;
-use \StructuredDynamics\structwsf\ws\converter\irjson\StructureSchema;
-use \StructuredDynamics\structwsf\ws\converter\common\CommonParser;
-use \StructuredDynamics\structwsf\ws\converter\common\ConverterCommON;
+use \StructuredDynamics\osf\framework\Namespaces;
+use \StructuredDynamics\osf\ws\converter\irjson\ConverterIrJSON;
+use \StructuredDynamics\osf\ws\converter\irjson\Dataset;
+use \StructuredDynamics\osf\ws\converter\irjson\InstanceRecord;
+use \StructuredDynamics\osf\ws\converter\irjson\irJSONParser;
+use \StructuredDynamics\osf\ws\converter\irjson\LinkageSchema;
+use \StructuredDynamics\osf\ws\converter\irjson\StructureSchema;
+use \StructuredDynamics\osf\ws\converter\common\CommonParser;
+use \StructuredDynamics\osf\ws\converter\common\ConverterCommON;
 
 
 /** 
-* Internal Resultset representation of structWSF results
+* Internal Resultset representation of OSF results
 * 
 * @author Frederick Giasson, Structured Dynamics LLC.
 */
@@ -33,14 +33,14 @@ use \StructuredDynamics\structwsf\ws\converter\common\ConverterCommON;
 class Resultset
 {
   /** 
-  *    @page internalResultsetStructures Internal Resultset Structures used in structWSF web services.
+  *    @page internalResultsetStructures Internal Resultset Structures used in OSF web services.
   *
   *    @section theInternalStructure The Structure
   *
-  *    Every structWSF web service endpoint that returns a resultset uses this internal array structure
+  *    Every OSF web service endpoint that returns a resultset uses this internal array structure
   *    to represent the resultset to serialize and return to the user. This structure is used to
   *    generate the resultset using the structXML format. It is this structXML serialization that is used
-  *    to exchange data between structWSF web services in a pipeline of web services, or used to convert
+  *    to exchange data between OSF web services in a pipeline of web services, or used to convert
   *    the data into different other serializations.
   *
   *    Each web service interface should comply with this internal resultset array structure.
@@ -106,8 +106,8 @@ class Resultset
   /** Number of new prefixes that have been added to the list of prefixes */
   private $newPrefixesCounter = 0;                       
   
-  /** Folder where the structWSF instance is installed */
-  private $wsf_base_path = "/usr/share/structwsf";
+  /** Folder where the OSF instance is installed */
+  private $wsf_base_path = "/usr/share/osf";
   
   /** 
   * Namespaces object instance 
@@ -119,11 +119,11 @@ class Resultset
   /**
   * Constructor
   *    
-  * @param mixed $wsf_base_path Path where the structWSF instance is installed on the server
+  * @param mixed $wsf_base_path Path where the OSF instance is installed on the server
   * 
   * @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($wsf_base_path = "/usr/share/structwsf/") 
+  function __construct($wsf_base_path = "/usr/share/osf/") 
   { 
     $this->namespaces = new Namespaces();
     
@@ -142,7 +142,7 @@ class Resultset
   */
   public function addSubject($subject, $dataset = "")
   {
-    if(get_class($subject) == 'StructuredDynamics\structwsf\framework\Subject')
+    if(get_class($subject) == 'StructuredDynamics\osf\framework\Subject')
     {
       if($dataset == "")
       {
@@ -516,9 +516,9 @@ class Resultset
   } 
   
   /**
-  * Convert an internal structWSF resultset array structure in structXML 
+  * Convert an internal OSF resultset array structure in structXML 
   *    
-  * @return a structWSF document
+  * @return a OSF document
   *   
   * @author Frederick Giasson, Structured Dynamics LLC.
   */  
@@ -678,9 +678,9 @@ class Resultset
   } 
   
   /** 
-  * Convert an internal structWSF resultset array structure in structJSON 
+  * Convert an internal OSF resultset array structure in structJSON 
   *    
-  * @return a structWSF document in JSON
+  * @return a OSF document in JSON
   *    
   * @author Frederick Giasson, Structured Dynamics LLC.
   */  
@@ -960,9 +960,9 @@ class Resultset
   } 
   
   /**
-  * Convert an internal structWSF resultset array structure in irON JSON 
+  * Convert an internal OSF resultset array structure in irON JSON 
   *    
-  * @return a structWSF document in irON JSON 
+  * @return a OSF document in irON JSON 
   *    
   * @author Frederick Giasson, Structured Dynamics LLC.
   */   
@@ -992,9 +992,9 @@ class Resultset
   }
 
   /** 
-  * Convert an internal structWSF resultset array structure in irON commON 
+  * Convert an internal OSF resultset array structure in irON commON 
   *    
-  * @return a structWSF document in irON commON 
+  * @return a OSF document in irON commON 
   *   
   * @author Frederick Giasson, Structured Dynamics LLC.
   */     
@@ -1024,7 +1024,7 @@ class Resultset
   }  
   
   /** 
-  * Convert an internal structWSF resultset array structure in RDF+XML
+  * Convert an internal OSF resultset array structure in RDF+XML
   *    
   * @return a RDF+XML document
   *    
@@ -1202,7 +1202,7 @@ class Resultset
   }
   
   /**
-  * Convert an internal structWSF resultset array structure in RDF+N3
+  * Convert an internal OSF resultset array structure in RDF+N3
   *    
   * @return a RDF+N3 document
   *    

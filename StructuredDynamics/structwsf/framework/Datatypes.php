@@ -1,14 +1,14 @@
 <?php
 
-/*! @ingroup StructWSFPHPAPIFramework Framework of the structWSF PHP API library */
+/*! @ingroup OSFPHPAPIFramework Framework of the OSF PHP API library */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\framework\Datatypes.php
+/*! @file \StructuredDynamics\osf\framework\Datatypes.php
     @brief An internal Resultset class
 
 */
 
-namespace StructuredDynamics\structwsf\framework;
+namespace StructuredDynamics\osf\framework;
 
 class Datatypes
 {

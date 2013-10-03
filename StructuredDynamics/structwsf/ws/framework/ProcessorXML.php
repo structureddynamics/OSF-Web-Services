@@ -3,16 +3,16 @@
 /** @defgroup WsFramework Framework for the Web Services */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\framework\ProcessorXML.php
+/*! @file \StructuredDynamics\osf\ws\framework\ProcessorXML.php
     @brief This class handle the creationg and reading of a WSF Web Services internal XML data.
 */
 
-namespace StructuredDynamics\structwsf\ws\framework; 
+namespace StructuredDynamics\osf\ws\framework; 
 
 use \DOMDocument;
 use \DOMXPath;
 
-/** Manipulate structWSF internal XML resultset data resultsets
+/** Manipulate OSF internal XML resultset data resultsets
 
     @return returns NULL
 

@@ -3,13 +3,13 @@
 /*! @ingroup WsOntology Ontology Management Web Service  */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\ontology\create\index.php
+/*! @file \StructuredDynamics\osf\ws\ontology\create\index.php
     @brief Entry point of a query for the Ontology Create web service
  */
  
 include_once("../../../../SplClassLoader.php");   
  
-use \StructuredDynamics\structwsf\ws\ontology\create\OntologyCreate;
+use \StructuredDynamics\osf\ws\ontology\create\OntologyCreate;
 
 // Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
 ini_set("display_errors", "Off"); 
@@ -47,7 +47,7 @@ if(isset($_POST['uri']))
 }
 
 // If this parameter is set, the Ontology Create web service endpoint will index
-// the ontology in the normal structWSF data stores. That way, the ontology
+// the ontology in the normal OSF data stores. That way, the ontology
 // will also become queryable via the standard services such as Search and Browse.
 $advancedIndexation = FALSE;
 

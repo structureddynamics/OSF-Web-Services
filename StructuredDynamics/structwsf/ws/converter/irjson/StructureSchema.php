@@ -3,11 +3,11 @@
 /*! @ingroup WsConverterIrJSON */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\converter\irjson\StructureSchema.php
+/*! @file \StructuredDynamics\osf\ws\converter\irjson\StructureSchema.php
     @brief Define an linkage schema item
  */
 
-namespace StructuredDynamics\structwsf\ws\converter\irjson;  
+namespace StructuredDynamics\osf\ws\converter\irjson;  
 
 /** Structure Schema item description
 

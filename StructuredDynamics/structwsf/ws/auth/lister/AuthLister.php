@@ -3,22 +3,22 @@
 /** @defgroup WsAuth Authentication / Registration Web Service */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\auth\lister\AuthLister.php
+/*! @file \StructuredDynamics\osf\ws\auth\lister\AuthLister.php
     @brief Lists registered web services and available datasets
  */
 
-namespace StructuredDynamics\structwsf\ws\auth\lister;  
+namespace StructuredDynamics\osf\ws\auth\lister;  
 
-use \StructuredDynamics\structwsf\ws\framework\DBVirtuoso; 
-use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
-use \StructuredDynamics\structwsf\ws\framework\Conneg;
+use \StructuredDynamics\osf\ws\framework\DBVirtuoso; 
+use \StructuredDynamics\osf\ws\framework\CrudUsage;
+use \StructuredDynamics\osf\ws\framework\Conneg;
 
 /** AuthLister Web Service. It lists registered web services and available dataset
             
     @author Frederick Giasson, Structured Dynamics LLC.
 */
 
-class AuthLister extends \StructuredDynamics\structwsf\ws\framework\WebService
+class AuthLister extends \StructuredDynamics\osf\ws\framework\WebService
 {
   /** Database connection */
   private $db;
@@ -422,7 +422,7 @@ class AuthLister extends \StructuredDynamics\structwsf\ws\framework\WebService
     
     if($class != "")
     {    
-      $class = 'StructuredDynamics\structwsf\ws\auth\lister\interfaces\\'.$class;
+      $class = 'StructuredDynamics\osf\ws\auth\lister\interfaces\\'.$class;
       
       $interface = new $class($this);
       

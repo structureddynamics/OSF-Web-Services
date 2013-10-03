@@ -3,15 +3,15 @@
 /** @defgroup WsFramework Framework for the Web Services */
 //@{
 
-/**@file \StructuredDynamics\structwsf\ws\framework\SourceInterface.php
+/**@file \StructuredDynamics\osf\ws\framework\SourceInterface.php
    @brief The SourceInterface abstract class.
 */
 
-  namespace StructuredDynamics\structwsf\ws\framework; 
+  namespace StructuredDynamics\osf\ws\framework; 
 
   /**
   * This is the abstract class that define a source interface of any web service endpoint
-  * part of the structWSF web services framework.
+  * part of the OSF web services framework.
   * 
   * A "source interface" is a block of code that is executed if a valid query has been
   * sent to any web service endpoint of the framework. This "block of code" is what define
@@ -27,11 +27,11 @@
   *   (1) Source interfaces that return a resultset. The returned resultset is a set of one, or 
   *       multiple records' descriptions. Such a source interface could be querying the Solr
   *       web service endpoint for the Crud: Read or Search web service endpoints.
-  *   (2) Source interfaces that perform some action within structWSF but that doesn't return any
+  *   (2) Source interfaces that perform some action within OSF but that doesn't return any
   *       resultset. Such a source interface could create a new record in Virtyoso & Solr such as
   *       the Crud: Create web service endpoint.
   * 
-  * Each web service endpoint in the structWSF framework has a DefaultSourceInterface defined.
+  * Each web service endpoint in the OSF framework has a DefaultSourceInterface defined.
   * This default source interface is the default behavior of each web service endpoint. The
   * behavior of a web service endpoint can be modified by creating new source interfaces.
   * 

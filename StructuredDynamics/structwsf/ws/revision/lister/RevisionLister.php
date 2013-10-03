@@ -3,22 +3,22 @@
 /** @defgroup WsRevision Revisioning Web Service */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\revision\lister\RevisionLister.php
+/*! @file \StructuredDynamics\osf\ws\revision\lister\RevisionLister.php
     @brief List all the revisions existing for a record.
  */
 
-namespace StructuredDynamics\structwsf\ws\revision\lister;  
+namespace StructuredDynamics\osf\ws\revision\lister;  
 
-use \StructuredDynamics\structwsf\ws\framework\DBVirtuoso; 
-use \StructuredDynamics\structwsf\ws\framework\Conneg;
-use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
+use \StructuredDynamics\osf\ws\framework\DBVirtuoso; 
+use \StructuredDynamics\osf\ws\framework\Conneg;
+use \StructuredDynamics\osf\ws\framework\CrudUsage;
 
 /** RevisionLister Web Service. List all the revisions existing for a record.
             
     @author Frederick Giasson, Structured Dynamics LLC.
 */
 
-class RevisionLister extends \StructuredDynamics\structwsf\ws\framework\WebService
+class RevisionLister extends \StructuredDynamics\osf\ws\framework\WebService
 {
   /** Database connection */
   private $db;
@@ -351,7 +351,7 @@ class RevisionLister extends \StructuredDynamics\structwsf\ws\framework\WebServi
     
     if($class != "")
     {    
-      $class = 'StructuredDynamics\structwsf\ws\revision\lister\interfaces\\'.$class;
+      $class = 'StructuredDynamics\osf\ws\revision\lister\interfaces\\'.$class;
       
       $interface = new $class($this);
       

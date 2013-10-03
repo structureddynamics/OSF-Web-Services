@@ -3,22 +3,22 @@
 /** @defgroup WsDataset Dataset Management Web Service  */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\dataset\update\DatasetUpdate.php
+/*! @file \StructuredDynamics\osf\ws\dataset\update\DatasetUpdate.php
     @brief Update a new graph for this dataset & indexation of its description
  */
 
-namespace StructuredDynamics\structwsf\ws\dataset\update; 
+namespace StructuredDynamics\osf\ws\dataset\update; 
 
-use \StructuredDynamics\structwsf\ws\framework\DBVirtuoso; 
-use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
-use \StructuredDynamics\structwsf\ws\framework\Conneg;
+use \StructuredDynamics\osf\ws\framework\DBVirtuoso; 
+use \StructuredDynamics\osf\ws\framework\CrudUsage;
+use \StructuredDynamics\osf\ws\framework\Conneg;
 
-/** Dataset Update Web Service. It updates description of dataset of the structWSF instance.
+/** Dataset Update Web Service. It updates description of dataset of the OSF instance.
 
     @author Frederick Giasson, Structured Dynamics LLC.
 */
 
-class DatasetUpdate extends \StructuredDynamics\structwsf\ws\framework\WebService
+class DatasetUpdate extends \StructuredDynamics\osf\ws\framework\WebService
 {
   /** Database connection */
   private $db;
@@ -217,12 +217,12 @@ class DatasetUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServic
 
   /** Validate a query to this web service
       
-      If a user wants to update information about a dataset on a given structWSF web service endpoint,
+      If a user wants to update information about a dataset on a given OSF web service endpoint,
       he has to have access to the "http://.../wsf/datasets/" graph with Update privileges, or to have
       Update privileges on the dataset URI itself. If the users doesn't have these permissions, 
       then he won't be able to update the description of the dataset on that instance.
       
-      By default, the administrators, and the creator of the dataset, have such an access on a structWSF instance. 
+      By default, the administrators, and the creator of the dataset, have such an access on a OSF instance. 
       However a system administrator can choose to make the "http://.../wsf/datasets/" world updatable,
       which would mean that anybody could update information about the datasets on the instance.      
 
@@ -454,7 +454,7 @@ class DatasetUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServic
     
     if($class != "")
     {    
-      $class = 'StructuredDynamics\structwsf\ws\dataset\update\interfaces\\'.$class;
+      $class = 'StructuredDynamics\osf\ws\dataset\update\interfaces\\'.$class;
       
       $interface = new $class($this);
       

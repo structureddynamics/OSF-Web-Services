@@ -1,12 +1,12 @@
 <?php
   
-  namespace StructuredDynamics\structwsf\ws\revision\diff\interfaces; 
+  namespace StructuredDynamics\osf\ws\revision\diff\interfaces; 
   
-  use \StructuredDynamics\structwsf\ws\framework\SourceInterface;
-  use \StructuredDynamics\structwsf\framework\Subject;
-  use \StructuredDynamics\structwsf\framework\Resultset;
-  use \StructuredDynamics\structwsf\framework\Namespaces;
-  use \StructuredDynamics\structwsf\ws\revision\read\RevisionRead;
+  use \StructuredDynamics\osf\ws\framework\SourceInterface;
+  use \StructuredDynamics\osf\framework\Subject;
+  use \StructuredDynamics\osf\framework\Resultset;
+  use \StructuredDynamics\osf\framework\Namespaces;
+  use \StructuredDynamics\osf\ws\revision\read\RevisionRead;
   
   class DefaultSourceInterface extends SourceInterface
   {

@@ -3,13 +3,13 @@
 /*! @ingroup WsDataset Dataset Management Web Service  */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\dataset\create\index.php
+/*! @file \StructuredDynamics\osf\ws\dataset\create\index.php
     @brief Entry point of a query for the Dataset Create web service
  */
  
 include_once("../../../../SplClassLoader.php");   
 
-use \StructuredDynamics\structwsf\ws\dataset\create\DatasetCreate;
+use \StructuredDynamics\osf\ws\dataset\create\DatasetCreate;
  
 // Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
 ini_set("display_errors", "Off"); 

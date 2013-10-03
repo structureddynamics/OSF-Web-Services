@@ -3,15 +3,15 @@
 /** @defgroup WsRevision Revisioning Web Service */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\revision\delete\RevisionDelete.php
+/*! @file \StructuredDynamics\osf\ws\revision\delete\RevisionDelete.php
     @brief Delete a specific revision of a record.
  */
 
-namespace StructuredDynamics\structwsf\ws\revision\delete;  
+namespace StructuredDynamics\osf\ws\revision\delete;  
 
-use \StructuredDynamics\structwsf\ws\framework\DBVirtuoso; 
-use \StructuredDynamics\structwsf\ws\framework\Conneg;
-use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
+use \StructuredDynamics\osf\ws\framework\DBVirtuoso; 
+use \StructuredDynamics\osf\ws\framework\Conneg;
+use \StructuredDynamics\osf\ws\framework\CrudUsage;
 
 /** RevisionDelete Web Service. Delete a specific revision of a record. It cannot delete a 
     published revision. If a published revision needs to be deleted, then it needs to be 
@@ -20,7 +20,7 @@ use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
     @author Frederick Giasson, Structured Dynamics LLC.
 */
 
-class RevisionDelete extends \StructuredDynamics\structwsf\ws\framework\WebService
+class RevisionDelete extends \StructuredDynamics\osf\ws\framework\WebService
 {
   /** Database connection */
   private $db;
@@ -345,7 +345,7 @@ class RevisionDelete extends \StructuredDynamics\structwsf\ws\framework\WebServi
     
     if($class != "")
     {    
-      $class = 'StructuredDynamics\structwsf\ws\revision\delete\interfaces\\'.$class;
+      $class = 'StructuredDynamics\osf\ws\revision\delete\interfaces\\'.$class;
       
       $interface = new $class($this);
       

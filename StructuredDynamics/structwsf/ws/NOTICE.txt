@@ -2,23 +2,23 @@
 == Notice of Attribution for the Apache License, Version 2.0 ==
 ===============================================================
 
-structWSF, a Web services framework for structured data.
+OSF, a Web services framework for structured data.
 Copyright 2008-2011. Structured Dynamics LLC.
 
-structWSF is one of the contributing components to the
+OSF is one of the contributing components to the
 Open Semantic Framework (OSF); see http://openstructs.org.
-Additional technical documentation for structWSF and its
+Additional technical documentation for OSF and its
 related OSF components is available at
 http://techwiki.openstructs.org.
 
 This product includes software developed by
 Structured Dynamics LLC (http://structureddynamics.com/).
 
-Specifically, this product is based on the structWSF Web services
+Specifically, this product is based on the OSF Web services
 framework provided under Apache 2 License by Structured Dynamics.
 The original software is available from
 
-As presently distributed, the structWSF framework also provides hooks
+As presently distributed, the OSF framework also provides hooks
 to these required software packages:
 
 -- OpenLink Software Virtuoso open source (VOS) server, provided under

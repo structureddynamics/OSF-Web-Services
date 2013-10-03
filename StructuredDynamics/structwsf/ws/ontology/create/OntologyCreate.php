@@ -3,23 +3,23 @@
 /** @defgroup WsOntology Ontology Management Web Service */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\ontology\create\OntologyCreate.php
-    @brief Add/Import a new ontology into the ontological structure of a structWSF network instance.
+/*! @file \StructuredDynamics\osf\ws\ontology\create\OntologyCreate.php
+    @brief Add/Import a new ontology into the ontological structure of a OSF network instance.
  */
 
-namespace StructuredDynamics\structwsf\ws\ontology\create; 
+namespace StructuredDynamics\osf\ws\ontology\create; 
 
-use \StructuredDynamics\structwsf\ws\framework\DBVirtuoso; 
-use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
-use \StructuredDynamics\structwsf\ws\framework\Conneg;
-use \StructuredDynamics\structwsf\framework\Namespaces;
+use \StructuredDynamics\osf\ws\framework\DBVirtuoso; 
+use \StructuredDynamics\osf\ws\framework\CrudUsage;
+use \StructuredDynamics\osf\ws\framework\Conneg;
+use \StructuredDynamics\osf\framework\Namespaces;
 
-/** Add/Import a new ontology into the ontological structure of a structWSF network instance.
+/** Add/Import a new ontology into the ontological structure of a OSF network instance.
 
     @author Frederick Giasson, Structured Dynamics LLC.
 */
 
-class OntologyCreate extends \StructuredDynamics\structwsf\ws\framework\WebService
+class OntologyCreate extends \StructuredDynamics\osf\ws\framework\WebService
 {
   /** Database connection */
   private $db;
@@ -39,7 +39,7 @@ class OntologyCreate extends \StructuredDynamics\structwsf\ws\framework\WebServi
   private $rulesSetURI = "";
 
   /** If this parameter is set, the Ontology Create web service endpoint will index
-             the ontology in the normal structWSF data stores. That way, the ontology
+             the ontology in the normal OSF data stores. That way, the ontology
              will also become queryable via the standard services such as Search and Browse.
   */
   private $advancedIndexation = FALSE;
@@ -334,7 +334,7 @@ class OntologyCreate extends \StructuredDynamics\structwsf\ws\framework\WebServi
     
     if($class != "")
     {    
-      $class = 'StructuredDynamics\structwsf\ws\ontology\create\interfaces\\'.$class;
+      $class = 'StructuredDynamics\osf\ws\ontology\create\interfaces\\'.$class;
       
       $interface = new $class($this);
       

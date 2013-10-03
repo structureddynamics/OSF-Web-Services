@@ -3,7 +3,7 @@
 /** @defgroup WsOntology Ontology Management Web Service */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\ontology\admin\destroy.php
+/*! @file \StructuredDynamics\osf\ws\ontology\admin\destroy.php
     @brief Destroy all the OWLAPI instances in tomcat.
     
     If this script is ran, no ontologies will be loaded anymore. You would have to reload all the 
@@ -11,7 +11,7 @@
     Apache settings so that not everybody has access to it.
  */
 
-  use \StructuredDynamics\structwsf\ws\framework\WebService;
+  use \StructuredDynamics\osf\ws\framework\WebService;
  
   /*
       This script destroy the OWLAPI session.

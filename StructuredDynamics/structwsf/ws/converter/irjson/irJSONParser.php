@@ -4,16 +4,16 @@
 //@{
 
 
-/*! @file \StructuredDynamics\structwsf\ws\converter\irjson\irJSONParser.php
+/*! @file \StructuredDynamics\osf\ws\converter\irjson\irJSONParser.php
    @brief Parse a json item
  */
 
-namespace StructuredDynamics\structwsf\ws\converter\irjson;  
+namespace StructuredDynamics\osf\ws\converter\irjson;  
 
-use \StructuredDynamics\structwsf\ws\converter\irjson\Dataset;
-use \StructuredDynamics\structwsf\ws\converter\irjson\StructureSchema;
-use \StructuredDynamics\structwsf\ws\converter\irjson\LinkageSchema;
-use \StructuredDynamics\structwsf\ws\converter\irjson\InstanceRecord;
+use \StructuredDynamics\osf\ws\converter\irjson\Dataset;
+use \StructuredDynamics\osf\ws\converter\irjson\StructureSchema;
+use \StructuredDynamics\osf\ws\converter\irjson\LinkageSchema;
+use \StructuredDynamics\osf\ws\converter\irjson\InstanceRecord;
 
 /** JSON parsing class
 

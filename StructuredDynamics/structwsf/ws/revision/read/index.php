@@ -3,13 +3,13 @@
 /*! @ingroup WsRevision Revisioning Web Service   */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\revision\read\index.php
+/*! @file \StructuredDynamics\osf\ws\revision\read\index.php
     @brief Entry point of a query for the Revision: Read web service
  */
  
 include_once("../../../../SplClassLoader.php"); 
   
-use \StructuredDynamics\structwsf\ws\revision\read\RevisionRead;
+use \StructuredDynamics\osf\ws\revision\read\RevisionRead;
  
 // Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
 ini_set("display_errors", "Off"); 

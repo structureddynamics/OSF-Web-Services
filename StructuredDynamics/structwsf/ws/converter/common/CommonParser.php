@@ -4,7 +4,7 @@
    @brief commON parser implementation file
 */
 
-namespace StructuredDynamics\structwsf\ws\converter\common; 
+namespace StructuredDynamics\osf\ws\converter\common; 
 
 /** commON serialization parsing class. This class will parse a commON CSV file and 
     parse it to extract commON instance records.

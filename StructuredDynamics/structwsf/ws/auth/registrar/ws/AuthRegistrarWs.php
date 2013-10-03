@@ -3,22 +3,22 @@
 /*! @ingroup WsAuth Authentication / Registration Web Service */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\auth\registrar\ws\AuthRegistrarWs.php
+/*! @file \StructuredDynamics\osf\ws\auth\registrar\ws\AuthRegistrarWs.php
     @brief Define the Authentication / Registration web service
  */
 
-namespace StructuredDynamics\structwsf\ws\auth\registrar\ws;   
+namespace StructuredDynamics\osf\ws\auth\registrar\ws;   
 
-use \StructuredDynamics\structwsf\ws\framework\DBVirtuoso; 
-use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
-use \StructuredDynamics\structwsf\ws\framework\Conneg;
+use \StructuredDynamics\osf\ws\framework\DBVirtuoso; 
+use \StructuredDynamics\osf\ws\framework\CrudUsage;
+use \StructuredDynamics\osf\ws\framework\Conneg;
 
-/** AuthRegister WS Web Service. It registers a Web Service endpoint on the structWSF instance
+/** AuthRegister WS Web Service. It registers a Web Service endpoint on the OSF instance
 
     @author Frederick Giasson, Structured Dynamics LLC.
 */
 
-class AuthRegistrarWs extends \StructuredDynamics\structwsf\ws\framework\WebService
+class AuthRegistrarWs extends \StructuredDynamics\osf\ws\framework\WebService
 {
   /** Database connection */
   private $db;
@@ -393,7 +393,7 @@ class AuthRegistrarWs extends \StructuredDynamics\structwsf\ws\framework\WebServ
   */
   public function ws_serialize() { return ""; }
    
-  /** Register a new Web Service endpoint to the structWSF instance
+  /** Register a new Web Service endpoint to the OSF instance
 
       @author Frederick Giasson, Structured Dynamics LLC.
   */
@@ -404,7 +404,7 @@ class AuthRegistrarWs extends \StructuredDynamics\structwsf\ws\framework\WebServ
     
     if($class != "")
     {
-      $class = 'StructuredDynamics\structwsf\ws\auth\registrar\ws\interfaces\\'.$class;
+      $class = 'StructuredDynamics\osf\ws\auth\registrar\ws\interfaces\\'.$class;
       
       $interface = new $class($this);
       

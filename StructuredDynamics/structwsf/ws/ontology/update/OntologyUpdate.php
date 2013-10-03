@@ -3,15 +3,15 @@
 /** @defgroup WsOntology Ontology Management Web Service */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\ontology\update\OntologyUpdate.php
+/*! @file \StructuredDynamics\osf\ws\ontology\update\OntologyUpdate.php
     @brief Update an ontology
  */
 
-namespace StructuredDynamics\structwsf\ws\ontology\update; 
+namespace StructuredDynamics\osf\ws\ontology\update; 
 
-use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
-use \StructuredDynamics\structwsf\ws\framework\Conneg;
-use \StructuredDynamics\structwsf\framework\Namespaces;
+use \StructuredDynamics\osf\ws\framework\CrudUsage;
+use \StructuredDynamics\osf\ws\framework\Conneg;
+use \StructuredDynamics\osf\framework\Namespaces;
 
 /** Update an ontology. Update any resource of an ontology. It may be a class, 
     object property, datatype property, annotation property or instances. Updating 
@@ -20,7 +20,7 @@ use \StructuredDynamics\structwsf\framework\Namespaces;
     @author Frederick Giasson, Structured Dynamics LLC.
 */
 
-class OntologyUpdate extends \StructuredDynamics\structwsf\ws\framework\WebService
+class OntologyUpdate extends \StructuredDynamics\osf\ws\framework\WebService
 {
   /** URL where the DTD of the XML document can be located on the Web */
   private $dtdURL;
@@ -407,7 +407,7 @@ class OntologyUpdate extends \StructuredDynamics\structwsf\ws\framework\WebServi
     
     if($class != "")
     {    
-      $class = 'StructuredDynamics\structwsf\ws\ontology\update\interfaces\\'.$class;
+      $class = 'StructuredDynamics\osf\ws\ontology\update\interfaces\\'.$class;
       
       $interface = new $class($this);
       

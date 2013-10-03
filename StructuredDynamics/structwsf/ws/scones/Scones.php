@@ -3,22 +3,22 @@
 /*! @ingroup WsScones */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\scones\Scones.php
+/*! @file \StructuredDynamics\osf\ws\scones\Scones.php
     @brief Define the Scones web service
  */
 
-namespace StructuredDynamics\structwsf\ws\scones; 
+namespace StructuredDynamics\osf\ws\scones; 
 
 use \SimpleXMLElement;
-use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
-use \StructuredDynamics\structwsf\ws\framework\Conneg;
+use \StructuredDynamics\osf\ws\framework\CrudUsage;
+use \StructuredDynamics\osf\ws\framework\Conneg;
 
 /** Scones Web Service. It tags a corpus of texts with related concepts and named entities.
 
     @author Frederick Giasson, Structured Dynamics LLC.
 */
 
-class Scones extends \StructuredDynamics\structwsf\ws\framework\WebService
+class Scones extends \StructuredDynamics\osf\ws\framework\WebService
 {
   /** URL where the DTD of the XML document can be located on the Web */
   private $dtdURL;
@@ -410,7 +410,7 @@ class Scones extends \StructuredDynamics\structwsf\ws\framework\WebService
     
     if($class != "")
     {    
-      $class = 'StructuredDynamics\structwsf\ws\scones\interfaces\\'.$class;
+      $class = 'StructuredDynamics\osf\ws\scones\interfaces\\'.$class;
       
       $interface = new $class($this);
       

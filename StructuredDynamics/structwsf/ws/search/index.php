@@ -3,14 +3,14 @@
 /** @defgroup WsSearch Search Web Service */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\search\index.php
+/*! @file \StructuredDynamics\osf\ws\search\index.php
     @brief Entry point of a query for the Search web service
  */
  
 // Auto-load classes
 include_once("../../../SplClassLoader.php"); 
  
-use \StructuredDynamics\structwsf\ws\search\Search;
+use \StructuredDynamics\osf\ws\search\Search;
 
 // Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
 ini_set("display_errors", "Off"); 

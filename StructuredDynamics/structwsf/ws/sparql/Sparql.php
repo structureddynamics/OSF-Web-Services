@@ -3,23 +3,23 @@
 /*! @ingroup WsSparql */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\sparql\Sparql.php
+/*! @file \StructuredDynamics\osf\ws\sparql\Sparql.php
     @brief Define the Sparql web service
  */
 
-namespace StructuredDynamics\structwsf\ws\sparql;
+namespace StructuredDynamics\osf\ws\sparql;
 
-use \StructuredDynamics\structwsf\ws\framework\DBVirtuoso; 
-use \StructuredDynamics\structwsf\ws\framework\CrudUsage;
-use \StructuredDynamics\structwsf\ws\framework\Conneg;
-use \StructuredDynamics\structwsf\framework\Namespaces;
+use \StructuredDynamics\osf\ws\framework\DBVirtuoso; 
+use \StructuredDynamics\osf\ws\framework\CrudUsage;
+use \StructuredDynamics\osf\ws\framework\Conneg;
+use \StructuredDynamics\osf\framework\Namespaces;
 
-/** SPARQL Web Service. It sends SPARQL queries to datasets indexed in the structWSF instance.
+/** SPARQL Web Service. It sends SPARQL queries to datasets indexed in the OSF instance.
 
     @author Frederick Giasson, Structured Dynamics LLC.
 */
 
-class Sparql extends \StructuredDynamics\structwsf\ws\framework\WebService
+class Sparql extends \StructuredDynamics\osf\ws\framework\WebService
 {
   /** Database connection */
   private $db;
@@ -385,7 +385,7 @@ class Sparql extends \StructuredDynamics\structwsf\ws\framework\WebService
     
     if($class != "")
     {    
-      $class = 'StructuredDynamics\structwsf\ws\sparql\interfaces\\'.$class;
+      $class = 'StructuredDynamics\osf\ws\sparql\interfaces\\'.$class;
       
       $interface = new $class($this);
       

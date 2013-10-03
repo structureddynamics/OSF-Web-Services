@@ -1,16 +1,16 @@
 <?php
   
-  namespace StructuredDynamics\structwsf\ws\crud\delete\interfaces; 
+  namespace StructuredDynamics\osf\ws\crud\delete\interfaces; 
   
-  use \StructuredDynamics\structwsf\framework\Namespaces;  
-  use \StructuredDynamics\structwsf\ws\framework\SourceInterface;
-  use \StructuredDynamics\structwsf\ws\framework\Solr;
-  use \StructuredDynamics\structwsf\ws\crud\read\CrudRead;  
-  use \StructuredDynamics\structwsf\framework\WebServiceQuerier;  
-  use \StructuredDynamics\structwsf\ws\revision\lister\RevisionLister;
-  use \StructuredDynamics\structwsf\ws\revision\delete\RevisionDelete;
-  use \StructuredDynamics\structwsf\framework\Resultset;
-  use \StructuredDynamics\structwsf\framework\Subject;
+  use \StructuredDynamics\osf\framework\Namespaces;  
+  use \StructuredDynamics\osf\ws\framework\SourceInterface;
+  use \StructuredDynamics\osf\ws\framework\Solr;
+  use \StructuredDynamics\osf\ws\crud\read\CrudRead;  
+  use \StructuredDynamics\osf\framework\WebServiceQuerier;  
+  use \StructuredDynamics\osf\ws\revision\lister\RevisionLister;
+  use \StructuredDynamics\osf\ws\revision\delete\RevisionDelete;
+  use \StructuredDynamics\osf\framework\Resultset;
+  use \StructuredDynamics\osf\framework\Subject;
   
   class DefaultSourceInterface extends SourceInterface
   {

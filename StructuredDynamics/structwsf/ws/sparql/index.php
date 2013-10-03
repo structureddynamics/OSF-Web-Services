@@ -3,13 +3,13 @@
 /** @defgroup WsSparql SPARQL Web Service */
 //@{
 
-/*! @file \StructuredDynamics\structwsf\ws\sparql\index.php
+/*! @file \StructuredDynamics\osf\ws\sparql\index.php
     @brief Entry point of a query for the SPARQL web service
  */
  
 include_once("../../../SplClassLoader.php");   
  
-use \StructuredDynamics\structwsf\ws\sparql\Sparql;
+use \StructuredDynamics\osf\ws\sparql\Sparql;
 
 // Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
 ini_set("display_errors", "Off"); 

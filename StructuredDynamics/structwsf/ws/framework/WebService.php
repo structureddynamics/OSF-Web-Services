@@ -1027,8 +1027,7 @@ abstract class WebService
   * @author Frederick Giasson, Structured Dynamics LLC.
   */
   public function validateUserAccess($datasets)
-  {
-    return(TRUE);
+  {            
     if(!is_array($datasets))
     {
       $datasets = array($datasets);

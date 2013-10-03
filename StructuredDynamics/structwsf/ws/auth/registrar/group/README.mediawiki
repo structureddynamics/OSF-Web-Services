@@ -1,0 +1,4 @@
+== Endpoint Documentation ==
+  
+[http://techwiki.openstructs.org/index.php/Auth_Registrar:_Group Auth Registrar: Group Web Service Endpoint Documentation]
+  

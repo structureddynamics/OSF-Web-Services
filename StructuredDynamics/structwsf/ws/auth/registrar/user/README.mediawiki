@@ -1,0 +1,4 @@
+== Endpoint Documentation ==
+  
+[http://techwiki.openstructs.org/index.php/Auth_Registrar:_User Auth Registrar: User Web Service Endpoint Documentation]
+  

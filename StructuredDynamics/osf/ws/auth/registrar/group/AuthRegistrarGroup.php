@@ -175,7 +175,7 @@ class AuthRegistrarGroup extends \StructuredDynamics\osf\ws\framework\WebService
     
     $this->uri = $this->wsf_base_url . "/wsf/ws/auth/registrar/group/";
     $this->title = "Authentication Group Registration Web Service";
-    $this->crud_usage = new CrudUsage(TRUE, TRUE, FALSE, FALSE);
+    $this->crud_usage = new CrudUsage(TRUE, TRUE, FALSE, TRUE);
     $this->endpoint = $this->wsf_base_url . "/ws/auth/registrar/group/";
 
     $this->errorMessenger = json_decode($this->errorMessenger);

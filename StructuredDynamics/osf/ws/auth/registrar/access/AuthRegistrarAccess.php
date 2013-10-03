@@ -244,7 +244,7 @@ class AuthRegistrarAccess extends \StructuredDynamics\osf\ws\framework\WebServic
 
     $this->uri = $this->wsf_base_url . "/wsf/ws/auth/registrar/access/";
     $this->title = "Authentication Access Registration Web Service";
-    $this->crud_usage = new CrudUsage(TRUE, TRUE, FALSE, FALSE);
+    $this->crud_usage = new CrudUsage(TRUE, TRUE, FALSE, TRUE);
     $this->endpoint = $this->wsf_base_url . "/ws/auth/registrar/access/";
 
     $this->errorMessenger = json_decode($this->errorMessenger);

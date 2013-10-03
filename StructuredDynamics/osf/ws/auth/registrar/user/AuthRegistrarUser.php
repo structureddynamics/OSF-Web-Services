@@ -181,7 +181,7 @@ class AuthRegistrarUser extends \StructuredDynamics\osf\ws\framework\WebService
     
     $this->uri = $this->wsf_base_url . "/wsf/ws/auth/registrar/user/";
     $this->title = "Authentication User Registration Web Service";
-    $this->crud_usage = new CrudUsage(TRUE, TRUE, FALSE, FALSE);
+    $this->crud_usage = new CrudUsage(TRUE, TRUE, FALSE, TRUE);
     $this->endpoint = $this->wsf_base_url . "/ws/auth/registrar/user/";
 
     $this->errorMessenger = json_decode($this->errorMessenger);

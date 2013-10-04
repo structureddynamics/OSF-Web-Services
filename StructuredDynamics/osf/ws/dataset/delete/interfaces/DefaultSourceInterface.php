@@ -3,8 +3,10 @@
   namespace StructuredDynamics\osf\ws\dataset\delete\interfaces; 
   
   use \StructuredDynamics\osf\framework\Namespaces;  
+  use \StructuredDynamics\osf\framework\Resultset;
   use \StructuredDynamics\osf\ws\framework\SourceInterface;
   use \StructuredDynamics\osf\ws\auth\registrar\access\AuthRegistrarAccess;
+  use \StructuredDynamics\osf\ws\auth\lister\AuthLister;
   use \StructuredDynamics\osf\ws\framework\Solr;
   
   
@@ -96,22 +98,59 @@
         }
 
         // Removing all accesses for this graph
-        $ws_ara = new AuthRegistrarAccess("", "", $this->ws->datasetUri, "delete_all", "", "");
+        $ws_al = new AuthLister('access_dataset', $this->ws->datasetUri, "");
 
-        $ws_ara->pipeline_conneg($this->ws->conneg->getAccept(), $this->ws->conneg->getAcceptCharset(),
+        $ws_al->pipeline_conneg($this->ws->conneg->getAccept(), $this->ws->conneg->getAcceptCharset(),
           $this->ws->conneg->getAcceptEncoding(), $this->ws->conneg->getAcceptLanguage());
 
-        $ws_ara->process();
+        $ws_al->process();
 
-        if($ws_ara->pipeline_getResponseHeaderStatus() != 200)
+        $groups = array();
+        if($ws_al->pipeline_getResponseHeaderStatus() != 200)
         {
-          $this->ws->conneg->setStatus($ws_ara->pipeline_getResponseHeaderStatus());
-          $this->ws->conneg->setStatusMsg($ws_ara->pipeline_getResponseHeaderStatusMsg());
-          $this->ws->conneg->setStatusMsgExt($ws_ara->pipeline_getResponseHeaderStatusMsgExt());
-          $this->ws->conneg->setError($ws_ara->pipeline_getError()->id, $ws_ara->pipeline_getError()->webservice,
-            $ws_ara->pipeline_getError()->name, $ws_ara->pipeline_getError()->description,
-            $ws_ara->pipeline_getError()->debugInfo, $ws_ara->pipeline_getError()->level);
+          $this->ws->conneg->setStatus($ws_al->pipeline_getResponseHeaderStatus());
+          $this->ws->conneg->setStatusMsg($ws_al->pipeline_getResponseHeaderStatusMsg());
+          $this->ws->conneg->setStatusMsgExt($ws_al->pipeline_getResponseHeaderStatusMsgExt());
+          $this->ws->conneg->setError($ws_al->pipeline_getError()->id, $ws_al->pipeline_getError()->webservice,
+            $ws_al->pipeline_getError()->name, $ws_al->pipeline_getError()->description,
+            $ws_al->pipeline_getError()->debugInfo, $ws_al->pipeline_getError()->level);
           return;
+        }
+        else
+        {
+          $resultset = new Resultset($this->wsf_base_path);
+          
+          $resultset->importStructXMLResultset($ws_al->pipeline_getResultset());
+          $resultset = $resultset->getResultset();
+          
+          if(isset($resultset['unspecified']))
+          {
+            foreach($resultset['unspecified'] as $uri => $group)
+            {
+              $groups[] = $resultset['unspecified'][$uri]['http://purl.org/ontology/wsf#groupAccess']['0']['uri'];
+            }
+          }
+        }
+
+        foreach($groups as $groupURI)
+        {
+          $ws_ara = new AuthRegistrarAccess("", "", $this->ws->datasetUri, "delete_all", "", $groupURI);
+
+          $ws_ara->pipeline_conneg($this->ws->conneg->getAccept(), $this->ws->conneg->getAcceptCharset(),
+            $this->ws->conneg->getAcceptEncoding(), $this->ws->conneg->getAcceptLanguage());
+
+          $ws_ara->process();
+
+          if($ws_ara->pipeline_getResponseHeaderStatus() != 200)
+          {
+            $this->ws->conneg->setStatus($ws_ara->pipeline_getResponseHeaderStatus());
+            $this->ws->conneg->setStatusMsg($ws_ara->pipeline_getResponseHeaderStatusMsg());
+            $this->ws->conneg->setStatusMsgExt($ws_ara->pipeline_getResponseHeaderStatusMsgExt());
+            $this->ws->conneg->setError($ws_ara->pipeline_getError()->id, $ws_ara->pipeline_getError()->webservice,
+              $ws_ara->pipeline_getError()->name, $ws_ara->pipeline_getError()->description,
+              $ws_ara->pipeline_getError()->debugInfo, $ws_ara->pipeline_getError()->level);
+            return;
+          }
         }
 
         // Drop the entire graph

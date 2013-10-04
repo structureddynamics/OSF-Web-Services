@@ -12,7 +12,6 @@ namespace StructuredDynamics\osf\ws\framework;
 use \DOMDocument;
 use \DOMXPath;
 use \StructuredDynamics\osf\ws\framework\ProcessorXML;
-use \StructuredDynamics\osf\ws\framework\DBVirtuoso;
 use \StructuredDynamics\osf\ws\framework\WebService;
  
 /** Query the Solr server.
@@ -286,103 +285,6 @@ class Solr
 
     return ($adds);
   }
-
-  /*
-  public function createUpdateSolrDocument($solrDocument)
-  {
-    if($solrDocument->uri == "")
-    {
-      return(FALSE);
-    }
-    
-    // If there is no "inferred_type" defined for this solrDocument, we try to find some.
-    if(count($solrDocument->inferredTypes) <= 0)
-    {
-      include_once("ontologies/classHierarchySerialized.php");  
-      
-      foreach($solrDocument->types as $type)
-      {
-        $superClasses = $classHierarchy->getSuperClasses($type);
-
-        foreach($superClasses as $sc)
-        {
-          $solrDocument->addInferredType($sc->name);
-        }
-      }      
-    }
-    
-    // If there is no object_property/object_label pairs defined for this document; we try to find some.
-    if(count($solrDocument->objectPropertiesLabels) <= 0)
-    {
-      global $dbUsername, $dbPassword, $dbDSN, $dbHost;
-      global $base_url;
-
-      $osf_ini = parse_ini_file(WebService::$osf_ini."osf.ini", TRUE);    
-  
-      $this->db = new DBVirtuoso($osf_ini["triplestore"]["username"], $osf_ini["triplestore"]["password"], $osf_ini["triplestore"]["dsn"], $osf_ini["triplestore"]["host"]);
-
-
-      $db = new DBVirtuoso($dbUsername, $dbPassword, $dbDSN, $dbHost);  
-      
-      $query = $db->build_sparql_query("select ?p ?o (str(DATATYPE(?o))) as ?otype from <".get_domain($base_url)."/data/core/> where {<".$solrDocument->uri."> ?p ?o.}", array ('p', 'o', 'otype'), FALSE);
-
-      $resultset = $db->query($query);
-      
-      while(odbc_fetch_row($resultset))
-      {
-        $property = odbc_result($resultset, 1);
-        $object = odbc_result($resultset, 2);
-        $otype = odbc_result($resultset, 3);
-        
-        if($otype == "" && strpos($property, "http://www.w3.org/1999/02/22-rdf-syntax-ns#") === FALSE && strpos($property, "http://www.w3.org/2000/01/rdf-schema#") === FALSE && strpos($property, "http://www.w3.org/2002/07/owl#") === FALSE)
-        {
-          $query = $db->build_sparql_query("select ?p ?o from <".get_domain($base_url)."/data/core/> where {<$object> ?p ?o.}", array ('p', 'o'), FALSE);
-      
-          $resultset2 = $db->query($query);
-          
-          $subjectTriples = array();
-          
-          while(odbc_fetch_row($resultset2))
-          {
-            $p = odbc_result($resultset2, 1);
-            $o = odbc_result($resultset2, 2);
-            
-            if(!isset($subjectTriples[$p]))
-            {
-              $subjectTriples[$p] = array();
-            }
-            
-            array_push($subjectTriples[$p], $o);
-          }
-          
-          unset($resultset2);
-  
-          $labels = "";
-          foreach($labelProperties as $property)
-          {
-            if(isset($subjectTriples[$property]))
-            {
-              $labels = $subjectTriples[$property][0]." ";
-            }
-          }
-          
-          if($labels != "")
-          {
-            $solrDocument->addObjectPropertyLabel(array($property, $labels));
-          }
-          else
-          {
-            $solrDocument->addObjectPropertyLabel(array($property, "-"));
-          }
-        }
-      }
-      
-      unset($resultset);      
-      
-      $db->close();
-      $this->update("<add>".$solrDocument->serializeSolrDocument()."</add>");
-    }    
-  }  */
 
   /** Encode content to be included in XML files
 

@@ -9,7 +9,6 @@
 
 namespace StructuredDynamics\osf\ws\auth\registrar\user;   
 
-use \StructuredDynamics\osf\ws\framework\DBVirtuoso; 
 use \StructuredDynamics\osf\ws\framework\CrudUsage;
 use \StructuredDynamics\osf\ws\framework\Conneg;
 
@@ -20,9 +19,6 @@ use \StructuredDynamics\osf\ws\framework\Conneg;
 
 class AuthRegistrarUser extends \StructuredDynamics\osf\ws\framework\WebService
 {
-  /** Database connection */
-  private $db;
-
   /** URL where the DTD of the XML document can be located on the Web */
   private $dtdURL;
 
@@ -71,7 +67,7 @@ class AuthRegistrarUser extends \StructuredDynamics\osf\ws\framework\WebService
                           "name": "Unexisting group",
                           "description": "The group where you are trying to register the user is unexisting."
                         },         
-                        "_204": {
+                        "_205": {
                           "id": "WS-AUTH-REGISTRAR-USER-205",
                           "level": "Fatal",
                           "name": "Unexisting action",
@@ -162,8 +158,6 @@ class AuthRegistrarUser extends \StructuredDynamics\osf\ws\framework\WebService
     
     $this->version = "3.0";
 
-    $this->db = new DBVirtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
-
     $this->user_uri = $user_uri;
     $this->group_uri = $group_uri;
     $this->action = $action;
@@ -209,7 +203,7 @@ class AuthRegistrarUser extends \StructuredDynamics\osf\ws\framework\WebService
   { 
     if($this->validateUserAccess($this->wsf_graph))
     {
-      if($this->action !== 'join' & $action !== 'leave')
+      if($this->action !== 'join' && $this->action !== 'leave')
       {
         $this->conneg->setStatus(400);
         $this->conneg->setStatusMsg("Bad Request");
@@ -286,43 +280,46 @@ class AuthRegistrarUser extends \StructuredDynamics\osf\ws\framework\WebService
       unset($resultset);      
       
       // Check if the user is already registered to that group
-      $resultset = $this->db->query($this->db->build_sparql_query("
-        select ?type
-        from <" . $this->wsf_graph. "> 
-        where 
-        {
-          <". $this->user_uri ."> a ?type ;
-                                  <http://purl.org/ontology/wsf#hasGroup>  <". $this->group_uri ."> .
-                                   
-        }",
-        array ('type'), FALSE));
-
-      if(odbc_error())
+      if($this->action == 'join')
       {
-        $this->conneg->setStatus(500);
-        $this->conneg->setStatusMsg("Internal Error");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_202->name);
-        $this->conneg->setError($this->errorMessenger->_202->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_202->name, $this->errorMessenger->_202->description, "",
-          $this->errorMessenger->_202->level);
+        $resultset = $this->db->query($this->db->build_sparql_query("
+          select ?type
+          from <" . $this->wsf_graph. "> 
+          where 
+          {
+            <". $this->user_uri ."> a ?type ;
+                                    <http://purl.org/ontology/wsf#hasGroup>  <". $this->group_uri ."> .
+                                     
+          }",
+          array ('type'), FALSE));
 
-        return;
-      }
-      elseif(odbc_fetch_row($resultset))
-      {
-        $type = odbc_result($resultset, 1);
-
-        if($type == 'http://purl.org/ontology/wsf#User')
+        if(odbc_error())
         {
-          $this->conneg->setStatus(400);
-          $this->conneg->setStatusMsg("Bad Request");
-          $this->conneg->setStatusMsgExt($this->errorMessenger->_203->name);
-          $this->conneg->setError($this->errorMessenger->_203->id, $this->errorMessenger->ws,
-            $this->errorMessenger->_203->name, $this->errorMessenger->_203->description, "",
-            $this->errorMessenger->_203->level);
+          $this->conneg->setStatus(500);
+          $this->conneg->setStatusMsg("Internal Error");
+          $this->conneg->setStatusMsgExt($this->errorMessenger->_202->name);
+          $this->conneg->setError($this->errorMessenger->_202->id, $this->errorMessenger->ws,
+            $this->errorMessenger->_202->name, $this->errorMessenger->_202->description, "",
+            $this->errorMessenger->_202->level);
 
-          unset($resultset);
           return;
+        }
+        elseif(odbc_fetch_row($resultset))
+        {
+          $type = odbc_result($resultset, 1);
+
+          if($type == 'http://purl.org/ontology/wsf#User')
+          {
+            $this->conneg->setStatus(400);
+            $this->conneg->setStatusMsg("Bad Request");
+            $this->conneg->setStatusMsgExt($this->errorMessenger->_203->name);
+            $this->conneg->setError($this->errorMessenger->_203->id, $this->errorMessenger->ws,
+              $this->errorMessenger->_203->name, $this->errorMessenger->_203->description, "",
+              $this->errorMessenger->_203->level);
+
+            unset($resultset);
+            return;
+          }
         }
       }
 

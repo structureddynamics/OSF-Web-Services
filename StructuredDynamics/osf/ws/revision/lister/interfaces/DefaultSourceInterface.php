@@ -25,7 +25,8 @@
         
         if($this->ws->memcached_enabled)
         {
-          $key = $this->ws->generateCacheKey('revision-lister:'.$this->ws->mode.':', array(
+          $key = $this->ws->generateCacheKey('revision-lister', array(
+            $this->ws->mode,
             $revisionsDataset,
             $this->ws->recordUri
           ));

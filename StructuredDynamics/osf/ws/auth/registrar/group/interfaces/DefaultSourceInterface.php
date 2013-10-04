@@ -46,18 +46,21 @@
         {
           $query = "delete from graph <" . $this->ws->wsf_graph . ">
                     { 
-                      ?group ?group_p ?group_o .
+                      <".$this->ws->group_uri."> ?group_p ?group_o .
                       
-                      ?user <http://purl.org/ontology/wsf#hasGroup> ?group .
+                      ?user <http://purl.org/ontology/wsf#hasGroup> <".$this->ws->group_uri."> .
                     }
                     where
                     {
-                      ?group a <http://purl.org/ontology/wsf#Group> ;
-                             ?group_p ?group_o .
-                             
-                      ?user <http://purl.org/ontology/wsf#hasGroup> ?group .
+                      {
+                        <".$this->ws->group_uri."> ?group_p ?group_o .
+                      }
+                      union
+                      {                             
+                        ?user <http://purl.org/ontology/wsf#hasGroup> <".$this->ws->group_uri."> .
+                      }
                     }";
-                    
+      
           @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
             FALSE));
 

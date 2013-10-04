@@ -676,6 +676,8 @@
                   $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$geo."alt") . "</field>";
                 }                
               }
+
+              $test = new PropertyHierarchy(NULL);
               
               $filename = rtrim($this->ws->ontological_structure_folder, "/") . "/propertyHierarchySerialized.srz";
               
@@ -1179,9 +1181,11 @@
           // Invalidate caches
           if($this->ws->memcached_enabled)
           {
-            $this->ws->invalidateCache('crud-read');
+            $this->ws->invalidateCache('revision-read');
+            $this->ws->invalidateCache('revision-lister');
             $this->ws->invalidateCache('search');
-            $this->ws->invalidateCache('sparql');
+            $this->ws->invalidateCache('sparql');        
+            $this->ws->invalidateCache('crud-read');         
           }
           
         /*        

@@ -10,6 +10,7 @@ namespace StructuredDynamics\osf\ws\framework;
 
 use \StructuredDynamics\osf\ws\framework\Error;
 use \StructuredDynamics\osf\framework\Resultset;
+use \StructuredDynamics\osf\ws\framework\DBVirtuoso; 
 
 /** A Web Service abstract class. This abstract class is used to define a web service that can interact 
     with external webservices, or web services in a pipeline (compound), in a RESTful way.
@@ -27,7 +28,7 @@ abstract class WebService
 
   /** keys.ini file folder */
   public static $keys_ini = "/usr/share/osf/StructuredDynamics/osf/ws/";
-
+                                 
   /** Main version of the Virtuoso server used by this OSF instance (4, 5 or 6) */
   protected $virtuoso_main_version = "6";
 
@@ -36,6 +37,9 @@ abstract class WebService
     
   /** Conneg object that manage the content negotiation capabilities of the web service */
   protected $conneg;  
+  
+  /** Database connection */
+  protected $db;
   
   /** Database user name */
   protected $db_username = "";
@@ -630,7 +634,7 @@ abstract class WebService
          
     if(isset($osf_ini["memcached"]["memcached_enabled"]))  
     {
-      $this->memcached_enabled = $osf_ini["memcached"]["memcached_enabled"];
+      $this->memcached_enabled = filter_var($osf_ini["memcached"]["memcached_enabled"], FILTER_VALIDATE_BOOLEAN);
     }    
          
     if(isset($osf_ini["memcached"]["memcached_host"]))  
@@ -701,6 +705,8 @@ abstract class WebService
       $this->memcached->connect($this->memcached_host, $this->memcached_port);
       $this->memcached->setCompressThreshold(50000); // 50k 
     }
+
+    $this->db = new DBVirtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);    
   }
 
   function __destruct() { }
@@ -1027,12 +1033,12 @@ abstract class WebService
   * @author Frederick Giasson, Structured Dynamics LLC.
   */
   public function validateUserAccess($datasets)
-  {            
+  {  
     if(!is_array($datasets))
     {
       $datasets = array($datasets);
     }
-
+    
     // At this point, validateCall() validated the call, so there shouldn't be
     // any issues caching the result of this query validation
 
@@ -1212,7 +1218,7 @@ abstract class WebService
       {
         if(is_array($var))
         {
-          $values = implode(' ', $var);
+          $values .= implode(' ', $var);
         }
         else
         {

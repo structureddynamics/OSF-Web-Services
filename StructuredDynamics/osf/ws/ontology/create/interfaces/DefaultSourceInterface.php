@@ -222,7 +222,7 @@
         $ontologyDescription = $this->getDescription($ontologyDescription);
 
         // Get the list of webservices that will be accessible for this ontology dataset.
-        $authLister = new AuthLister("ws", $this->ws->ontologyUri);
+        $authLister = new AuthLister("ws", $this->ws->ontologyUri, "");
 
         $authLister->pipeline_conneg($this->ws->conneg->getAccept(), $this->ws->conneg->getAcceptCharset(),
           $this->ws->conneg->getAcceptEncoding(), $this->ws->conneg->getAcceptLanguage());

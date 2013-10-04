@@ -9,7 +9,6 @@
 
 namespace StructuredDynamics\osf\ws\auth\registrar\access;  
 
-use \StructuredDynamics\osf\ws\framework\DBVirtuoso; 
 use \StructuredDynamics\osf\ws\framework\CrudUsage;
 use \StructuredDynamics\osf\ws\framework\Conneg;
 use \StructuredDynamics\osf\ws\auth\lister\AuthLister;
@@ -24,9 +23,6 @@ use \StructuredDynamics\osf\ws\dataset\read\DatasetRead;
 
 class AuthRegistrarAccess extends \StructuredDynamics\osf\ws\framework\WebService
 {
-  /** Database connection */
-  private $db;
-
   /** URL where the DTD of the XML document can be located on the Web */
   private $dtdURL;
 
@@ -92,12 +88,6 @@ class AuthRegistrarAccess extends \StructuredDynamics\osf\ws\framework\WebServic
                           "level": "Warning",
                           "name": "No target Access URI defined for update",
                           "description": "No target Access URI has been defined to be updated for this query."
-                        },
-                        "_206": {
-                          "id": "WS-AUTH-REGISTRAR-ACCESS-206",
-                          "level": "Warning",
-                          "name": "Unexisting dataset",
-                          "description": "The dataset URI you provided is not existing in this OSF network instance"
                         },
                         "_207": {
                           "id": "WS-AUTH-REGISTRAR-ACCESS-207",
@@ -215,8 +205,6 @@ class AuthRegistrarAccess extends \StructuredDynamics\osf\ws\framework\WebServic
     parent::__construct();
     
     $this->version = "3.0";
-
-    $this->db = new DBVirtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 
     $this->group = $group;
     $this->target_access_uri = $target_access_uri;
@@ -353,30 +341,11 @@ class AuthRegistrarAccess extends \StructuredDynamics\osf\ws\framework\WebServic
         return;
       }    
       
-      // Make sure the dataset URI exists
-      $datasetRead = new DatasetRead($this->dataset, FALSE);
-
-      $datasetRead->pipeline_conneg($this->ws->conneg->getAccept(), $this->ws->conneg->getAcceptCharset(),
-        $this->ws->conneg->getAcceptEncoding(), $this->ws->conneg->getAcceptLanguage());
-
-      $datasetRead->process();
-
-      if($datasetRead->pipeline_getResponseHeaderStatus() !== 200)
-      {
-        $this->conneg->setStatus(400);
-        $this->conneg->setStatusMsg("Bad Request");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_206->name);
-        $this->conneg->setError($this->errorMessenger->_206->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_206->name, $this->errorMessenger->_206->description, "",
-          $this->errorMessenger->_206->level);
-        return;        
-      }
-      
       // Make sure the group URI exists
       $authLister = new AuthLister("groups", "", $this->group);
 
-      $authLister->pipeline_conneg($this->ws->conneg->getAccept(), $this->ws->conneg->getAcceptCharset(),
-        $this->ws->conneg->getAcceptEncoding(), $this->ws->conneg->getAcceptLanguage());
+      $authLister->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
+        $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
 
       $authLister->process();
 

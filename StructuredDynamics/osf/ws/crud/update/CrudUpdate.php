@@ -9,7 +9,6 @@
 
 namespace StructuredDynamics\osf\ws\crud\update; 
 
-use \StructuredDynamics\osf\ws\framework\DBVirtuoso; 
 use \StructuredDynamics\osf\ws\framework\CrudUsage;
 use \StructuredDynamics\osf\ws\framework\Conneg;
 use \StructuredDynamics\osf\ws\dataset\read\DatasetRead;
@@ -23,9 +22,6 @@ use \StructuredDynamics\osf\framework\Namespaces;
 
 class CrudUpdate extends \StructuredDynamics\osf\ws\framework\WebService
 {
-  /** Database connection */
-  private $db;
-
   /** URL where the DTD of the XML document can be located on the Web */
   private $dtdURL;
 
@@ -205,8 +201,6 @@ class CrudUpdate extends \StructuredDynamics\osf\ws\framework\WebService
 
     $this->version = "3.0";
 
-    $this->db = new DBVirtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
-
     $this->dataset = $dataset;
     $this->mime = $mime;
     $this->lifecycle = strtolower($lifecycle);
@@ -304,7 +298,7 @@ class CrudUpdate extends \StructuredDynamics\osf\ws\framework\WebService
       }
 
       // Check if the dataset is created
-      $ws_dr = new DatasetRead($this->dataset, "false");
+      $ws_dr = new DatasetRead($this->dataset);
 
       $ws_dr->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
         $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());

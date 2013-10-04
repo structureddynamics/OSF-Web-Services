@@ -9,7 +9,6 @@
 
 namespace StructuredDynamics\osf\ws\auth\lister;  
 
-use \StructuredDynamics\osf\ws\framework\DBVirtuoso; 
 use \StructuredDynamics\osf\ws\framework\CrudUsage;
 use \StructuredDynamics\osf\ws\framework\Conneg;
 
@@ -20,9 +19,6 @@ use \StructuredDynamics\osf\ws\framework\Conneg;
 
 class AuthLister extends \StructuredDynamics\osf\ws\framework\WebService
 {
-  /** Database connection */
-  private $db;
-
   /** URL where the DTD of the XML document can be located on the Web */
   private $dtdURL;
 
@@ -185,8 +181,6 @@ class AuthLister extends \StructuredDynamics\osf\ws\framework\WebService
     
     $this->version = "3.0";
 
-    $this->db = new DBVirtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
-
     $this->mode = $mode;
     $this->dataset = $dataset;
     $this->targetWebservice = strtolower($target_webservice);
@@ -247,10 +241,13 @@ class AuthLister extends \StructuredDynamics\osf\ws\framework\WebService
     
     if($this->conneg->getStatus() == 200)
     {
-      if(strtolower($this->mode) != "ws" && strtolower($this->mode) != "dataset"
-        && strtolower($this->mode) != "access_dataset" && strtolower($this->mode) != "access_user" &&
-        strtolower($this->mode) != "groups" && strtolower($this->mode) != "group_users" &&
-        strtolower($this->mode) != "user_groups")
+      if(strtolower($this->mode) != "ws" && 
+         strtolower($this->mode) != "dataset" &&
+         strtolower($this->mode) != "access_dataset" && 
+         strtolower($this->mode) != "access_user" &&
+         strtolower($this->mode) != "groups" && 
+         strtolower($this->mode) != "group_users" &&
+         strtolower($this->mode) != "user_groups")
       {
         $this->conneg->setStatus(400);
         $this->conneg->setStatusMsg("Bad Request");
@@ -261,7 +258,7 @@ class AuthLister extends \StructuredDynamics\osf\ws\framework\WebService
         return;
       }
 
-      if(strtolower($this->mode) != "access_dataset" && $dataset = "")
+      if(strtolower($this->mode) == "access_dataset" && $this->dataset == "")
       {
         $this->conneg->setStatus(400);
         $this->conneg->setStatusMsg("Bad Request");
@@ -272,7 +269,7 @@ class AuthLister extends \StructuredDynamics\osf\ws\framework\WebService
         return;
       }    
 
-      if(strtolower($this->mode) != "group_users" && $group = "")
+      if(strtolower($this->mode) == "group_users" && $this->group == "")
       {
         $this->conneg->setStatus(400);
         $this->conneg->setStatusMsg("Bad Request");

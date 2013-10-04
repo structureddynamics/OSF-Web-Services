@@ -350,7 +350,7 @@
         }      
 
         
-        // Validate all graphs of the query for the IP of the requester of this query. 
+        // Validate all graphs of the query for the requester of this query. 
         // If one of the graph is not accessible to the user, we just return
         // an error for this SPARQL query.
         $datasets = array();
@@ -364,7 +364,7 @@
           $datasets[] = $graph;
         }        
         
-        if(!$this->ws->validateUserAccess($datasets))
+        if(!empty($datasets) && !$this->ws->validateUserAccess($datasets))
         {
           return;
         }

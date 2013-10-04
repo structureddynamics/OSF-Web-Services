@@ -9,7 +9,6 @@
 
 namespace StructuredDynamics\osf\ws\revision\update;  
 
-use \StructuredDynamics\osf\ws\framework\DBVirtuoso; 
 use \StructuredDynamics\osf\ws\framework\Conneg;
 use \StructuredDynamics\osf\ws\framework\CrudUsage;
 
@@ -20,9 +19,6 @@ use \StructuredDynamics\osf\ws\framework\CrudUsage;
 
 class RevisionUpdate extends \StructuredDynamics\osf\ws\framework\WebService
 {
-  /** Database connection */
-  private $db;
-
   /** URL where the DTD of the XML document can be located on the Web */
   private $dtdURL;
 
@@ -157,8 +153,6 @@ class RevisionUpdate extends \StructuredDynamics\osf\ws\framework\WebService
     parent::__construct();
 
     $this->version = "3.0";
-
-    $this->db = new DBVirtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 
     $this->dataset = $dataset;
     $this->revuri = $revuri;

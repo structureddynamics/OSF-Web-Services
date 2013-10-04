@@ -9,7 +9,6 @@
 
 namespace StructuredDynamics\osf\ws\auth\registrar\group;   
 
-use \StructuredDynamics\osf\ws\framework\DBVirtuoso; 
 use \StructuredDynamics\osf\ws\framework\CrudUsage;
 use \StructuredDynamics\osf\ws\framework\Conneg;
 
@@ -20,9 +19,6 @@ use \StructuredDynamics\osf\ws\framework\Conneg;
 
 class AuthRegistrarGroup extends \StructuredDynamics\osf\ws\framework\WebService
 {
-  /** Database connection */
-  private $db;
-
   /** URL where the DTD of the XML document can be located on the Web */
   private $dtdURL;
 
@@ -156,8 +152,6 @@ class AuthRegistrarGroup extends \StructuredDynamics\osf\ws\framework\WebService
     
     $this->version = "3.0";
 
-    $this->db = new DBVirtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
-
     $this->group_uri = $group_uri;
     $this->app_id = $app_id;
     $this->action = $action;
@@ -203,7 +197,7 @@ class AuthRegistrarGroup extends \StructuredDynamics\osf\ws\framework\WebService
   {
     if($this->validateUserAccess($this->wsf_graph))
     {
-      if($this->action !== 'delete' & $action !== 'create')
+      if($this->action !== 'delete' && $this->action !== 'create')
       {
         $this->conneg->setStatus(400);
         $this->conneg->setStatusMsg("Bad Request");
@@ -237,41 +231,44 @@ class AuthRegistrarGroup extends \StructuredDynamics\osf\ws\framework\WebService
       } 
 
       // Check if the group is already existing
-      $resultset = $this->db->query($this->db->build_sparql_query("
-        select ?type
-        from <" . $this->wsf_graph. "> 
-        where 
-        {
-          <". $this->group_uri ."> a ?type . 
-        }",
-        array ('type'), FALSE));
-
-      if(odbc_error())
+      if($this->action == 'create')
       {
-        $this->conneg->setStatus(500);
-        $this->conneg->setStatusMsg("Internal Error");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_202->name);
-        $this->conneg->setError($this->errorMessenger->_202->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_202->name, $this->errorMessenger->_202->description, "",
-          $this->errorMessenger->_202->level);
+        $resultset = $this->db->query($this->db->build_sparql_query("
+          select ?type
+          from <" . $this->wsf_graph. "> 
+          where 
+          {
+            <". $this->group_uri ."> a ?type . 
+          }",
+          array ('type'), FALSE));
 
-        return;
-      }
-      elseif(odbc_fetch_row($resultset))
-      {
-        $type = odbc_result($resultset, 1);
-
-        if($type == 'http://purl.org/ontology/wsf#Group')
+        if(odbc_error())
         {
-          $this->conneg->setStatus(400);
-          $this->conneg->setStatusMsg("Bad Request");
-          $this->conneg->setStatusMsgExt($this->errorMessenger->_203->name);
-          $this->conneg->setError($this->errorMessenger->_203->id, $this->errorMessenger->ws,
-            $this->errorMessenger->_203->name, $this->errorMessenger->_203->description, "",
-            $this->errorMessenger->_203->level);
+          $this->conneg->setStatus(500);
+          $this->conneg->setStatusMsg("Internal Error");
+          $this->conneg->setStatusMsgExt($this->errorMessenger->_202->name);
+          $this->conneg->setError($this->errorMessenger->_202->id, $this->errorMessenger->ws,
+            $this->errorMessenger->_202->name, $this->errorMessenger->_202->description, "",
+            $this->errorMessenger->_202->level);
 
-          unset($resultset);
           return;
+        }
+        elseif(odbc_fetch_row($resultset))
+        {
+          $type = odbc_result($resultset, 1);
+
+          if($type == 'http://purl.org/ontology/wsf#Group')
+          {
+            $this->conneg->setStatus(400);
+            $this->conneg->setStatusMsg("Bad Request");
+            $this->conneg->setStatusMsgExt($this->errorMessenger->_203->name);
+            $this->conneg->setError($this->errorMessenger->_203->id, $this->errorMessenger->ws,
+              $this->errorMessenger->_203->name, $this->errorMessenger->_203->description, "",
+              $this->errorMessenger->_203->level);
+
+            unset($resultset);
+            return;
+          }
         }
       }
 

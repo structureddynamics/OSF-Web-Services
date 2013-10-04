@@ -502,6 +502,14 @@ class OntologyRead extends \StructuredDynamics\osf\ws\framework\WebService
   }
   
   /**
+  * Check if the Ontology Read endpoint is currently using the reasoner
+  */
+  public function isUsingReasoner()
+  {
+    return($this->useReasoner);
+  }  
+  
+  /**
   * Stop using the reasoner for the subsequent OWLOntology functions calls.
   */
   public function stopUsingReasoner()

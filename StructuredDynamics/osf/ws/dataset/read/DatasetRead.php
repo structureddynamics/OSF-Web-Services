@@ -9,7 +9,6 @@
 
 namespace StructuredDynamics\osf\ws\dataset\read; 
 
-use \StructuredDynamics\osf\ws\framework\DBVirtuoso; 
 use \StructuredDynamics\osf\ws\framework\CrudUsage;
 use \StructuredDynamics\osf\ws\framework\Conneg;
 use \StructuredDynamics\osf\framework\Namespaces;
@@ -21,9 +20,6 @@ use \StructuredDynamics\osf\framework\Namespaces;
 
 class DatasetRead extends \StructuredDynamics\osf\ws\framework\WebService
 {
-  /** Database connection */
-  private $db;
-
   /** URL where the DTD of the XML document can be located on the Web */
   private $dtdURL;
 
@@ -151,8 +147,6 @@ class DatasetRead extends \StructuredDynamics\osf\ws\framework\WebService
     parent::__construct();
     
     $this->version = "3.0";
-
-    $this->db = new DBVirtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
 
     $this->datasetUri = $uri;
 
@@ -368,7 +362,7 @@ class DatasetRead extends \StructuredDynamics\osf\ws\framework\WebService
   */
   public function process()
   {
-     // Check if the interface called by the user is existing
+    // Check if the interface called by the user is existing
     $class = $this->sourceinterface_exists(rtrim($this->wsf_base_path, "/")."/dataset/read/interfaces/");
     
     if($class != "")
@@ -416,7 +410,7 @@ class DatasetRead extends \StructuredDynamics\osf\ws\framework\WebService
       $interface->processInterface();
     }
     else
-    { 
+    {       
       // Interface not existing
       $this->conneg->setStatus(400);
       $this->conneg->setStatusMsg("Bad Request");

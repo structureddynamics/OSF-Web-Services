@@ -1036,26 +1036,26 @@
               }                
             }          
                 
-                $filename = rtrim($this->ws->ontological_structure_folder, "/") . "/propertyHierarchySerialized.srz";
-                
-                $file = fopen($filename, "r");
-                $propertyHierarchy = fread($file, filesize($filename));
-                $propertyHierarchy = unserialize($propertyHierarchy);                        
-                fclose($file);
-                
-                if($propertyHierarchy === FALSE)
-                {
-                  $this->ws->conneg->setStatus(500);   
-                  $this->ws->conneg->setStatusMsg("Internal Error");
-                  $this->ws->conneg->setError($this->ws->errorMessenger->_310->id, $this->ws->errorMessenger->ws,
-                    $this->ws->errorMessenger->_310->name, $this->ws->errorMessenger->_310->description, "",
-                    $this->ws->errorMessenger->_310->level);
-                  return;
-                }       
-                
-                // When a property appears in this array, it means that it is already
-                // used in the Solr document we are creating
-                $usedSingleValuedProperties = array();         
+            $filename = rtrim($this->ws->ontological_structure_folder, "/") . "/propertyHierarchySerialized.srz";
+            
+            $file = fopen($filename, "r");
+            $propertyHierarchy = fread($file, filesize($filename));
+            $propertyHierarchy = unserialize($propertyHierarchy);                        
+            fclose($file);
+            
+            if($propertyHierarchy === FALSE)
+            {
+              $this->ws->conneg->setStatus(500);   
+              $this->ws->conneg->setStatusMsg("Internal Error");
+              $this->ws->conneg->setError($this->ws->errorMessenger->_310->id, $this->ws->errorMessenger->ws,
+                $this->ws->errorMessenger->_310->name, $this->ws->errorMessenger->_310->description, "",
+                $this->ws->errorMessenger->_310->level);
+              return;
+            }       
+            
+            // When a property appears in this array, it means that it is already
+            // used in the Solr document we are creating
+            $usedSingleValuedProperties = array();         
 
             // Get properties with the type of the object
             foreach($resourceIndex[$subject] as $predicate => $values)
@@ -1537,9 +1537,11 @@
           // Invalidate caches
           if($this->ws->memcached_enabled)
           {
-            $this->ws->invalidateCache('crud-read');
+            $this->ws->invalidateCache('revision-read');
+            $this->ws->invalidateCache('revision-lister');
             $this->ws->invalidateCache('search');
-            $this->ws->invalidateCache('sparql');          
+            $this->ws->invalidateCache('sparql');        
+            $this->ws->invalidateCache('crud-read');         
           }
           
           /*        

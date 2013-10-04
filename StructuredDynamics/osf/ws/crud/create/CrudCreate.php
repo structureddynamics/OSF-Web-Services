@@ -9,7 +9,6 @@
 
 namespace StructuredDynamics\osf\ws\crud\create;
 
-use \StructuredDynamics\osf\ws\framework\DBVirtuoso; 
 use \StructuredDynamics\osf\ws\framework\CrudUsage;
 use \StructuredDynamics\osf\ws\framework\Conneg;
 use \StructuredDynamics\osf\ws\dataset\read\DatasetRead;
@@ -23,9 +22,6 @@ use \StructuredDynamics\osf\framework\Namespaces;
 
 class CrudCreate extends \StructuredDynamics\osf\ws\framework\WebService
 {
-  /** Database connection */
-  private $db;
-
   /** URL where the DTD of the XML document can be located on the Web */
   private $dtdURL;
 
@@ -190,8 +186,6 @@ class CrudCreate extends \StructuredDynamics\osf\ws\framework\WebService
     
     $this->version = "3.0";
     
-    $this->db = new DBVirtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
-
     $this->dataset = $dataset;
     
     if (extension_loaded("mbstring") && mb_detect_encoding($document, "UTF-8", TRUE) != "UTF-8")
@@ -282,7 +276,7 @@ class CrudCreate extends \StructuredDynamics\osf\ws\framework\WebService
       }
 
       // Check if the dataset is created
-      $ws_dr = new DatasetRead($this->dataset, "false"); // Here the one that makes the request is the WSF (internal request).
+      $ws_dr = new DatasetRead($this->dataset); // Here the one that makes the request is the WSF (internal request).
 
       $ws_dr->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
         $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());

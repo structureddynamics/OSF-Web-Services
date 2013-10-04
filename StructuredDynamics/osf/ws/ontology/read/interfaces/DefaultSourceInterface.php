@@ -424,7 +424,8 @@
               $key = $this->ws->generateCacheKey('ontology-read:getserialized', array(
                 $this->ws->ontologyUri,
                 $this->ws->parameters,
-                $this->ws->lang
+                $this->ws->isUsingReasoner(),
+                $this->ws->lang                
               ));
               
               if($return = $this->ws->memcached->get($key))
@@ -459,6 +460,7 @@
               $key = $this->ws->generateCacheKey('ontology-read:getclass', array(
                 $this->ws->ontologyUri,
                 $this->ws->parameters,
+                $this->ws->isUsingReasoner(),
                 $this->ws->lang
               ));
               
@@ -506,6 +508,7 @@
               $key = $this->ws->generateCacheKey('ontology-read:getclasses', array(
                 $this->ws->ontologyUri,
                 $this->ws->parameters,
+                $this->ws->isUsingReasoner(),
                 $this->ws->lang
               ));
               
@@ -567,6 +570,7 @@
               $key = $this->ws->generateCacheKey('ontology-read:getnamedindividual', array(
                 $this->ws->ontologyUri,
                 $this->ws->parameters,
+                $this->ws->isUsingReasoner(),
                 $this->ws->lang
               ));
               
@@ -610,6 +614,7 @@
               $key = $this->ws->generateCacheKey('ontology-read:getnamedindividuals', array(
                 $this->ws->ontologyUri,
                 $this->ws->parameters,
+                $this->ws->isUsingReasoner(),
                 $this->ws->lang
               ));
               
@@ -691,12 +696,12 @@
           break;
           
           case "getsubclasses":
-          
             if($this->ws->memcached_enabled)
             {
               $key = $this->ws->generateCacheKey('ontology-read:getsubclasses', array(
                 $this->ws->ontologyUri,
                 $this->ws->parameters,
+                $this->ws->isUsingReasoner(),
                 $this->ws->lang
               ));
               
@@ -748,12 +753,12 @@
           break;
           
           case "getsuperclasses":
-          
             if($this->ws->memcached_enabled)
             {
               $key = $this->ws->generateCacheKey('ontology-read:getsuperclasses', array(
                 $this->ws->ontologyUri,
                 $this->ws->parameters,
+                $this->ws->isUsingReasoner(),
                 $this->ws->lang
               ));
               
@@ -808,6 +813,7 @@
               $key = $this->ws->generateCacheKey('ontology-read:getequivalentclasses', array(
                 $this->ws->ontologyUri,
                 $this->ws->parameters,
+                $this->ws->isUsingReasoner(),
                 $this->ws->lang
               ));
               
@@ -862,6 +868,7 @@
               $key = $this->ws->generateCacheKey('ontology-read:getdisjointclasses', array(
                 $this->ws->ontologyUri,
                 $this->ws->parameters,
+                $this->ws->isUsingReasoner(),
                 $this->ws->lang
               ));
               
@@ -916,6 +923,7 @@
               $key = $this->ws->generateCacheKey('ontology-read:getontologies', array(
                 $this->ws->ontologyUri,
                 $this->ws->parameters,
+                $this->ws->isUsingReasoner(),
                 $this->ws->lang
               ));
               
@@ -960,6 +968,7 @@
               $key = $this->ws->generateCacheKey('ontology-read:getloadedontologies', array(
                 $this->ws->ontologyUri,
                 $this->ws->parameters,
+                $this->ws->isUsingReasoner(),
                 $this->ws->lang
               ));
               
@@ -1013,6 +1022,7 @@
               $key = $this->ws->generateCacheKey('ontology-read:getserializedclasshierarchy', array(
                 $this->ws->ontologyUri,
                 $this->ws->parameters,
+                $this->ws->isUsingReasoner(),
                 $this->ws->lang
               ));
               
@@ -1045,6 +1055,7 @@
               $key = $this->ws->generateCacheKey('ontology-read:getserializedpropertyhierarchy', array(
                 $this->ws->ontologyUri,
                 $this->ws->parameters,
+                $this->ws->isUsingReasoner(),
                 $this->ws->lang
               ));
               
@@ -1077,6 +1088,7 @@
               $key = $this->ws->generateCacheKey('ontology-read:getironxmlschema', array(
                 $this->ws->ontologyUri,
                 $this->ws->parameters,
+                $this->ws->isUsingReasoner(),
                 $this->ws->lang
               ));
               
@@ -1546,6 +1558,7 @@
               $key = $this->ws->generateCacheKey('ontology-read:getironjsonschema', array(
                 $this->ws->ontologyUri,
                 $this->ws->parameters,
+                $this->ws->isUsingReasoner(),
                 $this->ws->lang
               ));
               
@@ -2277,6 +2290,7 @@
               $key = $this->ws->generateCacheKey('ontology-read:getproperty', array(
                 $this->ws->ontologyUri,
                 $this->ws->parameters,
+                $this->ws->isUsingReasoner(),
                 $this->ws->lang
               ));
               
@@ -2321,6 +2335,7 @@
               $key = $this->ws->generateCacheKey('ontology-read:getproperties', array(
                 $this->ws->ontologyUri,
                 $this->ws->parameters,
+                $this->ws->isUsingReasoner(),
                 $this->ws->lang
               ));
               
@@ -2451,6 +2466,7 @@
               $key = $this->ws->generateCacheKey('ontology-read:getsubproperties', array(
                 $this->ws->ontologyUri,
                 $this->ws->parameters,
+                $this->ws->isUsingReasoner(),
                 $this->ws->lang
               ));
               
@@ -2540,6 +2556,7 @@
               $key = $this->ws->generateCacheKey('ontology-read:getsuperproperties', array(
                 $this->ws->ontologyUri,
                 $this->ws->parameters,
+                $this->ws->isUsingReasoner(),
                 $this->ws->lang
               ));
               
@@ -2630,6 +2647,7 @@
               $key = $this->ws->generateCacheKey('ontology-read:getequivalentproperties', array(
                 $this->ws->ontologyUri,
                 $this->ws->parameters,
+                $this->ws->isUsingReasoner(),
                 $this->ws->lang
               ));
               
@@ -2719,6 +2737,7 @@
               $key = $this->ws->generateCacheKey('ontology-read:getdisjointproperties', array(
                 $this->ws->ontologyUri,
                 $this->ws->parameters,
+                $this->ws->isUsingReasoner(),
                 $this->ws->lang
               ));
               

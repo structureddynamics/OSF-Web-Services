@@ -9,7 +9,6 @@
 
 namespace StructuredDynamics\osf\ws\crud\read; 
 
-use \StructuredDynamics\osf\ws\framework\DBVirtuoso; 
 use \StructuredDynamics\osf\ws\framework\CrudUsage;
 use \StructuredDynamics\osf\ws\auth\lister\AuthLister;
 use \StructuredDynamics\osf\ws\framework\ProcessorXML;
@@ -23,9 +22,6 @@ use \StructuredDynamics\osf\framework\Namespaces;
 
 class CrudRead extends \StructuredDynamics\osf\ws\framework\WebService
 {
-  /** Database connection */
-  private $db;
-  
   /** URL where the DTD of the XML document can be located on the Web */
   private $dtdURL;
 
@@ -210,8 +206,6 @@ class CrudRead extends \StructuredDynamics\osf\ws\framework\WebService
     
     $this->version = "3.0";
 
-    $this->db = new DBVirtuoso($this->db_username, $this->db_password, $this->db_dsn, $this->db_host);
-    
     $this->dataset = $dataset;
     
     if($include_attributes_list != '')

@@ -22,9 +22,6 @@ use \StructuredDynamics\osf\ws\converter\irjson\irJSONParser;
 */
 class ConverterIrJSON extends \StructuredDynamics\osf\ws\framework\WebService
 {
-  /** Database connection */
-  private $db;
-
   /** URL where the DTD of the XML document can be located on the Web */
   private $dtdURL;
 

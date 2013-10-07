@@ -496,6 +496,46 @@
             
           break;
           
+          case "getdatatypes":
+            $limit = -1;
+            $offset = 0;
+            
+            if(isset($this->ws->parameters["limit"]))
+            {
+              $limit = $this->ws->parameters["limit"];
+            }
+            
+            if(isset($this->ws->parameters["offset"]))
+            {
+              $offset = $this->ws->parameters["offset"];
+            }          
+            
+            switch(strtolower($this->ws->parameters["mode"]))
+            {
+              case "uris":
+              
+                $datatypes = $ontology->getDatatypesUri($limit, $offset);
+               
+                foreach($datatypes as $datatype)
+                {
+                  $subject = new Subject($datatype);
+                  $subject->setType("rdfs:Datatype");
+                  $this->ws->rset->addSubject($subject);                  
+                }
+              break;
+              
+              case "descriptions":
+                $this->ws->rset->setResultset(Array($this->ws->ontologyUri => $ontology->getDatatypesDescription($limit, $offset)));
+              break;
+              
+              default:
+                $this->returnError(400, "Bad Request", "_201");
+                return;
+              break;            
+            }
+            
+          break;
+          
           case "getnamedindividual":
             if(!isset($this->ws->parameters["uri"]) || $this->ws->parameters["uri"] == "")
             {

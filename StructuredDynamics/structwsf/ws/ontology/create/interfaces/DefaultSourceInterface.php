@@ -611,6 +611,42 @@
                 
                 unset($ontologyRead);
               }
+              
+              $nbDatatypes = $ontology->getNbDatatypes();
+              $sliceSize = 200;
+              
+              for($i = 0; $i < $nbDatatypes; $i += $sliceSize)
+              {
+                $ontologyRead =
+                  new OntologyRead($this->ws->ontologyUri, "getDatatypes", "mode=descriptions;limit=$sliceSize;offset=$i",
+                    $this->ws->registered_ip, $this->ws->requester_ip);
+
+                // Since we are in pipeline mode, we have to set the owlapisession using the current one.
+                // otherwise the java bridge will return an error
+                $ontologyRead->setOwlApiSession($OwlApiSession);
+
+                $ontologyRead->ws_conneg("application/rdf+xml", $_SERVER['HTTP_ACCEPT_CHARSET'],
+                  $_SERVER['HTTP_ACCEPT_ENCODING'], $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+
+                if($this->ws->reasoner)
+                {
+                  $ontologyRead->useReasoner(); 
+                }  
+                else
+                {
+                  $ontologyRead->stopUsingReasoner();
+                }
+                  
+                $ontologyRead->process();
+
+                $datatypesRDF = $ontologyRead->ws_serialize();
+
+                $rdfxmlParser->parse($this->ws->ontologyUri, $datatypesRDF);
+                $resourceIndex = $rdfxmlParser->getSimpleIndex(0);
+                $resourcesIndex = ARC2::getMergedIndex($resourcesIndex, $resourceIndex);
+                
+                unset($ontologyRead);
+              }              
 
               $nbProperties = 0;
               $nbProperties += $ontology->getNbObjectProperties();

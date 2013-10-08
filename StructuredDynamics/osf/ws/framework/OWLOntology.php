@@ -559,6 +559,47 @@ class OWLOntology
   }   
   
   /**
+  * Gets the URI of all the datatypes of all the loaded ontologies
+  * 
+  * @param mixed $limit The maximum number of results to return with this function
+  * @param mixed $offset The place, in the array, where to start returning results.
+  * 
+  * @return Returns an array of URIs of the datatypes contained in this OWLAPI instance
+  *  
+  * @author Frederick Giasson, Structured Dynamics LLC.
+  */  
+  public function getDatatypesUri($limit = -1, $offset = 0)
+  {
+    $datatypes = $this->ontology->getDatatypesInSignature();
+
+    $dt = array();
+    
+    $nb = 0; 
+          
+    foreach($datatypes as $datatype)
+    {
+      if($limit > -1)
+      {
+        if($nb >= $offset + $limit)  
+        {
+          break;
+        }
+        
+        if($nb < $offset)
+        {
+          $nb++;
+          continue;
+        }
+      }
+      
+      array_push($dt, (string)java_values($datatype->toStringID()));
+      $nb++;     
+    }
+    
+    return($dt);
+  }    
+  
+  /**
   * Get the number of classes in the ontology
   * 
   * @author Frederick Giasson, Structured Dynamics LLC.
@@ -568,6 +609,18 @@ class OWLOntology
     $classes = $this->ontology->getClassesInSignature();
        
     return(count(java_values($classes)));
+  } 
+  
+  /**
+  * Get the number of datatypes in the ontology
+  * 
+  * @author Frederick Giasson, Structured Dynamics LLC.
+  */
+  public function getNbDatatypes()
+  {
+    $datatypes = $this->ontology->getDatatypesInSignature();
+       
+    return(count(java_values($datatypes)));
   } 
 
   /**
@@ -823,6 +876,68 @@ class OWLOntology
     
     return($classDescription);    
   }    
+  
+  /**
+  * Gets the description all the datatypes of all the loaded ontologies
+  * 
+  * The array is defined as:
+  *   
+  *   $datatypeDescription = 
+  *                          array( "resource-uri" =>
+  *                            array(
+  *                              "predicate-uri" => array(
+  *                                                       array(
+  *                                                               "value" => "the value of the predicate",
+  *                                                               "type" => "the type of the value",
+  *                                                               "lang" => "language reference of the value (if literal)"
+  *                                                            ),
+  *                                                       array(...)
+  *                                                     ),
+  *                              "..." => array(...)
+  *                            ),
+  *                            array( "..." => ...)
+  *                          );
+  * 
+  * @param mixed $limit The maximum number of results to return with this function
+  * @param mixed $offset The place, in the array, where to start returning results.
+  * 
+  * @return Returns an array of datatypes descriptions (OWLDatatypeNodeSet) of the datatypes contained in this OWLAPI instance
+  *  
+  * @author Frederick Giasson, Structured Dynamics LLC.
+  */  
+  public function getDatatypesDescription($limit = -1, $offset = 0)
+  {
+    $datatypes = $this->ontology->getDatatypesInSignature();
+    
+    $datatypeDescription = array();
+
+    $nb = 0; 
+    
+    foreach($datatypes as $datatype)
+    {
+      if($limit > -1)
+      {
+        if($nb >= $offset + $limit)  
+        {
+          break;
+        }
+        
+        if($nb < $offset)
+        {
+          $nb++;
+          continue;
+        }
+      }
+      
+      $datatypeUri = (string)java_values($datatype->toStringID());
+      $datatypeDescription[$datatypeUri] = array();
+      
+      $datatypeDescription[$datatypeUri] = $this->_getDatatypeDescription($datatype);
+      $nb++;     
+    }
+    
+    return($datatypeDescription);    
+  }  
   
   /**
   * Get the list of sub classes resource description of a target class
@@ -2631,6 +2746,72 @@ class OWLOntology
     }
     
     return($classDescription);  
+  }  
+  
+  /**
+  * Convert the OWLAPI datatype description into an array describing the datatype. This array is a simplification
+  * of the OWLAPI that is used by other parts of this API, along with other scripts that uses this
+  * API such as the various ontology related OSF endpoints.
+  * 
+  * The array is defined as:
+  *   
+  *   $datatypeDescription = array(
+  *                              "predicate-uri" => array(
+  *                                                       array(
+  *                                                               "value" => "the value of the predicate",
+  *                                                               "type" => "the type of the value",
+  *                                                               "lang" => "language reference of the value (if literal)"
+  *                                                            ),
+  *                                                       array(...)
+  *                                                     ),
+  *                              "..." => array(...)
+  *                            )
+  * 
+  * @param mixed $datatype The OWLAPI class instance.
+  * 
+  * @see http://owlapi.sourceforge.net/javadoc/uk/ac/manchester/cs/owl/owlapi/OWLDatatypeImpl.html
+  *  
+  * @author Frederick Giasson, Structured Dynamics LLC.
+  */
+  public function _getDatatypeDescription($datatype)
+  {
+    $datatypeDescription = array();
+        
+    // Get the types of the entity    
+    $datatypeDescription["type"] = array("owl:".$datatype->getEntityType()->getName());                                                             
+
+    // Get all the annotations
+    $annotations = $datatype->getAnnotations($this->ontology);
+
+    foreach($annotations as $annotation)
+    {
+      $info = $this->getAnnotationInfo($annotation);
+      
+      if(!isset($datatypeDescription[$info["property"]]) ||
+         is_array($datatypeDescription[$info["property"]]) === FALSE)
+      {
+        $datatypeDescription[$info["property"]] = array(); 
+      }
+
+      if(isset($info["uri"]))
+      {      
+        array_push($datatypeDescription[$info["property"]], array("uri" => $info["uri"],
+                                                               "reify" => $info["reify"]));       
+      }
+      else
+      {
+        if($info["lang"] == "" || $this->lang == "" || $info["lang"] == $this->lang)
+        {
+          $dt = ($info['type'] == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#PlainLiteral' ? '' : $info['type']);
+          
+          array_push($datatypeDescription[$info["property"]], array("value" => $info["value"],
+                                                                    "type" => $dt,
+                                                                    "lang" => $info["lang"]));       
+        }
+      }
+    }  
+    
+    return($datatypeDescription);  
   }  
   
   public function _getClassRestrictionsDescription($class)

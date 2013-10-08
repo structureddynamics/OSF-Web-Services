@@ -563,6 +563,68 @@
             }              
           break;
           
+          case "getdatatypes":
+
+            if($this->ws->memcached_enabled)
+            {
+              $key = $this->ws->generateCacheKey('ontology-read:getdatatypes', array(
+                $this->ws->ontologyUri,
+                $this->ws->parameters,
+                $this->ws->isUsingReasoner(),
+                $this->ws->lang
+              ));
+              
+              if($return = $this->ws->memcached->get($key))
+              {
+                $this->ws->setResultset($return);
+                
+                return;
+              }
+            }           
+          
+            $limit = -1;
+            $offset = 0;
+            
+            if(isset($this->ws->parameters["limit"]))
+            {
+              $limit = $this->ws->parameters["limit"];
+            }
+            
+            if(isset($this->ws->parameters["offset"]))
+            {
+              $offset = $this->ws->parameters["offset"];
+            }          
+            
+            switch(strtolower($this->ws->parameters["mode"]))
+            {
+              case "uris":
+              
+                $classes = $ontology->getDatatypesUri($limit, $offset);
+               
+                foreach($classes as $class)
+                {
+                  $subject = new Subject($class);
+                  $subject->setType("rdfs:Datatype");
+                  $this->ws->rset->addSubject($subject);                  
+                }
+              break;
+              
+              case "descriptions":
+                $this->ws->rset->setResultset(Array($this->ws->ontologyUri => $ontology->getDatatypesDescription($limit, $offset)));
+              break;
+              
+              default:
+                $this->returnError(400, "Bad Request", "_201");
+                return;
+              break;            
+            }
+            
+            if($this->ws->memcached_enabled)
+            {
+              $this->ws->memcached->set($key, $this->ws->rset, NULL, $this->ws->memcached_ontology_read_expire);
+            }              
+          break;
+          
           case "getnamedindividual":
           
             if($this->ws->memcached_enabled)

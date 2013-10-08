@@ -3098,9 +3098,20 @@ class OWLOntology
     return($restrictionsDescriptions);
   }  
   
-  private function _restrictionsVisitor($desc)
+  private function _restrictionsVisitor($desc, $visited = array())
   {
     $restrictions = array();
+    
+    $uri = (string)java_values($desc->toStringID());
+    
+    if(in_array($uri, $visited))
+    {
+      return($restrictions);
+    }
+    else
+    {
+      $visited[] = $uri;
+    }
     
     $subClassOfAxioms = $this->ontology->getSubClassAxiomsForSubClass($desc);
     
@@ -3113,7 +3124,7 @@ class OWLOntology
       {      
         $nbSuperClasses++;
         
-        $rests = $this->_restrictionsVisitor($superClass);
+        $rests = $this->_restrictionsVisitor($superClass, $visited);
         
         $restrictions = array_unique(array_merge($restrictions, $rests));
       }
@@ -3145,7 +3156,7 @@ class OWLOntology
       
       $superClass = $this->_getClass(java("org.semanticweb.owlapi.model.IRI")->create('http://www.w3.org/2002/07/owl#Thing'));
 
-      $rests = $this->_restrictionsVisitor($superClass);
+      $rests = $this->_restrictionsVisitor($superClass, $visited);
       
       $restrictions = array_unique(array_merge($restrictions, $rests));
     } 

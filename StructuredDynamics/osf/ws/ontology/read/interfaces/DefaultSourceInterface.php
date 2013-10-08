@@ -58,7 +58,7 @@
     
     private function populateClassHierarchy($parentClass, $ontology, $ontologyUri, &$classHierarchy)
     {
-      $subClasses = $ontology->getSubClassesDescription($parentClass, TRUE);
+      $subClasses = $ontology->getSubClassesDescription($parentClass, TRUE, FALSE, FALSE);
 
       if(isset($subClasses[Namespaces::$owl."Nothing"]))
       {
@@ -1162,7 +1162,7 @@
               }
             }           
           
-            $subjectTriples = $ontology->getClassesDescription($limit, $offset);
+            $subjectTriples = $ontology->getClassesDescription($limit, $offset, FALLSE);
             
             $schema = '<schema><version>0.1</version><typeList>';
             
@@ -1632,7 +1632,7 @@
               }
             }           
           
-            $subjectTriples = $ontology->getClassesDescription($limit, $offset);
+            $subjectTriples = $ontology->getClassesDescription($limit, $offset, FALSE);
             
             $schema = '{ "schema": { "version": "0.1", "typeList": {';
             

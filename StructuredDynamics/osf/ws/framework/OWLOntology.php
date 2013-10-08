@@ -835,7 +835,7 @@ class OWLOntology
   *  
   * @author Frederick Giasson, Structured Dynamics LLC.
   */  
-  public function getClassesDescription($limit = -1, $offset = 0)
+  public function getClassesDescription($limit = -1, $offset = 0, $includeRestrictions = TRUE)
   {
     $classes = $this->ontology->getClassesInSignature();
     
@@ -862,15 +862,18 @@ class OWLOntology
       $classUri = (string)java_values($class->toStringID());
       $classDescription[$classUri] = array();
       
-      $classDescription[$classUri] = $this->_getClassDescription($class);
+      $classDescription[$classUri] = $this->_getClassDescription($class, $includeRestrictions);
       $nb++;     
       
       // Get possible restrictions descriptions and add them to the resultset            
+      if($includeRestrictions)
+      {
       $restrictions = $this->_getClassRestrictionsDescription($class);
       
       foreach($restrictions as $uri => $restriction)
       {
         $classDescription[$uri] = $restriction;
+        }       
       }       
     }
     
@@ -966,7 +969,7 @@ class OWLOntology
   *  
   * @author Frederick Giasson, Structured Dynamics LLC.
   */
-  public function getSubClassesDescription($uri, $direct = FALSE, $hierarchy = FALSE)
+  public function getSubClassesDescription($uri, $direct = FALSE, $hierarchy = FALSE, $includeRestrictions = TRUE)
   {
     // Create a class object.
     $class = $this->owlDataFactory->getOWLClass(java("org.semanticweb.owlapi.model.IRI")->create($uri));
@@ -1010,7 +1013,7 @@ class OWLOntology
         }
         else
         {
-          $classDescription[$subClassUri] = $this->_getClassDescription($subClass);
+          $classDescription[$subClassUri] = $this->_getClassDescription($subClass, $includeRestrictions);
         }
       }
     }
@@ -1043,7 +1046,7 @@ class OWLOntology
   *  
   * @author Frederick Giasson, Structured Dynamics LLC.
   */
-  public function getDisjointClassesDescription($uri)
+  public function getDisjointClassesDescription($uri, $includeRestrictions = TRUE)
   {
     // Create a class object.
     $class = $this->owlDataFactory->getOWLClass(java("org.semanticweb.owlapi.model.IRI")->create($uri));
@@ -1059,7 +1062,7 @@ class OWLOntology
         $disjointClassUri = (string)java_values($disjointClass->toStringID());
         $classDescription[$disjointClassUri] = array();
         
-        $classDescription[$disjointClassUri] = $this->_getClassDescription($disjointClass);
+        $classDescription[$disjointClassUri] = $this->_getClassDescription($disjointClass, $includeRestrictions);
       }
     }
     
@@ -1091,7 +1094,7 @@ class OWLOntology
   *  
   * @author Frederick Giasson, Structured Dynamics LLC.
   */
-  public function getEquivalentClassesDescription($uri)
+  public function getEquivalentClassesDescription($uri, $includeRestrictions = TRUE)
   {
     // Create a class object.
     $class = $this->owlDataFactory->getOWLClass(java("org.semanticweb.owlapi.model.IRI")->create($uri));
@@ -1107,7 +1110,7 @@ class OWLOntology
         $disjointClassUri = (string)java_values($disjointClass->toStringID());
         $classDescription[$disjointClassUri] = array();
         
-        $classDescription[$disjointClassUri] = $this->_getClassDescription($disjointClass);
+        $classDescription[$disjointClassUri] = $this->_getClassDescription($disjointClass, $includeRestrictions);
       }
     }
     
@@ -1140,7 +1143,7 @@ class OWLOntology
   *  
   * @author Frederick Giasson, Structured Dynamics LLC.
   */
-  public function getSuperClassesDescription($uri, $direct = FALSE)
+  public function getSuperClassesDescription($uri, $direct = FALSE, $includeRestrictions = TRUE)
   {
     // Create a class object.
     $class = $this->owlDataFactory->getOWLClass(java("org.semanticweb.owlapi.model.IRI")->create($uri));
@@ -1178,7 +1181,7 @@ class OWLOntology
           continue;
         }      
         
-        $classDescription[$superClassUri] = $this->_getClassDescription($superClass);
+        $classDescription[$superClassUri] = $this->_getClassDescription($superClass, $includeRestrictions);
       }
     }
     
@@ -2565,7 +2568,7 @@ class OWLOntology
   *  
   * @author Frederick Giasson, Structured Dynamics LLC.
   */
-  public function _getClassDescription($class)
+  public function _getClassDescription($class, $includeRestrictions = TRUE)
   {
     $classDescription = array();
         
@@ -2732,6 +2735,8 @@ class OWLOntology
     }  
         
     // Get restrictions
+    if($includeRestrictions)
+    {
     $restrictions = $this->_restrictionsVisitor($class);
     
     foreach($restrictions as $restriction)
@@ -2743,6 +2748,7 @@ class OWLOntology
       }
 
       $classDescription[Namespaces::$rdfs."subClassOf"][] = array("uri" => 'urn:restriction:'.md5(java_values($restriction->toString())));
+    }
     }
     
     return($classDescription);  

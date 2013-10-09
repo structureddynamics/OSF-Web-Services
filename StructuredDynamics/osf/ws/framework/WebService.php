@@ -373,14 +373,14 @@ abstract class WebService
       $this->supportedLanguages = $osf_ini["lang"]["supported_languages"];
     }
     
-    if(isset($osf_ini["solr"]["wsf_solr_core"]))
+    if(isset($osf_ini["solr"]["solr_core"]))
     {
-      $this->wsf_solr_core = $osf_ini["solr"]["wsf_solr_core"];
+      $this->wsf_solr_core = $osf_ini["solr"]["solr_core"];
     }
     
-    if(isset($osf_ini["solr"]["host"]))
+    if(isset($osf_ini["solr"]["solr_host"]))
     {
-      $this->solr_host = $osf_ini["solr"]["host"];
+      $this->solr_host = $osf_ini["solr"]["solr_host"];
     }
 
     if(isset($osf_ini["ontologies"]["ontologies_files_folder"]))
@@ -403,9 +403,9 @@ abstract class WebService
     {
       $this->enable_lrl = TRUE;
     }    
-    if(isset($osf_ini["solr"]["port"]))
+    if(isset($osf_ini["solr"]["solr_port"]))
     {
-      $this->solr_port = $osf_ini["solr"]["port"];
+      $this->solr_port = $osf_ini["solr"]["solr_port"];
     }
     if(isset($osf_ini["solr"]["fields_index_folder"]))
     {

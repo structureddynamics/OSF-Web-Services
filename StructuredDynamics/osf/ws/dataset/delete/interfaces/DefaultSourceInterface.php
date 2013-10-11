@@ -250,6 +250,7 @@
           $this->ws->invalidateCache('auth-lister:access_dataset');
           $this->ws->invalidateCache('crud-read');
           $this->ws->invalidateCache('dataset-read');
+          $this->ws->invalidateCache('dataset-read:all');
           $this->ws->invalidateCache('revision-read');
           $this->ws->invalidateCache('revision-lister');
           $this->ws->invalidateCache('search');

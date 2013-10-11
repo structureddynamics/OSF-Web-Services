@@ -231,6 +231,7 @@
         if($this->ws->memcached_enabled)
         {
           $this->ws->invalidateCache('dataset-read');
+          $this->ws->invalidateCache('dataset-read:all');
         }
       }      
     }

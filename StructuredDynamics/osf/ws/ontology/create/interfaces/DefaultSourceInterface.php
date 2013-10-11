@@ -549,6 +549,18 @@
               }
                 
               $ontologyRead->process();
+              
+              if($ontologyRead->pipeline_getResponseHeaderStatus() == 403)
+              {
+                $this->ws->conneg->setStatus(500);
+                $this->ws->conneg->setStatusMsg("Internal Error");
+                $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_201->name);
+                $this->ws->conneg->setError($this->ws->errorMessenger->_201->id, $this->ws->errorMessenger->ws,
+                  $this->ws->errorMessenger->_201->name, $this->ws->errorMessenger->_201->description, odbc_errormsg(),
+                  $this->ws->errorMessenger->_201->level);                
+                  
+                return;
+              }
 
               $classesRDF = $ontologyRead->ws_serialize();
 

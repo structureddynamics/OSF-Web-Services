@@ -53,6 +53,12 @@ class OntologyCreate extends \StructuredDynamics\osf\ws\framework\WebService
                           "name": "No Ontology URI defined for this request",
                           "description": "No Ontology URI defined for this request"
                         },
+                        "_201": {
+                          "id": "WS-ONTOLOGY-CREATE-201",
+                          "level": "Warning",
+                          "name": "No permissions to use the advanced indexation",
+                          "description": "Make sure to create the permissions, for this user, to write data into this ontology dataset prior making this call."
+                        },
                         "_300": {
                           "id": "WS-ONTOLOGY-CREATE-300",
                           "level": "Error",

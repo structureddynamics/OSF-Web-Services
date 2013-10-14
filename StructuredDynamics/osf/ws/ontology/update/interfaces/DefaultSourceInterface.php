@@ -211,7 +211,7 @@
                 {
                   if($value["type"] == "literal")
                   {
-                    if(!is_array($literalValues[$predicate]))
+                    if(!isset($literalValues[$predicate]))
                     {
                       $literalValues[$predicate] = array();
                     }
@@ -220,7 +220,7 @@
                   }
                   else
                   {
-                    if(!is_array($objectValues[$predicate]))
+                    if(!isset($objectValues[$predicate]))
                     {
                       $objectValues[$predicate] = array();
                     }
@@ -250,7 +250,7 @@
           {
             foreach($types as $type)
             {
-              if(!is_array($objectValues[Namespaces::$rdf."type"]))
+              if(!isset($objectValues[Namespaces::$rdf."type"]))
               {
                 $objectValues[Namespaces::$rdf."type"] = array();
               }
@@ -339,8 +339,10 @@
                 // otherwise the java bridge will return an error
                 $ontologyRead->setOwlApiSession($this->OwlApiSession);                                                    
                                   
-                $ontologyRead->ws_conneg("application/rdf+xml", $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
-                                       $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+                $ontologyRead->ws_conneg("application/rdf+xml", 
+                                        (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
+                                        (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
+                                        (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : ""));
 
                 if($this->ws->reasoner)
                 {
@@ -402,8 +404,10 @@
                 // Every time OntologyUpdate is called, a new revision will be created
                 $crudUpdate = new CrudUpdate($serializedResource, "application/rdf+xml", $this->ws->ontologyUri);
 
-                $crudUpdate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
-                  $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+                $crudUpdate->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
+                                       (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
+                                       (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
+                                       (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : "")); 
 
                 $crudUpdate->process();
                 
@@ -416,8 +420,10 @@
                     // the CRUD: Create endpoint
                     $crudCreate = new CrudCreate($serializedResource, "application/rdf+xml", 'full', $this->ws->ontologyUri);
 
-                    $crudCreate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
-                      $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+                    $crudCreate->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
+                                           (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
+                                           (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
+                                           (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : "")); 
 
                     $crudCreate->process();
                     
@@ -446,8 +452,10 @@
                     
                     $revisionLister = new RevisionLister($recordUri, $this->ws->ontologyUri, 'short');
                     
-                    $revisionLister->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
-                      $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+                    $revisionLister->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
+                                               (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
+                                               (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
+                                               (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : "")); 
 
                     $revisionLister->process();
                     
@@ -476,8 +484,10 @@
                     // Re-publish the latest version of the record
                     $revisionUpdate = new RevisionUpdate($revisionUri, $this->ws->ontologyUri, 'published');
                     
-                    $revisionUpdate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
-                                               $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+                    $revisionUpdate->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
+                                               (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
+                                               (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
+                                               (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : "")); 
 
                     $revisionUpdate->process();
                     
@@ -496,8 +506,10 @@
                     // Now create a new published version of that record according to this Ontology: Update query
                     $reCrudUpdate = new CrudUpdate($serializedResource, "application/rdf+xml", $this->ws->ontologyUri);
 
-                    $reCrudUpdate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
-                      $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+                    $reCrudUpdate->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
+                                             (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
+                                             (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
+                                             (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : "")); 
 
                     $reCrudUpdate->process();
                     
@@ -642,8 +654,10 @@
           // otherwise the java bridge will return an error
           $ontologyRead->setOwlApiSession($this->OwlApiSession);                                                    
                             
-          $ontologyRead->ws_conneg("application/rdf+xml", $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
-                                 $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+          $ontologyRead->ws_conneg("application/rdf+xml", 
+                                   (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
+                                   (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
+                                   (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : ""));
 
           if($this->ws->reasoner)
           {
@@ -680,8 +694,10 @@
           // using this function
           $crudDelete = new CrudDelete($oldUri, $this->ws->ontologyUri);
 
-          $crudDelete->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
-            $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+          $crudDelete->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
+                                 (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
+                                 (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
+                                 (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : "")); 
 
           $crudDelete->process();
           
@@ -704,8 +720,10 @@
           // Update the classes and properties into the Solr index
           $crudCreate = new CrudCreate($entitySerialized, "application/rdf+xml", "full", $this->ws->ontologyUri);
 
-          $crudCreate->ws_conneg($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
-            $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+          $crudCreate->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
+                                 (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
+                                 (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
+                                 (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : "")); 
 
           $crudCreate->process();
           

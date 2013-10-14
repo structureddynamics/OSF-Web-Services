@@ -211,8 +211,8 @@ class AuthRegistrarAccess extends \StructuredDynamics\osf\ws\framework\WebServic
 
     $crud = explode(";", $crud);
 
-    $this->crud = new CrudUsage((strtolower($crud[0]) == "true" ? TRUE : FALSE), (strtolower($crud[1])
-      == "true" ? TRUE : FALSE), (strtolower($crud[2]) == "true" ? TRUE : FALSE), (strtolower($crud[3])
+    $this->crud = new CrudUsage((isset($crud[0]) && strtolower($crud[0]) == "true" ? TRUE : FALSE), (isset($crud[1]) && strtolower($crud[1])
+      == "true" ? TRUE : FALSE), (isset($crud[2]) && strtolower($crud[2]) == "true" ? TRUE : FALSE), (isset($crud[3]) && strtolower($crud[3])
       == "true" ? TRUE : FALSE));
 
     $this->ws_uris = explode(";", $ws_uris);

@@ -399,20 +399,16 @@
           }
         }
         
+        $direct = FALSE;
+        
         if(isset($this->ws->parameters["direct"]) && $this->ws->parameters["direct"] != "")
         {
-          $this->ws->parameters["direct"] = strtolower($this->ws->parameters["direct"]);
+          $direct = filter_var($this->ws->parameters["direct"], FILTER_VALIDATE_BOOLEAN, array('flags' => FILTER_NULL_ON_FAILURE));
           
-          if($this->ws->parameters["direct"] == "false" ||
-             $this->ws->parameters["direct"] == "0" ||
-             $this->ws->parameters["direct"] == "off")
-           {
-             $this->ws->parameters["direct"] = false;
-           }
-           else
-           {
-             $this->ws->parameters["direct"] = true;
-           }
+          if($direct === NULL)
+          {
+            $direct = FALSE;
+          }           
         }
 
         switch(strtolower($this->ws->function))
@@ -691,8 +687,6 @@
             $limit = -1;
             $offset = 0;
             
-            $direct = true;
-            
             if(isset($this->ws->parameters["limit"]))
             {
               $limit = $this->ws->parameters["limit"];
@@ -701,19 +695,6 @@
             if(isset($this->ws->parameters["offset"]))
             {
               $offset = $this->ws->parameters["offset"];
-            }
-
-            if(isset($this->ws->parameters["direct"]))
-            {
-              switch($this->ws->parameters["direct"])
-              {
-                case "0":
-                  $direct = false;
-                break;
-                case "1":
-                  $direct = true;
-                break;
-              }
             }
             
             $classUri = "all";
@@ -784,7 +765,7 @@
             switch(strtolower($this->ws->parameters["mode"]))
             {
               case "uris":
-                $classes = $ontology->getSubClassesUri($this->ws->parameters["uri"], $this->ws->parameters["direct"]);
+                $classes = $ontology->getSubClassesUri($this->ws->parameters["uri"], $direct);
                 
                 foreach($classes as $class)
                 {
@@ -795,7 +776,7 @@
               break;
               
               case "descriptions":
-                $this->ws->rset->setResultset(Array($this->ws->ontologyUri => $ontology->getSubClassesDescription($this->ws->parameters["uri"], $this->ws->parameters["direct"])));            
+                $this->ws->rset->setResultset(Array($this->ws->ontologyUri => $ontology->getSubClassesDescription($this->ws->parameters["uri"], $direct)));            
               break;
 
               case "hierarchy":
@@ -841,7 +822,7 @@
             switch(strtolower($this->ws->parameters["mode"]))
             {
               case "uris":
-                $classes = $ontology->getSuperClassesUri($this->ws->parameters["uri"], $this->ws->parameters["direct"]);
+                $classes = $ontology->getSuperClassesUri($this->ws->parameters["uri"], $direct);
                 
                 foreach($classes as $class)
                 {
@@ -852,7 +833,7 @@
               break;
               
               case "descriptions":
-                $this->ws->rset->setResultset(Array($this->ws->ontologyUri => $ontology->getSuperClassesDescription($this->ws->parameters["uri"], $this->ws->parameters["direct"])));
+                $this->ws->rset->setResultset(Array($this->ws->ontologyUri => $ontology->getSuperClassesDescription($this->ws->parameters["uri"], $direct)));
               break;
               
               default:
@@ -2552,7 +2533,7 @@
                 switch(strtolower($this->ws->parameters["type"]))
                 {
                   case "dataproperty":
-                    $properties = $ontology->getSubPropertiesUri((string)$this->ws->parameters["uri"], $this->ws->parameters["direct"], TRUE);
+                    $properties = $ontology->getSubPropertiesUri((string)$this->ws->parameters["uri"], $direct, TRUE);
                     
                     foreach($properties as $property)
                     {
@@ -2563,7 +2544,7 @@
                   break;
                   
                   case "objectproperty":
-                    $properties = $ontology->getSubPropertiesUri((string)$this->ws->parameters["uri"], $this->ws->parameters["direct"], FALSE);
+                    $properties = $ontology->getSubPropertiesUri((string)$this->ws->parameters["uri"], $direct, FALSE);
                     
                     foreach($properties as $property)
                     {
@@ -2584,11 +2565,11 @@
                 switch(strtolower($this->ws->parameters["type"]))
                 {
                   case "dataproperty":
-                    $this->ws->rset->setResultset(Array($this->ws->ontologyUri => $ontology->getSubPropertiesDescription((string)$this->ws->parameters["uri"], $this->ws->parameters["direct"], TRUE)));
+                    $this->ws->rset->setResultset(Array($this->ws->ontologyUri => $ontology->getSubPropertiesDescription((string)$this->ws->parameters["uri"], $direct, TRUE)));
                   break;
                   
                   case "objectproperty":
-                    $this->ws->rset->setResultset(Array($this->ws->ontologyUri => $ontology->getSubPropertiesDescription((string)$this->ws->parameters["uri"], $this->ws->parameters["direct"], FALSE)));
+                    $this->ws->rset->setResultset(Array($this->ws->ontologyUri => $ontology->getSubPropertiesDescription((string)$this->ws->parameters["uri"], $direct, FALSE)));
                   break;
                   
                   default:
@@ -2642,7 +2623,7 @@
                 switch(strtolower($this->ws->parameters["type"]))
                 {
                   case "dataproperty":
-                    $properties = $ontology->getSuperPropertiesUri((string)$this->ws->parameters["uri"], $this->ws->parameters["direct"], TRUE);
+                    $properties = $ontology->getSuperPropertiesUri((string)$this->ws->parameters["uri"], $direct, TRUE);
                     
                     foreach($properties as $property)
                     {
@@ -2653,7 +2634,7 @@
                   break;
                   
                   case "objectproperty":
-                    $properties = $ontology->getSuperPropertiesUri((string)$this->ws->parameters["uri"], $this->ws->parameters["direct"], FALSE);
+                    $properties = $ontology->getSuperPropertiesUri((string)$this->ws->parameters["uri"], $direct, FALSE);
                     
                     foreach($properties as $property)
                     {
@@ -2675,11 +2656,11 @@
                 switch(strtolower($this->ws->parameters["type"]))
                 {
                   case "dataproperty":
-                    $this->ws->rset->setResultset(Array($this->ws->ontologyUri => $ontology->getSuperPropertiesDescription((string)$this->ws->parameters["uri"], $this->ws->parameters["direct"], TRUE)));
+                    $this->ws->rset->setResultset(Array($this->ws->ontologyUri => $ontology->getSuperPropertiesDescription((string)$this->ws->parameters["uri"], $direct, TRUE)));
                   break;
                   
                   case "objectproperty":
-                    $this->ws->rset->setResultset(Array($this->ws->ontologyUri => $ontology->getSuperPropertiesDescription((string)$this->ws->parameters["uri"], $this->ws->parameters["direct"], FALSE)));
+                    $this->ws->rset->setResultset(Array($this->ws->ontologyUri => $ontology->getSuperPropertiesDescription((string)$this->ws->parameters["uri"], $direct, FALSE)));
                   break;
                   
                   default:

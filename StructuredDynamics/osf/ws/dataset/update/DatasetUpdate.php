@@ -257,7 +257,7 @@ class DatasetUpdate extends \StructuredDynamics\osf\ws\framework\WebService
       }      
 
       // Check if the dataset is existing
-      $query .= "  select ?dataset 
+      $query = "select ?dataset 
                 from <" . $this->wsf_graph . "datasets/>
                 where
                 {

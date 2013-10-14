@@ -77,7 +77,7 @@ foreach($params as $param)
 {
   $p = explode("=", $param);
 
-  $parameters[$p[0]] = $p[1];
+  $parameters[$p[0]] = (isset($p[1]) ? $p[1] : '');
 }
   
 switch(strtolower($function))

@@ -477,7 +477,7 @@ class DatasetUpdate extends \StructuredDynamics\osf\ws\framework\WebService
         {
           $this->conneg->setStatus(400);
           $this->conneg->setStatusMsg("Bad Request");
-          $this->conneg->setStatusMsgExt($this->errorMessenger->_305>name);
+          $this->conneg->setStatusMsgExt($this->errorMessenger->_305->name);
           $this->conneg->setError($this->errorMessenger->_305->id, $this->errorMessenger->ws,
             $this->errorMessenger->_305->name, $this->errorMessenger->_305->description, 
             "Requested Source Interface: ".$this->interface,

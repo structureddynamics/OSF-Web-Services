@@ -1114,9 +1114,10 @@
                         // Check the datatype of the datatype property
                         $property = $propertyHierarchy->getProperty($predicate);
 
-                    if(is_array($property->range) && 
+                    if(!is_null($property) &&
+                       (is_array($property->range) && 
                            array_search("http://www.w3.org/2001/XMLSchema#dateTime", $property->range) !== FALSE &&
-                           $this->safeDate($value["value"]) != "")
+                           $this->safeDate($value["value"]) != ""))
                         {
                           // Check if the property is defined as a cardinality of maximum 1
                           // If it doesn't we consider it a multi-valued field, otherwise
@@ -1135,8 +1136,9 @@
                             $add .= "<field name=\"" . urlencode($predicate) . "_attr_date\">" . $this->ws->xmlEncode($this->safeDate($value["value"])) . "</field>";
                           }
                         }
-                    elseif(is_array($property->range) && array_search("http://www.w3.org/2001/XMLSchema#int", $property->range) !== FALSE ||
-                           is_array($property->range) && array_search("http://www.w3.org/2001/XMLSchema#integer", $property->range) !== FALSE)
+                    elseif(!is_null($property) &&
+                           (is_array($property->range) && array_search("http://www.w3.org/2001/XMLSchema#int", $property->range) !== FALSE ||
+                            is_array($property->range) && array_search("http://www.w3.org/2001/XMLSchema#integer", $property->range) !== FALSE))
                         {
                           // Check if the property is defined as a cardinality of maximum 1
                           // If it doesn't we consider it a multi-valued field, otherwise
@@ -1155,7 +1157,8 @@
                             $add .= "<field name=\"" . urlencode($predicate) . "_attr_int\">" . $this->ws->xmlEncode($value["value"]) . "</field>";
                           }
                         }
-                        elseif(is_array($property->range) && array_search("http://www.w3.org/2001/XMLSchema#float", $property->range) !== FALSE)
+                        elseif(!is_null($property) &&
+                               (is_array($property->range) && array_search("http://www.w3.org/2001/XMLSchema#float", $property->range) !== FALSE))
                         {
                           // Check if the property is defined as a cardinality of maximum 1
                           // If it doesn't we consider it a multi-valued field, otherwise
@@ -1181,7 +1184,8 @@
                           // Check if the property is defined as a cardinality of maximum 1
                           // If it doesn't we consider it a multi-valued field, otherwise
                           // we use the single-valued version of the field.
-                          if($property->cardinality == 1 || $property->maxCardinality == 1)
+                          if(!is_null($property) &&
+                             ($property->cardinality == 1 || $property->maxCardinality == 1))
                           {
                             if(array_search($predicate, $usedSingleValuedProperties) === FALSE)
                             {
@@ -1329,7 +1333,8 @@
                       // Check if the property is defined as a cardinality of maximum 1
                       // If it doesn't we consider it a multi-valued field, otherwise
                       // we use the single-valued version of the field.
-                      if($property->cardinality == 1 || $property->maxCardinality == 1)
+                      if(!is_null($property) &&
+                         ($property->cardinality == 1 || $property->maxCardinality == 1))
                       {                          
                         if(array_search($predicate, $usedSingleValuedProperties) === FALSE)
                         {
@@ -1371,7 +1376,8 @@
                       // Check if the property is defined as a cardinality of maximum 1
                       // If it doesn't we consider it a multi-valued field, otherwise
                       // we use the single-valued version of the field.
-                      if($property->cardinality == 1 || $property->maxCardinality == 1)
+                      if(!is_null($property) &&
+                         ($property->cardinality == 1 || $property->maxCardinality == 1))
                       {
                         if(array_search($predicate, $usedSingleValuedProperties) === FALSE)
                         {

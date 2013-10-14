@@ -544,7 +544,7 @@
           $boostingRules .= '&ps='.$this->ws->phraseBoostDistance;
         }
         
-        $restrictionRules .= '&qf=';
+        $restrictionRules = '&qf=';
         
         // Define properties restricted for search and their boost
         if(!empty($this->ws->searchRestrictions))
@@ -1909,7 +1909,7 @@
 
                 foreach($values as $value)
                 {
-                  if(!is_array($objectPropertyLabels[$attributeURI]))
+                  if(!isset($objectPropertyLabels[$attributeURI]))
                   {
                     $objectPropertyLabels[$attributeURI] = array();
                   }
@@ -1923,7 +1923,7 @@
 
                 foreach($values as $value)
                 {
-                  if(!is_array($objectPropertyUris[$attributeURI]))
+                  if(!isset($objectPropertyUris[$attributeURI]))
                   {
                     $objectPropertyUris[$attributeURI] = array();
                   }

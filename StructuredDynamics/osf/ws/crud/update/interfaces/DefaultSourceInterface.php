@@ -100,7 +100,7 @@
 
         foreach($resourceIndex as $resource => $description)
         {
-          if($resource != $datasetUri && array_search($resource, $statementsUri) === FALSE)
+          if(array_search($resource, $statementsUri) === FALSE)
           {
             array_push($irsUri, $resource);
           }
@@ -202,8 +202,10 @@
               
               $crudRead = new CrudRead($subject, $this->ws->dataset, 'false', 'true');
               
-              $crudRead->ws_conneg('application/rdf+xml', $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
-                                   $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+              $crudRead->ws_conneg('application/rdf+xml', 
+                                   (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
+                                   (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
+                                   (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : ""));
 
               $crudRead->process();
 

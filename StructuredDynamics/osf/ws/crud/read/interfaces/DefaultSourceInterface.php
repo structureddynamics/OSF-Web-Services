@@ -464,22 +464,25 @@
                 && $p != "http://www.w3.org/1999/02/22-rdf-syntax-ns#object"
                 && $p != "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
               {
-                foreach($subjects[$u][$rei_p] as $key => $value)
+                if(isset($subjects[$u][$rei_p]))
                 {
-                  if((isset($value["uri"]) && $value["uri"] == $rei_o) ||
-                     (isset($value["value"]) && $value["value"] == $rei_o))
+                  foreach($subjects[$u][$rei_p] as $key => $value)
                   {
-                    if(!isset($subjects[$u][$rei_p][$key]["reify"]))
+                    if((isset($value["uri"]) && $value["uri"] == $rei_o) ||
+                       (isset($value["value"]) && $value["value"] == $rei_o))
                     {
-                      $subjects[$u][$rei_p][$key]["reify"] = array();
+                      if(!isset($subjects[$u][$rei_p][$key]["reify"]))
+                      {
+                        $subjects[$u][$rei_p][$key]["reify"] = array();
+                      }
+                      
+                      if(!isset($subjects[$u][$rei_p][$key]["reify"][$p]))
+                      {
+                        $subjects[$u][$rei_p][$key]["reify"][$p] = array();
+                      }
+                      
+                      array_push($subjects[$u][$rei_p][$key]["reify"][$p], $o);
                     }
-                    
-                    if(!isset($subjects[$u][$rei_p][$key]["reify"][$p]))
-                    {
-                      $subjects[$u][$rei_p][$key]["reify"][$p] = array();
-                    }
-                    
-                    array_push($subjects[$u][$rei_p][$key]["reify"][$p], $o);
                   }
                 }
               }

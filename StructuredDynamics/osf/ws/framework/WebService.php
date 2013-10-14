@@ -1128,44 +1128,47 @@ abstract class WebService
       $unauthorized = TRUE;
       
       foreach($datasets as $dataset)
-      {                                  
-        foreach($datasetsAccesses[$dataset] as $accessRecord)
+      {   
+        if(isset($datasetsAccesses[$dataset]))                               
         {
-          $partialAuthorization = TRUE;
-          
-          if($this->crud_usage->create)
+          foreach($datasetsAccesses[$dataset] as $accessRecord)
           {
-            if(!$accessRecord['create'])
+            $partialAuthorization = TRUE;
+            
+            if($this->crud_usage->create)
             {
-              $partialAuthorization = FALSE;
+              if(!$accessRecord['create'])
+              {
+                $partialAuthorization = FALSE;
+              }
             }
-          }
-          if($this->crud_usage->read && $partialAuthorization)
-          {
-            if(!$accessRecord['read'])
+            if($this->crud_usage->read && $partialAuthorization)
             {
-              $partialAuthorization = FALSE;
+              if(!$accessRecord['read'])
+              {
+                $partialAuthorization = FALSE;
+              }
             }
-          }
-          if($this->crud_usage->update && $partialAuthorization)
-          {
-            if(!$accessRecord['update'])
+            if($this->crud_usage->update && $partialAuthorization)
             {
-              $partialAuthorization = FALSE;
+              if(!$accessRecord['update'])
+              {
+                $partialAuthorization = FALSE;
+              }
             }
-          }
-          if($this->crud_usage->delete && $partialAuthorization)
-          {
-            if(!$accessRecord['delete'])
+            if($this->crud_usage->delete && $partialAuthorization)
             {
-              $partialAuthorization = FALSE;
+              if(!$accessRecord['delete'])
+              {
+                $partialAuthorization = FALSE;
+              }
             }
-          }
-          
-          if($partialAuthorization)
-          {
-            $unauthorized = FALSE;
-            break;
+            
+            if($partialAuthorization)
+            {
+              $unauthorized = FALSE;
+              break;
+            }
           }
         }
 

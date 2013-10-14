@@ -121,7 +121,7 @@ foreach($params as $param)
 {
   $p = explode("=", $param);
 
-  $parameters[strtolower($p[0])] = urldecode($p[1]);
+  $parameters[strtolower($p[0])] = urldecode((isset($p[1]) ? $p[1] : ''));
 }  
  
 switch(strtolower($function))

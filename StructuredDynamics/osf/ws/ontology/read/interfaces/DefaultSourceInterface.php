@@ -1141,9 +1141,22 @@
                 
                 return;
               }
-            }           
+            }       
+            
+            $limit = -1;
+            $offset = 0;
+            
+            if(isset($this->ws->parameters["limit"]))
+            {
+              $limit = $this->ws->parameters["limit"];
+            }
+            
+            if(isset($this->ws->parameters["offset"]))
+            {
+              $offset = $this->ws->parameters["offset"];
+            }                  
           
-            $subjectTriples = $ontology->getClassesDescription($limit, $offset, FALLSE);
+            $subjectTriples = $ontology->getClassesDescription($limit, $offset, FALSE);
             
             $schema = '<schema><version>0.1</version><typeList>';
             
@@ -1612,6 +1625,19 @@
                 return;
               }
             }           
+
+            $limit = -1;
+            $offset = 0;
+            
+            if(isset($this->ws->parameters["limit"]))
+            {
+              $limit = $this->ws->parameters["limit"];
+            }
+            
+            if(isset($this->ws->parameters["offset"]))
+            {
+              $offset = $this->ws->parameters["offset"];
+            }  
           
             $subjectTriples = $ontology->getClassesDescription($limit, $offset, FALSE);
             

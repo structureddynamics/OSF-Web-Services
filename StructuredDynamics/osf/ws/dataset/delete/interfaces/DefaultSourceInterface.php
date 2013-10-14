@@ -118,7 +118,7 @@
         }
         else
         {
-          $resultset = new Resultset($this->wsf_base_path);
+          $resultset = new Resultset($this->ws->wsf_base_path);
           
           $resultset->importStructXMLResultset($ws_al->pipeline_getResultset());
           $resultset = $resultset->getResultset();

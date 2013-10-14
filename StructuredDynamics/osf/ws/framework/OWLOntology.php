@@ -259,7 +259,7 @@ class OWLOntology
       }
     }     
     
-    return($ni);
+    return(NULL);
   }
   
   /**
@@ -3253,7 +3253,7 @@ class OWLOntology
       }
     }    
 
-    return($class);
+    return(NULL);
   }  
 
   /**

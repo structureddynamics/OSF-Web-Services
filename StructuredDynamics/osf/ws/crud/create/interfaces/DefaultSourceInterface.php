@@ -171,7 +171,7 @@
                 $this->ws->conneg->setStatus(400);
                 $this->ws->conneg->setStatusMsg("Bad Request");
                 $this->ws->conneg->setError($this->ws->errorMessenger->_312->id, $this->ws->errorMessenger->ws,
-                  $this->ws->errorMessenger->_312->name, $this->ws->errorMessenger->_312->description, $errorsOutput,
+                  $this->ws->errorMessenger->_312->name, $this->ws->errorMessenger->_312->description, '',
                   $this->ws->errorMessenger->_312->level);
 
                 return;                        
@@ -275,7 +275,7 @@
                   $this->ws->conneg->setStatus(400);
                   $this->ws->conneg->setStatusMsg("Bad Request");
                   $this->ws->conneg->setError($this->ws->errorMessenger->_313->id, $this->ws->errorMessenger->ws,
-                    $this->ws->errorMessenger->_313->name, $this->ws->errorMessenger->_313->description, $errorsOutput,
+                    $this->ws->errorMessenger->_313->name, $this->ws->errorMessenger->_313->description, '',
                     $this->ws->errorMessenger->_313->level);
 
                   return;                        
@@ -284,8 +284,10 @@
               
               $crudRead = new CrudRead(implode(';', $irsUri), implode(';', array_fill(0, count($irsUri), $this->ws->dataset)), 'false', 'true');
               
-              $crudRead->ws_conneg('application/rdf+xml', $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
-                                   $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+              $crudRead->ws_conneg('application/rdf+xml', 
+                                   (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
+                                   (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
+                                   (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : ""));
 
               $crudRead->process();
 
@@ -335,6 +337,38 @@
               {
                 unset($resourceIndex[$subject]['http://purl.org/dc/terms/isPartOf']);
               }
+              
+              // Second: get all the reification statements
+              $statementsUri = array();
+
+              foreach($resourceIndex as $resource => $description)
+              {
+                foreach($description as $predicate => $values)
+                {
+                  if($predicate == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+                  {
+                    foreach($values as $value)
+                    {
+                      if($value["type"] == "uri" && $value["value"] == "http://www.w3.org/1999/02/22-rdf-syntax-ns#Statement")
+                      {
+                        array_push($statementsUri, $resource);
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+
+              // Third, get all references of all instance records resources (except for the statement resources)
+              $irsUri = array();
+
+              foreach($resourceIndex as $resource => $description)
+              {
+                if($resource != $datasetUri && array_search($resource, $statementsUri) === FALSE)
+                {
+                  array_push($irsUri, $resource);
+                }
+              }              
             }
             
             $labelProperties = array (Namespaces::$iron . "prefLabel", Namespaces::$iron . "altLabel",

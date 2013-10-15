@@ -26,8 +26,10 @@
         // Get the description of the revisions
         $lRevisionRead = new RevisionRead($this->ws->lrevuri, $this->ws->dataset, 'record');
                                  
-        $lRevisionRead->ws_conneg('text/xml', $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
-          $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+        $lRevisionRead->ws_conneg('text/xml', 
+                                  (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
+                                  (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
+                                  (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : ""));
 
         $lRevisionRead->process();
         
@@ -53,8 +55,11 @@
         
         $rRevisionRead = new RevisionRead($this->ws->rrevuri, $this->ws->dataset, 'record');
                                  
-        $rRevisionRead->ws_conneg('text/xml', $_SERVER['HTTP_ACCEPT_CHARSET'], $_SERVER['HTTP_ACCEPT_ENCODING'],
-          $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+        $rRevisionRead->ws_conneg('text/xml', 
+                                  (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
+                                  (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
+                                  (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : ""));
+        
 
         $rRevisionRead->process();
         

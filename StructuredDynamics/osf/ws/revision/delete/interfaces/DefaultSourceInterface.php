@@ -54,7 +54,7 @@
             $this->ws->conneg->setStatus(400);
             $this->ws->conneg->setStatusMsg("Bad Request");
             $this->ws->conneg->setError($this->ws->errorMessenger->_304->id, $this->ws->errorMessenger->ws,
-              $this->ws->errorMessenger->_304->name, $this->ws->errorMessenger->_304->description, $errorsOutput,
+              $this->ws->errorMessenger->_304->name, $this->ws->errorMessenger->_304->description, odbc_errormsg(),
               $this->ws->errorMessenger->_304->level);
 
             return;                        

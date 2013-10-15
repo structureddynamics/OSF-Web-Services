@@ -38,7 +38,7 @@
           $this->ws->conneg->setStatus(400);
           $this->ws->conneg->setStatusMsg("Bad Request");
           $this->ws->conneg->setError($this->ws->errorMessenger->_312->id, $this->ws->errorMessenger->ws,
-            $this->ws->errorMessenger->_312->name, $this->ws->errorMessenger->_312->description, $errorsOutput,
+            $this->ws->errorMessenger->_312->name, $this->ws->errorMessenger->_312->description, '',
             $this->ws->errorMessenger->_312->level);
 
           return;            
@@ -214,7 +214,7 @@
                 $this->ws->conneg->setStatus(400);
                 $this->ws->conneg->setStatusMsg("Bad Request");
                 $this->ws->conneg->setError($this->ws->errorMessenger->_315->id, $this->ws->errorMessenger->ws,
-                  $this->ws->errorMessenger->_315->name, $this->ws->errorMessenger->_315->description, $errorsOutput,
+                  $this->ws->errorMessenger->_315->name, $this->ws->errorMessenger->_315->description, '',
                   $this->ws->errorMessenger->_315->level);
 
                 return;                    

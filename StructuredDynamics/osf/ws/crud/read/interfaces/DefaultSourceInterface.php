@@ -46,7 +46,7 @@
             $cacheKey = $this->ws->generateCacheKey('crud-read', array(
               $this->ws->include_linksback,
               $this->ws->include_reification,
-              md5($this->ws->include_attributes_list),
+              md5((is_array($this->ws->include_attributes_list) ? implode(';', $this->ws->include_attributes_list) : '')),
               $this->ws->lang,
               md5($u.' '.$d)
             ));
@@ -493,7 +493,10 @@
           
           if($this->ws->memcached_enabled)
           {
-            $this->ws->memcached->set($cacheKey, $subjects[$u], NULL, $this->ws->memcached_crud_read_expire);
+            if(isset($subjects[$u]))
+            {
+              $this->ws->memcached->set($cacheKey, $subjects[$u], NULL, $this->ws->memcached_crud_read_expire);
+            }
           }
         }
 

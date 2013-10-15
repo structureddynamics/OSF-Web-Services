@@ -170,8 +170,9 @@
 
         $lastPrefixOffset = -1;
         
-        if(count($matches) > 0)
-        {
+        if(count($matches) > 0 && count($matches[0]) > 0)
+        {          
+          file_put_contents('/tmp/sparql.debug', var_export($matches, TRUE), FILE_APPEND);
           $lastPrefixOffset = $matches[0][count($matches[0]) - 1][1] + strlen($matches[0][count($matches[0]) - 1][0]);
         }
         
@@ -536,7 +537,7 @@
                 }
               }
               
-              if($currentSubject != $s)
+              if($currentSubjectUri != $s)
               {
                 if($subject != null)
                 {
@@ -551,7 +552,7 @@
                 
                 $subject = new Subject($s);
                 
-                $currentSubject = $s;
+                $currentSubjectUri = $s;
               }
 
               

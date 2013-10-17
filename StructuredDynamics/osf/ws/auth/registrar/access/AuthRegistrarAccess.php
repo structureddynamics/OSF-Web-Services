@@ -342,23 +342,27 @@ class AuthRegistrarAccess extends \StructuredDynamics\osf\ws\framework\WebServic
       }    
       
       // Make sure the group URI exists
-      $authLister = new AuthLister("groups", "", $this->group);
-
-      $authLister->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
-        $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
-
-      $authLister->process();
-
-      if(stripos($authLister->ws_serialize(), $this->group) === FALSE)
+      if(strtolower($this->action) != "delete_all" &&
+         strtolower($this->action) != "delete_specific")
       {
-        $this->conneg->setStatus(400);
-        $this->conneg->setStatusMsg("Bad Request");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_207->name);
-        $this->conneg->setError($this->errorMessenger->_207->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_207->name, $this->errorMessenger->_207->description, "",
-          $this->errorMessenger->_207->level);
-        return;
-      }      
+        $authLister = new AuthLister("groups", "", $this->group);
+
+        $authLister->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
+          $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());
+
+        $authLister->process();
+
+        if(stripos($authLister->ws_serialize(), $this->group) === FALSE)
+        {
+          $this->conneg->setStatus(400);
+          $this->conneg->setStatusMsg("Bad Request");
+          $this->conneg->setStatusMsgExt($this->errorMessenger->_207->name);
+          $this->conneg->setError($this->errorMessenger->_207->id, $this->errorMessenger->ws,
+            $this->errorMessenger->_207->name, $this->errorMessenger->_207->description, "",
+            $this->errorMessenger->_207->level);
+          return;
+        }      
+      }
     }
   }
 

@@ -151,9 +151,10 @@ class AuthLister extends \StructuredDynamics\osf\ws\framework\WebService
                          (5) "user_groups": List all groups URI for which the user is a member
                          (6) "access_dataset": List all the group URIs and their CRUD permissions for a given dataset URI
                          (7) "access_user": List all datasets URI and CRUD permissions accessible by a user based on its groups 
+                         (8) "access_group": List all datasets URI and CRUD permissions accessible by a group 
 
     @param $dataset URI referring to a target dataset. Needed when param1 = "dataset" or param1 = "access_datase". Otherwise this parameter as to be ommited.
-    @param $group Target Group URI
+    @param $group Target Group URI. Used when the mode is 'group_users' or 'access_group'
     @param $target_webservice Determine on what web service URI(s) we should focus on for the listing of the access records.
                               This parameter is used to improve the performance of the web service endpoint depending on the 
                               use case. If there are numerous datasets with a numerous number of access permissions defined 
@@ -174,7 +175,7 @@ class AuthLister extends \StructuredDynamics\osf\ws\framework\WebService
   
     @author Frederick Giasson, Structured Dynamics LLC.
 */
-  function __construct($mode, $dataset, $group, $target_webservice = "all", 
+  function __construct($mode, $dataset, $group = '', $target_webservice = "all", 
                        $interface='default', $requestedInterfaceVersion="")
   {
     parent::__construct();
@@ -184,7 +185,7 @@ class AuthLister extends \StructuredDynamics\osf\ws\framework\WebService
     $this->mode = $mode;
     $this->dataset = $dataset;
     $this->targetWebservice = strtolower($target_webservice);
-    
+
     if(strtolower($interface) == "default")
     {
       $this->interface = $this->default_interfaces["auth_lister"];
@@ -245,6 +246,7 @@ class AuthLister extends \StructuredDynamics\osf\ws\framework\WebService
          strtolower($this->mode) != "dataset" &&
          strtolower($this->mode) != "access_dataset" && 
          strtolower($this->mode) != "access_user" &&
+         strtolower($this->mode) != "access_group" &&
          strtolower($this->mode) != "groups" && 
          strtolower($this->mode) != "group_users" &&
          strtolower($this->mode) != "user_groups")
@@ -269,7 +271,7 @@ class AuthLister extends \StructuredDynamics\osf\ws\framework\WebService
         return;
       }    
 
-      if(strtolower($this->mode) == "group_users" && $this->group == "")
+      if((strtolower($this->mode) == "group_users" || strtolower($this->mode) == "access_group") && $this->group == "")
       {
         $this->conneg->setStatus(400);
         $this->conneg->setStatusMsg("Bad Request");

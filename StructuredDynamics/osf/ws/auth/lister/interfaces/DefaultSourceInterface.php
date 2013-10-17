@@ -155,11 +155,12 @@
           
           $query =
             " prefix wsf: <http://purl.org/ontology/wsf#>
-              select distinct ?group 
+              select distinct ?group ?appID 
               from <". $this->ws->wsf_graph ."> 
               where 
               { 
-                ?group a wsf:Group .
+                ?group a wsf:Group ;
+                       wsf:appID ?appID .
               }";
 
           $resultset =
@@ -177,17 +178,18 @@
             return;
           }
 
-          $subject = new Subject("bnode:".md5(microtime()));
-          $subject->setType("rdf:Bag");
-          
           while(odbc_fetch_row($resultset))
           {
             $group = odbc_result($resultset, 1);
+            $appID = odbc_result($resultset, 2);
             
-            $subject->setObjectAttribute("rdf:li", $group, null, "wsf:Group");
-          }
-          
-          $this->ws->rset->addSubject($subject);   
+            $subject = new Subject($group);
+            $subject->setType("wsf:Group");
+            
+            $subject->setDataAttribute("wsf:appID", $appID);
+            
+            $this->ws->rset->addSubject($subject);   
+          }          
           
           if($this->ws->memcached_enabled)
           {
@@ -333,6 +335,45 @@
                               
                       }"; 
           }
+          elseif(strtolower($this->ws->mode) == "access_group")
+          {   
+            if($this->ws->memcached_enabled)
+            {
+              $key = $this->ws->generateCacheKey('auth-lister:access_group', array(
+                $this->ws->wsf_graph,
+                $this->ws->headers['OSF-USER-URI'],
+                $this->ws->group,
+                $this->ws->targetWebservice,
+              ));
+              
+              if($return = $this->ws->memcached->get($key))
+              {
+                $this->ws->setResultset($return);
+                
+                return;
+              }
+            }
+            
+            $query = "select ?access ?datasetAccess ?create ?read ?update ?delete ".($this->ws->targetWebservice == "all" ? "?webServiceAccess" : "")."
+                      from <" . $this->ws->wsf_graph . ">
+                      where
+                      {
+                        ?access a <http://purl.org/ontology/wsf#Access> ;
+                              <http://purl.org/ontology/wsf#datasetAccess> ?datasetAccess ;
+                              ".($this->ws->targetWebservice == "all" ? "<http://purl.org/ontology/wsf#webServiceAccess> ?webServiceAccess ;" : "")."
+                              ".($this->ws->targetWebservice != "none" && $this->ws->targetWebservice != "all" ? "<http://purl.org/ontology/wsf#webServiceAccess> <".$this->ws->targetWebservice."> ;" : "")."
+                              <http://purl.org/ontology/wsf#groupAccess> <".$this->ws->group."> .
+                              
+                        optional
+                        {
+                          ?access <http://purl.org/ontology/wsf#create> ?create ;
+                                  <http://purl.org/ontology/wsf#read> ?read ;
+                                  <http://purl.org/ontology/wsf#update> ?update ;
+                                  <http://purl.org/ontology/wsf#delete> ?delete .
+                        }
+                              
+                      }"; 
+          }
           else // access_dataset
           {
             if($this->ws->memcached_enabled)
@@ -435,6 +476,19 @@
                   $subject->setObjectAttribute("wsf:webServiceAccess", odbc_result($resultset, 8), null, "wsf:WebService");  
                 }
               }
+              elseif(strtolower($this->ws->mode) == "access_group")
+              {                
+                $subject->setObjectAttribute("wsf:datasetAccess", odbc_result($resultset, 2), null, "void:Dataset");  
+                $subject->setDataAttribute("wsf:create", odbc_result($resultset, 3));
+                $subject->setDataAttribute("wsf:read", odbc_result($resultset, 4));
+                $subject->setDataAttribute("wsf:update", odbc_result($resultset, 5));
+                $subject->setDataAttribute("wsf:delete", odbc_result($resultset, 6));
+                                                    
+                if($this->ws->targetWebservice == "all")
+                {                                                    
+                  $subject->setObjectAttribute("wsf:webServiceAccess", odbc_result($resultset, 7), null, "wsf:WebService");  
+                }
+              }              
               else // access_dataset
               {
                 $subject->setObjectAttribute("wsf:groupAccess", odbc_result($resultset, 2), null, 'wsf:Group');
@@ -456,7 +510,7 @@
               {              
                 $subject->setObjectAttribute("wsf:webServiceAccess", odbc_result($resultset, 8), null, "wsf:WebService");  
               }
-              else // access_dataset
+              else // access_dataset or access_group
               {
                 $subject->setObjectAttribute("wsf:webServiceAccess", odbc_result($resultset, 7), null, "wsf:WebService");  
               }

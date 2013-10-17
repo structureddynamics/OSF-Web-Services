@@ -225,8 +225,11 @@
         {
           $this->ws->invalidateCache('auth-validator');
           $this->ws->invalidateCache('auth-lister:dataset');
+          $this->ws->invalidateCache('auth-lister:groups');
+          $this->ws->invalidateCache('auth-lister:group_users');
           $this->ws->invalidateCache('auth-lister:access_user');
-          $this->ws->invalidateCache('auth-lister:access_dataset');
+          $this->ws->invalidateCache('auth-lister:access_dataset');        
+          $this->ws->invalidateCache('auth-lister:access_group');
         }
       }
     }

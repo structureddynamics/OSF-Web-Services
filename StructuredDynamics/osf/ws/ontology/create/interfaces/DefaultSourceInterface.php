@@ -784,6 +784,18 @@
           $this->ws->invalidateCache('ontology-read:getsuperproperties');
           $this->ws->invalidateCache('ontology-read:getequivalentproperties');
           $this->ws->invalidateCache('ontology-read:getdisjointproperties');        
+          $this->ws->invalidateCache('auth-validator');
+          $this->ws->invalidateCache('auth-lister:dataset');
+          $this->ws->invalidateCache('auth-lister:ws');
+          $this->ws->invalidateCache('auth-lister:groups');
+          $this->ws->invalidateCache('auth-lister:group_users');
+          $this->ws->invalidateCache('auth-lister:access_user');
+          $this->ws->invalidateCache('auth-lister:access_dataset');
+          $this->ws->invalidateCache('auth-lister:access_group');
+          $this->ws->invalidateCache('dataset-read');
+          $this->ws->invalidateCache('dataset-read:all');
+          $this->ws->invalidateCache('revision-read');
+          $this->ws->invalidateCache('revision-lister');
         }
       }
     }          

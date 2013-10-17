@@ -41,7 +41,7 @@
           }          
                     
           $query = "prefix wsf: <http://purl.org/ontology/wsf#>
-                    select distinct ?dataset ?title ?description ?creator ?created ?modified ?contributor
+                    select distinct ?dataset ?title ?description ?creator ?created ?modified ?holdOntology ?contributor
                     from named <" . $this->ws->wsf_graph . ">
                     from named <" . $this->ws->wsf_graph . "datasets/>
                     where
@@ -65,11 +65,12 @@
                         OPTIONAL{?dataset <http://purl.org/dc/terms/modified> ?modified.}
                         OPTIONAL{?dataset <http://purl.org/dc/terms/contributor> ?contributor.}
                         OPTIONAL{?dataset <http://purl.org/dc/terms/creator> ?creator.}
+                        OPTIONAL{?dataset <http://purl.org/ontology/wsf#holdOntology> ?holdOntology.}
                       }    
                     } ORDER BY ?title";
 
           $resultset = @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
-            array ("dataset", "title", "description", "creator", "created", "modified", "contributor"), FALSE));
+            array ("dataset", "title", "description", "creator", "created", "modified", "holdOntology", "contributor"), FALSE));
 
           if(odbc_error())
           {
@@ -91,6 +92,7 @@
             $created = "";
             $modified = "";
             $contributors = array();
+            $holdOntology = "";
 
             while(odbc_fetch_row($resultset))
             {            
@@ -106,6 +108,7 @@
                 if($creator != ""){$subject->setObjectAttribute(Namespaces::$dcterms."creator", $creator, null, "sioc:User");}
                 if($created != ""){$subject->setDataAttribute(Namespaces::$dcterms."created", $created);}
                 if($modified != ""){$subject->setDataAttribute(Namespaces::$dcterms."modified", $modified);}
+                if($holdOntology != ""){$subject->setDataAttribute(Namespaces::$wsf."holdOntology", $holdOntology);}
                 
                 foreach($contributors as $contributor)
                 {
@@ -129,7 +132,14 @@
               $creator = odbc_result($resultset, 4);
               $created = odbc_result($resultset, 5);
               $modified = odbc_result($resultset, 6);
-              array_push($contributors, odbc_result($resultset, 7));
+              $holdOntology = odbc_result($resultset, 7);
+              
+              if(empty($holdOntology))
+              {
+                $holdOntology = 'false';
+              }
+              
+              array_push($contributors, odbc_result($resultset, 8));
             }
 
             if($dataset != "")
@@ -142,6 +152,7 @@
               if($creator != ""){$subject->setObjectAttribute(Namespaces::$dcterms."creator", $creator, null, "sioc:User");}
               if($created != ""){$subject->setDataAttribute(Namespaces::$dcterms."created", $created);}
               if($modified != ""){$subject->setDataAttribute(Namespaces::$dcterms."modified", $modified);}
+              if($holdOntology != ""){$subject->setDataAttribute(Namespaces::$wsf."holdOntology", $holdOntology);}
               
               foreach($contributors as $contributor)
               {
@@ -180,7 +191,7 @@
           $dataset = $this->ws->datasetUri;
 
           $query =
-            "select ?title ?description ?creator ?created ?modified
+            "select ?title ?description ?creator ?created ?modified ?holdOntology
                   from named <" . $this->ws->wsf_graph . "datasets/>
                   where
                   {
@@ -194,11 +205,12 @@
                       OPTIONAL{<$dataset> <http://purl.org/dc/terms/description> ?description.} .
                       OPTIONAL{<$dataset> <http://purl.org/dc/terms/creator> ?creator.} .
                       OPTIONAL{<$dataset> <http://purl.org/dc/terms/modified> ?modified.} .
+                      OPTIONAL{<$dataset> <http://purl.org/ontology/wsf#holdOntology> ?holdOntology.}
                     }
                   } ORDER BY ?title";
 
           $resultset = @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
-            array ('title', 'description', 'creator', 'created', 'modified'), FALSE));
+            array ('title', 'description', 'creator', 'created', 'modified', 'holdOntology'), FALSE));
 
           if(odbc_error())
           {
@@ -220,7 +232,13 @@
               $creator = odbc_result($resultset, 3);
               $created = odbc_result($resultset, 4);
               $modified = odbc_result($resultset, 5);
+              $holdOntology = odbc_result($resultset, 6);
 
+              if(empty($holdOntology))
+              {
+                $holdOntology = 'false';
+              }              
+              
               unset($resultset);
 
               // Get all contributors (users that have CUD perissions over the dataset)
@@ -264,6 +282,7 @@
               if($creator != ""){$subject->setObjectAttribute(Namespaces::$dcterms."creator", $creator, null, "sioc:User");}
               if($created != ""){$subject->setDataAttribute(Namespaces::$dcterms."created", $created);}
               if($modified != ""){$subject->setDataAttribute(Namespaces::$dcterms."modified", $modified);}
+              if($holdOntology != ""){$subject->setDataAttribute(Namespaces::$wsf."holdOntology", $holdOntology);}
               
               foreach($contributors as $contributor)
               {

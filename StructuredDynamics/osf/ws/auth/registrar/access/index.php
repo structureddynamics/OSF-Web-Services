@@ -88,24 +88,6 @@ if(isset($_POST['target_access_uri']))
   $target_access_uri = $_POST['target_access_uri'];
 }
 
-$parameters = "";
-
-if(isset($_SERVER['REQUEST_URI']))
-{
-  $parameters = $_SERVER['REQUEST_URI'];
-
-  $pos = strpos($parameters, "?");
-
-  if($pos !== FALSE)
-  {
-    $parameters = substr($parameters, $pos, strlen($parameters) - $pos);
-  }
-}
-elseif(isset($_SERVER['PHP_SELF']))
-{
-  $parameters = $_SERVER['PHP_SELF'];
-}
-
 $ws_araccess = new AuthRegistrarAccess($crud, $ws_uris, $dataset, $action, $target_access_uri, $group, $interface, $version);
 
 $ws_araccess->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 

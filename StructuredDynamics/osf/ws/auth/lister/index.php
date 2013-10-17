@@ -6,11 +6,11 @@
 /*! @file \StructuredDynamics\osf\ws\auth\lister\index.php
     @brief Entry point of a query for the Auth Validator web service
  */
- 
+
 include_once("../../../../SplClassLoader.php"); 
   
 use \StructuredDynamics\osf\ws\auth\lister\AuthLister;
- 
+
 // Don't display errors to the users. Set it to "On" to see errors for debugging purposes.
 ini_set("display_errors", "Off"); 
 
@@ -67,24 +67,6 @@ $target_webservice = "all";
 if(isset($_GET['target_webservice']))
 {
   $target_webservice = $_GET['target_webservice'];
-}
-
-$parameters = "";
-
-if(isset($_SERVER['REQUEST_URI']))
-{
-  $parameters = $_SERVER['REQUEST_URI'];
-
-  $pos = strpos($parameters, "?");
-
-  if($pos !== FALSE)
-  {
-    $parameters = substr($parameters, $pos, strlen($parameters) - $pos);
-  }
-}
-elseif(isset($_SERVER['PHP_SELF']))
-{
-  $parameters = $_SERVER['PHP_SELF'];
 }
 
 $ws_al = new AuthLister($mode, $dataset, $group, $target_webservice, $interface, $version);

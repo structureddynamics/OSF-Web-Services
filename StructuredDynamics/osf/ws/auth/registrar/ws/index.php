@@ -56,7 +56,6 @@ if(isset($_GET['endpoint']))
   $endpoint = $_GET['endpoint'];
 }
 
-
 // Crud usage of the service
 $crud_usage = "";
 
@@ -71,24 +70,6 @@ $ws_uri = "";
 if(isset($_GET['ws_uri']))
 {
   $ws_uri = $_GET['ws_uri'];
-}
-
-$parameters = "";
-
-if(isset($_SERVER['REQUEST_URI']))
-{
-  $parameters = $_SERVER['REQUEST_URI'];
-
-  $pos = strpos($parameters, "?");
-
-  if($pos !== FALSE)
-  {
-    $parameters = substr($parameters, $pos, strlen($parameters) - $pos);
-  }
-}
-elseif(isset($_SERVER['PHP_SELF']))
-{
-  $parameters = $_SERVER['PHP_SELF'];
 }
 
 $ws_arws = new AuthRegistrarWs($title, $endpoint, $crud_usage, $ws_uri, nterface, $version);

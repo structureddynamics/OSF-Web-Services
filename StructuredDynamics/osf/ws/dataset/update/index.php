@@ -98,24 +98,6 @@ if(isset($_POST['modified']))
   }
 }
 
-$parameters = "";
-
-if(isset($_SERVER['REQUEST_URI']))
-{
-  $parameters = $_SERVER['REQUEST_URI'];
-
-  $pos = strpos($parameters, "?");
-
-  if($pos !== FALSE)
-  {
-    $parameters = substr($parameters, $pos, strlen($parameters) - $pos);
-  }
-}
-elseif(isset($_SERVER['PHP_SELF']))
-{
-  $parameters = $_SERVER['PHP_SELF'];
-}
-
 $ws_du = new DatasetUpdate($uri, $title, $description, $contributors, $modified, $interface, $version);
 
 $ws_du->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 

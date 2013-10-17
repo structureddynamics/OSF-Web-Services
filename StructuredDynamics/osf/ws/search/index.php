@@ -256,24 +256,6 @@ if(isset($_POST['phrase_boost_distance']))
   $phraseBoostDistance = $_POST['phrase_boost_distance'];
 }
 
-$parameters = "";
-
-if(isset($_SERVER['REQUEST_URI']))
-{
-  $parameters = $_SERVER['REQUEST_URI'];
-
-  $pos = strpos($parameters, "?");
-
-  if($pos !== FALSE)
-  {
-    $parameters = substr($parameters, $pos, strlen($parameters) - $pos);
-  }
-}
-elseif(isset($_SERVER['PHP_SELF']))
-{
-  $parameters = $_SERVER['PHP_SELF'];
-}
-
 $ws_s = new Search($query, $types, $attributes, $datasets, $items, $page, $inference, $include_aggregates, 
                    $distanceFilter, $rangeFilter, $aggregate_attributes, 
                    $attributesBooleanOperator, $includeAttributesList,$aggregateAttributesObjectType,

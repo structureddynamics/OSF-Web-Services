@@ -111,25 +111,7 @@ if(isset($_GET['include_attributes_list']))
 elseif(isset($_POST['include_attributes_list']))
 {
   $include_attributes_list = $_POST['include_attributes_list'];
-}
-
-$parameters = "";
-
-if(isset($_SERVER['REQUEST_URI']))
-{
-  $parameters = $_SERVER['REQUEST_URI'];
-
-  $pos = strpos($parameters, "?");
-
-  if($pos !== FALSE)
-  {
-    $parameters = substr($parameters, $pos, strlen($parameters) - $pos);
-  }
-}
-elseif(isset($_SERVER['PHP_SELF']))
-{
-  $parameters = $_SERVER['PHP_SELF'];
-}          
+}        
 
 $ws_cr = new CrudRead($uri, $dataset, $include_linksback, $include_reification, 
                       $include_attributes_list, $interface, $version, $lang);

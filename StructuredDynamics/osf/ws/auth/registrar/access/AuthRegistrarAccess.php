@@ -142,7 +142,13 @@ class AuthRegistrarAccess extends \StructuredDynamics\osf\ws\framework\WebServic
                           "level": "Fatal",
                           "name": "Can\'t delete access record",
                           "description": "Can\'t delete the specific access record specified in this query"
-                        }                            
+                        },
+                        "_308": {
+                          "id": "WS-AUTH-REGISTRAR-ACCESS-308",
+                          "level": "Fatal",
+                          "name": "Can\'t delete all accesses to this group",
+                          "description": "An error occured when we tried to delete all accesses to this group"
+                        }
                       }';
 
   /**
@@ -187,7 +193,7 @@ class AuthRegistrarAccess extends \StructuredDynamics\osf\ws\framework\WebServic
       @param $action One of:  (1)"create (default)": Create a new access description
                               (2) "delete_target": Delete target access permissions records for a specific IP address and a specific dataset. This deletes all the access permissions of a user for a target dataset. 
                               (3) "delete_specific": Delete a specific access permissions records
-                              (4) "delete_all": Delete all access descriptions for a target dataset
+                              (4) "delete_all": Delete all access descriptions for a target dataset or a target group
                               (5) "update": Update an existing access description 
       @param $target_access_uri Target URI of the access resource to update. Only used when param4 = update
       @param $group Target Group URI related to the acces record being created
@@ -318,7 +324,8 @@ class AuthRegistrarAccess extends \StructuredDynamics\osf\ws\framework\WebServic
         }
       }
 
-      if($this->dataset == "" && strtolower($this->action) != "delete_specific")
+      if(($this->dataset == "" && strtolower($this->action) != "delete_specific") && 
+         !($this->group != "" && strtolower($this->action) == "delete_all"))
       {
         $this->conneg->setStatus(400);
         $this->conneg->setStatusMsg("Bad Request");

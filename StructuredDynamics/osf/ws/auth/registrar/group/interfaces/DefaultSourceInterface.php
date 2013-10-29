@@ -44,6 +44,7 @@
         
         if($this->ws->action === 'delete')
         {
+          // Delete the group and its members
           $query = "delete from graph <" . $this->ws->wsf_graph . ">
                     { 
                       <".$this->ws->group_uri."> ?group_p ?group_o .
@@ -75,6 +76,33 @@
 
             return;
           }
+          
+          // Delete the permissions related to that group
+          $query =
+            "delete from graph <" . $this->ws->wsf_graph . ">
+                  { 
+                    ?access ?p ?o. 
+                  }
+                  where
+                  {
+                    ?access a <http://purl.org/ontology/wsf#Access> ;
+                      <http://purl.org/ontology/wsf#groupAccess> <".$this->ws->group_uri."> ;
+                      ?p ?o.
+                  }";
+
+          @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
+            FALSE));
+
+          if(odbc_error())
+          {
+            $this->ws->conneg->setStatus(500);
+            $this->ws->conneg->setStatusMsg("Internal Error");
+            $this->ws->conneg->setError($this->ws->errorMessenger->_303->id, $this->ws->errorMessenger->ws,
+              $this->ws->errorMessenger->_303->name, $this->ws->errorMessenger->_303->description, odbc_errormsg(),
+              $this->ws->errorMessenger->_303->level);
+            return;
+          }
+          
         }
         
         // Invalidate caches

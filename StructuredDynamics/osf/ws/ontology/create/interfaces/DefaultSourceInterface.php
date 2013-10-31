@@ -201,6 +201,8 @@
         {
           $this->ws->returnError(400, "Bad Request", "_302", "");
           
+          $this->clearCache();
+          
           return;
         }        
         
@@ -212,6 +214,8 @@
         {           
           $this->ws->returnError(400, "Bad Request", "_300", (string)java_values($e));
 
+          $this->clearCache();
+          
           return;
         }
 
@@ -238,6 +242,8 @@
             $authLister->pipeline_getError()->name, $authLister->pipeline_getError()->description,
             $authLister->pipeline_getError()->debugInfo, $authLister->pipeline_getError()->level);
 
+          $this->clearCache();  
+            
           return;
         }
 
@@ -304,6 +310,8 @@
           // have been leaved there, and that a procedure, normally using the advancedIndexation mode
           // is currently being re-processed.
 
+          $this->clearCache();
+          
           return;
         }
 
@@ -327,6 +335,8 @@
             $this->ws->errorMessenger->_301->name, $this->ws->errorMessenger->_301->description, odbc_errormsg(),
             $this->ws->errorMessenger->_301->level);
 
+          $this->clearCache(); 
+            
           return;
         }        
 
@@ -567,6 +577,8 @@
                 $this->ws->conneg->setError($this->ws->errorMessenger->_201->id, $this->ws->errorMessenger->ws,
                   $this->ws->errorMessenger->_201->name, $this->ws->errorMessenger->_201->description, odbc_errormsg(),
                   $this->ws->errorMessenger->_201->level);                
+                
+                $this->clearCache();
                   
                 return;
               }
@@ -747,8 +759,12 @@
                     $ontologyDelete->pipeline_getError()->description, $ontologyDelete->pipeline_getError()->debugInfo,
                     $ontologyDelete->pipeline_getError()->level);
 
+                  $this->clearCache();  
+                    
                   return;
                 }
+                
+                $this->clearCache();
 
                 return;
               }
@@ -757,48 +773,53 @@
             }
           }
         }
-        
-        // Invalidate caches
-        if($this->ws->memcached_enabled)
-        {
-          $this->ws->invalidateCache('crud-read');
-          $this->ws->invalidateCache('search');
-          $this->ws->invalidateCache('sparql');  
-          $this->ws->invalidateCache('ontology-read:getserialized');
-          $this->ws->invalidateCache('ontology-read:getclass');
-          $this->ws->invalidateCache('ontology-read:getclasses');
-          $this->ws->invalidateCache('ontology-read:getnamedindividual');
-          $this->ws->invalidateCache('ontology-read:getnamedindividuals');
-          $this->ws->invalidateCache('ontology-read:getsubclasses');
-          $this->ws->invalidateCache('ontology-read:getsuperclasses');
-          $this->ws->invalidateCache('ontology-read:getequivalentclasses');
-          $this->ws->invalidateCache('ontology-read:getdisjointclasses');
-          $this->ws->invalidateCache('ontology-read:getontologies');
-          $this->ws->invalidateCache('ontology-read:getloadedontologies');
-          $this->ws->invalidateCache('ontology-read:getserializedclasshierarchy');
-          $this->ws->invalidateCache('ontology-read:getserializedpropertyhierarchy');
-          $this->ws->invalidateCache('ontology-read:getironxmlschema');
-          $this->ws->invalidateCache('ontology-read:getironjsonschema');
-          $this->ws->invalidateCache('ontology-read:getproperty');
-          $this->ws->invalidateCache('ontology-read:getsubproperties');
-          $this->ws->invalidateCache('ontology-read:getsuperproperties');
-          $this->ws->invalidateCache('ontology-read:getequivalentproperties');
-          $this->ws->invalidateCache('ontology-read:getdisjointproperties');        
-          $this->ws->invalidateCache('auth-validator');
-          $this->ws->invalidateCache('auth-lister:dataset');
-          $this->ws->invalidateCache('auth-lister:ws');
-          $this->ws->invalidateCache('auth-lister:groups');
-          $this->ws->invalidateCache('auth-lister:group_users');
-          $this->ws->invalidateCache('auth-lister:access_user');
-          $this->ws->invalidateCache('auth-lister:access_dataset');
-          $this->ws->invalidateCache('auth-lister:access_group');
-          $this->ws->invalidateCache('dataset-read');
-          $this->ws->invalidateCache('dataset-read:all');
-          $this->ws->invalidateCache('revision-read');
-          $this->ws->invalidateCache('revision-lister');
-        }
       }
+      
+      $this->clearCache();
     }          
+    
+    private function clearCache()
+    {
+      // Invalidate caches
+      if($this->ws->memcached_enabled)
+      {
+        $this->ws->invalidateCache('crud-read');
+        $this->ws->invalidateCache('search');
+        $this->ws->invalidateCache('sparql');  
+        $this->ws->invalidateCache('ontology-read:getserialized');
+        $this->ws->invalidateCache('ontology-read:getclass');
+        $this->ws->invalidateCache('ontology-read:getclasses');
+        $this->ws->invalidateCache('ontology-read:getnamedindividual');
+        $this->ws->invalidateCache('ontology-read:getnamedindividuals');
+        $this->ws->invalidateCache('ontology-read:getsubclasses');
+        $this->ws->invalidateCache('ontology-read:getsuperclasses');
+        $this->ws->invalidateCache('ontology-read:getequivalentclasses');
+        $this->ws->invalidateCache('ontology-read:getdisjointclasses');
+        $this->ws->invalidateCache('ontology-read:getontologies');
+        $this->ws->invalidateCache('ontology-read:getloadedontologies');
+        $this->ws->invalidateCache('ontology-read:getserializedclasshierarchy');
+        $this->ws->invalidateCache('ontology-read:getserializedpropertyhierarchy');
+        $this->ws->invalidateCache('ontology-read:getironxmlschema');
+        $this->ws->invalidateCache('ontology-read:getironjsonschema');
+        $this->ws->invalidateCache('ontology-read:getproperty');
+        $this->ws->invalidateCache('ontology-read:getsubproperties');
+        $this->ws->invalidateCache('ontology-read:getsuperproperties');
+        $this->ws->invalidateCache('ontology-read:getequivalentproperties');
+        $this->ws->invalidateCache('ontology-read:getdisjointproperties');        
+        $this->ws->invalidateCache('auth-validator');
+        $this->ws->invalidateCache('auth-lister:dataset');
+        $this->ws->invalidateCache('auth-lister:ws');
+        $this->ws->invalidateCache('auth-lister:groups');
+        $this->ws->invalidateCache('auth-lister:group_users');
+        $this->ws->invalidateCache('auth-lister:access_user');
+        $this->ws->invalidateCache('auth-lister:access_dataset');
+        $this->ws->invalidateCache('auth-lister:access_group');
+        $this->ws->invalidateCache('dataset-read');
+        $this->ws->invalidateCache('dataset-read:all');
+        $this->ws->invalidateCache('revision-read');
+        $this->ws->invalidateCache('revision-lister');
+      }      
+    }
     
     public function processInterface()
     {

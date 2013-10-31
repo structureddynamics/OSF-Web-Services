@@ -393,8 +393,7 @@
             }
                         
             $query = "  select ?access ?group ?create ?read ?update ?delete ".($this->ws->targetWebservice == "all" ? "?webServiceAccess" : "")." 
-                    from <" . $this->ws->wsf_graph
-              . ">
+                    from <" . $this->ws->wsf_graph . ">
                     where
                     {
                       ?access a <http://purl.org/ontology/wsf#Access> ;

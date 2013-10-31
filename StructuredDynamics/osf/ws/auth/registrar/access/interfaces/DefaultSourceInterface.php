@@ -258,6 +258,8 @@
           $this->ws->invalidateCache('auth-lister:access_user');
           $this->ws->invalidateCache('auth-lister:access_dataset');        
           $this->ws->invalidateCache('auth-lister:access_group');
+          $this->ws->invalidateCache('dataset-read');
+          $this->ws->invalidateCache('dataset-read:all');
         }
       }
     }

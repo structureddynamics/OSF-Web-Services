@@ -208,7 +208,7 @@ class DatasetDelete extends \StructuredDynamics\osf\ws\framework\WebService
   */
   public function validateQuery()
   {
-    if($this->validateUserAccess($this->wsf_graph . "datasets/"))
+    if($this->validateUserAccess(array($this->wsf_graph . "datasets/", $this->datasetUri)))
     {
       if($this->datasetUri == "")
       {

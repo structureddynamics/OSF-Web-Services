@@ -228,7 +228,7 @@ class DatasetUpdate extends \StructuredDynamics\osf\ws\framework\WebService
   */
   public function validateQuery()
   {
-    if($this->validateUserAccess($this->wsf_graph . "datasets/"))
+    if($this->validateUserAccess(array($this->wsf_graph . "datasets/", $this->datasetUri)))
     {    
       // Check if the dataset URI is missing.
       if($this->datasetUri == "")

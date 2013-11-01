@@ -148,6 +148,26 @@ class AuthRegistrarAccess extends \StructuredDynamics\osf\ws\framework\WebServic
                           "level": "Fatal",
                           "name": "Can\'t delete all accesses to this group",
                           "description": "An error occured when we tried to delete all accesses to this group"
+                        },
+                        "_309": {
+                          "id": "WS-AUTH-REGISTRAR-ACCESS-309",
+                          "level": "Warning",
+                          "name": "Invalid group URI",
+                          "description": "The URI of the group is not valid."
+                        },                        
+                        },
+                        "_310": {
+                          "id": "WS-AUTH-REGISTRAR-ACCESS-310",
+                          "level": "Warning",
+                          "name": "Invalid dataset URI",
+                          "description": "The URI of the dataset is not valid."
+                        },                        
+                        },
+                        "_311": {
+                          "id": "WS-AUTH-REGISTRAR-ACCESS-311",
+                          "level": "Warning",
+                          "name": "Invalid target access URI",
+                          "description": "The URI of the target access is not valid."
                         }
                       }';
 
@@ -266,6 +286,42 @@ class AuthRegistrarAccess extends \StructuredDynamics\osf\ws\framework\WebServic
   {
     if($this->validateUserAccess($this->wsf_graph))
     {
+      if(!empty($this->group) && !$this->isValidIRI($this->group))
+      {
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_309->name);
+        $this->conneg->setError($this->errorMessenger->_309->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_309->name, $this->errorMessenger->_309->description, "",
+          $this->errorMessenger->_309->level);
+
+        return;
+      }        
+      
+      if(!empty($this->dataset) && !$this->isValidIRI($this->dataset))
+      {
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_310->name);
+        $this->conneg->setError($this->errorMessenger->_310->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_310->name, $this->errorMessenger->_310->description, "",
+          $this->errorMessenger->_310->level);
+
+        return;
+      }        
+      
+      if(!empty($this->target_access_uri) && !$this->isValidIRI($this->target_access_uri))
+      {
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_311->name);
+        $this->conneg->setError($this->errorMessenger->_311->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_311->name, $this->errorMessenger->_311->description, "",
+          $this->errorMessenger->_311->level);
+
+        return;
+      }        
+      
       if(strtolower($this->action) != "create" && strtolower($this->action) != "delete_target"
         && strtolower($this->action) != "delete_all" && strtolower($this->action) != "update"
         && strtolower($this->action) != "delete_specific")

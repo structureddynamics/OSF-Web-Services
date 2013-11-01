@@ -96,7 +96,13 @@ class AuthRegistrarGroup extends \StructuredDynamics\osf\ws\framework\WebService
                           "level": "Fatal",
                           "name": "Couldn\'t delete group",
                           "description": "An internal error occured when we tried to delete this group to the web service network."
-                        }
+                        },
+                        "_305": {
+                          "id": "WS-AUTH-REGISTRAR-GROUP-305",
+                          "level": "Warning",
+                          "name": "Invalid group URI",
+                          "description": "The URI of the group is not valid."
+                        }                        
                       }';
 
                       
@@ -218,6 +224,18 @@ class AuthRegistrarGroup extends \StructuredDynamics\osf\ws\framework\WebService
           $this->errorMessenger->_200->level);
         return;
       }      
+      
+      if(!empty($this->group_uri) && !$this->isValidIRI($this->group_uri))
+      {
+        $this->conneg->setStatus(400);
+        $this->conneg->setStatusMsg("Bad Request");
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_305->name);
+        $this->conneg->setError($this->errorMessenger->_305->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_305->name, $this->errorMessenger->_305->description, "",
+          $this->errorMessenger->_305->level);
+
+        return;
+      }        
       
       if($this->app_id == "")
       {

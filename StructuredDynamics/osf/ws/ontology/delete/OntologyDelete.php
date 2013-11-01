@@ -185,7 +185,7 @@ class OntologyDelete extends \StructuredDynamics\osf\ws\framework\WebService
   */
   public function validateQuery()
   {
-    if($this->validateUserAccess($this->wsf_graph . "ontologies/"))
+    if($this->validateUserAccess(array($this->wsf_graph . "ontologies/", $this->ontologyUri)))   
     {
       // Check if the URI is defined.
       if($this->ontologyUri == "")

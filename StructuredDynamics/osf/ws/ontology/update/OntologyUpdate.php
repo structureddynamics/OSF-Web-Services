@@ -188,7 +188,7 @@ class OntologyUpdate extends \StructuredDynamics\osf\ws\framework\WebService
   */
   public function validateQuery()
   {
-    if($this->validateUserAccess($this->wsf_graph . "ontologies/"))    
+    if($this->validateUserAccess(array($this->wsf_graph . "ontologies/", $this->ontologyUri)))   
     {
       if($this->ontologyUri == "")
       {

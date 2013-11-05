@@ -200,7 +200,7 @@
               
               $revisionUris[] = $revisionUri;     
               
-              $crudRead = new CrudRead($subject, $this->ws->dataset, 'false', 'true');
+              $crudRead = new CrudRead(str_replace(";", "%3B", $subject), $this->ws->dataset, 'false', 'true');
               
               $crudRead->ws_conneg('application/rdf+xml', 
                                    (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
@@ -1541,16 +1541,6 @@
           {
             $solr->updateFieldsIndex();
           }        
-
-          // Invalidate caches
-          if($this->ws->memcached_enabled)
-          {
-            $this->ws->invalidateCache('revision-read');
-            $this->ws->invalidateCache('revision-lister');
-            $this->ws->invalidateCache('search');
-            $this->ws->invalidateCache('sparql');        
-            $this->ws->invalidateCache('crud-read');         
-          }
           
           /*        
           if(!$solr->optimize())
@@ -1562,6 +1552,16 @@
           }
           */
         }           
+        
+        // Invalidate caches
+        if($this->ws->memcached_enabled)
+        {
+          $this->ws->invalidateCache('revision-read');
+          $this->ws->invalidateCache('revision-lister');
+          $this->ws->invalidateCache('search');
+          $this->ws->invalidateCache('sparql');        
+          $this->ws->invalidateCache('crud-read');         
+        }        
       }
     }      
   }

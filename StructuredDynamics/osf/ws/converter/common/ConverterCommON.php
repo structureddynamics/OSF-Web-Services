@@ -471,9 +471,14 @@ class ConverterCommON extends \StructuredDynamics\osf\ws\framework\WebService
   {
     $this->conneg = new Conneg($accept, $accept_charset, $accept_encoding, $accept_language,
       ConverterCommON::$supportedSerializations);
-
+    
     // Validate call
-    $this->validateCall();  
+    if(!$this->isInPipelineMode)
+    {
+      // Only validate this call if it is not in pipeline mode. If a converter is used
+      // in pipeline mode, there is no issues not validating this call.
+      $this->validateCall();  
+    }
       
     if($this->conneg->getStatus() == 200)
     {
@@ -506,9 +511,9 @@ class ConverterCommON extends \StructuredDynamics\osf\ws\framework\WebService
   */
   public function pipeline_conneg($accept, $accept_charset, $accept_encoding, $accept_language)
   {     
-    $this->ws_conneg($accept, $accept_charset, $accept_encoding, $accept_language); 
-    
     $this->isInPipelineMode = TRUE;
+
+    $this->ws_conneg($accept, $accept_charset, $accept_encoding, $accept_language);     
   }
   
   /** Returns the response HTTP header status

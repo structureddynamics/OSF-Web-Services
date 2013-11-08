@@ -194,7 +194,7 @@
     }
     
     public function processInterface()
-    {  
+    {
       // Make sure there was no conneg error prior to this process call
       if($this->ws->conneg->getStatus() == 200)
       {
@@ -1684,23 +1684,38 @@
           $subject->setDataAttribute(Namespaces::$aggr."count", $found->nodeValue);
           $this->ws->rset->addSubject($subject);        
         }
-        
+
         // Set all the attributes/values aggregates
-        foreach($this->ws->aggregateAttributes as $attribute)
+        $deletedKeys = array();
+        foreach($this->ws->aggregateAttributes as $key => $attribute)
         {
           $founds = $xpath->query("//*/lst[@name='facet_fields']//lst[@name='".urlencode($attribute)."']/int");
-
+          
+          if(in_array($key, $deletedKeys))
+          {
+            continue;
+          }
+          
           foreach($founds as $found)
           {
-            $subject = new Subject($this->ws->uri . "aggregate/" . md5(str_replace(array("_attr_uri_label_facets","_attr_facets", "_attr_obj_uri"), "", urldecode($attribute)).$found->attributes->getNamedItem("name")->nodeValue.$found->nodeValue));
+            if((strpos($attribute, '_attr_uri_label_facets') !== FALSE ||
+                strpos($attribute, '_attr_obj_uri') !== FALSE) &&
+                in_array(str_replace(array("_attr_uri_label_facets", "_attr_obj_uri"), "", $attribute).'_attr_facets', $this->ws->aggregateAttributes))
+            {
+              $k = array_search(str_replace(array("_attr_uri_label_facets", "_attr_obj_uri"), "", $attribute).'_attr_facets', $this->ws->aggregateAttributes);
+              
+              $deletedKeys[] = $k;
+            }
+               
+            $subject = new Subject($this->ws->uri . "aggregate/" . md5(str_replace(array("_attr_uri_label_facets", "_attr_facets", "_attr_obj_uri"), "", urldecode($attribute)).$found->attributes->getNamedItem("name")->nodeValue.$found->nodeValue));
             $subject->setType(Namespaces::$aggr."Aggregate");
-            $subject->setObjectAttribute(Namespaces::$aggr."property", str_replace(array("_attr_uri_label_facets","_attr_facets", "_attr_obj_uri"), "", urldecode($attribute)));
+            $subject->setObjectAttribute(Namespaces::$aggr."property", str_replace(array("_attr_uri_label_facets", "_attr_facets", "_attr_obj_uri"), "", urldecode($attribute)));
             
             if($this->ws->aggregateAttributesObjectType == "uri")
             {          
               $subject->setObjectAttribute(Namespaces::$aggr."object", $found->attributes->getNamedItem("name")->nodeValue);
             }
-            elseif($this->ws->aggregateAttributesObjectType == "literal")
+            elseif($this->ws->aggregateAttributesObjectType == "literal" || strpos($attribute, '_attr_facets') !== FALSE)
             {
               $subject->setDataAttribute(Namespaces::$aggr."object", $found->attributes->getNamedItem("name")->nodeValue);
             }

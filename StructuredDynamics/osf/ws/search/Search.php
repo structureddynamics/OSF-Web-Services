@@ -580,30 +580,35 @@ class Search extends \StructuredDynamics\osf\ws\framework\WebService
     {
       $this->includeAttributesList = explode(";", $includeAttributesList);
     }
-    
+
     if($aggregate_attributes != "")
     {
+      $objectAttributesFacets = array();
+      $datatypeAttributesFacets = array();
+      
       $aas = explode(";", $aggregate_attributes);
       
       for($i = 0; $i < count($aas); $i++)
       {
         if($this->aggregateAttributesObjectType == "uri")
         {
-          $aas[$i] = $aas[$i]."_attr_obj_uri";
+          $datatypeAttributesFacets[] = $aas[$i]."_attr_facets";
+          $objectAttributesFacets[] = $aas[$i]."_attr_obj_uri";
         }
         elseif($this->aggregateAttributesObjectType == "literal")
         {
-          $aas[$i] = $aas[$i]."_attr_facets";
+          $datatypeAttributesFacets[] = $aas[$i]."_attr_facets";
         }
         elseif($this->aggregateAttributesObjectType == "uriliteral")
         {
-          $aas[$i] = $aas[$i]."_attr_uri_label_facets";
+          $datatypeAttributesFacets[] = $aas[$i]."_attr_facets";
+          $objectAttributesFacets[] = $aas[$i]."_attr_uri_label_facets";
         }
       }
       
-      $this->aggregateAttributes = $aas;
+      $this->aggregateAttributes = array_merge($objectAttributesFacets, $datatypeAttributesFacets);
     }
-
+    
     $this->types = $types;
     $this->datasets = $datasets;
 

@@ -70,15 +70,7 @@ if(isset($_POST['creator']))
   $creator = $_POST['creator'];
 }
 
-// Web services that can be used to access and manage that dataset. It is list of ";" separated Web services URI
-$webservices = "all";
-
-if(isset($_POST['webservices']))
-{
-  $webservices = $_POST['webservices'];
-}
-
-$ws_dc = new DatasetCreate($uri, $title, $description, $creator, $webservices, $interface, $version);
+$ws_dc = new DatasetCreate($uri, $title, $description, $creator, $interface, $version);
 
 $ws_dc->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                   (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

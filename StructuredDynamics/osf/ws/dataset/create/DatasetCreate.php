@@ -39,9 +39,6 @@ class DatasetCreate extends \StructuredDynamics\osf\ws\framework\WebService
     array ("application/json", "application/rdf+xml", "application/rdf+n3", "application/*", "text/xml", "text/*",
       "*/*");
       
-  /** Web services that can be used to access and manage that dataset. It is list of ";" separated Web services URI */
-  public $webservices = "all";      
-
   /** Error messages of this web service */
   private $errorMessenger =
     '{
@@ -140,7 +137,6 @@ class DatasetCreate extends \StructuredDynamics\osf\ws\framework\WebService
       @param $datasetTitle Title of the dataset to create
       @param $description Description of the dataset to create
       @param $creator Unique identifier used to refer to the creator of this dataset
-      @param $webservices Web services that can be used to access and manage that dataset. It is list of ";" separated Web services URI
       @param $interface Name of the source interface to use for this web service query. Default value: 'default'                            
       @param $requestedInterfaceVersion Version used for the requested source interface. The default is the latest 
                                         version of the interface.
@@ -149,7 +145,7 @@ class DatasetCreate extends \StructuredDynamics\osf\ws\framework\WebService
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($uri, $datasetTitle, $description, $creator, $webservices = "all", $interface='default', $requestedInterfaceVersion="")
+  function __construct($uri, $datasetTitle, $description, $creator, $interface='default', $requestedInterfaceVersion="")
   {
     parent::__construct();
     
@@ -159,7 +155,6 @@ class DatasetCreate extends \StructuredDynamics\osf\ws\framework\WebService
     $this->datasetTitle = $datasetTitle;
     $this->description = $description;
     $this->creator = $creator;
-    $this->webservices = $webservices;
 
     if(strtolower($interface) == "default")
     {

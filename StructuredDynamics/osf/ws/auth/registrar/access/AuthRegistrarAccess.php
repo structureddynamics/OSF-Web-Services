@@ -155,14 +155,12 @@ class AuthRegistrarAccess extends \StructuredDynamics\osf\ws\framework\WebServic
                           "name": "Invalid group URI",
                           "description": "The URI of the group is not valid."
                         },                        
-                        },
                         "_310": {
                           "id": "WS-AUTH-REGISTRAR-ACCESS-310",
                           "level": "Warning",
                           "name": "Invalid dataset URI",
                           "description": "The URI of the dataset is not valid."
                         },                        
-                        },
                         "_311": {
                           "id": "WS-AUTH-REGISTRAR-ACCESS-311",
                           "level": "Warning",

@@ -37,4 +37,4 @@ http://www.apache.org/licenses/LICENSE-2.0.
 
 OSF also has hooks to other open source products; for a listing and license
 terms of these, see:
-http://techwiki.openstructs.org/index.php/Open_Source_Software_Licenses. 
+http://wiki.opensemanticframework.org/index.php/Open_Source_Software_Licenses 

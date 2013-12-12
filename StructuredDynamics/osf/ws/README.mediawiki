@@ -1,29 +1,29 @@
 == Introduction ==
 
-'''OSF''' is a platform-independent Web services framework for accessing and exposing structured [http://techwiki.openstructs.org/index.php/RDF_Concept RDF] (Resource Description Framework) data. Its central organizing perspective is that of the dataset. These datasets contain instance records, with the structural relationships amongst the data and their attributes and concepts defined via ontologies (schema with accompanying vocabularies).
+'''OSF''' is a platform-independent Web services framework for accessing and exposing structured [http://wiki.opensemanticframework.org/index.php/RDF_Concept RDF] (Resource Description Framework) data. Its central organizing perspective is that of the dataset. These datasets contain instance records, with the structural relationships amongst the data and their attributes and concepts defined via ontologies (schema with accompanying vocabularies).
 
-The OSF middleware framework is [http://www.mkbergman.com/?p=499 generally] [http://techwiki.openstructs.org/index.php/REST_Concept RESTful] in design and is based on HTTP and Web protocols and open standards. The initial OSF framework comes packaged with a baseline set of more than 20 Web services in [http://techwiki.openstructs.org/index.php/CRUD_Concept CRUD], browse, search, tagging, ontology management, and export and import. All Web services are exposed via APIs and SPARQL endpoints. Each request to an individual Web service returns an HTTP status and optionally a document of ''resultsets''. Each results document can be serialized in many ways, and may be expressed as either RDF, pure XML, JSON, or different flavors of [http://techwiki.openstructs.org/index.php/Introduction_to_irON irON].
+The OSF middleware framework is [http://www.mkbergman.com/?p=499 generally] [http://wiki.opensemanticframework.org/index.php/REST_Concept RESTful] in design and is based on HTTP and Web protocols and open standards. The initial OSF framework comes packaged with a baseline set of more than 20 Web services in [http://wiki.opensemanticframework.org/index.php/CRUD_Concept CRUD], browse, search, tagging, ontology management, and export and import. All Web services are exposed via APIs and SPARQL endpoints. Each request to an individual Web service returns an HTTP status and optionally a document of ''resultsets''. Each results document can be serialized in many ways, and may be expressed as either RDF, pure XML, JSON, or different flavors of [http://wiki.opensemanticframework.org/index.php/Introduction_to_irON irON].
 
-In initial release, OSF has direct interfaces to the [http://techwiki.openstructs.org/index.php/Virtuoso Virtuoso] RDF triple store (via ODBC, and later HTTP) and the [http://techwiki.openstructs.org/index.php/Solr Solr] faceted, full-text search engine(via HTTP). However, OSF has been designed to be fully platform-independent. Support for additional datastores and engines are planned. The design also allows other specialized systems to be included, such as analysis or advanced inference engines.
+In initial release, OSF has direct interfaces to the [http://wiki.opensemanticframework.org/index.php/Virtuoso Virtuoso] RDF triple store (via ODBC, and later HTTP) and the [http://wiki.opensemanticframework.org/index.php/Solr Solr] faceted, full-text search engine(via HTTP). However, OSF has been designed to be fully platform-independent. Support for additional datastores and engines are planned. The design also allows other specialized systems to be included, such as analysis or advanced inference engines.
 
-The framework is open source (Apache 2 license) and designed for extensibility. OSF and its extensions and enhancements are distributed and documented on the '''OpenStructs''' [http://openstructs.org/  Web site].
+The framework is open source (Apache 2 license) and designed for extensibility. OSF and its extensions and enhancements are distributed and documented on the '''Open Semantic Framework''' [http://opensemanticframework.org/  Web site].
 
-You can read more about [http://techwiki.openstructs.org/index.php/OSF OSF here]
+You can read more about [http://wiki.opensemanticframework.org/index.php/Open_Semantic_Framework OSF here]
 
 == Documentation ==
 
-OSF is fully documented on the [http://techwiki.openstructs.org Techwiki]. You can easily access all the documentation pages related to it by checking this [http://techwiki.openstructs.org/index.php/Category:OSF category section].
+OSF is fully documented on the [http://wiki.opensemanticframework.org Techwiki]. You can easily access all the documentation pages related to it by checking this [http://wiki.opensemanticframework.org/index.php/Category:Open_Semantic_Framework category section].
 
 == Architecture ==
 
-The general OSF architecture is described in this [http://techwiki.openstructs.org/index.php/OSF_Architecture document page]. It also explains the echosystem in which it lives (and its related to other parts of the OSF (Open Semantic Framework) like [http://drupal.org/project/construct conStruct].
+The general OSF architecture is described in this [http://wiki.opensemanticframework.org/index.php/OSF_Web_Service_Architecture document page]. It also explains the echosystem in which it lives (and its related to other parts of the OSF (Open Semantic Framework) like [http://drupal.org/project/osf OSF for Drupal].
 
 == Installing OSF ==
 
 {|
 |-
 | [https://github.com/structureddynamics/Open-Semantic-Framework-Installer Get started  quickly with OSF by using the Open Semantic Framework Installer]
-| [[File:http://dev.openstructs.org/imgs/osf_installer.png]]
+| [[File:http://wiki.opensemanticframework.org/images/7/7d/Osf_installer.png]]
 |}
 
 Additionally you can find debugging tips and support on the [http://groups.google.com/group/open-semantic-framework Mailing List]
@@ -32,42 +32,49 @@ Additionally you can find debugging tips and support on the [http://groups.googl
 
 An existing OSF instance can easily be upgrader using the [https://github.com/structureddynamics/Open-Semantic-Framework-Installer OSF-Installer].
 
-Note: the version of the OSF instance that should be minimally installed is version 2.0.0. If you have an older version than that, then you will have to manually upgrade your version to the version 2.0.0 and then you will have to run the OSF-Installer OSF upgrader script.
+Note: the version of the OSF instance that should be minimally installed is version 3.0.0. If you have an older version than that, then you will have to manually upgrade your version to the version 3.0.0 and then you will have to run the OSF-Installer OSF upgrader script.
 
 == OSF Web Services ==
 
 Here is a complete list of all the web service endpoints currently available in OSF:
 
-* [http://techwiki.openstructs.org/index.php/Auth_Registrar:_Access Auth Registrar: Access]
-* [http://techwiki.openstructs.org/index.php/Auth_Registrar:_WS Auth Registrar: WS]
-* [http://techwiki.openstructs.org/index.php/Auth:_Lister Auth: Lister]
-* [http://techwiki.openstructs.org/index.php/Auth:_Validator Auth: Validator]
-* [http://techwiki.openstructs.org/index.php/Ontology_Create Ontology Create]
-* [http://techwiki.openstructs.org/index.php/Ontology_Read Ontology Read]
-* [http://techwiki.openstructs.org/index.php/Ontology_Update Ontology Update]
-* [http://techwiki.openstructs.org/index.php/Ontology_Delete Ontology Delete]
-* [http://techwiki.openstructs.org/index.php/Dataset:_Create Dataset: Create]
-* [http://techwiki.openstructs.org/index.php/Dataset:_Read Dataset: Read]
-* [http://techwiki.openstructs.org/index.php/Dataset:_Update Dataset: Update]
-* [http://techwiki.openstructs.org/index.php/Dataset:_Delete Dataset: Delete]
-* [http://techwiki.openstructs.org/index.php/CRUD:_Create CRUD: Create]
-* [http://techwiki.openstructs.org/index.php/CRUD:_Read CRUD: Read]
-* [http://techwiki.openstructs.org/index.php/CRUD:_Update CRUD: Update]
-* [http://techwiki.openstructs.org/index.php/CRUD:_Delete CRUD: Delete]
-* [http://techwiki.openstructs.org/index.php/Search Search]
-* [http://techwiki.openstructs.org/index.php/SPARQL SPARQL]
-* [http://techwiki.openstructs.org/index.php/Scones Scones]
-* Tracker: Create
-* [http://techwiki.openstructs.org/index.php/Converter:_commON Converter: commON] (import and export)
-* [http://techwiki.openstructs.org/index.php/Converter:_irJSON Converter: irJSON] (import and export)
-* [http://techwiki.openstructs.org/index.php/Converter:_BibTeX Converter: BibTeX] (import and export)
-* [http://techwiki.openstructs.org/index.php/Converter:_TSV/CSV Converter: TSV/CSV] (import and export)
+* [http://wiki.opensemanticframework.org/index.php/OSF_Installer|Installation Guide]
+* [http://wiki.opensemanticframework.org/index.php/OSF_Web_Service|Overview]
+* [http://wiki.opensemanticframework.org/index.php/OSF_Web_Service_Architecture|OSF Web Service Architecture]
+* [http://wiki.opensemanticframework.org/index.php/OSF_Web_Services_Permissions|Datasets and Access Rights]
+* [http://wiki.opensemanticframework.org/index.php/structXML| structXML], the OSF Web Service XML data structure
+* [http://wiki.opensemanticframework.org/index.php/OSF_Web_Service_API_and_Web_Services_Documentation|OSF Web Service API and Web Services Documentation], with the specific services of:
+** [http://wiki.opensemanticframework.org/index.php/Auth_Registrar:_Access|Auth Registrar: Access]
+** [http://wiki.opensemanticframework.org/index.php/Auth_Registrar:_Group|Auth Registrar: Group]
+** [http://wiki.opensemanticframework.org/index.php/Auth_Registrar:_User|Auth Registrar: User]
+** [http://wiki.opensemanticframework.org/index.php/Auth_Registrar:_WS|Auth Registrar: WS]
+** [http://wiki.opensemanticframework.org/index.php/Auth:_Lister|Auth: Lister]
+** [http://wiki.opensemanticframework.org/index.php/Ontology_reate|Ontology Create]
+** [http://wiki.opensemanticframework.org/index.php/Ontology_Read|Ontology Read]
+** [http://wiki.opensemanticframework.org/index.php/Ontology_Update|Ontology Update]
+** [http://wiki.opensemanticframework.org/index.php/Ontology_Delete|Ontology Delete]
+** [http://wiki.opensemanticframework.org/index.php/Dataset:_Create|Dataset: Create]
+** [http://wiki.opensemanticframework.org/index.php/Dataset:_Read|Dataset: Read]
+** [http://wiki.opensemanticframework.org/index.php/Dataset:_Update|Dataset: Update]
+** [http://wiki.opensemanticframework.org/index.php/Dataset:_Delete|Dataset: Delete]
+** [http://wiki.opensemanticframework.org/index.php/CRUD:_Create|CRUD: Create]
+** [http://wiki.opensemanticframework.org/index.php/CRUD:_Read|CRUD: Read]
+** [http://wiki.opensemanticframework.org/index.php/CRUD:_Update|CRUD: Update]
+** [http://wiki.opensemanticframework.org/index.php/CRUD:_Delete|CRUD: Delete]
+** [http://wiki.opensemanticframework.org/index.php/Revision:_Diff|Revision: Diff]
+** [http://wiki.opensemanticframework.org/index.php/Revision:_Delete|Revision: Delete]
+** [http://wiki.opensemanticframework.org/index.php/Revision:_Read|Revision: Read]
+** [http://wiki.opensemanticframework.org/index.php/Revision:_Update|Revision: Update]
+** [http://wiki.opensemanticframework.org/index.php/Revision:_Lister|Revision: Lister]
+** [http://wiki.opensemanticframework.org/index.php/Search|Search]
+** [http://wiki.opensemanticframework.org/index.php/SPARQL|SPARQL]
+** [http://wiki.opensemanticframework.org/index.php/Scones|Scones]
+** [http://wiki.opensemanticframework.org/index.php/Converter:_commON|Converter: commON] (import and export)
+** [http://wiki.opensemanticframework.org/index.php/Converter:_irJSON|Converter: irJSON] (import and export)
 
 == How to Use Web Services Endpoint ==
 
-The easiest way to get started is to use the [https://github.com/StructuredDynamics/OSF-WS-PHP-API OSF-WS-PHP-API] to create and send queries to any OSF web service endpoint.
-
-Another way is to redirectly send HTTP queries to any of the endpoints. [http://techwiki.openstructs.org/index.php/OSF_Web_Services_Tutorial A tutorial has been written that explains the basis principles of how to query the endpoints, and it also includes a series of basic usage explains].
+The easiest way to get started is to use the [https://github.com/StructuredDynamics/OSF-Web-Services-PHP-API OSF Web Services PHP API] to create and send queries to any OSF web service endpoint.
 
 == Developers ==
 

@@ -224,66 +224,8 @@
 
         $ontologyName = $this->getLabel($this->ws->ontologyUri, $ontologyDescription);
         $ontologyDescription = $this->getDescription($ontologyDescription);
-
-        // Get the list of webservices that will be accessible for this ontology dataset.
-        $authLister = new AuthLister("ws", $this->ws->ontologyUri, "");
-
-        $authLister->pipeline_conneg($this->ws->conneg->getAccept(), $this->ws->conneg->getAcceptCharset(),
-          $this->ws->conneg->getAcceptEncoding(), $this->ws->conneg->getAcceptLanguage());
-
-        $authLister->process();
-
-        if($authLister->pipeline_getResponseHeaderStatus() != 200)
-        {
-          $this->ws->conneg->setStatus($authLister->pipeline_getResponseHeaderStatus());
-          $this->ws->conneg->setStatusMsg($authLister->pipeline_getResponseHeaderStatusMsg());
-          $this->ws->conneg->setStatusMsgExt($authLister->pipeline_getResponseHeaderStatusMsgExt());
-          $this->ws->conneg->setError($authLister->pipeline_getError()->id, $authLister->pipeline_getError()->webservice,
-            $authLister->pipeline_getError()->name, $authLister->pipeline_getError()->description,
-            $authLister->pipeline_getError()->debugInfo, $authLister->pipeline_getError()->level);
-
-          $this->clearCache();  
-            
-          return;
-        }
-
-        /* Get all web services */
-        $webservices = "";
-
-        $xml = new ProcessorXML();
-        $xml->loadXML($authLister->pipeline_getResultset());
-
-        $webServiceElements = $xml->getXPath('//predicate/object[attribute::type="wsf:WebService"]');
-
-        foreach($webServiceElements as $element)
-        {
-          if(stristr($xml->getURI($element), "/wsf/ws/search/") !== FALSE
-            || stristr($xml->getURI($element), "/wsf/ws/browse/") !== FALSE
-            || stristr($xml->getURI($element), "/wsf/ws/sparql/") !== FALSE
-            || stristr($xml->getURI($element), "/wsf/ws/crud/create/") !== FALSE
-            || stristr($xml->getURI($element), "/wsf/ws/crud/update/") !== FALSE
-            || stristr($xml->getURI($element), "/wsf/ws/crud/delete/") !== FALSE
-            || stristr($xml->getURI($element), "/wsf/ws/crud/read/") !== FALSE
-            || stristr($xml->getURI($element), "/wsf/ws/revision/delete/") !== FALSE
-            || stristr($xml->getURI($element), "/wsf/ws/revision/diff/") !== FALSE
-            || stristr($xml->getURI($element), "/wsf/ws/revision/lister/") !== FALSE
-            || stristr($xml->getURI($element), "/wsf/ws/revision/read/") !== FALSE
-            || stristr($xml->getURI($element), "/wsf/ws/revision/update/") !== FALSE
-            || stristr($xml->getURI($element), "/wsf/ws/ontology/create/") !== FALSE
-            || stristr($xml->getURI($element), "/wsf/ws/ontology/read/") !== FALSE
-            || stristr($xml->getURI($element), "/wsf/ws/ontology/update/") !== FALSE
-            || stristr($xml->getURI($element), "/wsf/ws/ontology/delete/") !== FALSE)
-          {
-            $webservices .= $xml->getURI($element) . ";";
-          }
-        }
-
-        $webservices = rtrim($webservices, ";");
-
-        unset($xml);
-        unset($authLister);
         
-        $datasetCreate = new DatasetCreate($this->ws->ontologyUri, $ontologyName, $ontologyDescription, "", $webservices);
+        $datasetCreate = new DatasetCreate($this->ws->ontologyUri, $ontologyName, $ontologyDescription, "");
 
         $datasetCreate->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                                   (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""),    

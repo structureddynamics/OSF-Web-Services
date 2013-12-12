@@ -38,39 +38,39 @@ Note: the version of the OSF instance that should be minimally installed is vers
 
 Here is a complete list of all the web service endpoints currently available in OSF:
 
-* [http://wiki.opensemanticframework.org/index.php/OSF_Installer|Installation Guide]
-* [http://wiki.opensemanticframework.org/index.php/OSF_Web_Service|Overview]
-* [http://wiki.opensemanticframework.org/index.php/OSF_Web_Service_Architecture|OSF Web Service Architecture]
-* [http://wiki.opensemanticframework.org/index.php/OSF_Web_Services_Permissions|Datasets and Access Rights]
-* [http://wiki.opensemanticframework.org/index.php/structXML| structXML], the OSF Web Service XML data structure
-* [http://wiki.opensemanticframework.org/index.php/OSF_Web_Service_API_and_Web_Services_Documentation|OSF Web Service API and Web Services Documentation], with the specific services of:
-** [http://wiki.opensemanticframework.org/index.php/Auth_Registrar:_Access|Auth Registrar: Access]
-** [http://wiki.opensemanticframework.org/index.php/Auth_Registrar:_Group|Auth Registrar: Group]
-** [http://wiki.opensemanticframework.org/index.php/Auth_Registrar:_User|Auth Registrar: User]
-** [http://wiki.opensemanticframework.org/index.php/Auth_Registrar:_WS|Auth Registrar: WS]
-** [http://wiki.opensemanticframework.org/index.php/Auth:_Lister|Auth: Lister]
-** [http://wiki.opensemanticframework.org/index.php/Ontology_reate|Ontology Create]
-** [http://wiki.opensemanticframework.org/index.php/Ontology_Read|Ontology Read]
-** [http://wiki.opensemanticframework.org/index.php/Ontology_Update|Ontology Update]
-** [http://wiki.opensemanticframework.org/index.php/Ontology_Delete|Ontology Delete]
-** [http://wiki.opensemanticframework.org/index.php/Dataset:_Create|Dataset: Create]
-** [http://wiki.opensemanticframework.org/index.php/Dataset:_Read|Dataset: Read]
-** [http://wiki.opensemanticframework.org/index.php/Dataset:_Update|Dataset: Update]
-** [http://wiki.opensemanticframework.org/index.php/Dataset:_Delete|Dataset: Delete]
-** [http://wiki.opensemanticframework.org/index.php/CRUD:_Create|CRUD: Create]
-** [http://wiki.opensemanticframework.org/index.php/CRUD:_Read|CRUD: Read]
-** [http://wiki.opensemanticframework.org/index.php/CRUD:_Update|CRUD: Update]
-** [http://wiki.opensemanticframework.org/index.php/CRUD:_Delete|CRUD: Delete]
-** [http://wiki.opensemanticframework.org/index.php/Revision:_Diff|Revision: Diff]
-** [http://wiki.opensemanticframework.org/index.php/Revision:_Delete|Revision: Delete]
-** [http://wiki.opensemanticframework.org/index.php/Revision:_Read|Revision: Read]
-** [http://wiki.opensemanticframework.org/index.php/Revision:_Update|Revision: Update]
-** [http://wiki.opensemanticframework.org/index.php/Revision:_Lister|Revision: Lister]
-** [http://wiki.opensemanticframework.org/index.php/Search|Search]
-** [http://wiki.opensemanticframework.org/index.php/SPARQL|SPARQL]
-** [http://wiki.opensemanticframework.org/index.php/Scones|Scones]
-** [http://wiki.opensemanticframework.org/index.php/Converter:_commON|Converter: commON] (import and export)
-** [http://wiki.opensemanticframework.org/index.php/Converter:_irJSON|Converter: irJSON] (import and export)
+* [http://wiki.opensemanticframework.org/index.php/OSF_Installer Installation Guide]
+* [http://wiki.opensemanticframework.org/index.php/OSF_Web_Service Overview]
+* [http://wiki.opensemanticframework.org/index.php/OSF_Web_Service_Architecture OSF Web Service Architecture]
+* [http://wiki.opensemanticframework.org/index.php/OSF_Web_Services_Permissions Datasets and Access Rights]
+* [http://wiki.opensemanticframework.org/index.php/structXML structXML], the OSF Web Service XML data structure
+* [http://wiki.opensemanticframework.org/index.php/OSF_Web_Service_API_and_Web_Services_Documentation OSF Web Service API and Web Services Documentation], with the specific services of:
+** [http://wiki.opensemanticframework.org/index.php/Auth_Registrar:_Access Auth Registrar: Access]
+** [http://wiki.opensemanticframework.org/index.php/Auth_Registrar:_Group Auth Registrar: Group]
+** [http://wiki.opensemanticframework.org/index.php/Auth_Registrar:_User Auth Registrar: User]
+** [http://wiki.opensemanticframework.org/index.php/Auth_Registrar:_WS Auth Registrar: WS]
+** [http://wiki.opensemanticframework.org/index.php/Auth:_Lister Auth: Lister]
+** [http://wiki.opensemanticframework.org/index.php/Ontology_reate Ontology Create]
+** [http://wiki.opensemanticframework.org/index.php/Ontology_Read Ontology Read]
+** [http://wiki.opensemanticframework.org/index.php/Ontology_Update Ontology Update]
+** [http://wiki.opensemanticframework.org/index.php/Ontology_Delete Ontology Delete]
+** [http://wiki.opensemanticframework.org/index.php/Dataset:_Create Dataset: Create]
+** [http://wiki.opensemanticframework.org/index.php/Dataset:_Read Dataset: Read]
+** [http://wiki.opensemanticframework.org/index.php/Dataset:_Update Dataset: Update]
+** [http://wiki.opensemanticframework.org/index.php/Dataset:_Delete Dataset: Delete]
+** [http://wiki.opensemanticframework.org/index.php/CRUD:_Create CRUD: Create]
+** [http://wiki.opensemanticframework.org/index.php/CRUD:_Read CRUD: Read]
+** [http://wiki.opensemanticframework.org/index.php/CRUD:_Update CRUD: Update]
+** [http://wiki.opensemanticframework.org/index.php/CRUD:_Delete CRUD: Delete]
+** [http://wiki.opensemanticframework.org/index.php/Revision:_Diff Revision: Diff]
+** [http://wiki.opensemanticframework.org/index.php/Revision:_Delete Revision: Delete]
+** [http://wiki.opensemanticframework.org/index.php/Revision:_Read Revision: Read]
+** [http://wiki.opensemanticframework.org/index.php/Revision:_Update Revision: Update]
+** [http://wiki.opensemanticframework.org/index.php/Revision:_Lister Revision: Lister]
+** [http://wiki.opensemanticframework.org/index.php/Search Search]
+** [http://wiki.opensemanticframework.org/index.php/SPARQL SPARQL]
+** [http://wiki.opensemanticframework.org/index.php/Scones Scones]
+** [http://wiki.opensemanticframework.org/index.php/Converter:_commON Converter: commON] (import and export)
+** [http://wiki.opensemanticframework.org/index.php/Converter:_irJSON Converter: irJSON] (import and export)
 
 == How to Use Web Services Endpoint ==
 

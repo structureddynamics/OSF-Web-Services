@@ -401,7 +401,7 @@
           
           if($return = $this->ws->memcached->get($key))
           {
-            if($queryFormat !== 'application/sparql-results+xml')
+            if($queryFormat !== 'application/sparql-results+xml' || $this->ws->conneg->getMime() === 'application/sparql-results+xml')
             {
               $this->ws->sparqlContent = $return;
             }

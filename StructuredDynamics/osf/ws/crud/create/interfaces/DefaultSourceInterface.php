@@ -243,7 +243,7 @@
               // update the Solr index of an unpublished record
               $subjectsFilter = rtrim($subjectsFilter, ',');
               
-              $query = "select count(?s) as ?nb
+              $query = "select count(distinct ?s) as ?nb
                         from <" . $this->ws->dataset . ">
                         where
                         {

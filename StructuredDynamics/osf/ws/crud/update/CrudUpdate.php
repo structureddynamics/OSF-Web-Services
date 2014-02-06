@@ -109,12 +109,6 @@ class CrudUpdate extends \StructuredDynamics\osf\ws\framework\WebService
                           "name": "Can\'t parse RDF document",
                           "description": "Can\'t parse the specified RDF document"
                         },
-                        "_309": {
-                          "id": "WS-CRUD-UPDATE-309",
-                          "level": "Fatal",
-                          "name": "Can\'t parse the classHierarchySerialized.srz file",
-                          "description": "We can\'t parse the classHierarchySerialized.srz file. Please do make sure that this file is properly serialized. You can try to fix that issue by re-creating a serialization file from the latest version of the OntologyRead web service endpoint and to replace the result with the current file being used."
-                        },
                         "_310": {
                           "id": "WS-CRUD-UPDATE-310",
                           "level": "Fatal",

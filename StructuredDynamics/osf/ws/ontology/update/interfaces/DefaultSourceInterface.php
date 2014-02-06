@@ -65,6 +65,8 @@
         $this->ws->invalidateCache('dataset-read:all');
         $this->ws->invalidateCache('revision-read');
         $this->ws->invalidateCache('revision-lister');
+        $this->ws->invalidateCache('crud-property');
+        $this->ws->invalidateCache('class-superclasses');
       }
     }    
     

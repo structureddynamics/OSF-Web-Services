@@ -3,22 +3,26 @@
   namespace StructuredDynamics\osf\ws\crud\create\interfaces; 
   
   use \StructuredDynamics\osf\framework\Namespaces;  
+  use \StructuredDynamics\osf\framework\Resultset;  
   use \StructuredDynamics\osf\ws\framework\SourceInterface;
   use \ARC2;
   use \StructuredDynamics\osf\ws\framework\Solr;
-  use \StructuredDynamics\osf\ws\framework\ClassHierarchy;
-  use \StructuredDynamics\osf\ws\framework\ClassNode;
-  use \StructuredDynamics\osf\ws\framework\PropertyHierarchy;
-  use \StructuredDynamics\osf\ws\framework\propertyNode;
   use \StructuredDynamics\osf\ws\crud\read\CrudRead;
+  use \StructuredDynamics\osf\ws\ontology\read\OntologyRead;
   
   class DefaultSourceInterface extends SourceInterface
   {
+    private $OwlApiSession = '';
+
     function __construct($webservice)
     {   
       parent::__construct($webservice);
       
       $this->compatibleWith = "3.0";
+      
+      require_once($this->ws->owlapiBridgeURI);
+      
+      $this->OwlApiSession = java_session("OWLAPI", false, 0);
     }
     
     public function processInterface()
@@ -386,25 +390,7 @@
             $descriptionProperties = array (Namespaces::$iron . "description", Namespaces::$dcterms . "description",
               Namespaces::$skos_2008 . "definition", Namespaces::$skos_2004 . "definition");
 
-            $filename = rtrim($this->ws->ontological_structure_folder, "/") . "/classHierarchySerialized.srz";
-            
-            $file = fopen($filename, "r");
-            $classHierarchy = fread($file, filesize($filename));
-            $classHierarchy = unserialize($classHierarchy);                        
-            fclose($file);
-            
-            if($classHierarchy === FALSE)
-            {
-              $this->ws->conneg->setStatus(500);
-              $this->ws->conneg->setStatusMsg("Internal Error");
-              $this->ws->conneg->setError($this->ws->errorMessenger->_306->id, $this->ws->errorMessenger->ws,
-                $this->ws->errorMessenger->_306->name, $this->ws->errorMessenger->_306->description, "",
-                $this->ws->errorMessenger->_306->level);
-              return;
-            }
-
             // Index in Solr
-
             $solr = new Solr($this->ws->wsf_solr_core, $this->ws->solr_host, $this->ws->solr_port, $this->ws->fields_index_folder);
 
             // Used to detect if we will be creating a new field. If we are, then we will
@@ -717,25 +703,6 @@
                 }                
               }
 
-              $test = new PropertyHierarchy(NULL);
-              
-              $filename = rtrim($this->ws->ontological_structure_folder, "/") . "/propertyHierarchySerialized.srz";
-              
-              $file = fopen($filename, "r");
-              $propertyHierarchy = fread($file, filesize($filename));
-              $propertyHierarchy = unserialize($propertyHierarchy);                        
-              fclose($file);
-              
-              if($propertyHierarchy === FALSE)
-              {
-                $this->ws->conneg->setStatus(500);   
-                $this->ws->conneg->setStatusMsg("Internal Error");
-                $this->ws->conneg->setError($this->ws->errorMessenger->_310->id, $this->ws->errorMessenger->ws,
-                  $this->ws->errorMessenger->_310->name, $this->ws->errorMessenger->_310->description, "",
-                  $this->ws->errorMessenger->_310->level);
-                return;
-              }       
-              
               // When a property appears in this array, it means that it is already
               // used in the Solr document we are creating
               $usedSingleValuedProperties = array();         
@@ -752,6 +719,8 @@
                    $predicate != Namespaces::$sco."polygonCoordinates" &&
                    $predicate != Namespaces::$sco."polylineCoordinates") // skip label & description & prefURL properties
                 {
+                  $property = $this->getProperty($predicate);
+                  
                   foreach($values as $value)
                   {
                     if($value["type"] == "literal")
@@ -795,8 +764,6 @@
                       }
                       
                       // Check the datatype of the datatype property
-                      $property = $propertyHierarchy->getProperty($predicate);
-
                       if(!is_null($property) &&
                          (is_array($property->range) && 
                           array_search("http://www.w3.org/2001/XMLSchema#dateTime", $property->range) !== FALSE &&
@@ -1008,8 +975,6 @@
                         }
                       }
 
-                      $property = $propertyHierarchy->getProperty($predicate);
-
                       if($labels != "")
                       {
                         $labels = trim($labels);
@@ -1167,22 +1132,22 @@
 
               // Get all types by inference
               $inferredTypes = array();
-              
+
               foreach($types as $type)
               {
-                $superClasses = $classHierarchy->getSuperClasses($type);
+                $superClasses = $this->getSuperClasses($type);
 
                 // Add the type to make the closure of the set of inferred types
                 array_push($inferredTypes, $type);
                 
                 foreach($superClasses as $sc)
                 {
-                  if(array_search($sc->name, $inferredTypes) === FALSE)
+                  if(array_search($sc, $inferredTypes) === FALSE)
                   {
-                    array_push($inferredTypes, $sc->name);
+                    array_push($inferredTypes, $sc);
                   }
                 }                 
-              }
+              }                                
               
               foreach($inferredTypes as $sc)
               {
@@ -1246,6 +1211,237 @@
         */
         }
       }
-    }      
+    }    
+    
+    private function getURIDataset($uri)
+    {
+      $ontology = '';
+      $key = '';
+      
+      if($this->ws->memcached_enabled)
+      {
+        $key = $this->ws->generateCacheKey('uri-dataset', array($uri));
+        
+        if($return = $this->ws->memcached->get($key))
+        {
+          if($return == 'unavailable')
+          {
+            return('');
+          }
+          
+          $ontology = $return;
+        }
+      }           
+
+      if($ontology == '')
+      {      
+        $crudRead = new CrudRead($uri, '', 'false', 'false');
+        
+        $crudRead->ws_conneg('application/rdf+xml', 
+                             (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
+                             (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
+                             (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : ""));
+
+        $crudRead->process();
+
+        if($crudRead->pipeline_getResponseHeaderStatus() != 200)
+        { 
+          if($this->ws->memcached_enabled)
+          {
+            $this->ws->memcached->set($key, 'unavailable', NULL, $this->ws->memcached_crud_create_expire);
+          } 
+          
+          return('');                    
+        }
+
+        $resultset = $crudRead->getResultsetObject()->getResultset();
+
+        $ontology = '';
+        
+        if(!empty($resultset) && isset($resultset['unspecified'][$uri]['http://purl.org/dc/terms/isPartOf']))
+        {          
+          $ontology = $resultset['unspecified'][$uri]['http://purl.org/dc/terms/isPartOf'][0]['uri'];
+          
+          if($this->ws->memcached_enabled)
+          {
+            $this->ws->memcached->set($key, $ontology, NULL, $this->ws->memcached_crud_create_expire);
+          } 
+        }
+        else
+        {
+          if($this->ws->memcached_enabled)
+          {
+            $this->ws->memcached->set($key, 'unavailable', NULL, $this->ws->memcached_crud_create_expire);
+          } 
+                    
+          return('');
+        }
+      }      
+      
+      return($ontology);
+    }
+    
+    private $fetchedSuperClasses = array();
+    
+    private function getSuperClasses($class)  
+    {
+      if(isset($this->fetchedSuperClasses[$class]))
+      {
+        return($this->fetchedSuperClasses[$class]);
+      }      
+      
+      $ontology = $this->getURIDataset($class);
+      
+      if($ontology == '')
+      {
+        $this->fetchedSuperClasses[$class] = array('http://www.w3.org/2002/07/owl#Thing');
+        
+        return($this->fetchedSuperClasses[$class]);
+      }
+      
+      if($this->ws->memcached_enabled)
+      {
+        $key = $this->ws->generateCacheKey('class-superclasses', array($class));
+        
+        if($return = $this->ws->memcached->get($key))
+        {
+          $this->fetchedSuperClasses[$class] = $return;
+          
+          return($return);
+        }
+      }       
+      
+      $ontologyRead = new OntologyRead($ontology, "getSuperClasses", "mode=uris;uri=".urlencode($class));
+
+      // Since we are in pipeline mode, we have to set the owlapisession using the current one.
+      // otherwise the java bridge will return an error      
+      $ontologyRead->setOwlApiSession($this->OwlApiSession);
+
+      $ontologyRead->ws_conneg("application/rdf+xml", 
+                              (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
+                              (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
+                              (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : ""));
+        
+
+      $ontologyRead->useReasoner(); 
+        
+      $ontologyRead->process();
+      
+      if($ontologyRead->pipeline_getResponseHeaderStatus() == 403)
+      {
+        $this->fetchedSuperClasses[$class] = array('http://www.w3.org/2002/07/owl#Thing');
+        
+        return($this->fetchedSuperClasses[$class]);
+      }
+      
+      $resultset = $ontologyRead->getResultsetObject()->getResultset();
+      
+      $superClasses = (isset($resultset['unspecified']) ? array_keys($resultset['unspecified']) : array());
+
+      // If the class is not found, it may means that the class is currently not existing in any ontologies
+      // or that Ontology Read didn't return the top class (owl:Thing) for it. We have to add it in any cases.
+      if(array_search('http://www.w3.org/2002/07/owl#Thing', $superClasses) === FALSE)
+      {
+        $superClasses[] = 'http://www.w3.org/2002/07/owl#Thing';
+      }      
+            
+      if($this->ws->memcached_enabled)
+      {
+        $this->ws->memcached->set($key, $superClasses, NULL, $this->ws->memcached_crud_create_expire);
+      }             
+            
+      $this->fetchedSuperClasses[$class] = $superClasses;      
+            
+      return($superClasses);
+    }
+    
+    private $fetchedProperties = array();
+    
+    private function getProperty($property)
+    {
+      if(isset($this->fetchedProperties[$property]))
+      {                   
+        return($this->fetchedProperties[$property]);
+      }
+      
+      $predicate = new \stdClass;
+      
+      $ontology = $this->getURIDataset($property);
+      
+      if($ontology == '')
+      {
+        $this->fetchedProperties[$property] = NULL;
+        
+        return(NULL);
+      }
+      
+      if($this->ws->memcached_enabled)
+      {
+        $key = $this->ws->generateCacheKey('crud-property', array($property));
+        
+        if($return = $this->ws->memcached->get($key))
+        {
+          $this->fetchedProperties[$property] = $return;
+          
+          return($return);
+        }
+      }       
+      
+      $ontologyRead = new OntologyRead($ontology, "getProperty", "uri=".urlencode($property));
+
+      // Since we are in pipeline mode, we have to set the owlapisession using the current one.
+      // otherwise the java bridge will return an error      
+      $ontologyRead->setOwlApiSession($this->OwlApiSession);
+
+      $ontologyRead->ws_conneg("application/rdf+xml", 
+                              (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
+                              (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
+                              (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : ""));
+        
+
+      $ontologyRead->process();
+      
+      if($ontologyRead->pipeline_getResponseHeaderStatus() == 403)
+      {
+        $this->fetchedProperties[$property] = NULL;
+        
+        return(NULL);
+      }
+      
+      $resultset = $ontologyRead->getResultsetObject()->getResultset();
+      
+      if(isset($resultset['unspecified'][$property]['http://purl.org/ontology/sco#maxCardinality']))
+      {
+        $predicate->{'maxCardinality'} = $resultset['unspecified'][$property]['http://purl.org/ontology/sco#maxCardinality'][0]['value'];
+      }
+      
+      if(isset($resultset['unspecified'][$property]['http://purl.org/ontology/sco#cardinality']))
+      {
+        $predicate->{'cardinality'} = $resultset['unspecified'][$property]['http://purl.org/ontology/sco#cardinality'][0]['value'];
+      }
+      
+      if(isset($resultset['unspecified'][$property]['http://www.w3.org/2000/01/rdf-schema#range']))
+      {
+        $ranges = array();
+        
+        foreach($resultset['unspecified'][$property]['http://www.w3.org/2000/01/rdf-schema#range'] as $range)
+        {
+          $ranges = array_merge($ranges, $this->getSuperClasses($range['uri']));
+        }
+        
+        $ranges = array_unique($ranges);
+        
+        $predicate->{'range'} = $ranges;
+      }
+      
+      if($this->ws->memcached_enabled)
+      {
+        $this->ws->memcached->set($key, $predicate, NULL, $this->ws->memcached_crud_create_expire);
+      }             
+      
+      $this->fetchedProperties[$property] = $predicate;
+            
+      return($predicate);
+    }
   }
 ?>

@@ -85,12 +85,6 @@ class CrudCreate extends \StructuredDynamics\osf\ws\framework\WebService
           "name": "Can\'t commit changes to the Solr index",
           "description": "An error occured when we tried to commit changes to the Solr index"
         },  
-        "_306": {
-          "id": "WS-CRUD-CREATE-306",
-          "level": "Fatal",
-          "name": "Can\'t parse the classHierarchySerialized.srz file",
-          "description": "We can\'t parse the classHierarchySerialized.srz file. Please do make sure that this file is properly serialized. You can try to fix that issue by re-creating a serialization file from the latest version of the OntologyRead web service endpoint and to replace the result with the current file being used."
-        },
         "_307": {
           "id": "WS-CRUD-CREATE-307",
           "level": "Fatal",
@@ -108,12 +102,6 @@ class CrudCreate extends \StructuredDynamics\osf\ws\framework\WebService
           "level": "Fatal",
           "name": "Source Interface\'s version not compatible with the web service endpoint\'s",
           "description": "The version of the source interface you requested is not compatible with the one of the web service endpoint. Please contact the system administrator such that he updates the source interface to make it compatible with the new endpoint version."
-        },
-        "_310": {
-          "id": "WS-CRUD-CREATE-310",
-          "level": "Fatal",
-          "name": "Can\'t parse the propertyHierarchySerialized.srz file",
-          "description": "We can\'t parse the propertyHierarchySerialized.srz file. Please do make sure that this file is properly serialized. You can try to fix that issue by re-creating a serialization file from the latest version of the OntologyRead web service endpoint and to replace the result with the current file being used."
         },
         "_311": {
           "id": "WS-CRUD-CREATE-311",

@@ -1310,6 +1310,11 @@ abstract class WebService
     $this->rset = $resultset;
   }
   
+  public function getResultsetObject()
+  {
+    return($this->rset);
+  }
+  
   /**
   * Check if the requester source interface exists for this web service endpoint.
   * 

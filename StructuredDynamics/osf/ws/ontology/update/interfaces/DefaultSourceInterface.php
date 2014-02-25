@@ -49,6 +49,7 @@
         $this->ws->invalidateCache('ontology-read:getironxmlschema');
         $this->ws->invalidateCache('ontology-read:getironjsonschema');
         $this->ws->invalidateCache('ontology-read:getproperty');
+        $this->ws->invalidateCache('ontology-read:getproperties');
         $this->ws->invalidateCache('ontology-read:getsubproperties');
         $this->ws->invalidateCache('ontology-read:getsuperproperties');
         $this->ws->invalidateCache('ontology-read:getequivalentproperties');

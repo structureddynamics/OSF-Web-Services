@@ -180,6 +180,11 @@
     
     private function isAttributeUsed($attributeUri, $indexedFields)
     {
+      if($this->isCoreAttribute($attributeUri, $coreAttributeUri))
+      {
+        $attributeUri = $coreAttributeUri;
+      }
+
       foreach($indexedFields as $uri)
       {
         $uri = urldecode($uri);

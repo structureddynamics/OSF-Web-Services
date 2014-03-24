@@ -602,7 +602,7 @@ class Resultset
                   // It is a literal value, or a literal value of some type (int, bool, etc)
                   if($value["value"] !== "")
                   {
-                    $xml .= '      <object type="'.$this->xmlEncode($this->prefixize($value["type"])).'"'.(isset($value["lang"]) && $value["lang"] != "" ? ' lang="'.$this->xmlEncode($value["lang"]).'"' : "").'>'.$this->xmlEncode($value["value"]).'</object>'."\n";
+                    $xml .= '      <object '.(!empty($value["type"]) ? 'type="'.$this->xmlEncode($this->prefixize($value["type"])).'"' : 'type="rdfs:Literal"').(isset($value["lang"]) && $value["lang"] != "" ? ' lang="'.$this->xmlEncode($value["lang"]).'"' : "").'>'.$this->xmlEncode($value["value"]).'</object>'."\n";
                     
                     if(isset($value["reify"]))
                     {                    

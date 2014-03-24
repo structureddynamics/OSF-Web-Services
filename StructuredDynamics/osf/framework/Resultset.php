@@ -556,7 +556,7 @@ class Resultset
               }
             break;
             case "prefLabel":
-              if($attributeValues != "")
+              if($attributeValues != "" && !isset($record[Namespaces::$iron."prefLabel"]))
               {
                 $xml .= '    <predicate type="iron:prefLabel">'."\n";
                 $xml .= '      <object type="rdfs:Literal">'.$this->xmlEncode($attributeValues).'</object>'."\n";
@@ -564,18 +564,21 @@ class Resultset
               }
             break;
             case "altLabel":     
-              foreach($attributeValues as $altLabel)
+              if(!isset($record[Namespaces::$iron."altLabel"]))
               {
-                if($altLabel != "")
+                foreach($attributeValues as $altLabel)
                 {
-                  $xml .= '    <predicate type="iron:altLabel">'."\n";
-                  $xml .= '      <object type="rdfs:Literal">'.$this->xmlEncode($altLabel).'</object>'."\n";
-                  $xml .= '    </predicate>'."\n";
-                }
-              }          
+                  if($altLabel != "")
+                  {
+                    $xml .= '    <predicate type="iron:altLabel">'."\n";
+                    $xml .= '      <object type="rdfs:Literal">'.$this->xmlEncode($altLabel).'</object>'."\n";
+                    $xml .= '    </predicate>'."\n";
+                  }
+                }          
+              }
             break;
             case "description":   
-              if($attributeValues != "")
+              if($attributeValues != "" && !isset($record[Namespaces::$iron."description"]))
               {
                 $xml .= '    <predicate type="iron:description">'."\n";
                 $xml .= '      <object type="rdfs:Literal">'.$this->xmlEncode($attributeValues).'</object>'."\n";
@@ -583,7 +586,7 @@ class Resultset
               }
             break;
             case "prefURL":
-              if($attributeValues != "")
+              if($attributeValues != "" && !isset($record[Namespaces::$iron."prefURL"]))
               {
                 $xml .= '    <predicate type="iron:prefURL">'."\n";
                 $xml .= '      <object type="rdfs:Literal">'.$this->xmlEncode($attributeValues).'</object>'."\n";
@@ -724,7 +727,7 @@ class Resultset
               }
             break;
             case "prefLabel":
-              if($attributeValues != "")
+              if($attributeValues != "" && !isset($record[Namespaces::$iron."prefLabel"]))
               {
                 $json .= '          { '."\n";            
                 $json .= '            "iron:prefLabel": "'.$this->jsonEncode($attributeValues).'" '."\n";            
@@ -732,18 +735,21 @@ class Resultset
               }
             break;
             case "altLabel":
-              foreach($attributeValues as $altLabel)
+              if(!isset($record[Namespaces::$iron."altLabel"]))
               {
-                if($altLabel != "")
+                foreach($attributeValues as $altLabel)
                 {
-                  $json .= '          { '."\n";            
-                  $json .= '            "iron:altLabel": "'.$this->jsonEncode($altLabel).'" '."\n";            
-                  $json .= '          }, '."\n";            
-                }
-              }          
+                  if($altLabel != "")
+                  {
+                    $json .= '          { '."\n";            
+                    $json .= '            "iron:altLabel": "'.$this->jsonEncode($altLabel).'" '."\n";            
+                    $json .= '          }, '."\n";            
+                  }
+                }          
+              }
             break;
             case "description":
-              if($attributeValues != "")
+              if($attributeValues != "" && !isset($record[Namespaces::$iron."description"]))
               {
                 $json .= '          { '."\n";            
                 $json .= '            "iron:description": "'.$this->jsonEncode($attributeValues).'" '."\n";            
@@ -751,7 +757,7 @@ class Resultset
               }
             break;
             case "prefURL":
-              if($attributeValues != "")
+              if($attributeValues != "" && !isset($record[Namespaces::$iron."prefURL"]))
               {
                 $json .= '          { '."\n";            
                 $json .= '            "iron:prefURL": "'.$this->jsonEncode($attributeValues).'" '."\n";            

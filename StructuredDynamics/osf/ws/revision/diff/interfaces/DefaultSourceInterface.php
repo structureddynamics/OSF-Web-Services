@@ -262,7 +262,7 @@
               
               $statement->setObjectAttribute(Namespaces::$rdf.'subject', $lrevuri);
               $statement->setObjectAttribute(Namespaces::$rdf.'predicate', $property);
-              $statement->setDataAttribute(Namespaces::$rdf.'object', $value['value']);
+              $statement->setDataAttribute(Namespaces::$rdf.'object', $value['value'], $value['type'], $value['lang']);
               
               $changeSet->setObjectAttribute($cs.'removal', $bnodeUri);
             }
@@ -297,7 +297,7 @@
               
               $statement->setObjectAttribute(Namespaces::$rdf.'subject', $lrevuri);
               $statement->setObjectAttribute(Namespaces::$rdf.'predicate', $property);
-              $statement->setDataAttribute(Namespaces::$rdf.'object', $value['value']);
+              $statement->setDataAttribute(Namespaces::$rdf.'object', $value['value'], $value['type'], $value['lang']);
               
               $changeSet->setObjectAttribute($cs.'addition', $bnodeUri);
             }

@@ -291,8 +291,8 @@
               {
                 $irsUriEnc[$k] = str_replace(";", "%3B", $u);
               } 
-              
-              $crudRead = new CrudRead(implode(';', $irsUriEnc), implode(';', array_fill(0, count($irsUriEnc), $this->ws->dataset)), 'false', 'true');
+
+              $crudRead = new CrudRead(implode(';', $irsUriEnc), implode(';', array_fill(0, count($irsUriEnc), $this->ws->dataset)), 'false', 'true', '', 'default', '', '');
               
               $crudRead->ws_conneg('application/rdf+xml', 
                                    (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

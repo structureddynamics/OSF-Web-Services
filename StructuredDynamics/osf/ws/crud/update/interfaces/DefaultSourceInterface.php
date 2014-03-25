@@ -205,7 +205,7 @@
               
               $revisionUris[] = $revisionUri;     
               
-              $crudRead = new CrudRead(str_replace(";", "%3B", $subject), $this->ws->dataset, 'false', 'true');
+              $crudRead = new CrudRead(str_replace(";", "%3B", $subject), $this->ws->dataset, 'false', 'true', '', 'default', '', '');
               
               $crudRead->ws_conneg('application/rdf+xml', 
                                    (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

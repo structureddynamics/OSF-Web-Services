@@ -292,6 +292,8 @@ class Solr
   */
   public function updateFieldsIndex()
   {
+    set_time_limit(65535);
+    
     $ch = curl_init();
 
     $headers = array( "Content-Type: text/xml" );
@@ -321,13 +323,30 @@ class Solr
       
       $founds = $xpath->query("//*/lst[@name='fields']//lst");
 
-      foreach($founds as $found)
+      if($found->length <= 250)
       {
-        if($this->isFieldUsed($found->getAttribute("name")))
-        {
+        foreach($founds as $found)
+        {        
+          if($this->isFieldUsed($found->getAttribute("name")))
+          {
+            array_push($fields, $found->getAttribute("name"));
+          }
+        } 
+      }
+      else
+      {
+        // There is a threshold of maximum 250 fields to check if the field is being used in the index
+        // About that threshold, the system administrator will have to run the Solr Optimize command
+        // to optimize the index and remove the un-used fields and then re-run the updateFieldIndex()
+        // function.
+        //
+        // When this threshold is reach, the system assumes that all the fields returned by Luke
+        // are behing used.
+        foreach($founds as $found)
+        {        
           array_push($fields, $found->getAttribute("name"));
-        }
-      } 
+        } 
+      }
       
       $fields = array_unique($fields);
       
@@ -353,7 +372,7 @@ class Solr
     curl_setopt($ch, CURLOPT_HEADER, 0);
     curl_setopt($ch, CURLOPT_URL, $this->selectUrl);
     curl_setopt($ch, CURLOPT_POST, 1);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, 'q='.urlencode($field).':*');
+    curl_setopt($ch, CURLOPT_POSTFIELDS, 'q='.urlencode($field).':*&start=0&rows=0');
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 
     $data = curl_exec($ch);

@@ -323,7 +323,7 @@ class Solr
       
       $founds = $xpath->query("//*/lst[@name='fields']//lst");
 
-      if($found->length <= 250)
+      if($founds->length <= 250)
       {
         foreach($founds as $found)
         {        

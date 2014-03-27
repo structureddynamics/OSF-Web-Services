@@ -1851,11 +1851,21 @@
           }      
 
           // get records description
-          $resultDescriptionURI = $xpath->query("arr[@name='description_".$this->ws->lang."']/str", $result);
+          $resultDescriptionURI = $xpath->query("str[@name='description_".$this->ws->lang."']", $result);
 
           if($resultDescriptionURI->length > 0)
           {
             $subject->setDescription($resultDescriptionURI->item(0)->nodeValue);
+          }
+          else
+          {
+            // For backward compatibility with the Solr schemas version 1.3.1 and older
+            $resultDescriptionURI = $xpath->query("arr[@name='description_".$this->ws->lang."']/str", $result);
+
+            if($resultDescriptionURI->length > 0)
+            {
+              $subject->setDescription($resultDescriptionURI->item(0)->nodeValue);
+            }
           }
 
           // Get all dynamic fields attributes that are multi-valued

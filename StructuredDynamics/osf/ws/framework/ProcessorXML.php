@@ -859,7 +859,7 @@ class ProcessorXML
           {
             $reifyPredicate = $this->getType($reify, FALSE);
 
-            $rdf_reification .= "_:" . md5($this->getURI($subject) . $predicateType . $this->getURI($object))
+            $rdf_reification .= "_:b" . md5($this->getURI($subject) . $predicateType . $this->getURI($object))
               . " a rdf:Statement ;\n";
             $rdf_reification .= "    rdf:subject <" . $this->getURI($subject) . "> ;\n";
             $rdf_reification .= "    rdf:predicate <" . $predicateType . "> ;\n";

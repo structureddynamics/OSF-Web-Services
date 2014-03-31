@@ -1242,7 +1242,7 @@ class CommonParser
                   // @TODO: Check if "@" or "@@"
                   foreach($reiValues as $reiValue)
                   {
-                    $n3ReificationStatements .= "_:" . md5($recordId . $p . $value["value"]) . " a rdf:Statement ;\n";
+                    $n3ReificationStatements .= "_:b" . md5($recordId . $p . $value["value"]) . " a rdf:Statement ;\n";
 
                     $n3ReificationStatements .= "    rdf:subject <" . $recordId . "> ;\n";
                     $n3ReificationStatements .= "    rdf:predicate <" . $p . "> ;\n";
@@ -1257,7 +1257,7 @@ class CommonParser
                     // @TODO: Check if "@" or "@@"
                     foreach($reiValues as $reiValue)
                     {
-                      $n3ReificationStatements .= "_:" . md5($recordId . $p . $value["value"]) . " a rdf:Statement ;\n";
+                      $n3ReificationStatements .= "_:b" . md5($recordId . $p . $value["value"]) . " a rdf:Statement ;\n";
 
                       $n3ReificationStatements .= "    rdf:subject <" . $recordId . "> ;\n";
                       $n3ReificationStatements .= "    rdf:predicate <" . $p . "> ;\n";

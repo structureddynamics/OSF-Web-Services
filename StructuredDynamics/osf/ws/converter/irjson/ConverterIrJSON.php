@@ -1665,8 +1665,7 @@ else
               {
                 if($first == 0)
                 {
-                  //                  $rdf_reification .= "_:bnode".$bnodeCounter." a rdf:Statement ;\n";
-                  $rdf_reification .= "_:" . md5($xml->getURI($subject) . $predicateType . $xml->getURI($object))
+                  $rdf_reification .= "_:b" . md5($xml->getURI($subject) . $predicateType . $xml->getURI($object))
                     . " a rdf:Statement ;\n";
                   $bnodeCounter++;
                   $rdf_reification .= "    rdf:subject <" . $xml->getURI($subject) . "> ;\n";

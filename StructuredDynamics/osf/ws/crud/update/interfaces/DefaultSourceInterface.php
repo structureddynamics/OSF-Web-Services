@@ -922,6 +922,39 @@
                 //       for this should be ported to PHP to enable this feature.                                
               }
               
+              // Check if there exists a wgs84:lat_long coordinate for that resource.
+              if(isset($resourceIndex[$subject][Namespaces::$geo."lat_long"]))
+              {  
+                $lat_long = str_replace(' ', '', $resourceIndex[$subject][Namespaces::$geo."lat_long"][0]["value"]);
+
+                $lat_long = explode(',', $lat_long);
+                
+                $lat = $lat_long[0];
+                $long = $lat_long[1];
+
+                // Note: the actual field for the wgs84:lat_long property will be populated later below
+                //       what we are doing here is just to extract the lat/long that will enable
+                //       geo-searches to happen with that record
+                
+                // Add Lat/Long
+                $add .= "<field name=\"lat\">". 
+                           $this->ws->xmlEncode($lat). 
+                        "</field>";
+                $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$geo."lat") . "</field>";
+                        
+                $add .= "<field name=\"long\">". 
+                           $this->ws->xmlEncode($long). 
+                        "</field>";
+                $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$geo."long") . "</field>";
+                                            
+                // Add hashcode
+                        
+                $add .= "<field name=\"geohash\">". 
+                             "$lat,$long".
+                        "</field>"; 
+                $add .= "<field name=\"attribute\">" . $this->ws->xmlEncode(Namespaces::$sco."geohash") . "</field>";                                                         
+              }              
+              
               $coordinates = array();
               
               // Check if there is a polygonCoordinates property

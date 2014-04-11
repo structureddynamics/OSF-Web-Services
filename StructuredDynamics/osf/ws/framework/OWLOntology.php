@@ -3813,7 +3813,7 @@ class OWLOntology
         }
         else
         {
-          $literalValue = $this->owlDataFactory->getOWLLiteral($value['value']);
+          $literalValue = $this->owlDataFactory->getOWLLiteral($value);
         }        
         
         $annotationAxiom = $this->owlDataFactory->getOWLAnnotation($annotationProperty, $literalValue); 
@@ -4210,7 +4210,7 @@ class OWLOntology
     {
       foreach($values as $value)
       {
-        $this->addOntologyAnnotation($predicate, $value, null);
+        $this->addOntologyAnnotation($predicate, $value['value'], null);
       }
     }    
         

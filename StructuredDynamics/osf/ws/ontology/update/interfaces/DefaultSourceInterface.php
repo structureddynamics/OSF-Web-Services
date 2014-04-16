@@ -231,17 +231,7 @@
                       $literalValues[$predicate] = array();
                     }
                     
-                    if($this->in_array_r(Namespaces::$owl."Class", $description[Namespaces::$rdf."type"]))
-                    {
-                      array_push($literalValues[$predicate], $value['value']);  
-                    }
-                    elseif($this->in_array_r(Namespaces::$owl."DatatypeProperty", $description[Namespaces::$rdf."type"]) ||
-                           $this->in_array_r(Namespaces::$owl."ObjectProperty", $description[Namespaces::$rdf."type"]) ||
-                           $this->in_array_r(Namespaces::$owl."AnnotationProperty", $description[Namespaces::$rdf."type"]) ||
-                           $this->in_array_r(Namespaces::$owl."Ontology", $description[Namespaces::$rdf."type"]))
-                    {                    
-                      array_push($literalValues[$predicate], $value);  
-                    }
+                    array_push($literalValues[$predicate], $value);  
                   }
                   else
                   {

@@ -3638,6 +3638,10 @@ class OWLOntology
         $datatype = $this->owlDataFactory->getOWLDatatype($iri);
         $value = $this->owlDataFactory->getOWLLiteral($literalValue['value'], $datatype);
       }
+      elseif(isset($literalValue['value']))
+      {
+        $value = $this->owlDataFactory->getOWLLiteral($literalValue['value']);
+      }      
       else
       {
         $value = $this->owlDataFactory->getOWLLiteral($literalValue);
@@ -3810,6 +3814,10 @@ class OWLOntology
           $iri = java("org.semanticweb.owlapi.model.IRI")->create($value['type']);
           $datatype = $this->owlDataFactory->getOWLDatatype($iri);
           $literalValue = $this->owlDataFactory->getOWLLiteral($value['value'], $datatype);
+        }
+        elseif(isset($value['value']))
+        {
+          $literalValue = $this->owlDataFactory->getOWLLiteral($value['value']);
         }
         else
         {
@@ -4109,9 +4117,13 @@ class OWLOntology
           $datatype = $this->owlDataFactory->getOWLDatatype($iri);
           $literalValue = $this->owlDataFactory->getOWLLiteral($value['value'], $datatype);
         }
-        else
+        elseif(isset($value['value']))
         {
           $literalValue = $this->owlDataFactory->getOWLLiteral($value['value']);
+        }        
+        else
+        {
+          $literalValue = $this->owlDataFactory->getOWLLiteral($value);
         } 
         
         $annotationAxiom = $this->owlDataFactory->getOWLAnnotation($annotationProperty, $literalValue); 
@@ -4439,9 +4451,13 @@ class OWLOntology
               $datatype = $this->owlDataFactory->getOWLDatatype($iri);
               $literalValue = $this->owlDataFactory->getOWLLiteral($value['value'], $datatype);
             }
-            else
+            elseif(isset($value['value']))
             {
               $literalValue = $this->owlDataFactory->getOWLLiteral($value['value']);
+            }            
+            else
+            {
+              $literalValue = $this->owlDataFactory->getOWLLiteral($value);
             }             
 
             $annotationAxiom = $this->owlDataFactory->getOWLAnnotation($annotationProperty, $literalValue); 

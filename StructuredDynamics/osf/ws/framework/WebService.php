@@ -206,8 +206,8 @@ abstract class WebService
   
   function __construct()
   { 
-    $this->headers = getallheaders();
-    
+    $this->headers = array_change_key_case(getallheaders(), CASE_UPPER);
+
     // Load INI settings
     $osf_ini = parse_ini_file(self::$osf_ini . "osf.ini", TRUE);
     
@@ -970,7 +970,7 @@ abstract class WebService
   { 
     $timeStamp = $this->headers['OSF-TS'];
     $appID = $this->headers['OSF-APP-ID'];
-    $authorization = $this->headers['Authorization'];
+    $authorization = $this->headers['AUTHORIZATION'];
     
     // Use the Application ID to get the key of the requester.
     $keys_ini = parse_ini_file(self::$keys_ini . "keys.ini", TRUE);

@@ -75,6 +75,23 @@ Here is a complete list of all the web service endpoints currently available in 
 
 The easiest way to get started is to use the [https://github.com/StructuredDynamics/OSF-Web-Services-PHP-API OSF Web Services PHP API] to create and send queries to any OSF web service endpoint.
 
+== Administer an OSF Instance ==
+
+Many command line tools exists to help system administrators to administer a OSF instance. The tools are:
+
+* [https://github.com/structureddynamics/OSF-Datasets-Management-Tool Datasets Management Tool]
+* [https://github.com/structureddynamics/OSF-Ontologies-Management-Tool Ontologies Management Tool]
+* [https://github.com/structureddynamics/OSF-Permissions-Management-Tool Permissions Management Tool]
+* [https://github.com/structureddynamics/OSF-Data-Validator-Tool Data Validator Tool]
+
+== Testing an OSF Instance ==
+
+An integration tests suites that includes more than 700 tests and 4000 assertions as been developed to test all the features of a running OSF instance:
+
+* [https://github.com/structureddynamics/OSF-Tests-Suites OSF Tests Suites]
+
+These tests can be run at any time to make sure that the instance is fully operational. It is normally used by the OSF Installer to make sure that an instance is fully operational after OSF is installed, or after it got upgraded.
+
 == Developers ==
 
 Developers and commiters to the Git repository should comply to the coding standards. An outline of the coding style is available in the Coding Standard folder. Additional requirements are listed in the README.mediawiki file in that folder. Finally, coding style is enforced b the PolyStyle code formatter application available here: http://polystyle.com

@@ -23,7 +23,7 @@ The general OSF architecture is described in this [http://wiki.opensemanticframe
 {|
 |-
 | [https://github.com/structureddynamics/Open-Semantic-Framework-Installer Get started  quickly with OSF by using the Open Semantic Framework Installer]
-| [[File:http://wiki.opensemanticframework.org/images/7/7d/Osf_installer.png]]
+| ![alt tag](http://wiki.opensemanticframework.org/images/7/7d/Osf_installer.png)
 |}
 
 Additionally you can find debugging tips and support on the [http://groups.google.com/group/open-semantic-framework Mailing List]

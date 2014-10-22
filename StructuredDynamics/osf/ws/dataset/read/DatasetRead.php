@@ -202,6 +202,11 @@ class DatasetRead extends \StructuredDynamics\osf\ws\framework\WebService
   */
   public function validateQuery()
   {
+    if($this->datasetUri == "all")
+    {
+      return;
+    }
+    
     if($this->validateUserAccess(array($this->wsf_graph . "datasets/", $this->datasetUri)))
     {
       if($this->datasetUri == "")

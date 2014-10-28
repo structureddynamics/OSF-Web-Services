@@ -72,7 +72,7 @@ if(isset($_GET['ws_uri']))
   $ws_uri = $_GET['ws_uri'];
 }
 
-$ws_arws = new AuthRegistrarWs($title, $endpoint, $crud_usage, $ws_uri, nterface, $version);
+$ws_arws = new AuthRegistrarWs($title, $endpoint, $crud_usage, $ws_uri, $interface, $version);
 
 $ws_arws->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                     (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

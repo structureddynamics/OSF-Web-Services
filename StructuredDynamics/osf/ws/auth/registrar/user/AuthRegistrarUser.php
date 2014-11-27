@@ -36,7 +36,7 @@ class AuthRegistrarUser extends \StructuredDynamics\osf\ws\framework\WebService
   /** Error messages of this web service */
   private $errorMessenger =
     '{
-                        "ws": "/ws/auth/registrar/ws/",
+                        "ws": "/ws/auth/registrar/user/",
                         "_200": {
                           "id": "WS-AUTH-REGISTRAR-USER-200",
                           "level": "Warning",

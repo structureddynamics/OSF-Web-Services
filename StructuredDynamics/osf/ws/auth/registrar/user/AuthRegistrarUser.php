@@ -219,10 +219,10 @@ class AuthRegistrarUser extends \StructuredDynamics\osf\ws\framework\WebService
       {
         $this->conneg->setStatus(400);
         $this->conneg->setStatusMsg("Bad Request");
-        $this->conneg->setStatusMsgExt($this->errorMessenger->_204->name);
-        $this->conneg->setError($this->errorMessenger->_204->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_204->name, $this->errorMessenger->_204->description, "",
-          $this->errorMessenger->_204->level);
+        $this->conneg->setStatusMsgExt($this->errorMessenger->_205->name);
+        $this->conneg->setError($this->errorMessenger->_205->id, $this->errorMessenger->ws,
+          $this->errorMessenger->_205->name, $this->errorMessenger->_205->description, "",
+          $this->errorMessenger->_205->level);
         return;
       }      
       

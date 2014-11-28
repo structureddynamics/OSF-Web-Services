@@ -269,9 +269,12 @@
 
                 return;
               }
-              elseif(odbc_fetch_row($resultset))
+              else
               {
-                array_push($contributors, odbc_result($resultset, 1));
+                while(odbc_fetch_row($resultset))
+                {            
+                  array_push($contributors, odbc_result($resultset, 1));
+                }
               }
               
               $subject = new Subject($dataset);

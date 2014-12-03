@@ -492,6 +492,80 @@
             $sourceDataset = "";
             $isPartOfFound = FALSE;
             $g;
+            $reificationStatementsRaw = array();
+            $reificationStatements = array();
+            
+            // First, check if I have reification statements
+            foreach($xml["sparql"]["_c"]["results"]["_c"]["result"] as $result)
+            {
+              $s = "";
+              $rei_s = "";
+              $rei_p = "";
+              $rei_o = "";
+              
+              foreach($result["_c"]["binding"] as $binding)
+              {
+                $boundVariable = $binding["_a"]["name"];
+                $keys = array_keys($binding["_c"]);
+
+                $boundType = $keys[0];
+                $boundValue = $binding["_c"][$boundType]["_v"];
+                
+                switch($boundVariable)
+                {
+                  case "s":
+                    $s = $boundValue;
+                  break;
+                  
+                  case "rei_s":
+                    $rei_s = $boundValue;
+                  break;
+                  
+                  case "rei_p":
+                    $rei_p = $boundValue;
+                  break;
+                  
+                  case "rei_o":
+                    $rei_o = $boundValue;
+                  break;
+                }
+              }
+                
+              if(!empty($rei_s) && !empty($rei_p) && !empty($rei_o))                
+              {
+                if($rei_p != "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+                {
+                  $reificationStatementsRaw[$rei_s][$rei_p] = $rei_o;
+                }
+              }
+            }
+            
+            foreach($reificationStatementsRaw as $rei_s => $properties)
+            {
+              $tripleId = md5($properties['http://www.w3.org/1999/02/22-rdf-syntax-ns#subject'].
+                              $properties['http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate'].
+                              $properties['http://www.w3.org/1999/02/22-rdf-syntax-ns#object']);
+              
+              if(empty($reificationStatements[$tripleId]))
+              {
+                $reificationStatements[$tripleId] = array();
+              }
+
+              foreach($properties as $property => $value)              
+              {
+                if($property != 'http://www.w3.org/1999/02/22-rdf-syntax-ns#subject' &&
+                   $property != 'http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate' &&
+                   $property != 'http://www.w3.org/1999/02/22-rdf-syntax-ns#object')
+                {
+                  if(empty($reificationStatements[$tripleId][$property]))   
+                  {
+                    $reificationStatements[$tripleId][$property] = array();
+                  }
+                  
+                  $reificationStatements[$tripleId][$property][] = $value;
+                }
+              }              
+            }
 
             foreach($xml["sparql"]["_c"]["results"]["_c"]["result"] as $result)
             {
@@ -499,6 +573,11 @@
               $p = "";
               $o = "";
               $g = "";
+              $otype = "";
+              $olang = "";
+              $rei_s = "";
+              $rei_p = "";
+              $rei_o = "";
               
               $valueBoundType = "";
 
@@ -534,6 +613,14 @@
                   case "g":
                     $g = $boundValue;
                   break;
+                  
+                  case "otype":
+                    $otype = $boundValue;
+                  break;
+                  
+                  case "olang":
+                    $olang = $boundValue;
+                  break;
                 }
               }
               
@@ -555,6 +642,7 @@
                 $currentSubjectUri = $s;
               }
 
+              $tripleId = md5($s.$p.$o);
               
               // process URI
               if($valueBoundType == "uri" ||
@@ -566,14 +654,28 @@
                 }
                 else
                 {
-                  $subject->setObjectAttribute($p, $o);
+                  if(!empty($reificationStatements[$tripleId]))
+                  {
+                    $subject->setObjectAttribute($p, $o, $reificationStatements[$tripleId]);
+                  }
+                  else
+                  {
+                    $subject->setObjectAttribute($p, $o);
+                  }
                 }
               }
 
               // Process Literal
               if($valueBoundType == "literal")
               {
-                $subject->setDataAttribute($p, $o);
+                if(!empty($reificationStatements[$tripleId]))
+                {
+                  $subject->setDataAttribute($p, $o, $otype, $olang, $reificationStatements[$tripleId]);
+                }
+                else
+                {
+                  $subject->setDataAttribute($p, $o, $otype, $olang);
+                }
               }            
             }
               

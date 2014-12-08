@@ -67,7 +67,7 @@
           // If the OSF instance uses Virtuoso 6, then we use the new FILTER...IN... statement
           // instead of the FILTER...regex. This makes the queries much faster and fix an issue
           // when the Virtuoso instance has been fixed with the LRL (long read length) path
-          if($this->ws->virtuoso_main_version != 6)
+          if($this->ws->virtuoso_main_version < 6)
           {
             // At least return the type
             if(is_array($this->ws->include_attributes_list) && count($this->ws->include_attributes_list) > 0)
@@ -113,7 +113,7 @@
               {
                 <$u> ?p ?o.
                 ".(
-                    $this->ws->virtuoso_main_version != 6 ?
+                    $this->ws->virtuoso_main_version < 6 ?
                     ($attributesFilter == "" ? "" : "FILTER regex(str(?p), \"($attributesFilter)\")") : 
                     ($attributesFilter == "" ? "" : "FILTER (?p IN($attributesFilter))")
                   )."
@@ -143,7 +143,7 @@
                   <$u> ?p ?o.
                 }
                 ".(
-                    $this->ws->virtuoso_main_version != 6 ?
+                    $this->ws->virtuoso_main_version < 6 ?
                     ($attributesFilter == "" ? "" : "FILTER regex(str(?p), \"($attributesFilter)\")") : 
                     ($attributesFilter == "" ? "" : "FILTER (?p IN($attributesFilter))")
                   )."

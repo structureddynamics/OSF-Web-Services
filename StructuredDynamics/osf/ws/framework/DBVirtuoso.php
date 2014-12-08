@@ -40,7 +40,7 @@ class DBVirtuoso
   private $queryProcessTime = 0; // In milliseconds
   
   /** Main version of the Virtuoso server used by this OSF instance (4, 5 or 6) */
-  private $virtuoso_main_version = "6";
+  private $virtuoso_main_version = "7";
   
   /** Enable the Long Read Len feature of Virtuoso. */
   private $enable_lrl = FALSE;

@@ -30,7 +30,7 @@ abstract class WebService
   public static $keys_ini = "/usr/share/osf/StructuredDynamics/osf/ws/";
                                  
   /** Main version of the Virtuoso server used by this OSF instance (4, 5 or 6) */
-  protected $virtuoso_main_version = "6";
+  protected $virtuoso_main_version = "7";
 
   /** Enable the Long Read Len feature of Virtuoso. */  
   protected $enable_lrl = FALSE;
@@ -397,7 +397,7 @@ abstract class WebService
     }
     if(isset($osf_ini["triplestore"]["virtuoso_main_version"]))
     {
-      $this->virtuoso_main_version = $osf_ini["triplestore"]["virtuoso_main_version"];
+      $this->virtuoso_main_version = intval($osf_ini["triplestore"]["virtuoso_main_version"]);
     }    
     if(strtolower($osf_ini["triplestore"]["enable_lrl"]) == "true" || $osf_ini["triplestore"]["enable_lrl"] == "1")
     {

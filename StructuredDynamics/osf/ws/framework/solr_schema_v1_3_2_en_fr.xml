@@ -45,7 +45,7 @@
     that avoids logging every request
 -->
 
-<schema name="OSF-1.3-en-fr" version="1.0">
+<schema name="OSF-1.3.2-en-fr" version="1.0">
   <!-- attribute "name" is the name of this schema and is only used for display purposes.
        Applications should change this to reflect the nature of the search collection.
        version="x.y" is Solr's version number for the schema syntax and semantics.  It should
@@ -933,9 +933,9 @@
    
    <!-- Value of the attribute defined by the dynamic field -->
    <dynamicField name="*_attr_en" type="text_en"  indexed="true"  stored="true" multiValued="true"/>   
-   <dynamicField name="*_attr_en_single_valued" type="date" indexed="true" stored="true" multiValued="false"/>   
+   <dynamicField name="*_attr_en_single_valued" type="text_en" indexed="true" stored="true" multiValued="false"/>   
    <dynamicField name="*_attr_fr" type="text_fr"  indexed="true"  stored="true" multiValued="true"/>   
-   <dynamicField name="*_attr_fr_single_valued" type="date" indexed="true" stored="true" multiValued="false"/>   
+   <dynamicField name="*_attr_fr_single_valued" type="text_fr" indexed="true" stored="true" multiValued="false"/>   
 
    <!-- These dynamic fields are used when the datatype of a value of a property is
         specified. That way, we are able to perform special filters, based on the

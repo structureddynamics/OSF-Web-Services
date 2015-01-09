@@ -29,9 +29,6 @@ abstract class WebService
   /** keys.ini file folder */
   public static $keys_ini = "/usr/share/osf/StructuredDynamics/osf/ws/";
                                  
-  /** Enable the Long Read Len feature of Virtuoso. */  
-  protected $enable_lrl = FALSE;
-    
   /** Conneg object that manage the content negotiation capabilities of the web service */
   protected $conneg;  
   
@@ -402,10 +399,6 @@ abstract class WebService
     {
       $this->triplestore_port = $osf_ini["triplestore"]["port"];
     }
-    if(strtolower($osf_ini["triplestore"]["enable_lrl"]) == "true" || $osf_ini["triplestore"]["enable_lrl"] == "1")
-    {
-      $this->enable_lrl = TRUE;
-    }    
     if(isset($osf_ini["solr"]["solr_port"]))
     {
       $this->solr_port = $osf_ini["solr"]["solr_port"];

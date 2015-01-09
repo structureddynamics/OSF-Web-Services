@@ -260,22 +260,19 @@
         unset($datasetCreate);
         
         // Tag the new dataset as being a dataset that host an ontology description
-        $query = "insert into <" . $this->ws->wsf_graph . "datasets/>
+        $this->ws->sparql->query("insert into <" . $this->ws->wsf_graph . "datasets/>
                 {
                   <" . $this->ws->ontologyUri . "> <http://purl.org/ontology/wsf#holdOntology> \"true\" .
-                }";
+                }");
 
-        @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-          FALSE));
-
-        if(odbc_error())
+        if($this->ws->sparql->error())
         {
           $this->ws->conneg->setStatus(500);
           $this->ws->conneg->setStatusMsg("Internal Error");
           $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_301->name);
           $this->ws->conneg->setError($this->ws->errorMessenger->_301->id, $this->ws->errorMessenger->ws,
-            $this->ws->errorMessenger->_301->name, $this->ws->errorMessenger->_301->description, odbc_errormsg(),
-            $this->ws->errorMessenger->_301->level);
+            $this->ws->errorMessenger->_301->name, $this->ws->errorMessenger->_301->description, 
+            $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_301->level);
 
           $this->clearCache(); 
             
@@ -307,51 +304,24 @@
             $sliceSize = 100;          
 
             // Import the big file into Virtuoso  
-            $sqlQuery = "DB.DBA.RDF_LOAD_RDFXML_MT(file_to_string_output('".str_replace("file://localhost", "", $this->ws->ontologyUri)."'),'".$this->ws->ontologyUri."/import','".$this->ws->ontologyUri."/import')";
+            $this->ws->sparql->query('load <'.$this->ws->ontologyUri.'> into graph <'.$this->ws->ontologyUri.'/import>');
             
-            $resultset = $this->ws->db->query($sqlQuery);
-            
-            if(odbc_error())
-            {
-              // If there is an error, try to load it using the Turtle parser
-              $sqlQuery = "DB.DBA.TTLP_MT(file_to_string_output('".str_replace("file://localhost", "", $this->ws->ontologyUri)."'),'".$this->ws->ontologyUri."/import','".$this->ws->ontologyUri."/import')";
-              
-              $resultset = $this->ws->db->query($sqlQuery);
-              
-              if(odbc_error())
-              {
-  //            echo "Error: can't import the file: $file, into the triple store.\n";
-  //            return;
-              }            
-            }    
-            
-            unset($resultset);     
-
             // count the number of records
-            $sparqlQuery = "
-            
-              select count(distinct ?s) as ?nb from <".$this->ws->ontologyUri."/import>
+            $this->ws->sparql->query("select count(distinct ?s) as ?nb from <".$this->ws->ontologyUri."/import>
               where
               {
                 ?s a ?o .
-              }
-            
-            ";
+              }");
 
-            $resultset = $this->ws->db->query($this->ws->db->build_sparql_query($sparqlQuery, array ('nb'), FALSE));
-            
-            $nb = odbc_result($resultset, 1);
+            $this->ws->sparql->fetch_binding();  
+            $nb = $this->ws->sparql->value('nb');
 
-            unset($resultset);
-            
             $nbRecordsDone = 0;
             
             while($nbRecordsDone < $nb && $nb > 0)
             {
               // Create slices of 100 records.
-              $sparqlQuery = "
-                
-                select ?s ?p ?o (DATATYPE(?o)) as ?otype (LANG(?o)) as ?olang
+              $this->ws->sparql->query("select ?s ?p ?o
                 where 
                 {
                   {
@@ -365,18 +335,8 @@
                   } 
                   
                   ?s ?p ?o
-                }
-              
-              ";
+                }");
 
-              $resultset = $this->ws->db->query($this->ws->db->build_sparql_query($sparqlQuery, array ('s', 'p', 'o', 'otype', 'olang'), FALSE));
-              
-              if(odbc_error())
-              {
-  //              echo "Error: can't get records slices.\n";
-  //              return;
-              }          
-              
               $crudCreates = "";
               $crudUpdates = "";
               $crudDeletes = array();
@@ -386,15 +346,13 @@
               $currentSubject = "";
               $subjectDescription = "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n";
 
-              while(odbc_fetch_row($resultset))
+              while($this->ws->sparql->fetch_binding())
               {
-                $s = odbc_result($resultset, 1);
-                $p = odbc_result($resultset, 2);
-                $o = $this->ws->db->odbc_getPossibleLongResult($resultset, 3);
-                $otype = odbc_result($resultset, 4);
-                $olang = odbc_result($resultset, 5);
+                $s = $this->ws->sparql->value('s');
+                $p = $this->ws->sparql->value('p');
+                $o = $this->ws->sparql->value('o');
                 
-                if($otype != "" || $olang != "")
+                if($this->ws->sparql->value('o', TRUE)['type'] != 'uri')
                 {
                   $subjectDescription .= "<$s> <$p> \"\"\"".$this->n3Encode($o)."\"\"\" .\n";
                 }
@@ -403,8 +361,6 @@
                   $subjectDescription .= "<$s> <$p> <$o> .\n";
                 }
               }  
-              
-              unset($resultset);  
 
               $crudCreate = new CrudCreate($subjectDescription, "application/rdf+n3", "full", $this->ws->ontologyUri);
 
@@ -444,29 +400,14 @@
                     $ontologyDelete->pipeline_getError()->webservice, $ontologyDelete->pipeline_getError()->name,
                     $ontologyDelete->pipeline_getError()->description, $ontologyDelete->pipeline_getError()->debugInfo,
                     $ontologyDelete->pipeline_getError()->level);
-
-                  //return;
                 }
-
-                //return;              
               }              
               
               $nbRecordsDone += $sliceSize;
             }
           
             // Now delete the graph we used to import the file
-
-            $sqlQuery = "sparql clear graph <".$this->ws->ontologyUri."/import>";
-            
-            $resultset = $this->ws->db->query($sqlQuery);
-
-            if(odbc_error())
-            {
-  //            echo "Error: can't delete the graph sued for importing the file\n";
-  //            return;
-            }    
-            
-            unset($resultset);    
+            $this->ws->sparql->query("clear graph <".$this->ws->ontologyUri."/import>");
           }
           else
           {
@@ -517,7 +458,7 @@
                 $this->ws->conneg->setStatusMsg("Internal Error");
                 $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_201->name);
                 $this->ws->conneg->setError($this->ws->errorMessenger->_201->id, $this->ws->errorMessenger->ws,
-                  $this->ws->errorMessenger->_201->name, $this->ws->errorMessenger->_201->description, odbc_errormsg(),
+                  $this->ws->errorMessenger->_201->name, $this->ws->errorMessenger->_201->description, '',
                   $this->ws->errorMessenger->_201->level);                
                 
                 $this->clearCache();

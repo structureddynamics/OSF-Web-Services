@@ -171,13 +171,6 @@ class OntologyUpdate extends \StructuredDynamics\osf\ws\framework\WebService
   function __destruct()
   {
     parent::__destruct();
-
-    // If we are in pipeline mode, then we *don't* close the ODBC connection.
-    // If we are *not* then we have to close the connection.
-    if(isset($this->db) && !$this->isInPipelineMode)
-    {
-      @$this->db->close();
-    }
   }
 
   /** Validate a query to this web service

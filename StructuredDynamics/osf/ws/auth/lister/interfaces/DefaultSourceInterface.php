@@ -36,8 +36,7 @@
             }
           }
           
-          $query =
-            " prefix wsf: <http://purl.org/ontology/wsf#>
+          $this->ws->sparql->query(" prefix wsf: <http://purl.org/ontology/wsf#>
               select distinct ?dataset 
               from <". $this->ws->wsf_graph ."> 
               where 
@@ -47,29 +46,25 @@
                   
                 ?access wsf:groupAccess ?group ;
                         wsf:datasetAccess ?dataset .
-              }";
+              }");
 
-          $resultset =
-            @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-              FALSE));
-
-          if(odbc_error())
+          if($this->ws->sparql->error())
           {
             $this->ws->conneg->setStatus(500);
             $this->ws->conneg->setStatusMsg("Internal Error");
             $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_300->name);
             $this->ws->conneg->setError($this->ws->errorMessenger->_300->id, $this->ws->errorMessenger->ws,
-              $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, odbc_errormsg(),
-              $this->ws->errorMessenger->_300->level);
+              $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, 
+              $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_300->level);
             return;
           }
 
           $subject = new Subject("bnode:".md5(microtime()));
           $subject->setType("rdf:Bag");
           
-          while(odbc_fetch_row($resultset))
+          while($this->ws->sparql->fetch_binding())
           {
-            $dataset = odbc_result($resultset, 1);
+            $dataset = $this->ws->sparql->value('dataset');
             
             $subject->setObjectAttribute("rdf:li", $dataset, null, "void:Dataset");
           }
@@ -97,35 +92,30 @@
             }
           }
           
-          $query =
-            "  select distinct ?ws from <". $this->ws->wsf_graph  .">
+          $this->ws->sparql->query("select distinct ?ws from <". $this->ws->wsf_graph  .">
                   where
                   {
                     ?wsf a <http://purl.org/ontology/wsf#WebServiceFramework> ;
                           <http://purl.org/ontology/wsf#hasWebService> ?ws .
-                  }";
+                  }");
 
-          $resultset =
-            @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-              FALSE));
-
-          if(odbc_error())
+          if($this->ws->sparql->error())
           {
             $this->ws->conneg->setStatus(500);
             $this->ws->conneg->setStatusMsg("Internal Error");
             $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_301->name);
             $this->ws->conneg->setError($this->ws->errorMessenger->_301->id, $this->ws->errorMessenger->ws,
-              $this->ws->errorMessenger->_301->name, $this->ws->errorMessenger->_301->description, odbc_errormsg(),
-              $this->ws->errorMessenger->_301->level);
+              $this->ws->errorMessenger->_301->name, $this->ws->errorMessenger->_301->description, 
+              $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_301->level);
             return;
           }
           
           $subject = new Subject("bnode:".md5(microtime()));
           $subject->setType("rdf:Bag");          
 
-          while(odbc_fetch_row($resultset))
+          while($this->ws->sparql->fetch_binding())
           {
-            $ws = odbc_result($resultset, 1);
+            $ws = $this->ws->sparql->value('ws');
       
             $subject->setObjectAttribute("rdf:li", $ws, null, "wsf:WebService");
           }
@@ -153,35 +143,30 @@
             }
           }          
           
-          $query =
-            " prefix wsf: <http://purl.org/ontology/wsf#>
+          $this->ws->sparql->query(" prefix wsf: <http://purl.org/ontology/wsf#>
               select distinct ?group ?appID 
               from <". $this->ws->wsf_graph ."> 
               where 
               { 
                 ?group a wsf:Group ;
                        wsf:appID ?appID .
-              }";
+              }");
 
-          $resultset =
-            @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-              FALSE));
-
-          if(odbc_error())
+          if($this->ws->sparql->error())
           {
             $this->ws->conneg->setStatus(500);
             $this->ws->conneg->setStatusMsg("Internal Error");
             $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_300->name);
             $this->ws->conneg->setError($this->ws->errorMessenger->_300->id, $this->ws->errorMessenger->ws,
-              $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, odbc_errormsg(),
-              $this->ws->errorMessenger->_300->level);
+              $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, 
+              $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_300->level);
             return;
           }
 
-          while(odbc_fetch_row($resultset))
+          while($this->ws->sparql->fetch_binding())
           {
-            $group = odbc_result($resultset, 1);
-            $appID = odbc_result($resultset, 2);
+            $group = $this->ws->sparql->value('group');
+            $appID = $this->ws->sparql->value('appID');
             
             $subject = new Subject($group);
             $subject->setType("wsf:Group");
@@ -213,36 +198,31 @@
             }
           }
           
-          $query =
-            " prefix wsf: <http://purl.org/ontology/wsf#>
+          $this->ws->sparql->query("prefix wsf: <http://purl.org/ontology/wsf#>
               select distinct ?user 
               from <". $this->ws->wsf_graph ."> 
               where 
               { 
                 ?user wsf:hasGroup <". $this->ws->group ."> .
-              }";
+              }");
 
-          $resultset =
-            @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-              FALSE));
-
-          if(odbc_error())
+          if($this->ws->sparql->error())
           {
             $this->ws->conneg->setStatus(500);
             $this->ws->conneg->setStatusMsg("Internal Error");
             $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_300->name);
             $this->ws->conneg->setError($this->ws->errorMessenger->_300->id, $this->ws->errorMessenger->ws,
-              $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, odbc_errormsg(),
-              $this->ws->errorMessenger->_300->level);
+              $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, 
+              $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_300->level);
             return;
           }
 
           $subject = new Subject("bnode:".md5(microtime()));
           $subject->setType("rdf:Bag");
           
-          while(odbc_fetch_row($resultset))
+          while($this->ws->sparql->fetch_binding())
           {
-            $user = odbc_result($resultset, 1);
+            $user = $this->ws->sparql->value('user');
             
             $subject->setObjectAttribute("rdf:li", $user, null, "wsf:User");
           }
@@ -256,36 +236,31 @@
         }
         elseif(strtolower($this->ws->mode) == "user_groups")
         {
-          $query =
-            " prefix wsf: <http://purl.org/ontology/wsf#>
+          $this->ws->sparql->query("prefix wsf: <http://purl.org/ontology/wsf#>
               select distinct ?group 
               from <". $this->ws->wsf_graph ."> 
               where 
               { 
                 <". $this->ws->headers['OSF-USER-URI'] ."> wsf:hasGroup ?group .
-              }";
+              }");
 
-          $resultset =
-            @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-              FALSE));
-
-          if(odbc_error())
+          if($this->ws->sparql->error())
           {
             $this->ws->conneg->setStatus(500);
             $this->ws->conneg->setStatusMsg("Internal Error");
             $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_300->name);
             $this->ws->conneg->setError($this->ws->errorMessenger->_300->id, $this->ws->errorMessenger->ws,
-              $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, odbc_errormsg(),
-              $this->ws->errorMessenger->_300->level);
+              $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, 
+              $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_300->level);
             return;
           }
 
           $subject = new Subject("bnode:".md5(microtime()));
           $subject->setType("rdf:Bag");
           
-          while(odbc_fetch_row($resultset))
+          while($this->ws->sparql->fetch_binding())
           {
-            $group = odbc_result($resultset, 1);
+            $group = $this->ws->sparql->value('group');
             
             $subject->setObjectAttribute("rdf:li", $group, null, "wsf:Group");
           }
@@ -294,6 +269,8 @@
         }
         else
         { 
+          $query = '';
+          
           if(strtolower($this->ws->mode) == "access_user")
           {   
             if($this->ws->memcached_enabled)
@@ -412,11 +389,9 @@
                     }";
           }
 
-          $resultset =
-            @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-              FALSE));
+          $this->ws->sparql->query($query);
 
-          if(odbc_error())
+          if($this->ws->sparql->error())
           {
             $this->ws->conneg->setStatus(500);
             $this->ws->conneg->setStatusMsg("Internal Error");
@@ -425,15 +400,15 @@
             {
               $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_302->name);
               $this->ws->conneg->setError($this->ws->errorMessenger->_302->id, $this->ws->errorMessenger->ws,
-                $this->ws->errorMessenger->_302->name, $this->ws->errorMessenger->_302->description, odbc_errormsg(),
-                $this->ws->errorMessenger->_302->level);
+                $this->ws->errorMessenger->_302->name, $this->ws->errorMessenger->_302->description, 
+                $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_302->level);
             }
             else
             {
               $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_303->name);
               $this->ws->conneg->setError($this->ws->errorMessenger->_303->id, $this->ws->errorMessenger->ws,
-                $this->ws->errorMessenger->_303->name, $this->ws->errorMessenger->_303->description, odbc_errormsg(),
-                $this->ws->errorMessenger->_303->level);
+                $this->ws->errorMessenger->_303->name, $this->ws->errorMessenger->_303->description, 
+                $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_303->level);
             }
 
             return;
@@ -443,9 +418,9 @@
           
           $subject = null;
 
-          while(odbc_fetch_row($resultset))
+          while($this->ws->sparql->fetch_binding())
           {
-            $accessId = odbc_result($resultset, 1);
+            $accessId = $this->ws->sparql->value('access');
             
             if($accessPreviousId != $accessId)
             {
@@ -463,56 +438,49 @@
 
               if(strtolower($this->ws->mode) == "access_user")
               {                
-                $subject->setObjectAttribute("wsf:datasetAccess", odbc_result($resultset, 2), null, "void:Dataset");  
-                $subject->setDataAttribute("wsf:create", odbc_result($resultset, 3));
-                $subject->setDataAttribute("wsf:read", odbc_result($resultset, 4));
-                $subject->setDataAttribute("wsf:update", odbc_result($resultset, 5));
-                $subject->setDataAttribute("wsf:delete", odbc_result($resultset, 6));
-                $subject->setObjectAttribute("wsf:groupAccess", odbc_result($resultset, 7), null, 'wsf:Group');
+                $subject->setObjectAttribute("wsf:datasetAccess", $this->ws->sparql->value('datasetAccess'), null, "void:Dataset");  
+                $subject->setDataAttribute("wsf:create", $this->ws->sparql->value('create'));
+                $subject->setDataAttribute("wsf:read", $this->ws->sparql->value('read'));
+                $subject->setDataAttribute("wsf:update", $this->ws->sparql->value('update'));
+                $subject->setDataAttribute("wsf:delete", $this->ws->sparql->value('delete'));
+                $subject->setObjectAttribute("wsf:groupAccess", $this->ws->sparql->value('group'), null, 'wsf:Group');
                                                     
                 if($this->ws->targetWebservice == "all")
                 {                                                    
-                  $subject->setObjectAttribute("wsf:webServiceAccess", odbc_result($resultset, 8), null, "wsf:WebService");  
+                  $subject->setObjectAttribute("wsf:webServiceAccess", $this->ws->sparql->value('webServiceAccess'), null, "wsf:WebService");  
                 }
               }
               elseif(strtolower($this->ws->mode) == "access_group")
               {                
-                $subject->setObjectAttribute("wsf:datasetAccess", odbc_result($resultset, 2), null, "void:Dataset");  
-                $subject->setDataAttribute("wsf:create", odbc_result($resultset, 3));
-                $subject->setDataAttribute("wsf:read", odbc_result($resultset, 4));
-                $subject->setDataAttribute("wsf:update", odbc_result($resultset, 5));
-                $subject->setDataAttribute("wsf:delete", odbc_result($resultset, 6));
+                $subject->setObjectAttribute("wsf:datasetAccess", $this->ws->sparql->value('datasetAccess'), null, "void:Dataset");  
+                $subject->setDataAttribute("wsf:create", $this->ws->sparql->value('create'));
+                $subject->setDataAttribute("wsf:read", $this->ws->sparql->value('read'));
+                $subject->setDataAttribute("wsf:update", $this->ws->sparql->value('update'));
+                $subject->setDataAttribute("wsf:delete", $this->ws->sparql->value('delete'));
                                                     
                 if($this->ws->targetWebservice == "all")
                 {                                                    
-                  $subject->setObjectAttribute("wsf:webServiceAccess", odbc_result($resultset, 7), null, "wsf:WebService");  
+                  $subject->setObjectAttribute("wsf:webServiceAccess", $this->ws->sparql->value('webServiceAccess'), null, "wsf:WebService");  
                 }
               }              
               else // access_dataset
               {
-                $subject->setObjectAttribute("wsf:groupAccess", odbc_result($resultset, 2), null, 'wsf:Group');
-                $subject->setDataAttribute("wsf:create", odbc_result($resultset, 3));
-                $subject->setDataAttribute("wsf:read", odbc_result($resultset, 4));
-                $subject->setDataAttribute("wsf:update", odbc_result($resultset, 5));
-                $subject->setDataAttribute("wsf:delete", odbc_result($resultset, 6));
+                $subject->setObjectAttribute("wsf:groupAccess", $this->ws->sparql->value('group'), null, 'wsf:Group');
+                $subject->setDataAttribute("wsf:create", $this->ws->sparql->value('create'));
+                $subject->setDataAttribute("wsf:read", $this->ws->sparql->value('read'));
+                $subject->setDataAttribute("wsf:update", $this->ws->sparql->value('update'));
+                $subject->setDataAttribute("wsf:delete", $this->ws->sparql->value('delete'));
                                                                                                         
                                                     
                 if($this->ws->targetWebservice == "all")
                 {                                                    
-                  $subject->setObjectAttribute("wsf:webServiceAccess", odbc_result($resultset, 7), null, "wsf:WebService");                    
+                  $subject->setObjectAttribute("wsf:webServiceAccess", $this->ws->sparql->value('webServiceAccess'), null, "wsf:WebService");                    
                 }
               }            
             }
             else
             {
-              if(strtolower($this->ws->mode) == "access_user")
-              {              
-                $subject->setObjectAttribute("wsf:webServiceAccess", odbc_result($resultset, 8), null, "wsf:WebService");  
-              }
-              else // access_dataset or access_group
-              {
-                $subject->setObjectAttribute("wsf:webServiceAccess", odbc_result($resultset, 7), null, "wsf:WebService");  
-              }
+              $subject->setObjectAttribute("wsf:webServiceAccess", $this->ws->sparql->value('webServiceAccess'), null, "wsf:WebService");  
             }
           }
           

@@ -36,7 +36,7 @@
           $this->ws->conneg->setStatusMsg("Bad Request");
           $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_303->name);
           $this->ws->conneg->setError($this->ws->errorMessenger->_303->id, $this->ws->errorMessenger->ws,
-            $this->ws->errorMessenger->_303->name, $this->ws->errorMessenger->_303->description, odbc_errormsg(),
+            $this->ws->errorMessenger->_303->name, $this->ws->errorMessenger->_303->description, '',
             $this->ws->errorMessenger->_303->level);      
             
           return;
@@ -51,7 +51,7 @@
         if($this->ws->lifecycle == 'published')
         {            
           // (1) Change the status of the currently published record from 'published' to 'archive'
-          $query = "modify <" . $revisionsDataset . ">
+          $this->ws->sparql->query("modify <" . $revisionsDataset . ">
                     delete
                     { 
                       ?revision <http://purl.org/ontology/wsf#revisionStatus> <http://purl.org/ontology/wsf#published> .
@@ -66,25 +66,22 @@
                     
                       ?revision <http://purl.org/ontology/wsf#revisionUri> ?revisionUri ;
                                 <http://purl.org/ontology/wsf#revisionStatus> <http://purl.org/ontology/wsf#published> .
-                    }";
+                    }");
 
-          @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-            FALSE));
-
-          if(odbc_error())
+          if($this->ws->sparql->error())
           {
             $this->ws->conneg->setStatus(500);
             $this->ws->conneg->setStatusMsg("Internal Error");
             $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_304->name);
             $this->ws->conneg->setError($this->ws->errorMessenger->_304->id, $this->ws->errorMessenger->ws,
-              $this->ws->errorMessenger->_304->name, $this->ws->errorMessenger->_304->description, odbc_errormsg(),
-              $this->ws->errorMessenger->_304->level);
+              $this->ws->errorMessenger->_304->name, $this->ws->errorMessenger->_304->description, 
+              $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_304->level);
 
             return;
           }
           
           // (2) Change the lifecycle stage of the new record to publish to 'published' 
-          $query = "modify <" . $revisionsDataset . ">
+          $this->ws->sparql->query("modify <" . $revisionsDataset . ">
                     delete
                     { 
                       <".$this->ws->revuri."> <http://purl.org/ontology/wsf#revisionStatus> ?revisionStatus .
@@ -96,19 +93,16 @@
                     where
                     {
                       <".$this->ws->revuri."> <http://purl.org/ontology/wsf#revisionStatus> ?revisionStatus .
-                    }";
+                    }");
 
-          @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-            FALSE));
-
-          if(odbc_error())
+          if($this->ws->sparql->error())
           {
             $this->ws->conneg->setStatus(500);
             $this->ws->conneg->setStatusMsg("Internal Error");
             $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_305->name);
             $this->ws->conneg->setError($this->ws->errorMessenger->_305->id, $this->ws->errorMessenger->ws,
-              $this->ws->errorMessenger->_305->name, $this->ws->errorMessenger->_305->description, odbc_errormsg(),
-              $this->ws->errorMessenger->_305->level);
+              $this->ws->errorMessenger->_305->name, $this->ws->errorMessenger->_305->description, 
+              $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_305->level);
 
             return;
           }
@@ -165,7 +159,7 @@
           //   (2) We delete the record from the "public" dataset
           
           // Check the current status of the revision to update
-          $query = "select ?status ?uri
+          $this->ws->sparql->query("select ?status ?uri
                     from <" . $revisionsDataset . ">
                     where
                     {
@@ -173,25 +167,24 @@
                       <".$this->ws->revuri."> <http://purl.org/ontology/wsf#revisionStatus> ?status .
                     }
                     limit 1
-                    offset 0";
+                    offset 0");
 
-          $resultset = @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array('status'), FALSE));
-
-          if(odbc_error())
+          if($this->ws->sparql->error())
           {
             $this->ws->conneg->setStatus(500);
             $this->ws->conneg->setStatusMsg("Internal Error");
             $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_306->name);
             $this->ws->conneg->setError($this->ws->errorMessenger->_306->id, $this->ws->errorMessenger->ws,
-              $this->ws->errorMessenger->_306->name, $this->ws->errorMessenger->_306->description, odbc_errormsg(),
-              $this->ws->errorMessenger->_306->level);
+              $this->ws->errorMessenger->_306->name, $this->ws->errorMessenger->_306->description, 
+              $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_306->level);
 
             return;
           }
           else
           {     
-            $status = odbc_result($resultset, 1);
-            $uri = odbc_result($resultset, 2);
+            $this->ws->sparql->fetch_binding();
+            $status = $this->ws->sparql->value('status');
+            $uri = $this->ws->sparql->value('uri');
                                 
             // If the status of this revision was published, then we delete the record in the "public" dataset
             // this act like unpublished a record. It will exists in the revisions graph, but not in the
@@ -223,7 +216,7 @@
               }
             }
             
-            $query = "modify <" . $revisionsDataset . ">
+            $this->ws->sparql->query("modify <" . $revisionsDataset . ">
                       delete
                       { 
                         <".$this->ws->revuri."> <http://purl.org/ontology/wsf#revisionStatus> ?revisionStatus .
@@ -235,19 +228,16 @@
                       where
                       {
                         <".$this->ws->revuri."> <http://purl.org/ontology/wsf#revisionStatus> ?revisionStatus .
-                      }";
+                      }");
 
-            @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-              FALSE));
-
-            if(odbc_error())
+            if($this->ws->sparql->error())
             {
               $this->ws->conneg->setStatus(500);
               $this->ws->conneg->setStatusMsg("Internal Error");
               $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_305->name);
               $this->ws->conneg->setError($this->ws->errorMessenger->_305->id, $this->ws->errorMessenger->ws,
-                $this->ws->errorMessenger->_305->name, $this->ws->errorMessenger->_305->description, odbc_errormsg(),
-                $this->ws->errorMessenger->_305->level);
+                $this->ws->errorMessenger->_305->name, $this->ws->errorMessenger->_305->description, 
+                $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_305->level);
 
               return;
             }              

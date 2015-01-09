@@ -251,13 +251,10 @@
         }
         
         // Remove the holdOntology tag before deleting the ontology
-        $query = "delete data from <" . $this->ws->wsf_graph . "datasets/>
+        $this->ws->sparql->query("delete data from <" . $this->ws->wsf_graph . "datasets/>
                 {
                   <" . $this->ws->ontologyUri . "> <http://purl.org/ontology/wsf#holdOntology> \"true\" .
-                }";
-
-        @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-          FALSE));    
+                }");
 
         // Check to delete potential datasets that have been created within OSF
         $datasetDelete = new DatasetDelete($this->ws->ontologyUri);

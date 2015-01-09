@@ -23,7 +23,7 @@
         //       about to re-enter in the graph. All information other than these 
         //       new properties will remain in the graph
 
-        $query = "delete from <" . $this->ws->wsf_graph . ">
+        $this->ws->sparql->query("delete from <" . $this->ws->wsf_graph . ">
                 { 
                   <".$this->ws->registered_uri."> a <http://purl.org/ontology/wsf#WebService> .
                   <".$this->ws->registered_uri."> <http://purl.org/dc/terms/title> ?title . 
@@ -56,19 +56,16 @@
                   <http://purl.org/ontology/wsf#delete> " . ($this->ws->crud_usage->delete ? "\"True\"" : "\"False\"") . " .
                   
                   <" . $this->ws->wsf_graph . "> <http://purl.org/ontology/wsf#hasWebService> <".$this->ws->registered_uri.">.
-                }";
+                }");
 
-        @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-          FALSE));
-
-        if(odbc_error())
+        if($this->ws->sparql->error())
         {
           $this->ws->conneg->setStatus(500);
           $this->ws->conneg->setStatusMsg("Internal Error");
           $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_300->name);
           $this->ws->conneg->setError($this->ws->errorMessenger->_300->id, $this->ws->errorMessenger->ws,
-            $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, odbc_errormsg(),
-            $this->ws->errorMessenger->_300->level);
+            $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, 
+            $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_300->level);
 
           return;
         }

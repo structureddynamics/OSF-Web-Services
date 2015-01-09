@@ -55,7 +55,7 @@
         $parser = ARC2::getRDFParser();
         $parser->parse($this->ws->dataset, $this->ws->document);   
 
-        $rdfxmlSerializer = ARC2::getRDFXMLSerializer();
+        $n3Serializer = ARC2::getNTriplesSerializer();
 
         $resourceIndex = $parser->getSimpleIndex(0);
         $resourceRevisionsIndex = $parser->getSimpleIndex(0);
@@ -122,7 +122,7 @@
           // This check is only valid if a revision need to be created in the process.  
           foreach($irsUri as $subject)
           {
-            $query = "select ?status
+            $this->ws->sparql->query("select ?status
                       from <" . $revisionDataset . ">
                       where
                       {
@@ -132,24 +132,23 @@
                       }
                       order by desc(?timestamp)
                       limit 1
-                      offset 0";
+                      offset 0");
 
-            $resultset = @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array('status'), FALSE));
-
-            if(odbc_error())
+            if($this->ws->sparql->error())
             {
               $this->ws->conneg->setStatus(500);
               $this->ws->conneg->setStatusMsg("Internal Error");
               $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_314->name);
               $this->ws->conneg->setError($this->ws->errorMessenger->_314->id, $this->ws->errorMessenger->ws,
-                $this->ws->errorMessenger->_314->name, $this->ws->errorMessenger->_314->description, odbc_errormsg(),
-                $this->ws->errorMessenger->_314->level);
+                $this->ws->errorMessenger->_314->name, $this->ws->errorMessenger->_314->description, 
+                $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_314->level);
 
               return;
             }
             else
             {
-              $status = odbc_result($resultset, 1);
+              $this->ws->sparql->fetch_binding();
+              $status = $this->ws->sparql->value('status');
                               
               if($this->ws->lifecycle == 'published' && 
                  $status != Namespaces::$wsf.'published' 
@@ -258,7 +257,7 @@
                                                                 array(
                                                                   'value' => $microtimestamp,
                                                                   'type' => 'literal',
-                                                                  'datatype' => Namespaces::$xsd.'double'
+                                                                  'datatype' => Namespaces::$xsd.'decimal'
                                                                 )
                                                               );                    
                                                                   
@@ -353,7 +352,7 @@
                                                                                 array(
                                                                                   'value' => $microtimestamp,
                                                                                   'type' => 'literal',
-                                                                                  'datatype' => Namespaces::$xsd.'double'
+                                                                                  'datatype' => Namespaces::$xsd.'decimal'
                                                                                 )
                                                                               );                    
                                                                   
@@ -432,7 +431,7 @@
           {           
             foreach($irsUri as $uri)
             {            
-              $query = "modify <" . $revisionDataset . ">
+              $this->ws->sparql->query("modify <" . $revisionDataset . ">
                         delete
                         { 
                           ?revision <http://purl.org/ontology/wsf#revisionStatus> <http://purl.org/ontology/wsf#published> .
@@ -445,19 +444,16 @@
                         {
                           ?revision <http://purl.org/ontology/wsf#revisionUri> <".$uri."> ;
                                     <http://purl.org/ontology/wsf#revisionStatus> <http://purl.org/ontology/wsf#published> .
-                        }";
+                        }");
 
-              @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-                FALSE));
-
-              if(odbc_error())
+              if($this->ws->sparql->error())
               {
                 $this->ws->conneg->setStatus(500);
                 $this->ws->conneg->setStatusMsg("Internal Error");
                 $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_301->name);
                 $this->ws->conneg->setError($this->ws->errorMessenger->_301->id, $this->ws->errorMessenger->ws,
-                  $this->ws->errorMessenger->_301->name, $this->ws->errorMessenger->_301->description, odbc_errormsg(),
-                  $this->ws->errorMessenger->_301->level);
+                  $this->ws->errorMessenger->_301->name, $this->ws->errorMessenger->_301->description, 
+                  $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_301->level);
 
                 return;
               }
@@ -466,21 +462,31 @@
         
           // Step #2.2: indexing the incomming rdf document revision into its revisions graph
           
-          // Note: we index the revision records along with the reification statements.           
-          @$this->ws->db->query("DB.DBA.RDF_LOAD_RDFXML_MT('"
-            . str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($resourceRevisionsIndex))
-              . "', '$revisionDataset', '$revisionDataset', 0)");
-
-          if(odbc_error())
+          // Note: we index the revision records along with the reification statements.  
+          if(!empty($resourceRevisionsIndex))   
           {
-            $this->ws->conneg->setStatus(400);
-            $this->ws->conneg->setStatusMsg("Bad Request");
-            $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_300->name);
-            $this->ws->conneg->setError($this->ws->errorMessenger->_300->id, $this->ws->errorMessenger->ws,
-              $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, odbc_errormsg(),
-              $this->ws->errorMessenger->_300->level);
-            return;
-          }  
+            for($i = 0; $i < ceil(count($resourceRevisionsIndex) / 25); $i++)
+            {
+              $this->ws->sparql->query('insert data
+                              {
+                                graph <'.$revisionDataset.'>
+                                {
+                                  '.$n3Serializer->getSerializedIndex(array_slice($resourceRevisionsIndex, ($i * 25), 25, TRUE)).'
+                                }                                      
+                              }');       
+
+              if($this->ws->sparql->error())
+              {
+                $this->ws->conneg->setStatus(400);
+                $this->ws->conneg->setStatusMsg("Bad Request");
+                $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_300->name);
+                $this->ws->conneg->setError($this->ws->errorMessenger->_300->id, $this->ws->errorMessenger->ws,
+                  $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, 
+                  $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_300->level);
+                return;
+              }  
+            }
+          }
         }              
         
         // If the lifecycle is published, or if no revision need to be created 
@@ -497,23 +503,33 @@
             $irs[$uri] = $resourceIndex[$uri];
           }
 
-          @$this->ws->db->query("DB.DBA.RDF_LOAD_RDFXML_MT('"
-            . str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($irs))
-              . "', '$tempGraphUri', '$tempGraphUri', 0)");
-
-          if(odbc_error())
+          if(!empty($irs))
           {
-            $this->ws->conneg->setStatus(400);
-            $this->ws->conneg->setStatusMsg("Bad Request");
-            $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_300->name);
-            $this->ws->conneg->setError($this->ws->errorMessenger->_300->id, $this->ws->errorMessenger->ws,
-              $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, odbc_errormsg(),
-              $this->ws->errorMessenger->_300->level);
-            return;
+            for($i = 0; $i < ceil(count($irs) / 25); $i++)
+            {
+              $this->ws->sparql->query('insert data
+                              {
+                                graph <'.$tempGraphUri.'>
+                                {
+                                  '.$n3Serializer->getSerializedIndex(array_slice($irs, ($i * 25), 25, TRUE)).'
+                                }                                      
+                              }');       
+              
+              if($this->ws->sparql->error())
+              {
+                $this->ws->conneg->setStatus(400);
+                $this->ws->conneg->setStatusMsg("Bad Request");
+                $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_300->name);
+                $this->ws->conneg->setError($this->ws->errorMessenger->_300->id, $this->ws->errorMessenger->ws,
+                  $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, 
+                  $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_300->level);
+                return;
+              }
+            }
           }
 
           // Step #4: use that temp graph to modify (delete/insert using SPARUL) the target graph of the update query
-          $query = "delete from <" . $this->ws->dataset . ">
+          $this->ws->sparql->query("delete from <" . $this->ws->dataset . ">
                   { 
                     ?s ?p_original ?o_original.
                   }
@@ -540,19 +556,16 @@
                     {
                       ?s ?p ?o.
                     }
-                  }";
+                  }");
 
-          @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-            FALSE));
-
-          if(odbc_error())
+          if($this->ws->sparql->error())
           {
             $this->ws->conneg->setStatus(500);
             $this->ws->conneg->setStatusMsg("Internal Error");
             $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_301->name);
             $this->ws->conneg->setError($this->ws->errorMessenger->_301->id, $this->ws->errorMessenger->ws,
-              $this->ws->errorMessenger->_301->name, $this->ws->errorMessenger->_301->description, odbc_errormsg(),
-              $this->ws->errorMessenger->_301->level);
+              $this->ws->errorMessenger->_301->name, $this->ws->errorMessenger->_301->description, 
+              $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_301->level);
 
             return;
           }
@@ -568,24 +581,33 @@
               $statements[$uri] = $resourceIndex[$uri];
             }
 
-            @$this->ws->db->query("DB.DBA.RDF_LOAD_RDFXML_MT('"
-              . str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($statements))
-                . "', '$tempGraphReificationUri', '$tempGraphReificationUri', 0)");
-
-            if(odbc_error())
+            if(!empty($statements))
             {
-              $this->ws->conneg->setStatus(400);
-              $this->ws->conneg->setStatusMsg("Bad Request");
-              $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_300->name);
-              $this->ws->conneg->setError($this->ws->errorMessenger->_300->id, $this->ws->errorMessenger->ws,
-                $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, odbc_errormsg(),
-                $this->ws->errorMessenger->_300->level);
-              return;
+              for($i = 0; $i < ceil(count($statements) / 25); $i++)
+              {
+                $this->ws->sparql->query('insert data
+                    {
+                      graph <'.$tempGraphReificationUri.'>
+                      {
+                        '.$n3Serializer->getSerializedIndex(array_slice($statements, ($i * 25), 25, TRUE)).'
+                      }                                      
+                    }');       
+              
+                if($this->ws->sparql->error())
+                {
+                  $this->ws->conneg->setStatus(400);
+                  $this->ws->conneg->setStatusMsg("Bad Request");
+                  $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_300->name);
+                  $this->ws->conneg->setError($this->ws->errorMessenger->_300->id, $this->ws->errorMessenger->ws,
+                    $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, 
+                    $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_300->level);
+                  return;
+                }
+              }
             }
-
-
+            
             // Step #4.1: use the temp graph to modify the reification graph
-            $query = "delete from <" . $this->ws->dataset . "reification/>
+            $this->ws->sparql->query("delete from <" . $this->ws->dataset . "reification/>
                     { 
                       ?s_original ?p_original ?o_original.
                     }
@@ -612,45 +634,38 @@
                       {
                         ?s_original ?p2 ?o2.
                       }
-                    }";
+                    }");
 
-            @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-              FALSE));
-
-            if(odbc_error())
+            if($this->ws->sparql->error())
             {
               $this->ws->conneg->setStatus(500);
               $this->ws->conneg->setStatusMsg("Internal Error");
               $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_301->name);
               $this->ws->conneg->setError($this->ws->errorMessenger->_301->id, $this->ws->errorMessenger->ws,
-                $this->ws->errorMessenger->_301->name, $this->ws->errorMessenger->_301->description, odbc_errormsg(),
-                $this->ws->errorMessenger->_301->level);
+                $this->ws->errorMessenger->_301->name, $this->ws->errorMessenger->_301->description, 
+                $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_301->level);
 
               return;
             }
 
             // Step #4.2: Remove the temp graph
-            $query = "clear graph <" . $tempGraphReificationUri . ">";
+            $this->ws->sparql->query("clear graph <" . $tempGraphReificationUri . ">");
 
-            @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), "", $query), array(),
-              FALSE));
-
-            if(odbc_error())
+            if($this->ws->sparql->error())
             {
               $this->ws->conneg->setStatus(500);
               $this->ws->conneg->setStatusMsg("Internal Error");
               $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_303->name);
               $this->ws->conneg->setError($this->ws->errorMessenger->_303->id, $this->ws->errorMessenger->ws,
                 $this->ws->errorMessenger->_303->name, $this->ws->errorMessenger->_303->description,
-                odbc_errormsg() . " -- Query: [" . str_replace(array ("\n", "\r", "\t"), " ", $query) . "]",
-                $this->ws->errorMessenger->_303->level);
+                $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_303->level);
               return;
             }
           }
           else
           {
             // If no reification statements are defined, then make sure none exists for this resource in the system
-            $query = "delete from <" . $this->ws->dataset . "reification/>
+            $this->ws->sparql->query("delete from <" . $this->ws->dataset . "reification/>
                     { 
                       ?s_original ?p_original ?o_original.
                     }
@@ -665,39 +680,32 @@
                         ?s_original ?p_original ?o_original.
                         FILTER(?rei_subject IN (<".implode('>, <', $irsUri).">))
                       }
-                    }";
+                    }");
 
-            @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-              FALSE));
-
-            if(odbc_error())
+            if($this->ws->sparql->error())
             {
               $this->ws->conneg->setStatus(500);
               $this->ws->conneg->setStatusMsg("Internal Error");
               $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_301->name);
               $this->ws->conneg->setError($this->ws->errorMessenger->_301->id, $this->ws->errorMessenger->ws,
-                $this->ws->errorMessenger->_301->name, $this->ws->errorMessenger->_301->description, odbc_errormsg(),
-                $this->ws->errorMessenger->_301->level);
+                $this->ws->errorMessenger->_301->name, $this->ws->errorMessenger->_301->description, 
+                $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_301->level);
 
               return;
             }            
           }
 
           // Step #5: Remove the temp graph
-          $query = "clear graph <" . $tempGraphUri . ">";
+          $this->ws->sparql->query("clear graph <" . $tempGraphUri . ">");
 
-          @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), "", $query), array(),
-            FALSE));
-
-          if(odbc_error())
+          if($this->ws->sparql->error())
           {
             $this->ws->conneg->setStatus(500);
             $this->ws->conneg->setStatusMsg("Internal Error");
             $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_303->name);
             $this->ws->conneg->setError($this->ws->errorMessenger->_303->id, $this->ws->errorMessenger->ws,
               $this->ws->errorMessenger->_303->name, $this->ws->errorMessenger->_303->description,
-              odbc_errormsg() . " -- Query: [" . str_replace(array ("\n", "\r", "\t"), " ", $query) . "]",
-              $this->ws->errorMessenger->_303->level);
+              $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_303->level);
             return;
           }
 
@@ -1076,7 +1084,7 @@
                  $predicate != Namespaces::$sco."polygonCoordinates" &&
                  $predicate != Namespaces::$sco."polylineCoordinates") // skip label & description & prefURL properties
               {
-   			    $property = $this->getProperty($predicate);
+   			        $property = $this->getProperty($predicate);
 				
                 foreach($values as $value)
                 {
@@ -1298,17 +1306,14 @@
                     // If it is an object property, we want to bind labels of the resource referenced by that
                     // object property to the current resource. That way, if we have "paul" -- know --> "bob", and the
                     // user send a seach query for "bob", then "paul" will be returned as well.
-                    $query = $this->ws->db->build_sparql_query("select ?p ?o where {<"
-                      . $value["value"] . "> ?p ?o.}", array ('p', 'o'), FALSE);
-
-                    $resultset3 = $this->ws->db->query($query);
+                    $this->ws->sparql->query("select ?p ?o where {<". $value["value"] . "> ?p ?o.}");
 
                     $subjectTriples = array();
 
-                    while(odbc_fetch_row($resultset3))
+                    while($this->ws->sparql->fetch_binding())
                     {
-                      $p = odbc_result($resultset3, 1);
-                      $o = $this->ws->db->odbc_getPossibleLongResult($resultset3, 2);
+                      $p = $this->ws->sparql->value('p');
+                      $o = $this->ws->sparql->value('o');
 
                       if(!isset($subjectTriples[$p]))
                       {
@@ -1317,8 +1322,6 @@
 
                       array_push($subjectTriples[$p], $o);
                     }
-
-                    unset($resultset3);
 
                     // We allign all label properties values in a single string so that we can search over all of them.
                     $labels = "";

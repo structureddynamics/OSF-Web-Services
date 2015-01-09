@@ -379,7 +379,7 @@
            $this->ws->isDescribeQuery === TRUE ||
            $this->ws->isConstructQuery === TRUE)
         {
-          $queryFormat = $this->ws->conneg->getMime();
+          $queryFormat = $_SERVER['HTTP_ACCEPT'];
         }
         elseif($this->ws->conneg->getMime() == "text/xml" || 
                $this->ws->conneg->getMime() == "application/json" || 
@@ -415,13 +415,17 @@
         
         if(empty($this->ws->sparqlContent))
         {          
-          curl_setopt($ch, CURLOPT_URL,
-            $this->ws->db_host . ":" . $this->ws->triplestore_port . "/sparql?default-graph-uri=" . urlencode($this->ws->dataset) . "&query="
-            . urlencode($this->query) . "&format=" . urlencode($queryFormat));
-
-          curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+          $ch = curl_init();
+          
+          curl_setopt($ch, CURLOPT_URL, 'http://'. $this->ws->triplestore_host . ':' .
+                                                   $this->ws->triplestore_port . '/' .
+                                                   $this->ws->sparql_endpoint);
+          curl_setopt($ch, CURLOPT_POST, 1);
+          curl_setopt($ch, CURLOPT_POSTFIELDS, 'default-graph-uri=' . urlencode($this->ws->dataset) . 
+                                               '&query=' . urlencode($this->query));
           curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-          curl_setopt($ch, CURLOPT_HEADER, TRUE);
+          curl_setopt($ch, CURLOPT_HEADER, 1);
+          curl_setopt($ch, CURLOPT_HTTPHEADER, array("Accept: ".$queryFormat));
 
           $xml_data = curl_exec($ch);
 
@@ -448,11 +452,15 @@
           }
           else
           {
+            file_put_contents('/tmp/sparql.debug', $this->ws->sparql_endpoint . "\n\n\n" .
+                                                   'default-graph-uri=' . urlencode($this->ws->dataset) . 
+                                               '&query=' . urlencode($this->query). "\n\n\n" .
+                                               $queryFormat);
             $this->ws->conneg->setStatus($httpMsgNum);
             $this->ws->conneg->setStatusMsg($httpMsg);
             $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_300->name);
             $this->ws->conneg->setError($this->ws->errorMessenger->_300->id, $this->ws->errorMessenger->ws,
-              $this->ws->errorMessenger->_300 > name, $this->ws->errorMessenger->_300->description, $data,
+              $this->ws->errorMessenger->_300 > name, $this->ws->errorMessenger->_300->description, $xml_data,
               $this->ws->errorMessenger->_300->level);
 
             $this->ws->sparqlContent = "";

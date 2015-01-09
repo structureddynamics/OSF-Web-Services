@@ -200,13 +200,6 @@ class DatasetUpdate extends \StructuredDynamics\osf\ws\framework\WebService
   function __destruct()
   {
     parent::__destruct();
-
-    // If we are in pipeline mode, then we *don't* close the ODBC connection.
-    // If we are *not* then we have to close the connection.
-    if(isset($this->db) && !$this->isInPipelineMode)
-    {
-      @$this->db->close();
-    }
   }
 
   /** Validate a query to this web service
@@ -257,28 +250,25 @@ class DatasetUpdate extends \StructuredDynamics\osf\ws\framework\WebService
       }      
 
       // Check if the dataset is existing
-      $query = "select ?dataset 
+      $this->sparql->query("select ?dataset 
                 from <" . $this->wsf_graph . "datasets/>
                 where
                 {
                   <$this->datasetUri> a ?dataset .
-                }";
+                }");
 
-      $resultset = @$this->db->query($this->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
-        array( "dataset" ), FALSE));
-
-      if(odbc_error())
+      if($this->sparql->error())
       {
         $this->conneg->setStatus(500);
         $this->conneg->setStatusMsg("Internal Error");
         $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
         $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, odbc_errormsg(),
-          $this->errorMessenger->_201->level);
+          $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, 
+          $this->sparql->errormsg(), $this->errorMessenger->_201->level);
 
         return;
       }
-      elseif(odbc_fetch_row($resultset) === FALSE)
+      elseif($this->sparql->fetch_binding() === FALSE)
       {
         $this->conneg->setStatus(400);
         $this->conneg->setStatusMsg("Bad Request");
@@ -287,12 +277,9 @@ class DatasetUpdate extends \StructuredDynamics\osf\ws\framework\WebService
           $this->errorMessenger->_202->name, $this->errorMessenger->_202->description, "",
           $this->errorMessenger->_202->level);
 
-        unset($resultset);
         return;
       }
 
-      unset($resultset);   
-      
       $contribs = array();
       
       if(strpos($this->contributors, ";") !== FALSE)
@@ -318,8 +305,6 @@ class DatasetUpdate extends \StructuredDynamics\osf\ws\framework\WebService
             $this->errorMessenger->_204->name, $this->errorMessenger->_204->description, "",
             $this->errorMessenger->_204->level);
 
-          unset($resultset);      
-          
           return;    
         }
       }

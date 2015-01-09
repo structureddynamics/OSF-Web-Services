@@ -60,17 +60,16 @@
                     <http://purl.org/ontology/wsf#delete> " . ($this->ws->crud->delete ? "\"True\"" : "\"False\"") . " .
                   }";
 
-          $this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-            FALSE));
+          $this->ws->sparql->query($query);
 
-          if(odbc_error())
+          if($this->ws->sparql->error())
           {
             $this->ws->conneg->setStatus(500);
             $this->ws->conneg->setStatusMsg("Internal Error");
             $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_300->name);
             $this->ws->conneg->setError($this->ws->errorMessenger->_300->id, $this->ws->errorMessenger->ws,
-              $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, odbc_errormsg(),
-              $this->ws->errorMessenger->_300->level);
+              $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, 
+              $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_300->level);
             return;
           }
         }
@@ -112,26 +111,23 @@
                     ?p ?o.
                   }";
 
-          @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-            FALSE));
+          $this->ws->sparql->query($query);
 
-          if(odbc_error())
+          if($this->ws->sparql->error())
           {
             $this->ws->conneg->setStatus(500);
             $this->ws->conneg->setStatusMsg("Internal Error");
             $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_301->name);
             $this->ws->conneg->setError($this->ws->errorMessenger->_301->id, $this->ws->errorMessenger->ws,
-              $this->ws->errorMessenger->_301->name, $this->ws->errorMessenger->_301->description, odbc_errormsg() . $query,
-              $this->ws->errorMessenger->_301->level);
+              $this->ws->errorMessenger->_301->name, $this->ws->errorMessenger->_301->description, 
+              $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_301->level);
             return;
           }
         }
         elseif(strtolower($this->ws->action) == "delete_target")
         {
           // Just delete target access
-          $query =
-            "delete from graph <" . $this->ws->wsf_graph
-            . ">
+          $this->ws->sparql->query("delete from graph <" . $this->ws->wsf_graph . ">
                   { 
                     ?access a <http://purl.org/ontology/wsf#Access> ;
                     <http://purl.org/ontology/wsf#groupAccess> <".$this->ws->group."> ; 
@@ -144,28 +140,23 @@
                     <http://purl.org/ontology/wsf#groupAccess> <".$this->ws->group."> ; 
                     <http://purl.org/ontology/wsf#datasetAccess> <".$this->ws->dataset."> ;
                     ?p ?o.
-                  }";
+                  }");
 
-          @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-            FALSE));
-
-          if(odbc_error())
+          if($this->ws->sparql->error())
           {
             $this->ws->conneg->setStatus(500);
             $this->ws->conneg->setStatusMsg("Internal Error");
             $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_302->name);
             $this->ws->conneg->setError($this->ws->errorMessenger->_302->id, $this->ws->errorMessenger->ws,
-              $this->ws->errorMessenger->_302->name, $this->ws->errorMessenger->_302->description, odbc_errormsg(),
-              $this->ws->errorMessenger->_302->level);
+              $this->ws->errorMessenger->_302->name, $this->ws->errorMessenger->_302->description, 
+              $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_302->level);
             return;
           }
         }
         elseif(strtolower($this->ws->action) == "delete_specific")
         {
           // Just delete target access
-          $query =
-            "delete from graph <" . $this->ws->wsf_graph
-            . ">
+          $this->ws->sparql->query("delete from graph <" . $this->ws->wsf_graph . ">
                   { 
                     <".$this->ws->target_access_uri."> a <http://purl.org/ontology/wsf#Access> ;
                     ?p ?o.
@@ -174,19 +165,16 @@
                   {
                     <".$this->ws->target_access_uri."> a <http://purl.org/ontology/wsf#Access> ;
                     ?p ?o.
-                  }";
+                  }");
 
-          @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-            FALSE));
-
-          if(odbc_error())
+          if($this->ws->sparql->error())
           {
             $this->ws->conneg->setStatus(500);
             $this->ws->conneg->setStatusMsg("Internal Error");
             $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_307->name);
             $this->ws->conneg->setError($this->ws->errorMessenger->_307->id, $this->ws->errorMessenger->ws,
-              $this->ws->errorMessenger->_307->name, $this->ws->errorMessenger->_307->description, odbc_errormsg(),
-              $this->ws->errorMessenger->_307->level);
+              $this->ws->errorMessenger->_307->name, $this->ws->errorMessenger->_307->description, 
+              $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_307->level);
             return;
           }
         }          
@@ -195,7 +183,7 @@
           // Delete all accesses to a specific dataset
           if(strlen($this->ws->dataset) > 0)
           {
-            $query = "delete from graph <" . $this->ws->wsf_graph . ">
+            $this->ws->sparql->query("delete from graph <" . $this->ws->wsf_graph . ">
                       { 
                         ?access ?p ?o. 
                       }
@@ -204,25 +192,22 @@
                         ?access a <http://purl.org/ontology/wsf#Access> ;
                         <http://purl.org/ontology/wsf#datasetAccess> <".$this->ws->dataset."> ;
                         ?p ?o.
-                      }";
+                      }");
 
-            @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-              FALSE));
-
-            if(odbc_error())
+            if($this->ws->sparql->error())
             {
               $this->ws->conneg->setStatus(500);
               $this->ws->conneg->setStatusMsg("Internal Error");
               $this->ws->conneg->setError($this->ws->errorMessenger->_303->id, $this->ws->errorMessenger->ws,
-                $this->ws->errorMessenger->_303->name, $this->ws->errorMessenger->_303->description, odbc_errormsg(),
-                $this->ws->errorMessenger->_303->level);
+                $this->ws->errorMessenger->_303->name, $this->ws->errorMessenger->_303->description, 
+                $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_303->level);
               return;
             }
           }
           elseif(strlen($this->ws->group) > 0)
           {
             // Delete all accesses to a specific group
-            $query = "delete from graph <" . $this->ws->wsf_graph . ">
+            $this->ws->sparql->query("delete from graph <" . $this->ws->wsf_graph . ">
                       { 
                         ?access ?p ?o. 
                       }
@@ -231,18 +216,15 @@
                         ?access a <http://purl.org/ontology/wsf#Access> ;
                         <http://purl.org/ontology/wsf#groupAccess> <".$this->ws->group."> ;
                         ?p ?o.
-                      }";
+                      }");
 
-            @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-              FALSE));
-
-            if(odbc_error())
+            if($this->ws->sparql->error())
             {
               $this->ws->conneg->setStatus(500);
               $this->ws->conneg->setStatusMsg("Internal Error");
               $this->ws->conneg->setError($this->ws->errorMessenger->_308->id, $this->ws->errorMessenger->ws,
-                $this->ws->errorMessenger->_308->name, $this->ws->errorMessenger->_308->description, odbc_errormsg(),
-                $this->ws->errorMessenger->_308->level);
+                $this->ws->errorMessenger->_308->name, $this->ws->errorMessenger->_308->description, 
+                $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_308->level);
               return;
             }            
           }

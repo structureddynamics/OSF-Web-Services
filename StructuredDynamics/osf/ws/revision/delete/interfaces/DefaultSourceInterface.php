@@ -23,71 +23,67 @@
         $revisionsDataset = rtrim($this->ws->dataset, '/').'/revisions/';
         
         // Make sure the lifecycle is not 'published'
-        $query = "select ?status
+        $this->ws->sparql->query("select ?status
                   from <" . $revisionsDataset . ">
                   where
                   {
                     <".$this->ws->revuri."> <http://purl.org/ontology/wsf#revisionStatus> ?status .
                   }
                   limit 1
-                  offset 0";
+                  offset 0");
 
-        $resultset = @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array('status'), FALSE));
-
-        if(odbc_error())
+        if($this->ws->sparql->error())
         {
           $this->ws->conneg->setStatus(500);
           $this->ws->conneg->setStatusMsg("Internal Error");
           $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_303->name);
           $this->ws->conneg->setError($this->ws->errorMessenger->_303->id, $this->ws->errorMessenger->ws,
-            $this->ws->errorMessenger->_303->name, $this->ws->errorMessenger->_303->description, odbc_errormsg(),
-            $this->ws->errorMessenger->_303->level);
+            $this->ws->errorMessenger->_303->name, $this->ws->errorMessenger->_303->description, 
+            $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_303->level);
 
           return;
         }
         else
         {
-          $status = odbc_result($resultset, 1);
+          $this->ws->sparql->fetch_binding();
+          $status = $this->ws->sparql->value('status');
                           
           if($status == Namespaces::$wsf.'published')
           {
             $this->ws->conneg->setStatus(400);
             $this->ws->conneg->setStatusMsg("Bad Request");
             $this->ws->conneg->setError($this->ws->errorMessenger->_304->id, $this->ws->errorMessenger->ws,
-              $this->ws->errorMessenger->_304->name, $this->ws->errorMessenger->_304->description, odbc_errormsg(),
-              $this->ws->errorMessenger->_304->level);
+              $this->ws->errorMessenger->_304->name, $this->ws->errorMessenger->_304->description, 
+              $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_304->level);
 
             return;                        
           }            
         }          
         
         // Delete the revision  
-        $query = "delete from <" . $revisionsDataset . ">
+        $this->ws->sparql->query("delete from <" . $revisionsDataset . ">
                   { 
                     <".$this->ws->revuri."> ?s ?p .
                   }
                   where
                   {
                     <".$this->ws->revuri."> ?s ?p .
-                  }";
+                  }");
 
-        @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-          FALSE));
-
-        if(odbc_error())
+        if($this->ws->sparql->error())
         {
           $this->ws->conneg->setStatus(500);
           $this->ws->conneg->setStatusMsg("Internal Error");
           $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_305->name);
           $this->ws->conneg->setError($this->ws->errorMessenger->_305->id, $this->ws->errorMessenger->ws,
-            $this->ws->errorMessenger->_305->name, $this->ws->errorMessenger->_305->description, odbc_errormsg(),
-            $this->ws->errorMessenger->_305->level);
+            $this->ws->errorMessenger->_305->name, $this->ws->errorMessenger->_305->description, 
+            $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_305->level);
 
           return;
         }          
         
         // Delete possible reification statements for this revision
-        $query = "delete from <" . $revisionsDataset . ">
+        $this->ws->sparql->query("delete from <" . $revisionsDataset . ">
                   { 
                     ?statement ?p ?o.
                   }
@@ -95,19 +91,16 @@
                   {
                     ?statement <http://www.w3.org/1999/02/22-rdf-syntax-ns#subject> <".$this->ws->revuri."> .
                     ?statement ?p ?o.
-                  }";
+                  }");
 
-        @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-          FALSE));
-
-        if(odbc_error())
+        if($this->ws->sparql->error())
         {
           $this->ws->conneg->setStatus(500);
           $this->ws->conneg->setStatusMsg("Internal Error");
           $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_306->name);
           $this->ws->conneg->setError($this->ws->errorMessenger->_306->id, $this->ws->errorMessenger->ws,
-            $this->ws->errorMessenger->_306->name, $this->ws->errorMessenger->_306->description, odbc_errormsg(),
-            $this->ws->errorMessenger->_306->level);
+            $this->ws->errorMessenger->_306->name, $this->ws->errorMessenger->_306->description, 
+            $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_306->level);
 
           return;
         } 

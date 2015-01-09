@@ -196,13 +196,6 @@ class AuthRegistrarUser extends \StructuredDynamics\osf\ws\framework\WebService
   function __destruct()
   {
     parent::__destruct();
-
-    // If we are in pipeline mode, then we *don't* close the ODBC connection.
-    // If we are *not* then we have to close the connection.
-    if(isset($this->db) && !$this->isInPipelineMode)
-    {
-      @$this->db->close();
-    }
   }
 
   /** Validate a query to this web service
@@ -274,31 +267,29 @@ class AuthRegistrarUser extends \StructuredDynamics\osf\ws\framework\WebService
       }       
 
       // Check if the group exists
-      $resultset = $this->db->query($this->db->build_sparql_query("
-        select ?type
+      $this->sparql->query("select ?type
         from <" . $this->wsf_graph. "> 
         where 
         {
           <". $this->group_uri ."> a ?type . 
-        }",
-        array ('type'), FALSE));
+        }");
 
-      if(odbc_error())
+      if($this->sparql->error())
       {
         $this->conneg->setStatus(500);
         $this->conneg->setStatusMsg("Internal Error");
         $this->conneg->setStatusMsgExt($this->errorMessenger->_202->name);
         $this->conneg->setError($this->errorMessenger->_202->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_202->name, $this->errorMessenger->_202->description, "",
-          $this->errorMessenger->_202->level);
+          $this->errorMessenger->_202->name, $this->errorMessenger->_202->description, 
+          $this->sparql->errormsg(), $this->errorMessenger->_202->level);
 
         return;
       }
       else
       {
-        odbc_fetch_row($resultset);
+        $this->sparql->fetch_binding();
         
-        $type = odbc_result($resultset, 1);
+        $type = $this->sparql->value('type');
 
         if($type === FALSE)
         {
@@ -309,41 +300,36 @@ class AuthRegistrarUser extends \StructuredDynamics\osf\ws\framework\WebService
             $this->errorMessenger->_204->name, $this->errorMessenger->_204->description, "",
             $this->errorMessenger->_204->level);
 
-          unset($resultset);
           return;
         }
       }
-
-      unset($resultset);      
       
       // Check if the user is already registered to that group
       if($this->action == 'join')
       {
-        $resultset = $this->db->query($this->db->build_sparql_query("
-          select ?type
+        $this->sparql->query("select ?type
           from <" . $this->wsf_graph. "> 
           where 
           {
             <". $this->user_uri ."> a ?type ;
                                     <http://purl.org/ontology/wsf#hasGroup>  <". $this->group_uri ."> .
                                      
-          }",
-          array ('type'), FALSE));
+          }");
 
-        if(odbc_error())
+        if($this->sparql->error())
         {
           $this->conneg->setStatus(500);
           $this->conneg->setStatusMsg("Internal Error");
           $this->conneg->setStatusMsgExt($this->errorMessenger->_202->name);
           $this->conneg->setError($this->errorMessenger->_202->id, $this->errorMessenger->ws,
-            $this->errorMessenger->_202->name, $this->errorMessenger->_202->description, "",
-            $this->errorMessenger->_202->level);
+            $this->errorMessenger->_202->name, $this->errorMessenger->_202->description, 
+            $this->sparql->errormsg(), $this->errorMessenger->_202->level);
 
           return;
         }
-        elseif(odbc_fetch_row($resultset))
+        elseif($this->sparql->fetch_binding())
         {
-          $type = odbc_result($resultset, 1);
+          $type = $this->sparql->value('type');
 
           if($type == 'http://purl.org/ontology/wsf#User')
           {
@@ -354,13 +340,10 @@ class AuthRegistrarUser extends \StructuredDynamics\osf\ws\framework\WebService
               $this->errorMessenger->_203->name, $this->errorMessenger->_203->description, "",
               $this->errorMessenger->_203->level);
 
-            unset($resultset);
             return;
           }
         }
       }
-
-      unset($resultset);           
     }               
   }
 

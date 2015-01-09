@@ -40,25 +40,21 @@
         }          
         
         // Archiving suject triples
-        $query = $this->ws->db->build_sparql_query("
-          select ?p ?o (DATATYPE(?o)) as ?otype (LANG(?o)) as ?olang 
+        $this->ws->sparql->query("select ?p ?o
           from <" . $revisionsDataset . "> 
           where 
           {
             <".$this->ws->revuri."> ?p ?o.
-          }", 
-          array ('p', 'o', 'otype', 'olang'), FALSE);
+          }");
 
-        $resultset = $this->ws->db->query($query);
-
-        if(odbc_error())
+        if($this->ws->sparql->error())
         {
           $this->ws->conneg->setStatus(500);
           $this->ws->conneg->setStatusMsg("Internal Error");
           $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_303->name);
           $this->ws->conneg->setError($this->ws->errorMessenger->_303->id, $this->ws->errorMessenger->ws,
-            $this->ws->errorMessenger->_303->name, $this->ws->errorMessenger->_303->description, odbc_errormsg(),
-            $this->ws->errorMessenger->_303->level);
+            $this->ws->errorMessenger->_303->name, $this->ws->errorMessenger->_303->description, 
+            $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_303->level);
         }
         
         $subject = Array("type" => Array(),
@@ -68,18 +64,34 @@
                          "description" => "");           
        
         $found = FALSE; 
-        while(odbc_fetch_row($resultset))
+        while($this->ws->sparql->fetch_binding())
         {
           $found = TRUE;
-          $p = odbc_result($resultset, 1);
           
-          $o = $this->ws->db->odbc_getPossibleLongResult($resultset, 2);
+          $p = $this->ws->sparql->value('p');          
+          $o = $this->ws->sparql->value('o');
 
-          $otype = odbc_result($resultset, 3);
-          $olang = odbc_result($resultset, 4);
-
-          $objectType = "";
+          $otype = '';
           
+          if(array_key_exists('datatype', $this->ws->sparql->value('o', TRUE)))
+          {
+            $otype = $this->ws->sparql->value('o', TRUE)['datatype'];
+          }
+          else
+          {
+            if($this->ws->sparql->value('o', TRUE)['type'] == 'uri')
+            {
+              $otype = null;
+            }
+          }
+
+          $olang = '';
+          
+          if(array_key_exists('xml:lang', $this->ws->sparql->value('o', TRUE)))
+          {
+            $olang = $this->ws->sparql->value('o', TRUE)['xml:lang'];
+          }
+
           if($this->ws->mode == 'record')
           {
             if($p == Namespaces::$wsf.'revisionUri')
@@ -97,8 +109,6 @@
             }
           }            
           
-          $objectType = "";
-          
           if($olang && $olang != "")
           {
             /* If a language is defined for an object, we force its type to be xsd:string */
@@ -114,8 +124,6 @@
             $otype = '';
           }
           
-          $objectType = $otype;
-  
           if($p == Namespaces::$rdf."type")
           {
             if($this->ws->mode == 'record' && $o == Namespaces::$wsf.'Revision')
@@ -135,11 +143,11 @@
               $subject[$p] = array();
             }
             
-            if($objectType !== NULL)
+            if($otype !== NULL)
             {
               array_push($subject[$p], Array("value" => $o, 
                                              "lang" => (isset($olang) ? $olang : ""),
-                                             "type" => $objectType));
+                                             "type" => $otype));
             }
             else
             {
@@ -150,36 +158,31 @@
         }
         
         // Get reification triples
-        $query = "select ?rei_p ?rei_o ?p ?o from <" . $revisionsDataset . "> 
+        $this->ws->sparql->query("select ?rei_p ?rei_o ?p ?o from <" . $revisionsDataset . "> 
                   where 
                   {
                     ?statement <http://www.w3.org/1999/02/22-rdf-syntax-ns#subject> <".$this->ws->revuri.">.
                     ?statement <http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate> ?rei_p.
                     ?statement <http://www.w3.org/1999/02/22-rdf-syntax-ns#object> ?rei_o.
                     ?statement ?p ?o.
-                  }";
-      
-        $query = $this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
-          array ('rei_p', 'rei_o', 'p', 'o'), FALSE);
-
-        $resultset = $this->ws->db->query($query);
-
-        if(odbc_error())
+                  }");
+                  
+        if($this->ws->sparql->error())
         {
           $this->ws->conneg->setStatus(500);
           $this->ws->conneg->setStatusMsg("Internal Error");
           $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_304->name);
           $this->ws->conneg->setError($this->ws->errorMessenger->_304->id, $this->ws->errorMessenger->ws,
-            $this->ws->errorMessenger->_304->name, $this->ws->errorMessenger->_304->description, odbc_errormsg(),
-            $this->ws->errorMessenger->_304->level);
+            $this->ws->errorMessenger->_304->name, $this->ws->errorMessenger->_304->description, 
+            $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_304->level);
         }
 
-        while(odbc_fetch_row($resultset))
+        while($this->ws->sparql->fetch_binding())
         {
-          $rei_p = odbc_result($resultset, 1);
-          $rei_o = $this->ws->db->odbc_getPossibleLongResult($resultset, 2);
-          $p = odbc_result($resultset, 3);
-          $o = $this->ws->db->odbc_getPossibleLongResult($resultset, 4);
+          $rei_p = $this->ws->sparql->value('rei_p');
+          $rei_o = $this->ws->sparql->value('rei_o');
+          $p = $this->ws->sparql->value('p');
+          $o = $this->ws->sparql->value('o');
 
           if($p != "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject" &&
              $p != "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate" &&
@@ -215,8 +218,6 @@
                                                                     "type" => ""));
           }
           
-          unset($resultset);
-
           $this->ws->rset->setResultset(Array($this->ws->dataset => array($subjectUri => $subject)));
           
           if($this->ws->memcached_enabled)
@@ -230,8 +231,8 @@
           $this->ws->conneg->setStatusMsg("Bad Request");
           $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_306->name);
           $this->ws->conneg->setError($this->ws->errorMessenger->_306->id, $this->ws->errorMessenger->ws,
-            $this->ws->errorMessenger->_306->name, $this->ws->errorMessenger->_306->description, odbc_errormsg(),
-            $this->ws->errorMessenger->_306->level);            
+            $this->ws->errorMessenger->_306->name, $this->ws->errorMessenger->_306->description, 
+            $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_306->level);            
         }
       }      
     }

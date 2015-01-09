@@ -20,7 +20,6 @@
       // Make sure there was no conneg error prior to this process call
       if($this->ws->conneg->getStatus() == 200)
       {
-        $query = "";
         $nbDatasets = 0;
         
         if($this->ws->datasetUri == "all")
@@ -40,7 +39,7 @@
             }
           }          
                     
-          $query = "prefix wsf: <http://purl.org/ontology/wsf#>
+          $this->ws->sparql->query("prefix wsf: <http://purl.org/ontology/wsf#>
                     select distinct ?dataset ?title ?description ?creator ?created ?modified ?holdOntology ?contributor
                     from named <" . $this->ws->wsf_graph . ">
                     from named <" . $this->ws->wsf_graph . "datasets/>
@@ -67,19 +66,16 @@
                         OPTIONAL{?dataset <http://purl.org/dc/terms/creator> ?creator.}
                         OPTIONAL{?dataset <http://purl.org/ontology/wsf#holdOntology> ?holdOntology.}
                       }    
-                    } ORDER BY ?title";
+                    } ORDER BY ?title");
 
-          $resultset = @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
-            array ("dataset", "title", "description", "creator", "created", "modified", "holdOntology", "contributor"), FALSE));
-
-          if(odbc_error())
+          if($this->ws->sparql->error())
           {
             $this->ws->conneg->setStatus(500);
             $this->ws->conneg->setStatusMsg("Internal Error");
             $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_300->name);
             $this->ws->conneg->setError($this->ws->errorMessenger->_300->id, $this->ws->errorMessenger->ws,
-              $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, odbc_errormsg(),
-              $this->ws->errorMessenger->_300->level);
+              $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, 
+              $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_300->level);
 
             return;
           }
@@ -94,9 +90,9 @@
             $contributors = array();
             $holdOntology = "";
 
-            while(odbc_fetch_row($resultset))
+            while($this->ws->sparql->fetch_binding())
             {            
-              $dataset2 = odbc_result($resultset, 1);
+              $dataset2 = $this->ws->sparql->value('dataset');
 
               if($dataset2 != $dataset && $dataset != "")
               {
@@ -126,20 +122,20 @@
 
               $dataset = $dataset2;
 
-              $title = odbc_result($resultset, 2);
-              $description = $this->ws->db->odbc_getPossibleLongResult($resultset, 3);
+              $title = $this->ws->sparql->value('title');
+              $description = $this->ws->sparql->value('description');
 
-              $creator = odbc_result($resultset, 4);
-              $created = odbc_result($resultset, 5);
-              $modified = odbc_result($resultset, 6);
-              $holdOntology = odbc_result($resultset, 7);
+              $creator = $this->ws->sparql->value('creator');
+              $created = $this->ws->sparql->value('created');
+              $modified = $this->ws->sparql->value('modified');
+              $holdOntology = $this->ws->sparql->value('holdOntology');
               
               if(empty($holdOntology))
               {
                 $holdOntology = 'false';
               }
               
-              array_push($contributors, odbc_result($resultset, 8));
+              array_push($contributors, $this->ws->sparql->value('contributor'));
             }
 
             if($dataset != "")
@@ -165,8 +161,6 @@
               $this->ws->rset->addSubject($subject);  
               $nbDatasets++;
             }
-            
-            unset($resultset);
           }
           
           if($this->ws->memcached_enabled)
@@ -190,8 +184,7 @@
           
           $dataset = $this->ws->datasetUri;
 
-          $query =
-            "select ?title ?description ?creator ?created ?modified ?holdOntology
+          $this->ws->sparql->query("select ?title ?description ?creator ?created ?modified ?holdOntology
                   from named <" . $this->ws->wsf_graph . "datasets/>
                   where
                   {
@@ -207,73 +200,62 @@
                       OPTIONAL{<$dataset> <http://purl.org/dc/terms/modified> ?modified.} .
                       OPTIONAL{<$dataset> <http://purl.org/ontology/wsf#holdOntology> ?holdOntology.}
                     }
-                  } ORDER BY ?title";
+                  } ORDER BY ?title");
 
-          $resultset = @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
-            array ('title', 'description', 'creator', 'created', 'modified', 'holdOntology'), FALSE));
-
-          if(odbc_error())
+          if($this->ws->sparql->error())
           {
             $this->ws->conneg->setStatus(500);
             $this->ws->conneg->setStatusMsg("Internal Error");
             $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_301->name);
             $this->ws->conneg->setError($this->ws->errorMessenger->_301->id, $this->ws->errorMessenger->ws,
-              $this->ws->errorMessenger->_301->name, $this->ws->errorMessenger->_301->description, odbc_errormsg(),
-              $this->ws->errorMessenger->_301->level);
+              $this->ws->errorMessenger->_301->name, $this->ws->errorMessenger->_301->description, 
+              $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_301->level);
 
             return;
           }
           else
           {
-            if(odbc_fetch_row($resultset))
+            if($this->ws->sparql->fetch_binding())
             {
-              $title = odbc_result($resultset, 1);
-              $description = $this->ws->db->odbc_getPossibleLongResult($resultset, 2);
-              $creator = odbc_result($resultset, 3);
-              $created = odbc_result($resultset, 4);
-              $modified = odbc_result($resultset, 5);
-              $holdOntology = odbc_result($resultset, 6);
+              $title = $this->ws->sparql->value('title');
+              $description = $this->ws->sparql->value('description');
+              $creator = $this->ws->sparql->value('creator');
+              $created = $this->ws->sparql->value('created');
+              $modified = $this->ws->sparql->value('modified');
+              $holdOntology = $this->ws->sparql->value('holdOntology');
 
               if(empty($holdOntology))
               {
                 $holdOntology = 'false';
               }              
               
-              unset($resultset);
-
               // Get all contributors (users that have CUD perissions over the dataset)
-              $query =
-                "select ?contributor 
-                      from <" . $this->ws->wsf_graph
-                . "datasets/>
+              $this->ws->sparql->query("select ?contributor 
+                      from <" . $this->ws->wsf_graph . "datasets/>
                       where
                       {
                         <$dataset> a <http://rdfs.org/ns/void#Dataset> ;
                         <http://purl.org/dc/terms/contributor> ?contributor.
-                      }";
-
-              $resultset =
-                @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
-                  array( 'contributor' ), FALSE));
+                      }");
 
               $contributors = array();
 
-              if(odbc_error())
+              if($this->ws->sparql->error())
               {
                 $this->ws->conneg->setStatus(500);
                 $this->ws->conneg->setStatusMsg("Internal Error");
                 $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_303->name);
                 $this->ws->conneg->setError($this->ws->errorMessenger->_303->id, $this->ws->errorMessenger->ws,
-                  $this->ws->errorMessenger->_303->name, $this->ws->errorMessenger->_303->description, odbc_errormsg(),
-                  $this->ws->errorMessenger->_303->level);
+                  $this->ws->errorMessenger->_303->name, $this->ws->errorMessenger->_303->description, 
+                  $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_303->level);
 
                 return;
               }
               else
               {
-                while(odbc_fetch_row($resultset))
+                while($this->ws->sparql->fetch_binding())
                 {            
-                  array_push($contributors, odbc_result($resultset, 1));
+                  array_push($contributors, $this->ws->sparql->value('contributor'));
                 }
               }
               

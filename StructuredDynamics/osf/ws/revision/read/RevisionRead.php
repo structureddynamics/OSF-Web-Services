@@ -178,13 +178,6 @@ class RevisionRead extends \StructuredDynamics\osf\ws\framework\WebService
   function __destruct()
   {
     parent::__destruct();
-
-    // If we are in pipeline mode, then we *don't* close the ODBC connection.
-    // If we are *not* then we have to close the connection.
-    if(isset($this->db) && !$this->isInPipelineMode)
-    {
-      @$this->db->close();
-    }
   }
 
   /** Validate a query to this web service
@@ -205,7 +198,7 @@ class RevisionRead extends \StructuredDynamics\osf\ws\framework\WebService
         $this->conneg->setStatusMsg("Bad Request");
         $this->conneg->setStatusMsgExt($this->errorMessenger->_305->name);
         $this->conneg->setError($this->errorMessenger->_305->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_305->name, $this->errorMessenger->_305->description, odbc_errormsg(),
+          $this->errorMessenger->_305->name, $this->errorMessenger->_305->description, '',
           $this->errorMessenger->_305->level);      
           
         return;
@@ -218,7 +211,7 @@ class RevisionRead extends \StructuredDynamics\osf\ws\framework\WebService
         $this->conneg->setStatusMsg("Bad Request");
         $this->conneg->setStatusMsgExt($this->errorMessenger->_200->name);
         $this->conneg->setError($this->errorMessenger->_200->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, odbc_errormsg(),
+          $this->errorMessenger->_200->name, $this->errorMessenger->_200->description, '',
           $this->errorMessenger->_200->level);
         return;
       }
@@ -229,7 +222,7 @@ class RevisionRead extends \StructuredDynamics\osf\ws\framework\WebService
         $this->conneg->setStatusMsg("Bad Request");
         $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
         $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, odbc_errormsg(),
+          $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, '',
           $this->errorMessenger->_201->level);
         return;
       }    

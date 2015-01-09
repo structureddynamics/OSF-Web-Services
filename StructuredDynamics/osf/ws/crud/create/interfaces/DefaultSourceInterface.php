@@ -34,7 +34,7 @@
         include_once("../../framework/arc2/ARC2.php");
         $parser = ARC2::getRDFParser();
         $parser->parse($this->ws->dataset, $this->ws->document);
-        $rdfxmlSerializer = ARC2::getRDFXMLSerializer();
+        $n3Serializer = ARC2::getNTriplesSerializer();
   
         $resourceIndex = $parser->getSimpleIndex(0);
 
@@ -132,7 +132,7 @@
             //  (2) If the record exists in the published dataset, even if no revision records exists
             //      Note: this happens when a record never got revisioned
             
-            $query = "select ?s
+            $this->ws->sparql->query("select ?s
                       from <" . $revisionsDataset . ">
                       from <" . $this->ws->dataset . ">
                       where
@@ -150,24 +150,23 @@
                         }  
                       }
                       limit 1
-                      offset 0";
+                      offset 0");
 
-            $resultset = @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array('status'), FALSE));
-
-            if(odbc_error())
+            if($this->ws->sparql->error())
             {
               $this->ws->conneg->setStatus(500);
               $this->ws->conneg->setStatusMsg("Internal Error");
               $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_311->name);
               $this->ws->conneg->setError($this->ws->errorMessenger->_311->id, $this->ws->errorMessenger->ws,
-                $this->ws->errorMessenger->_311->name, $this->ws->errorMessenger->_311->description, $query,
-                $this->ws->errorMessenger->_311->level);
+                $this->ws->errorMessenger->_311->name, $this->ws->errorMessenger->_311->description, 
+                $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_311->level);
 
               return;
             }
             else
             {
-              $status = odbc_result($resultset, 1);
+              $this->ws->sparql->fetch_binding();
+              $status = $this->ws->sparql->value('s');
                               
               if($status !== FALSE)
               {
@@ -191,21 +190,31 @@
             foreach($irsUri as $uri)
             {
               $irs[$uri] = $resourceIndex[$uri];
-            }
+            }      
             
-            $this->ws->db->query("DB.DBA.RDF_LOAD_RDFXML_MT('"
-              . str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($irs)) . "', '" . $this->ws->dataset . "', '"
-              . $this->ws->dataset . "')");
-
-            if(odbc_error())
+            if(!empty($irs))  
             {
-              $this->ws->conneg->setStatus(400);
-              $this->ws->conneg->setStatusMsg("Bad Request");
-              $this->ws->conneg->setError($this->ws->errorMessenger->_302->id, $this->ws->errorMessenger->ws,
-                $this->ws->errorMessenger->_302->name, $this->ws->errorMessenger->_302->description, odbc_errormsg(),
-                $this->ws->errorMessenger->_302->level);
+              for($i = 0; $i < ceil(count($irs) / 25); $i++)
+              {
+                $this->ws->sparql->query('insert data
+                                          {
+                                            graph <'.$this->ws->dataset.'>
+                                            {
+                                              '.$n3Serializer->getSerializedIndex(array_slice($irs, ($i * 25), 25, TRUE)).'
+                                            }                                      
+                                          }');  
 
-              return;
+                if($this->ws->sparql->error())
+                {
+                  $this->ws->conneg->setStatus(400);
+                  $this->ws->conneg->setStatusMsg("Bad Request");
+                  $this->ws->conneg->setError($this->ws->errorMessenger->_302->id, $this->ws->errorMessenger->ws,
+                    $this->ws->errorMessenger->_302->name, $this->ws->errorMessenger->_302->description, 
+                    $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_302->level);
+
+                  return;
+                }
+              }
             }
 
             unset($irs);
@@ -218,18 +227,28 @@
               $statements[$uri] = $resourceIndex[$uri];
             }
 
-            $this->ws->db->query("DB.DBA.RDF_LOAD_RDFXML_MT('"
-              . str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($statements)) . "', '" . $this->ws->dataset
-                . "reification/', '" . $this->ws->dataset . "reification/')");
-
-            if(odbc_error())
+            if(!empty($statements))
             {
-              $this->ws->conneg->setStatus(400);
-              $this->ws->conneg->setStatusMsg("Bad Request");
-              $this->ws->conneg->setError($this->ws->errorMessenger->_302->id, $this->ws->errorMessenger->ws,
-                $this->ws->errorMessenger->_302->name, $this->ws->errorMessenger->_302->description, odbc_errormsg(),
-                $this->ws->errorMessenger->_302->level);
-              return;
+              for($i = 0; $i < ceil(count($statements) / 25); $i++)
+              {
+                $this->ws->sparql->query('insert data
+                                          {
+                                            graph <'.$this->ws->dataset.'reification/>
+                                            {
+                                              '.$n3Serializer->getSerializedIndex(array_slice($statements, ($i * 25), 25, TRUE)).'
+                                            }                                      
+                                          }');                 
+                    
+                if($this->ws->sparql->error())
+                {
+                  $this->ws->conneg->setStatus(400);
+                  $this->ws->conneg->setStatusMsg("Bad Request");
+                  $this->ws->conneg->setError($this->ws->errorMessenger->_302->id, $this->ws->errorMessenger->ws,
+                    $this->ws->errorMessenger->_302->name, $this->ws->errorMessenger->_302->description, 
+                    $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_302->level);
+                  return;
+                }
+              }
             }
 
             unset($statements);         
@@ -247,31 +266,30 @@
               // update the Solr index of an unpublished record
               $subjectsFilter = rtrim($subjectsFilter, ',');
               
-              $query = "select count(distinct ?s) as ?nb
+              $this->ws->sparql->query("select count(distinct ?s) as ?nb
                         from <" . $this->ws->dataset . ">
                         where
                         {
                           ?s a ?type.
                         
                           filter(?s in(".$subjectsFilter."))
-                        }";
+                        }");
 
-              $resultset = @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array('status'), FALSE));
-
-              if(odbc_error())
+              if($this->ws->sparql->error())
               {
                 $this->ws->conneg->setStatus(500);
                 $this->ws->conneg->setStatusMsg("Internal Error");
                 $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_311->name);
                 $this->ws->conneg->setError($this->ws->errorMessenger->_311->id, $this->ws->errorMessenger->ws,
-                  $this->ws->errorMessenger->_311->name, $this->ws->errorMessenger->_311->description, $query,
-                  $this->ws->errorMessenger->_311->level);
+                  $this->ws->errorMessenger->_311->name, $this->ws->errorMessenger->_311->description, 
+                  $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_311->level);
 
                 return;
               }
               else
               {
-                $nb = odbc_result($resultset, 1);
+                $this->ws->sparql->fetch_binding();
+                $nb = $this->ws->sparql->value('nb');
              
                 if($nb != count($irsUri))
                 {
@@ -319,7 +337,6 @@
               
               $parser = ARC2::getRDFParser();
               $parser->parse($this->ws->dataset, $subjectrdfxml);
-              $rdfxmlSerializer = ARC2::getRDFXMLSerializer();
         
               $resourceIndex = $parser->getSimpleIndex(0);
 
@@ -975,17 +992,14 @@
                       // If it is an object property, we want to bind labels of the resource referenced by that
                       // object property to the current resource. That way, if we have "paul" -- know --> "bob", and the
                       // user send a seach query for "bob", then "paul" will be returned as well.
-                      $query = $this->ws->db->build_sparql_query("select ?p ?o where {<"
-                        . $value["value"] . "> ?p ?o.}", array ('p', 'o'), FALSE);
-
-                      $resultset3 = $this->ws->db->query($query);
+                      $this->ws->sparql->query("select ?p ?o where {<". $value["value"] . "> ?p ?o.}");
 
                       $subjectTriples = array();
 
-                      while(odbc_fetch_row($resultset3))
+                      while($this->ws->sparql->fetch_binding())
                       {
-                        $p = odbc_result($resultset3, 1);
-                        $o = $this->ws->db->odbc_getPossibleLongResult($resultset3, 2);
+                        $p = $this->ws->sparql->value('p');
+                        $o = $this->ws->sparql->value('o');
 
                         if(!isset($subjectTriples[$p]))
                         {
@@ -994,8 +1008,6 @@
 
                         array_push($subjectTriples[$p], $o);
                       }
-
-                      unset($resultset3);
 
                       // We allign all label properties values in a single string so that we can search over all of them.
                       $labels = "";

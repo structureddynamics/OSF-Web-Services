@@ -5,7 +5,7 @@
   use \StructuredDynamics\osf\framework\Namespaces;  
   use \StructuredDynamics\osf\ws\framework\SourceInterface;
   use \StructuredDynamics\osf\ws\framework\Solr;
-  use \StructuredDynamics\osf\ws\crud\read\CrudRead;  
+  use \StructuredDynamics\osf\ws\crud\read\CrudRead;                 
   use \StructuredDynamics\osf\ws\revision\lister\RevisionLister;
   use \StructuredDynamics\osf\ws\revision\delete\RevisionDelete;
   use \StructuredDynamics\osf\framework\Resultset;
@@ -29,7 +29,7 @@
         $revisionsDataset = rtrim($this->ws->dataset, '/').'/revisions/';
 
         // Change the status of the record from 'published' to 'archive'
-        $query = "modify <" . $revisionsDataset . ">
+        $this->ws->sparql->query("modify <" . $revisionsDataset . ">
                   delete
                   { 
                     ?revision <http://purl.org/ontology/wsf#revisionStatus> <http://purl.org/ontology/wsf#published> .
@@ -41,19 +41,16 @@
                   where
                   {
                     ?revision <http://purl.org/ontology/wsf#revisionUri> <".$this->ws->resourceUri."> .
-                  }";
+                  }");
 
-        @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-          FALSE));
-
-        if(odbc_error())
+        if($this->ws->sparql->error())
         {
           $this->ws->conneg->setStatus(500);
           $this->ws->conneg->setStatusMsg("Internal Error");
           $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_308->name);
           $this->ws->conneg->setError($this->ws->errorMessenger->_308->id, $this->ws->errorMessenger->ws,
-            $this->ws->errorMessenger->_308->name, $this->ws->errorMessenger->_308->description, odbc_errormsg(),
-            $this->ws->errorMessenger->_308->level);
+            $this->ws->errorMessenger->_308->name, $this->ws->errorMessenger->_308->description, 
+            $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_308->level);
 
           return;
         }            
@@ -113,26 +110,23 @@
         }
         
         // Delete all triples for this URI in that dataset
-        $query = "delete from <" . $this->ws->dataset . ">
+        $this->ws->sparql->query("delete from <" . $this->ws->dataset . ">
                 { 
                   <" . $this->ws->resourceUri . "> ?p ?o. 
                 }
                 where
                 {
                   <" . $this->ws->resourceUri . "> ?p ?o. 
-                }";
+                }");
 
-        @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-          FALSE));
-
-        if(odbc_error())
+        if($this->ws->sparql->error())
         {
           $this->ws->conneg->setStatus(500);
           $this->ws->conneg->setStatusMsg("Internal Error");
           $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_300->name);
           $this->ws->conneg->setError($this->ws->errorMessenger->_300->id, $this->ws->errorMessenger->ws,
-            $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, odbc_errormsg(),
-            $this->ws->errorMessenger->_300->level);
+            $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, 
+            $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_300->level);
 
           return;
         }

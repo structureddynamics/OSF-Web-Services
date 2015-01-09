@@ -26,32 +26,30 @@
       {
         // Make sure this is not an ontology dataset
         $query = "select ?holdOntology
-                        from <" . $this->ws->wsf_graph . "datasets/>
-                        where
-                        {
-                          <".$this->ws->datasetUri."> <http://purl.org/ontology/wsf#holdOntology> ?holdOntology .
-                        }";
+                  from <" . $this->ws->wsf_graph . "datasets/>
+                  where
+                  {
+                    <".$this->ws->datasetUri."> <http://purl.org/ontology/wsf#holdOntology> ?holdOntology .
+                  }";
 
-        $resultset =
-          @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query),
-            array ('holdOntology'), FALSE));
+        $this->ws->sparql->query($query);
 
-        if(odbc_error())
+        if($this->ws->sparql->error())
         {
           $this->ws->conneg->setStatus(500);
           $this->ws->conneg->setStatusMsg("Internal Error");
           $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_306->name);
           $this->ws->conneg->setError($this->ws->errorMessenger->_306->id, $this->ws->errorMessenger->ws,
-            $this->ws->errorMessenger->_306->name, $this->ws->errorMessenger->_306->description, odbc_errormsg(),
-            $this->ws->errorMessenger->_306->level);
+            $this->ws->errorMessenger->_306->name, $this->ws->errorMessenger->_306->description, 
+            $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_306->level);
 
           return;
         }
         else
         {
-          while(odbc_fetch_row($resultset))
+          while($this->ws->sparql->fetch_binding())
           {
-            $holdOntology = odbc_result($resultset, 1);
+            $holdOntology = $this->ws->sparql->value('holdOntology');
 
             if(strtolower($holdOntology) == "true")
             {
@@ -59,19 +57,17 @@
               $this->ws->conneg->setStatusMsg("Bad Request");
               $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_306->name);
               $this->ws->conneg->setError($this->ws->errorMessenger->_306->id, $this->ws->errorMessenger->ws,
-                $this->ws->errorMessenger->_306->name, $this->ws->errorMessenger->_306->description, odbc_errormsg(),
-                $this->ws->errorMessenger->_306->level);
+                $this->ws->errorMessenger->_306->name, $this->ws->errorMessenger->_306->description, 
+                $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_306->level);
 
               return;            
             }
           }
         }
 
-        unset($resultset);            
-
         // Remove the Graph description in the ".../datasets/"
 
-        $query = "  delete from <" . $this->ws->wsf_graph . "datasets/> 
+        $this->ws->sparql->query("delete from <" . $this->ws->wsf_graph . "datasets/> 
                 { 
                   <".$this->ws->datasetUri."> ?p ?o.
                 }
@@ -81,19 +77,16 @@
                   {
                     <".$this->ws->datasetUri."> ?p ?o.
                   }
-                }";
+                }");
 
-        @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(),
-          FALSE));
-
-        if(odbc_error())
+        if($this->ws->sparql->error())
         {
           $this->ws->conneg->setStatus(500);
           $this->ws->conneg->setStatusMsg("Internal Error");
           $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_301->name);
           $this->ws->conneg->setError($this->ws->errorMessenger->_301->id, $this->ws->errorMessenger->ws,
-            $this->ws->errorMessenger->_301->name, $this->ws->errorMessenger->_301->description, odbc_errormsg(),
-            $this->ws->errorMessenger->_301->level);
+            $this->ws->errorMessenger->_301->name, $this->ws->errorMessenger->_301->description, 
+            $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_301->level);
           return;
         }
 
@@ -117,53 +110,48 @@
         }
 
         // Drop the entire graph
-        $query = "sparql clear graph <" . $this->ws->datasetUri . ">";
+        $this->ws->sparql->query("clear graph <" . $this->ws->datasetUri . ">");
 
-        @$this->ws->db->query($query);
-
-        if(odbc_error())
+        if($this->ws->sparql->error())
         {
           $this->ws->conneg->setStatus(500);
           $this->ws->conneg->setStatusMsg("Internal Error");
           $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_302->name);
           $this->ws->conneg->setError($this->ws->errorMessenger->_302->id, $this->ws->errorMessenger->ws,
-            $this->ws->errorMessenger->_302->name, $this->ws->errorMessenger->_302->description, odbc_errormsg(),
-            $this->ws->errorMessenger->_302->level);
+            $this->ws->errorMessenger->_302->name, $this->ws->errorMessenger->_302->description, 
+            $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_302->level);
 
           return;
         }
         
         // Drop the revisions graph
         $revisionsDataset = rtrim($this->ws->datasetUri, '/').'/revisions/';
-        $query = "sparql clear graph <" . $revisionsDataset . ">";
+        
+        $this->ws->sparql->query("clear graph <" . $revisionsDataset . ">");
 
-        @$this->ws->db->query($query);
-
-        if(odbc_error())
+        if($this->ws->sparql->error())
         {
           $this->ws->conneg->setStatus(500);
           $this->ws->conneg->setStatusMsg("Internal Error");
           $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_310->name);
           $this->ws->conneg->setError($this->ws->errorMessenger->_310->id, $this->ws->errorMessenger->ws,
-            $this->ws->errorMessenger->_310->name, $this->ws->errorMessenger->_310->description, odbc_errormsg(),
-            $this->ws->errorMessenger->_310->level);
+            $this->ws->errorMessenger->_310->name, $this->ws->errorMessenger->_310->description, 
+            $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_310->level);
 
           return;
         }        
 
         // Drop the reification graph related to this dataset
-        $query = "sparql clear graph <" . $this->ws->datasetUri . "reification/>";
+        $this->ws->sparql->query("clear graph <" . $this->ws->datasetUri . "reification/>");
 
-        @$this->ws->db->query($query);
-
-        if(odbc_error())
+        if($this->ws->sparql->error())
         {
           $this->ws->conneg->setStatus(500);
           $this->ws->conneg->setStatusMsg("Internal Error");
           $this->ws->conneg->setStatusMsgExt("Error #dataset-delete-105");
           $this->ws->conneg->setError($this->ws->errorMessenger->_303->id, $this->ws->errorMessenger->ws,
-            $this->ws->errorMessenger->_303->name, $this->ws->errorMessenger->_303->description, odbc_errormsg(),
-            $this->ws->errorMessenger->_303->level);
+            $this->ws->errorMessenger->_303->name, $this->ws->errorMessenger->_303->description, 
+            $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_303->level);
 
           return;
         }

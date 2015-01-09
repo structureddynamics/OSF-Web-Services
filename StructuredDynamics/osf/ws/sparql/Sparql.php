@@ -40,7 +40,7 @@ class Sparql extends \StructuredDynamics\osf\ws\framework\WebService
       
   /** Supported MIME serializations by this web service */
   public static $supportedSerializations =
-    array ("application/rdf+json", "text/rdf+n3", "application/json", "text/xml", "application/sparql-results+xml", 
+    array ("application/rdf+json", "text/rdf+n3", "text/turtle", "application/json", "text/xml", "application/sparql-results+xml", 
            "application/sparql-results+json", "text/html", "application/rdf+xml", "application/rdf+n3", 
            "application/iron+json", "application/iron+csv", "application/*", "text/plain", "text/*", "*/*");
 
@@ -193,13 +193,6 @@ class Sparql extends \StructuredDynamics\osf\ws\framework\WebService
   function __destruct()
   {
     parent::__destruct();
-
-    // If we are in pipeline mode, then we *don't* close the ODBC connection.
-    // If we are *not* then we have to close the connection.
-    if(isset($this->db) && !$this->isInPipelineMode)
-    {
-      @$this->db->close();
-    }
   }
 
   /** Validate a query to this web service

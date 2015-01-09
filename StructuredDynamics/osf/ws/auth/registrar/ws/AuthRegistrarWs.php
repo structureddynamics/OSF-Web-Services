@@ -182,13 +182,6 @@ class AuthRegistrarWs extends \StructuredDynamics\osf\ws\framework\WebService
   function __destruct()
   {
     parent::__destruct();
-
-    // If we are in pipeline mode, then we *don't* close the ODBC connection.
-    // If we are *not* then we have to close the connection.
-    if(isset($this->db) && !$this->isInPipelineMode)
-    {
-      @$this->db->close();
-    }
   }
 
   /** Validate a query to this web service
@@ -237,26 +230,24 @@ class AuthRegistrarWs extends \StructuredDynamics\osf\ws\framework\WebService
       }
 
       // Check if the web service is already registered
-      $resultset =
-        $this->db->query($this->db->build_sparql_query("select ?wsf ?crudUsage from <" . $this->wsf_graph
-          . "> where {?wsf a <http://purl.org/ontology/wsf#WebServiceFramework>. ?wsf <http://purl.org/ontology/wsf#hasWebService> <$this->registered_uri>. <$this->registered_uri> <http://purl.org/ontology/wsf#hasCrudUsage> ?crudUsage.}",
-          array ('wsf', 'crudUsage'), FALSE));
+      $this->sparql->query("select ?wsf ?crudUsage from <" . $this->wsf_graph
+          . "> where {?wsf a <http://purl.org/ontology/wsf#WebServiceFramework>. ?wsf <http://purl.org/ontology/wsf#hasWebService> <$this->registered_uri>. <$this->registered_uri> <http://purl.org/ontology/wsf#hasCrudUsage> ?crudUsage.}");
 
-      if(odbc_error())
+      if($this->sparql->error())
       {
         $this->conneg->setStatus(500);
         $this->conneg->setStatusMsg("Internal Error");
         $this->conneg->setStatusMsgExt($this->errorMessenger->_203->name);
         $this->conneg->setError($this->errorMessenger->_203->id, $this->errorMessenger->ws,
-          $this->errorMessenger->_203->name, $this->errorMessenger->_203->description, "",
-          $this->errorMessenger->_203->level);
+          $this->errorMessenger->_203->name, $this->errorMessenger->_203->description, 
+          $this->sparql->errormsg(), $this->errorMessenger->_203->level);
 
         return;
       }
-      elseif(odbc_fetch_row($resultset))
+      elseif($this->sparql->fetch_binding())
       {
-        $wsf = odbc_result($resultset, 1);
-        $crud_usage = odbc_result($resultset, 2);
+        $wsf = $this->sparql->value('wsf');
+        $crud_usage = $this->sparql->value('crudUsage');
 
         if($wsf != "" && $crud_usage != "")
         {
@@ -267,12 +258,9 @@ class AuthRegistrarWs extends \StructuredDynamics\osf\ws\framework\WebService
             $this->errorMessenger->_204->name, $this->errorMessenger->_204->description, "",
             $this->errorMessenger->_204->level);
 
-          unset($resultset);
           return;
         }
       }
-
-      unset($resultset);  
     }     
   }
 

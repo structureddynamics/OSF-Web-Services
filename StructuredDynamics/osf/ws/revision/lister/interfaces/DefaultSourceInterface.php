@@ -70,55 +70,55 @@
             $this->ws->conneg->setStatusMsg("Bad Request");
             $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_303->name);
             $this->ws->conneg->setError($this->ws->errorMessenger->_303->id, $this->ws->errorMessenger->ws,
-              $this->ws->errorMessenger->_303->name, $this->ws->errorMessenger->_303->description, odbc_errormsg(),
+              $this->ws->errorMessenger->_303->name, $this->ws->errorMessenger->_303->description, '',
               $this->ws->errorMessenger->_303->level);
             return;            
           break;
         }
         
-        $resultset = @$this->ws->db->query($this->ws->db->build_sparql_query(str_replace(array ("\n", "\r", "\t"), " ", $query), array(), FALSE));
+        $this->ws->sparql->query($query);
         
-        if(odbc_error())
+        if($this->ws->sparql->error())
         {
           $this->ws->conneg->setStatus(500);
           $this->ws->conneg->setStatusMsg("Internal Error");
           $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_304->name);
           $this->ws->conneg->setError($this->ws->errorMessenger->_304->id, $this->ws->errorMessenger->ws,
-            $this->ws->errorMessenger->_304->name, $this->ws->errorMessenger->_304->description, odbc_errormsg(),
-            $this->ws->errorMessenger->_304->level);
+            $this->ws->errorMessenger->_304->name, $this->ws->errorMessenger->_304->description, 
+            $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_304->level);
 
           return;
         }          
         else
         {
-          while(odbc_fetch_row($resultset))
+          while($this->ws->sparql->fetch_binding())
           {            
             switch($this->ws->mode)
             {
               case 'short':
-                $revision = odbc_result($resultset, 1);             
-                $timestamp = odbc_result($resultset, 2);
+                $revision = $this->ws->sparql->value('revision');             
+                $timestamp = $this->ws->sparql->value('timestamp');
                 
                 $subject = new Subject($revision);
                 
                 $subject->setType(Namespaces::$wsf.'Revision');
                 
-                $subject->setDataAttribute(Namespaces::$wsf.'revisionTime', $timestamp, Namespaces::$xsd.'double');
+                $subject->setDataAttribute(Namespaces::$wsf.'revisionTime', $timestamp, Namespaces::$xsd.'decimal');
                          
                 $this->ws->rset->addSubject($subject);
               break;
               
               case 'long':
-                $revision = odbc_result($resultset, 1);             
-                $timestamp = odbc_result($resultset, 2);
-                $performer = odbc_result($resultset, 3);
-                $status = odbc_result($resultset, 4);
+                $revision = $this->ws->sparql->value('revision');             
+                $timestamp = $this->ws->sparql->value('timestamp');
+                $performer = $this->ws->sparql->value('performer');
+                $status = $this->ws->sparql->value('status');
                 
                 $subject = new Subject($revision);
                 
                 $subject->setType(Namespaces::$wsf.'Revision');
                 
-                $subject->setDataAttribute(Namespaces::$wsf.'revisionTime', $timestamp, Namespaces::$xsd.'double');
+                $subject->setDataAttribute(Namespaces::$wsf.'revisionTime', $timestamp, Namespaces::$xsd.'decimal');
                 $subject->setObjectAttribute(Namespaces::$wsf.'performer', $performer);
                 $subject->setObjectAttribute(Namespaces::$wsf.'status', $status);
                          

@@ -7,16 +7,15 @@ The scones (subject concepts or named entities) tagger is how you identify and t
 To install Scones, you have to install a few other softwares as well. Briefly, what you will need is:
 
 # A running Tomcat instance
-# Gate ran by the Tomcat install
-# Php/Java Bridge
-# A working Gate application
+# Scones WAR file
+# An ontology to use for tagging purposes
 
 == Configuration ==
 
-The goal is to create a Gate application using the Gate Developer application. Then to use that Gate application to run on the Tomcat instance. It is that instance that will be used by the Scones web service endpoint. The Gate application will use the OWL ontology with some named entities dictionaries to tag documents.
+The goal is to have a running Scones application running in Tomcat. It needs to be properly configured such that it uses the ontology you want to use for tagging your documents.
 
 Here are the manuals to install and configure Scones:
 
-# Installing and using Gate on your desktop: http://techwiki.openstructs.org/index.php/Installing_GATE
-# Install and configure Tomcat6, Php/Java Bridge, Gate and Scones: http://techwiki.openstructs.org/index.php/Scones_and_structScones_Installation_Instructions
+# Install the Scones WAR file: http://....
+# Configure it such that it uses the desired ontology and NLP functions: http://...
 # Scones webservice endpoint documentation: http://techwiki.openstructs.org/index.php/Scones

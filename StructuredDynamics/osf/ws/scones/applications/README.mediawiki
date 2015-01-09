@@ -1,1 +1,0 @@
-Add the Gate .xgapp application file(s) into this folder. It is the application file that will be used by the Scones web service endpoint.

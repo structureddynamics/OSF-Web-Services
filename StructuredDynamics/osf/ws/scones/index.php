@@ -47,26 +47,25 @@ if(isset($_POST['document']))
   $document = $_POST['document'];
 }
 
-// Document content's MIME type
-$docmime = "text/plain";
-
-if(isset($_POST['docmime']))
-{
-  $docmime = $_POST['docmime'];
-}
-
 /* 
-  Name of the GATE application used to perform the tagging. This name is pre-defined by the 
-  administrator of the node.
+  Functionality of the Scones endpoint to use: plain, noun.
 */
-$application = "defaultApplication";
+$type = "plain";
 
-if(isset($_POST['application']))
+if(isset($_POST['type']))
 {
-  $application = $_POST['application'];
+  $type = $_POST['type'];
 }
 
-$ws_scones = new Scones($document, $docmime, $application, $interface, $version);
+$stemming = "false";
+
+if(isset($_POST['stemming']))
+{
+  $stemming = $_POST['stemming'];
+}
+
+
+$ws_scones = new Scones($document, $type, $stemming, $interface, $version);
 
 $ws_scones->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
                       (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 

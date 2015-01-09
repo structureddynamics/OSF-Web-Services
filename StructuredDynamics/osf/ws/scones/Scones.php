@@ -26,24 +26,17 @@ class Scones extends \StructuredDynamics\osf\ws\framework\WebService
   /** Document content to process; or URL of a document accessible on the web to extract/process */
   private $document = "";
 
-  /** Document content's MIME type  */
-  private $docmime = "";
-
-  /** Name of the GATE application used to perform the tagging. This name is pre-defined by the 
-             administrator of the node. */
-  private $application = "";
-
-  /** Configuration file of the Scones web service endpoint. */
-  private $config_ini;
+  /** Type of the Scones tagger to use for this query */
+  private $type = "";
   
-  /** The Scones Java session that is persistend in the servlet container. */
-  private $SconesSession;
-  
+  /** Enable/disable stemming during the tagging process */
+  private $stemming = "";
+
   /** The annotated document by Scones. */
-  public $annotatedDocument = "";
+  public $annotatedDocument = "";  
   
   /** Supported MIME serializations by this web service */
-  public static $supportedSerializations = array ("text/xml", "text/*", "*/xml", "*/*");
+  public static $supportedSerializations = array ("application/edn", "application/clojure", "application/*", "*/*", "application/json");
 
   /** Error messages of this web service */
   private $errorMessenger =
@@ -54,30 +47,6 @@ class Scones extends \StructuredDynamics\osf\ws\framework\WebService
                           "level": "Warning",
                           "name": "No documents URI specified for this request",
                           "description": "No documents URI specified for this request"
-                        },
-                        "_201": {
-                          "id": "WS-SCONES-201",
-                          "level": "Error",
-                          "name": "Scones is not configured.",
-                          "description": "Ask the system administrator to configure Scones"
-                        },
-                        "_202": {
-                          "id": "WS-SCONES-202",
-                          "level": "Error",
-                          "name": "Scones is not initialized.",
-                          "description": "Ask the system administrator to initialize Scones"
-                        },
-                        "_203": {
-                          "id": "WS-SCONES-203",
-                          "level": "Warning",
-                          "name": "Scones is being initialized.",
-                          "description": "Wait a minute and send your query again"
-                        },
-                        "_300": {
-                          "id": "WS-SCONES-300",
-                          "level": "Warning",
-                          "name": "Document MIME type not supported.",
-                          "description": "The MIME type of the document you feeded to Scones is not currently supported"
                         },
                         "_301": {
                           "id": "WS-SCONES-301",
@@ -102,6 +71,12 @@ class Scones extends \StructuredDynamics\osf\ws\framework\WebService
                           "level": "Fatal",
                           "name": "Source Interface\'s version not compatible with the web service endpoint\'s",
                           "description": "The version of the source interface you requested is not compatible with the one of the web service endpoint. Please contact the system administrator such that he updates the source interface to make it compatible with the new endpoint version."
+                        },
+                        "_305": {
+                          "id": "WS-SCONES-305",
+                          "level": "Fatal",
+                          "name": "Unsupported type",
+                          "description": "The type of the tagger to use is not supported by the endpoint. Valid types are: \'plain\' and \'noun\'"
                         }  
                       }';
 
@@ -148,16 +123,21 @@ class Scones extends \StructuredDynamics\osf\ws\framework\WebService
     
       @author Frederick Giasson, Structured Dynamics LLC.
   */
-  function __construct($document, $docmime, $application, $interface='default', $requestedInterfaceVersion="")
+  function __construct($document, $type, $stemming, $interface='default', $requestedInterfaceVersion="")
   {
     parent::__construct();
     
     $this->version = "3.0";
 
     $this->document = $document;
-    $this->docmime = $docmime;
-    $this->application = $application;
+    $this->type = $type;
 
+    $this->stemming = filter_var($stemming, FILTER_VALIDATE_BOOLEAN, array('flags' => FILTER_NULL_ON_FAILURE));
+    if($this->stemming === NULL)
+    {
+      $this->stemming = FALSE;
+    }        
+    
     $this->requestedInterfaceVersion = $requestedInterfaceVersion;
     
     if(strtolower($interface) == "default")
@@ -180,13 +160,6 @@ class Scones extends \StructuredDynamics\osf\ws\framework\WebService
   function __destruct()
   {
     parent::__destruct();
-
-    // If we are in pipeline mode, then we *don't* close the ODBC connection.
-    // If we are *not* then we have to close the connection.
-    if(isset($this->db) && !$this->isInPipelineMode)
-    {
-      @$this->db->close();
-    }
   }
 
   /** Validate a query to this web service
@@ -198,19 +171,7 @@ class Scones extends \StructuredDynamics\osf\ws\framework\WebService
       @author Frederick Giasson, Structured Dynamics LLC.
   */
   public function validateQuery()
-  {
-    if($this->docmime != "text/plain")
-    {
-      $this->conneg->setStatus(400);
-      $this->conneg->setStatusMsg("Bad Request");
-      $this->conneg->setStatusMsgExt($this->errorMessenger->_300->name);
-      $this->conneg->setError($this->errorMessenger->_300->id, $this->errorMessenger->ws,
-        $this->errorMessenger->_300->name, $this->errorMessenger->_300->description, "",
-        $this->errorMessenger->_300->level);
-
-      return;
-    }
-    
+  {   
     if($this->document == "")
     {
       $this->conneg->setStatus(400);
@@ -223,62 +184,18 @@ class Scones extends \StructuredDynamics\osf\ws\framework\WebService
       return;
     }
     
-    /*
-      Get the pool of stories to process
-      Can be a URL or a file reference.
-    */
-    $this->config_ini = parse_ini_file("config.ini", TRUE);   
-          
-    // Make sure the service if configured
-    if($this->config_ini === FALSE)
+    
+    if($this->type != 'plain' && $this->type != 'noun')
     {
       $this->conneg->setStatus(400);
       $this->conneg->setStatusMsg("Bad Request");
-      $this->conneg->setStatusMsgExt($this->errorMessenger->_201->name);
-      $this->conneg->setError($this->errorMessenger->_201->id, $this->errorMessenger->ws,
-        $this->errorMessenger->_201->name, $this->errorMessenger->_201->description, "",
-        $this->errorMessenger->_201->level);
+      $this->conneg->setStatusMsgExt($this->errorMessenger->_305->name);
+      $this->conneg->setError($this->errorMessenger->_305->id, $this->errorMessenger->ws,
+        $this->errorMessenger->_305->name, $this->errorMessenger->_305->description, "",
+        $this->errorMessenger->_305->level);
 
-      return;        
+      return;
     }
-
-    // Starts the GATE process/bridge  
-    require_once($this->config_ini["gate"]["gateBridgeURI"]);
-    
-    // Create a Scones session where we will save the Gate objects (started & loaded Gate application).
-    // Second param "false" => we re-use the pre-created session without destroying the previous one
-    // third param "0" => it nevers timeout.
-    $this->SconesSession = java_session($this->config_ini["gate"]["sessionName"], false, 0);   
-    
-    if(is_null(java_values($this->SconesSession->get("initialized")))) 
-    {
-      /* 
-        If the "initialized" session variable is null, it means that the Scone threads
-        are not initialized, and that they is no current in initialization.
-      */
-      
-      $this->conneg->setStatus(400);
-      $this->conneg->setStatusMsg("Bad Request");
-      $this->conneg->setStatusMsgExt($this->errorMessenger->_202->name);
-      $this->conneg->setError($this->errorMessenger->_202->id, $this->errorMessenger->ws,
-        $this->errorMessenger->_202->name, $this->errorMessenger->_202->description, "",
-        $this->errorMessenger->_202->level);
-    }
-    
-    if(java_values($this->SconesSession->get("initialized")) === FALSE) 
-    {
-      /* 
-        If the "initialized" session variable is FALSE, it means that the Scone threads
-        are being initialized.
-      */
-      
-      $this->conneg->setStatus(400);
-      $this->conneg->setStatusMsg("Bad Request");
-      $this->conneg->setStatusMsgExt($this->errorMessenger->_203->name);
-      $this->conneg->setError($this->errorMessenger->_203->id, $this->errorMessenger->ws,
-        $this->errorMessenger->_203->name, $this->errorMessenger->_203->description, "",
-        $this->errorMessenger->_203->level);
-    }    
   }
 
   /** Returns the error structure

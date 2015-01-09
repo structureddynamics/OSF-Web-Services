@@ -1,1 +1,0 @@
-Add all the OWL ontologies files used by the Gate application here. 

@@ -23,6 +23,7 @@ class SparqlQuery
   private $_nb_bindings = -1;
   private $_current_binding = -1;
   private $_errorMessage = '';
+  private $_data = '';
   
   function __construct($endpoint)
   {
@@ -41,26 +42,30 @@ class SparqlQuery
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_HTTPHEADER, array("Accept: application/sparql-results+json"));
         
-    $data = curl_exec($ch);
+    $this->_data = curl_exec($ch);
 
     $httpStatusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);     
     
-    if(curl_errno($ch) || $httpStatusCode == 400)
+    if(curl_errno($ch) || ($httpStatusCode < 200 || $httpStatusCode >= 300))
     {
-      $this->_errorMessage = $data;
+      $this->_errorMessage = $this->_data;
+
+      curl_close($ch);
 
       return FALSE;
     }
     else
     {      
-      $this->_resultset = json_decode($data, true);
+      $this->_resultset = json_decode($this->_data, true);
       
       $this->_resultset = $this->_resultset['results']['bindings'];
       $this->_current_binding = -1;
       $this->_nb_bindings = count($this->_resultset);
 
+      curl_close($ch);
+      
       return TRUE;
-    }    
+    }       
   }
   
   public function fetch_binding()

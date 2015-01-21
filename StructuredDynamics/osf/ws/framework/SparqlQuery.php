@@ -16,54 +16,66 @@ namespace StructuredDynamics\osf\ws\framework;
 
 class SparqlQuery
 {
-  private $_endpoint = '';
+  private $endpoint = '';
   
-  private $_resultset;
+  private $resultset;
   
-  private $_nb_bindings = -1;
-  private $_current_binding = -1;
-  private $_errorMessage = '';
-  private $_data = '';
+  private $nb_bindings = -1;
+  private $current_binding = -1;
+  private $errorMessage = '';
+  private $http_status_code = 200;
+  private $data = '';
+  private $ch;
   
   function __construct($endpoint)
   {
-    $this->_endpoint = $endpoint;
+    $this->endpoint = $endpoint;
+    
+    $this->ch = curl_init();
+    
+    curl_setopt($this->ch, CURLOPT_URL, $endpoint);
+    curl_setopt($this->ch, CURLOPT_POST, 1);
+    curl_setopt($this->ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($this->ch, CURLOPT_HTTPHEADER, array("Accept: application/sparql-results+json"));
   }  
   
-  function __destruct() { }
+  function __destruct() 
+  { 
+    curl_close($this->ch); 
+  }
   
   public function query($query)
   {
-    $ch = curl_init();
-    
-    curl_setopt($ch, CURLOPT_URL, $this->_endpoint);
-    curl_setopt($ch, CURLOPT_POST, 1);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, 'query='.urlencode($query));
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array("Accept: application/sparql-results+json"));
+    curl_setopt($this->ch, CURLOPT_POSTFIELDS, 'query='.urlencode($query));
         
-    $this->_data = curl_exec($ch);
+    $this->data = curl_exec($this->ch);
 
-    $httpStatusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);     
+    $this->http_status_code = curl_getinfo($this->ch, CURLINFO_HTTP_CODE);     
     
-    if(curl_errno($ch) || ($httpStatusCode < 200 || $httpStatusCode >= 300))
+    if(curl_errno($this->ch) || ($this->http_status_code < 200 || $this->http_status_code >= 300))
     {
-      $this->_errorMessage = $this->_data;
-
-      curl_close($ch);
+      $this->errorMessage = $this->data;
+      
+      // Reinitialize
+      $this->nb_bindings = -1;
+      $this->current_binding = -1;      
+      $this->resultset = null;
+      $this->data = '';
 
       return FALSE;
     }
     else
     {      
-      $this->_resultset = json_decode($this->_data, true);
+      $this->resultset = json_decode($this->data, true);
       
-      $this->_resultset = $this->_resultset['results']['bindings'];
-      $this->_current_binding = -1;
-      $this->_nb_bindings = count($this->_resultset);
+      $this->resultset = $this->resultset['results']['bindings'];
+      $this->current_binding = -1;
+      $this->nb_bindings = count($this->resultset);
+      
+      // Reinitialize
+      $this->errorMessage = '';
+      $this->data = '';
 
-      curl_close($ch);
-      
       return TRUE;
     }       
   }
@@ -71,9 +83,9 @@ class SparqlQuery
   public function fetch_binding()
   {
     // Move the bindings cursor by one
-    $this->_current_binding++;
+    $this->current_binding++;
     
-    if($this->_current_binding >= $this->_nb_bindings)
+    if($this->current_binding >= $this->nb_bindings)
     {
       // No more bindings available
       return(FALSE);
@@ -87,15 +99,15 @@ class SparqlQuery
   
   public function value($var, $full = FALSE)
   {
-    if(array_key_exists($var, $this->_resultset[$this->_current_binding]))
+    if(array_key_exists($var, $this->resultset[$this->current_binding]))
     {
       if($full)
       {
-        return($this->_resultset[$this->_current_binding][$var]);  
+        return($this->resultset[$this->current_binding][$var]);  
       }
       else
       {
-        return($this->_resultset[$this->_current_binding][$var]['value']);
+        return($this->resultset[$this->current_binding][$var]['value']);
       }
     }
     else
@@ -106,7 +118,7 @@ class SparqlQuery
   
   public function error()
   {
-    if(!empty($this->_errorMessage))
+    if(!empty($this->errorMessage))
     {
       return(TRUE);
     }
@@ -118,7 +130,12 @@ class SparqlQuery
   
   public function errormsg()
   {
-    return($this->_errorMessage);
+    return($this->errorMessage);
+  }
+  
+  public function http_status_code()
+  {
+    return($this->http_status_code);
   }
 }
   

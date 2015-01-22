@@ -172,7 +172,6 @@
         
         if(count($matches) > 0 && count($matches[0]) > 0)
         {          
-          file_put_contents('/tmp/sparql.debug', var_export($matches, TRUE), FILE_APPEND);
           $lastPrefixOffset = $matches[0][count($matches[0]) - 1][1] + strlen($matches[0][count($matches[0]) - 1][0]);
         }
         
@@ -452,10 +451,6 @@
           }
           else
           {
-            file_put_contents('/tmp/sparql.debug', $this->ws->sparql_endpoint . "\n\n\n" .
-                                                   'default-graph-uri=' . urlencode($this->ws->dataset) . 
-                                               '&query=' . urlencode($this->query). "\n\n\n" .
-                                               $queryFormat);
             $this->ws->conneg->setStatus($httpMsgNum);
             $this->ws->conneg->setStatusMsg($httpMsg);
             $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_300->name);

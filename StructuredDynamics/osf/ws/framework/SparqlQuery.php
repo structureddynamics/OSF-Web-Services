@@ -14,129 +14,23 @@ namespace StructuredDynamics\osf\ws\framework;
     @author Frederick Giasson, Structured Dynamics LLC.
 */
 
-class SparqlQuery
+abstract class SparqlQuery
 {
-  private $endpoint = '';
+  protected $endpoint = '';
   
-  private $resultset;
+  protected $resultset;
   
-  private $nb_bindings = -1;
-  private $current_binding = -1;
-  private $errorMessage = '';
-  private $http_status_code = 200;
-  private $data = '';
-  private $ch;
+  abstract public function query($query);
   
-  function __construct($endpoint)
-  {
-    $this->endpoint = $endpoint;
-    
-    $this->ch = curl_init();
-    
-    curl_setopt($this->ch, CURLOPT_URL, $endpoint);
-    curl_setopt($this->ch, CURLOPT_POST, 1);
-    curl_setopt($this->ch, CURLOPT_RETURNTRANSFER, 1);
-    curl_setopt($this->ch, CURLOPT_HTTPHEADER, array("Accept: application/sparql-results+json"));
-  }  
+  abstract public function fetch_binding();
   
-  function __destruct() 
-  { 
-    curl_close($this->ch); 
-  }
+  abstract public function value($var, $full = FALSE);
   
-  public function query($query)
-  {
-    curl_setopt($this->ch, CURLOPT_POSTFIELDS, 'query='.urlencode($query));
-        
-    $this->data = curl_exec($this->ch);
-
-    $this->http_status_code = curl_getinfo($this->ch, CURLINFO_HTTP_CODE);     
-    
-    if(curl_errno($this->ch) || ($this->http_status_code < 200 || $this->http_status_code >= 300))
-    {
-      $this->errorMessage = $this->data;
-      
-      // Reinitialize
-      $this->nb_bindings = -1;
-      $this->current_binding = -1;      
-      $this->resultset = null;
-      $this->data = '';
-
-      return FALSE;
-    }
-    else
-    {      
-      $this->resultset = json_decode($this->data, true);
-      
-      $this->resultset = $this->resultset['results']['bindings'];
-      $this->current_binding = -1;
-      $this->nb_bindings = count($this->resultset);
-      
-      // Reinitialize
-      $this->errorMessage = '';
-      $this->data = '';
-
-      return TRUE;
-    }       
-  }
+  abstract public function error();
   
-  public function fetch_binding()
-  {
-    // Move the bindings cursor by one
-    $this->current_binding++;
-    
-    if($this->current_binding >= $this->nb_bindings)
-    {
-      // No more bindings available
-      return(FALSE);
-    }
-    else
-    {
-      // There still exists bindings in the resultset
-      return(TRUE);
-    }
-  }
+  abstract public function errormsg();
   
-  public function value($var, $full = FALSE)
-  {
-    if(array_key_exists($var, $this->resultset[$this->current_binding]))
-    {
-      if($full)
-      {
-        return($this->resultset[$this->current_binding][$var]);  
-      }
-      else
-      {
-        return($this->resultset[$this->current_binding][$var]['value']);
-      }
-    }
-    else
-    {
-      return(FALSE);
-    }
-  }
-  
-  public function error()
-  {
-    if(!empty($this->errorMessage))
-    {
-      return(TRUE);
-    }
-    else
-    {
-      return(FALSE);
-    }
-  }
-  
-  public function errormsg()
-  {
-    return($this->errorMessage);
-  }
-  
-  public function http_status_code()
-  {
-    return($this->http_status_code);
-  }
+  abstract public function close();
 }
   
 ?>

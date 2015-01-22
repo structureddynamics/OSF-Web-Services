@@ -423,22 +423,16 @@
           curl_setopt($ch, CURLOPT_POSTFIELDS, 'default-graph-uri=' . urlencode($this->ws->dataset) . 
                                                '&query=' . urlencode($this->query));
           curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-          curl_setopt($ch, CURLOPT_HEADER, 1);
+          //curl_setopt($ch, CURLOPT_HEADER, 1);
           curl_setopt($ch, CURLOPT_HTTPHEADER, array("Accept: ".$queryFormat));
 
-          $xml_data = curl_exec($ch);
-
-          $header = substr($xml_data, 0, strpos($xml_data, "\r\n\r\n"));
-
-          $data =
-            substr($xml_data, strpos($xml_data, "\r\n\r\n") + 4, strlen($xml_data) - (strpos($xml_data, "\r\n\r\n") - 4));
+          $data = curl_exec($ch);
 
           curl_close($ch);
 
           // check returned message
 
-          $httpMsgNum = substr($header, 9, 3);
-          $httpMsg = substr($header, 13, strpos($header, "\r\n") - 13);
+          $httpMsgNum = curl_getinfo($this->ch, CURLINFO_HTTP_CODE);
 
           if($httpMsgNum == "200")
           {
@@ -452,7 +446,7 @@
           else
           {
             $this->ws->conneg->setStatus($httpMsgNum);
-            $this->ws->conneg->setStatusMsg($httpMsg);
+            $this->ws->conneg->setStatusMsg('');
             $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_300->name);
             $this->ws->conneg->setError($this->ws->errorMessenger->_300->id, $this->ws->errorMessenger->ws,
               $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, $xml_data,

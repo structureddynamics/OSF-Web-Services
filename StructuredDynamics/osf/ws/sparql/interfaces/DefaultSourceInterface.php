@@ -428,13 +428,12 @@
 
           $data = curl_exec($ch);
 
+          $httpMsgNum = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
           curl_close($ch);
 
           // check returned message
-
-          $httpMsgNum = curl_getinfo($this->ch, CURLINFO_HTTP_CODE);
-
-          if($httpMsgNum == "200")
+          if($httpMsgNum == 200)
           {
             $this->ws->sparqlContent = $data;
             

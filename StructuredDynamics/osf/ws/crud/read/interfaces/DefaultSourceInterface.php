@@ -332,7 +332,7 @@
             {
               $this->ws->conneg->setStatus(500);
               $this->ws->conneg->setStatusMsg("Internal Error");
-              $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_303 > name);
+              $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_303->name);
               $this->ws->conneg->setError($this->ws->errorMessenger->_303->id, $this->ws->errorMessenger->ws,
                 $this->ws->errorMessenger->_303->name, $this->ws->errorMessenger->_303->description, 
                 $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_303->level);

@@ -460,7 +460,7 @@
             $this->ws->conneg->setStatusMsg($httpMsg);
             $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_300->name);
             $this->ws->conneg->setError($this->ws->errorMessenger->_300->id, $this->ws->errorMessenger->ws,
-              $this->ws->errorMessenger->_300 > name, $this->ws->errorMessenger->_300->description, $xml_data,
+              $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, $xml_data,
               $this->ws->errorMessenger->_300->level);
 
             $this->ws->sparqlContent = "";

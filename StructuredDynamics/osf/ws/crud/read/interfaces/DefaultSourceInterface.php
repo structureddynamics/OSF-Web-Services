@@ -85,13 +85,13 @@
             $d = str_ireplace("%3B", ";", $datasets[$key]);
 
             // Archiving suject triples
-            $query = "select ?p ?o
-              from <" . $d . "> 
-              where 
-              {
-                <$u> ?p ?o.
-                ".($attributesFilter == "" ? "" : "FILTER (?p IN($attributesFilter))")."
-              }";
+            $query = "select ?p ?o (DATATYPE(?o)) as ?otype (LANG(?o)) as ?olang 
+                      from <" . $d . "> 
+                      where 
+                      {
+                        <$u> ?p ?o.
+                        ".($attributesFilter == "" ? "" : "FILTER (?p IN($attributesFilter))")."
+                      }";
           }
           else
           {
@@ -106,17 +106,16 @@
             }
 
             // Archiving suject triples
-            $query = "select ?p ?o ?g
-              $d 
-              where 
-              {
-                graph ?g
-                {
-                  <$u> ?p ?o.
-                }
-                ".($attributesFilter == "" ? "" : "FILTER (?p IN($attributesFilter))")."
-              }";
-                 
+            $query = "select ?p ?o (DATATYPE(?o)) as ?otype (LANG(?o)) as ?olang ?g 
+                      $d 
+                      where 
+                      {
+                        graph ?g
+                        {
+                          <$u> ?p ?o.
+                        }
+                        ".($attributesFilter == "" ? "" : "FILTER (?p IN($attributesFilter))")."
+                      }";     
           }
 
           $this->ws->sparql->query($query);
@@ -145,30 +144,10 @@
             }
           
             $p = $this->ws->sparql->value('p');
-            
             $o = $this->ws->sparql->value('o');
+            $otype = $this->ws->sparql->value('otype');
+            $olang = $this->ws->sparql->value('olang');
 
-            $otype = '';
-            
-            if(array_key_exists('datatype', $this->ws->sparql->value('o', TRUE)))
-            {
-              $otype = $this->ws->sparql->value('o', TRUE)['datatype'];
-            }
-            else
-            {
-              if($this->ws->sparql->value('o', TRUE)['type'] == 'uri')
-              {
-                $otype = null;
-              }
-            }
-            
-            $olang = '';
-            
-            if(array_key_exists('xml:lang', $this->ws->sparql->value('o', TRUE)))
-            {
-              $olang = $this->ws->sparql->value('o', TRUE)['xml:lang'];
-            }
-            
             if($this->ws->lang != "" && $olang != "" && $olang != $this->ws->lang)
             {
               continue;
@@ -186,20 +165,15 @@
               }
             }
 
-            if($olang && $olang != "")
+            if(!$olang)
+            {
+              $olang = '';
+            }
+            elseif($olang != '')
             {
               /* If a language is defined for an object, we force its type to be xsd:string */
               $otype = "http://www.w3.org/2001/XMLSchema#string";
-            }
-            
-            // Since the default datatype is rdfs:Literal, we put nothing as the type if the $otype
-            // is xsd:string
-            // Note: we may eventually want to keep the xsd:string type assignation. If it is the
-            //       case then we will only have to remove the 4 lines below.
-            if($otype == 'http://www.w3.org/2001/XMLSchema#string')
-            {
-              $otype = '';
-            }
+            }            
             
             if($this->ws->globalDataset === TRUE) 
             {
@@ -245,17 +219,17 @@
                     $subjects[$u][$p] = array();
                   }
                   
-                  if($otype !== NULL)
+                  if(!empty($otype))
                   {
-                    array_push($subjects[$u][$p], Array("value" => $o, 
-                                                        "lang" => (isset($olang) ? $olang : ""),
-                                                        "type" => $otype));
+                    array_push($subject[$p], Array("value" => $o, 
+                                                   "lang" => $olang,
+                                                   "type" => ($otype == 'http://www.w3.org/2001/XMLSchema#string' ? '' : $otype)));
                   }
                   else
                   {
-                    array_push($subjects[$u][$p], Array("uri" => $o, 
-                                                        "type" => ""));
-                  }
+                    array_push($subject[$p], Array("uri" => $o, 
+                                                   "type" => ""));
+                  }                  
                 }
               }
             }
@@ -275,17 +249,17 @@
                   $subjects[$u][$p] = array();
                 }
                 
-                if($otype !== NULL)
+                if(!empty($otype))
                 {
                   array_push($subjects[$u][$p], Array("value" => $o, 
-                                                      "lang" => (isset($olang) ? $olang : ""),
-                                                      "type" => $otype));
+                                                      "lang" => $olang,
+                                                      "type" => ($otype == 'http://www.w3.org/2001/XMLSchema#string' ? '' : $otype)));
                 }
                 else
                 {
                   array_push($subjects[$u][$p], Array("uri" => $o, 
                                                       "type" => ""));
-                }
+                }                   
               }
             }
           }

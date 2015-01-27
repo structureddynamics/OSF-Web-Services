@@ -467,13 +467,26 @@
           {
             for($i = 0; $i < ceil(count($resourceRevisionsIndex) / 25); $i++)
             {
-              $this->ws->sparql->query('insert data
-                              {
-                                graph <'.$revisionDataset.'>
+              if($this->ws->sparql_insert == 'insert')
+              {
+                $this->ws->sparql->query('insert
                                 {
-                                  '.$n3Serializer->getSerializedIndex(array_slice($resourceRevisionsIndex, ($i * 25), 25, TRUE)).'
-                                }                                      
-                              }');       
+                                  graph <'.$revisionDataset.'>
+                                  {
+                                    '.$n3Serializer->getSerializedIndex(array_slice($resourceRevisionsIndex, ($i * 25), 25, TRUE)).'
+                                  }                                      
+                                } where { select * {optional {?s ?p ?o} } limit 1 }');       
+              }
+              else
+              {
+                $this->ws->sparql->query('insert data
+                                {
+                                  graph <'.$revisionDataset.'>
+                                  {
+                                    '.$n3Serializer->getSerializedIndex(array_slice($resourceRevisionsIndex, ($i * 25), 25, TRUE)).'
+                                  }                                      
+                                }');       
+              }
 
               if($this->ws->sparql->error())
               {
@@ -507,13 +520,26 @@
           {
             for($i = 0; $i < ceil(count($irs) / 25); $i++)
             {
-              $this->ws->sparql->query('insert data
-                              {
-                                graph <'.$tempGraphUri.'>
+              if($this->ws->sparql_insert == 'insert')
+              {
+                $this->ws->sparql->query('insert
                                 {
-                                  '.$n3Serializer->getSerializedIndex(array_slice($irs, ($i * 25), 25, TRUE)).'
-                                }                                      
-                              }');       
+                                  graph <'.$tempGraphUri.'>
+                                  {
+                                    '.$n3Serializer->getSerializedIndex(array_slice($irs, ($i * 25), 25, TRUE)).'
+                                  }                                      
+                                } where { select * {optional {?s ?p ?o} } limit 1 }');       
+              }
+              else
+              {
+                $this->ws->sparql->query('insert data
+                                {
+                                  graph <'.$tempGraphUri.'>
+                                  {
+                                    '.$n3Serializer->getSerializedIndex(array_slice($irs, ($i * 25), 25, TRUE)).'
+                                  }                                      
+                                }');       
+              }
               
               if($this->ws->sparql->error())
               {
@@ -585,13 +611,26 @@
             {
               for($i = 0; $i < ceil(count($statements) / 25); $i++)
               {
-                $this->ws->sparql->query('insert data
-                    {
-                      graph <'.$tempGraphReificationUri.'>
+                if($this->ws->sparql_insert == 'insert')
+                {
+                  $this->ws->sparql->query('insert
                       {
-                        '.$n3Serializer->getSerializedIndex(array_slice($statements, ($i * 25), 25, TRUE)).'
-                      }                                      
-                    }');       
+                        graph <'.$tempGraphReificationUri.'>
+                        {
+                          '.$n3Serializer->getSerializedIndex(array_slice($statements, ($i * 25), 25, TRUE)).'
+                        }                                      
+                      } where { select * {optional {?s ?p ?o} } limit 1 }');       
+                }
+                else
+                {
+                  $this->ws->sparql->query('insert data
+                      {
+                        graph <'.$tempGraphReificationUri.'>
+                        {
+                          '.$n3Serializer->getSerializedIndex(array_slice($statements, ($i * 25), 25, TRUE)).'
+                        }                                      
+                      }');       
+                }
               
                 if($this->ws->sparql->error())
                 {

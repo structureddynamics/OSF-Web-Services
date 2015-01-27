@@ -196,13 +196,26 @@
             {
               for($i = 0; $i < ceil(count($irs) / 25); $i++)
               {
-                $this->ws->sparql->query('insert data
-                                          {
-                                            graph <'.$this->ws->dataset.'>
+                if($this->ws->sparql_insert == 'insert')
+                {
+                  $this->ws->sparql->query('insert
                                             {
-                                              '.$n3Serializer->getSerializedIndex(array_slice($irs, ($i * 25), 25, TRUE)).'
-                                            }                                      
-                                          }');  
+                                              graph <'.$this->ws->dataset.'>
+                                              {
+                                                '.$n3Serializer->getSerializedIndex(array_slice($irs, ($i * 25), 25, TRUE)).'
+                                              }                                      
+                                            } where { select * {optional {?s ?p ?o} } limit 1 }');  
+                }
+                else
+                {
+                  $this->ws->sparql->query('insert data
+                                            {
+                                              graph <'.$this->ws->dataset.'>
+                                              {
+                                                '.$n3Serializer->getSerializedIndex(array_slice($irs, ($i * 25), 25, TRUE)).'
+                                              }                                      
+                                            }');  
+                }                                          
 
                 if($this->ws->sparql->error())
                 {
@@ -231,13 +244,27 @@
             {
               for($i = 0; $i < ceil(count($statements) / 25); $i++)
               {
-                $this->ws->sparql->query('insert data
-                                          {
-                                            graph <'.$this->ws->dataset.'reification/>
+                if($this->ws->sparql_insert == 'insert')
+                {
+                  $this->ws->sparql->query('insert
                                             {
-                                              '.$n3Serializer->getSerializedIndex(array_slice($statements, ($i * 25), 25, TRUE)).'
-                                            }                                      
-                                          }');                 
+                                              graph <'.$this->ws->dataset.'reification/>
+                                              {
+                                                '.$n3Serializer->getSerializedIndex(array_slice($statements, ($i * 25), 25, TRUE)).'
+                                              }                                      
+                                            } where { select * {optional {?s ?p ?o} } limit 1 }');                 
+                }
+                else
+                {
+                  $this->ws->sparql->query('insert data
+                                            {
+                                              graph <'.$this->ws->dataset.'reification/>
+                                              {
+                                                '.$n3Serializer->getSerializedIndex(array_slice($statements, ($i * 25), 25, TRUE)).'
+                                              }                                      
+                                            }');                 
+                }
+                
                     
                 if($this->ws->sparql->error())
                 {

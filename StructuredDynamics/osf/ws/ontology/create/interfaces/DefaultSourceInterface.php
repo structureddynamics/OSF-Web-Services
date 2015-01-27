@@ -321,7 +321,7 @@
             while($nbRecordsDone < $nb && $nb > 0)
             {
               // Create slices of 100 records.
-              $this->ws->sparql->query("select ?s ?p ?o
+              $this->ws->sparql->query("select ?s ?p ?o (DATATYPE(?o)) as ?otype (LANG(?o)) as ?olang
                 where 
                 {
                   {
@@ -351,8 +351,10 @@
                 $s = $this->ws->sparql->value('s');
                 $p = $this->ws->sparql->value('p');
                 $o = $this->ws->sparql->value('o');
+                $otype = $this->ws->sparql->value('otype');
+                $olang = $this->ws->sparql->value('olang');
                 
-                if($this->ws->sparql->value('o', TRUE)['type'] != 'uri')
+                if(!empty($otype) || !empty($olang))
                 {
                   $subjectDescription .= "<$s> <$p> \"\"\"".$this->n3Encode($o)."\"\"\" .\n";
                 }

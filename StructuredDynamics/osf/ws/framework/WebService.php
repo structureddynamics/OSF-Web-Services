@@ -10,7 +10,8 @@ namespace StructuredDynamics\osf\ws\framework;
 
 use \StructuredDynamics\osf\ws\framework\Error;
 use \StructuredDynamics\osf\framework\Resultset;
-use \StructuredDynamics\osf\ws\framework\SparqlQuery; 
+use \StructuredDynamics\osf\ws\framework\SparqlQueryHttp; 
+use \StructuredDynamics\osf\ws\framework\SparqlQueryOdbc; 
 
 /** A Web Service abstract class. This abstract class is used to define a web service that can interact 
     with external webservices, or web services in a pipeline (compound), in a RESTful way.
@@ -42,6 +43,9 @@ abstract class WebService
   /** Database host */
   protected $triplestore_host = "localhost";
 
+  /** Database DSN */
+  protected $triplestore_dsn = "";
+
   /** DTD URL of the web service */
   protected $dtdBaseURL = "";
 
@@ -51,8 +55,14 @@ abstract class WebService
   /** SPARQL Endpoint */
   protected $sparql_endpoint = "sparql";
 
+  /** SPARQL endpoint communication channel */
+  protected $sparql_channel = "http";
+  
   /** SPARQL 1.1 Graph Store HTTP Protocol Endpoint */
   protected $sparql_graph_endpoint = "sparql-graph-crud-auth";
+  
+  /** SPARQL Update command to use to insert data into the triplestore */
+  protected $sparql_insert = "insert data";
 
   /** The graph where the Web Services Framework description has been indexed */
   protected $wsf_graph = "";
@@ -316,13 +326,25 @@ abstract class WebService
     {
       $this->sparql_endpoint = $osf_ini["triplestore"]["sparql"];
     }
+    if(isset($osf_ini["triplestore"]["channel"]))
+    {
+      $this->sparql_channel = strtolower($osf_ini["triplestore"]["channel"]);
+    }
     if(isset($osf_ini["triplestore"]["sparql-graph"]))
     {
       $this->sparql_graph_endpoint = $osf_ini["triplestore"]["sparql-graph"];
     }
+    if(isset($osf_ini["triplestore"]["sparql-insert"]))
+    {
+      $this->sparql_insert = strtolower($osf_ini["triplestore"]["sparql-insert"]);
+    }
     if(isset($osf_ini["triplestore"]["host"]))
     {
       $this->triplestore_host = $osf_ini["triplestore"]["host"];
+    }
+    if(isset($osf_ini["triplestore"]["dsn"]))
+    {
+      $this->triplestore_dsn = $osf_ini["triplestore"]["dsn"];
     }
     
     if(isset($osf_ini["datasets"]["dtd_base"]))
@@ -707,12 +729,25 @@ abstract class WebService
       $this->memcached->setCompressThreshold(50000); // 50k 
     }
 
-    $this->sparql = new SparqlQuery('http://'. $this->triplestore_host . ':' .
-                                               $this->triplestore_port . '/' .
-                                               $this->sparql_endpoint);   
+    switch($this->sparql_channel)
+    {
+      case 'http':
+        $this->sparql = new SparqlQueryHttp('http://'. $this->triplestore_host . ':' .
+                                                       $this->triplestore_port . '/' .
+                                                       $this->sparql_endpoint);   
+      break;
+      
+      case 'odbc':
+      default:
+        $this->sparql = new SparqlQueryOdbc($this->triplestore_username,
+                                            $this->triplestore_password,
+                                            $this->triplestore_dsn,
+                                            $this->triplestore_host);   
+      break;
+    }
   }
 
-  function __destruct() { }
+  function __destruct() { unset($this->sparql); }
 
 
 /** does the content negotiation for the queries that come from the Web (when this class acts as a Web Service)

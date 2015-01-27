@@ -423,7 +423,6 @@
           curl_setopt($ch, CURLOPT_POSTFIELDS, 'default-graph-uri=' . urlencode($this->ws->dataset) . 
                                                '&query=' . urlencode($this->query));
           curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-          //curl_setopt($ch, CURLOPT_HEADER, 1);
           curl_setopt($ch, CURLOPT_HTTPHEADER, array("Accept: ".$queryFormat));
 
           $data = curl_exec($ch);

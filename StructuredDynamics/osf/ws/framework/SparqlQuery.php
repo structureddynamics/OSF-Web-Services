@@ -24,7 +24,7 @@ abstract class SparqlQuery
   
   abstract public function fetch_binding();
   
-  abstract public function value($var, $full = FALSE);
+  abstract public function value($var);
   
   abstract public function error();
   

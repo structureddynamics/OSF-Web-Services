@@ -100,18 +100,11 @@ class SparqlQueryHttp extends \StructuredDynamics\osf\ws\framework\SparqlQuery
     }
   }
   
-  public function value($var, $full = FALSE)
+  public function value($var)
   {
     if(array_key_exists($var, $this->resultset[$this->current_binding]))
     {
-      if($full)
-      {
-        return($this->resultset[$this->current_binding][$var]);  
-      }
-      else
-      {
-        return($this->resultset[$this->current_binding][$var]['value']);
-      }
+      return($this->resultset[$this->current_binding][$var]['value']);
     }
     else
     {

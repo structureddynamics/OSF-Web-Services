@@ -42,6 +42,7 @@ class SparqlQueryOdbc extends \StructuredDynamics\osf\ws\framework\SparqlQuery
     $this->dsn = $dsn;
     $this->host = $host;
     
+    ini_set("odbc.default_cursortype", "0");
     $this->link = odbc_connect($this->dsn, $this->username, $this->password);
     
     if($this->link === FALSE)
@@ -50,24 +51,24 @@ class SparqlQueryOdbc extends \StructuredDynamics\osf\ws\framework\SparqlQuery
     }
   }  
   
-  function __destruct() 
-  { 
-    $this->close();
-  }
+  public function close(){}
   
-  public function close()
-  {
-    odbc_close($this->link);
-    unset($this);
-  }  
   
   public function query($query)
   {
     $this->error = '';
     
-    $this->query = $query;
+    if(!stripos($query, "DB.DBA.TTLP_MT") &&
+       !stripos($query, "DB.DBA.RDF_LOAD_RDFXML_MT"))
+    {
+      $this->query = "sparql " . $query;
+    }
+    else
+    {
+      $this->query = $query;
+    }
     
-    $this->resultset = odbc_exec($this->link, "sparql " . $this->query);
+    $this->resultset = odbc_exec($this->link, $this->query);
     
     if($this->resultset === FALSE)
     {
@@ -84,7 +85,7 @@ class SparqlQueryOdbc extends \StructuredDynamics\osf\ws\framework\SparqlQuery
     return(odbc_fetch_row($this->resultset));
   }
 
-  public function value($var, $full = FALSE)
+  public function value($var)
   {    
     $value = '';
     $fieldID = odbc_field_num($this->resultset, $var);
@@ -120,7 +121,7 @@ class SparqlQueryOdbc extends \StructuredDynamics\osf\ws\framework\SparqlQuery
   
   public function error()
   {
-    if(!empty($this->error) || !empty(odbc_error($this->link)))
+    if(!empty($this->error)/* || !empty(odbc_error($this->link))*/)
     {
       return(TRUE);
     }

@@ -40,7 +40,7 @@
         }          
         
         // Archiving suject triples
-        $this->ws->sparql->query("select ?p ?o
+        $this->ws->sparql->query("select ?p ?o (DATATYPE(?o)) as ?otype (LANG(?o)) as ?olang 
           from <" . $revisionsDataset . "> 
           where 
           {
@@ -70,27 +70,8 @@
           
           $p = $this->ws->sparql->value('p');          
           $o = $this->ws->sparql->value('o');
-
-          $otype = '';
-          
-          if(array_key_exists('datatype', $this->ws->sparql->value('o', TRUE)))
-          {
-            $otype = $this->ws->sparql->value('o', TRUE)['datatype'];
-          }
-          else
-          {
-            if($this->ws->sparql->value('o', TRUE)['type'] == 'uri')
-            {
-              $otype = null;
-            }
-          }
-
-          $olang = '';
-          
-          if(array_key_exists('xml:lang', $this->ws->sparql->value('o', TRUE)))
-          {
-            $olang = $this->ws->sparql->value('o', TRUE)['xml:lang'];
-          }
+          $otype = $this->ws->sparql->value('otype');
+          $olang = $this->ws->sparql->value('olang');
 
           if($this->ws->mode == 'record')
           {
@@ -109,19 +90,14 @@
             }
           }            
           
-          if($olang && $olang != "")
+          if(!$olang)
+          {
+            $olang = '';
+          }
+          elseif($olang != '')
           {
             /* If a language is defined for an object, we force its type to be xsd:string */
             $otype = "http://www.w3.org/2001/XMLSchema#string";
-          }
-          
-          // Since the default datatype is rdfs:Literal, we put nothing as the type if the $otype
-          // is xsd:string
-          // Note: we may eventually want to keep the xsd:string type assignation. If it is the
-          //       case then we will only have to remove the 4 lines below.
-          if($otype == 'http://www.w3.org/2001/XMLSchema#string')
-          {
-            $otype = '';
           }
           
           if($p == Namespaces::$rdf."type")
@@ -143,11 +119,11 @@
               $subject[$p] = array();
             }
             
-            if($otype !== NULL)
+            if(!empty($otype))
             {
               array_push($subject[$p], Array("value" => $o, 
-                                             "lang" => (isset($olang) ? $olang : ""),
-                                             "type" => $otype));
+                                             "lang" => $olang,
+                                             "type" => ($otype == 'http://www.w3.org/2001/XMLSchema#string' ? '' :$otype)));
             }
             else
             {

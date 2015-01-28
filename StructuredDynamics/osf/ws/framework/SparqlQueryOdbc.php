@@ -58,8 +58,8 @@ class SparqlQueryOdbc extends \StructuredDynamics\osf\ws\framework\SparqlQuery
   {
     $this->error = '';
     
-    if(!stripos($query, "DB.DBA.TTLP_MT") &&
-       !stripos($query, "DB.DBA.RDF_LOAD_RDFXML_MT"))
+    if(stripos($query, "DB.DBA.TTLP_MT") === FALSE &&
+       stripos($query, "DB.DBA.RDF_LOAD_RDFXML_MT") === FALSE)
     {
       $this->query = "sparql " . $query;
     }

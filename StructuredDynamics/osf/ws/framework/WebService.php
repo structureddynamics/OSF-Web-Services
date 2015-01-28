@@ -56,13 +56,13 @@ abstract class WebService
   protected $sparql_endpoint = "sparql";
 
   /** SPARQL endpoint communication channel */
-  protected $sparql_channel = "http";
+  protected $sparql_channel = "odbc";
   
   /** SPARQL 1.1 Graph Store HTTP Protocol Endpoint */
   protected $sparql_graph_endpoint = "sparql-graph-crud-auth";
   
   /** SPARQL Update command to use to insert data into the triplestore */
-  protected $sparql_insert = "insert data";
+  protected $sparql_insert = "virtuoso";
 
   /** The graph where the Web Services Framework description has been indexed */
   protected $wsf_graph = "";

@@ -465,39 +465,57 @@
           // Note: we index the revision records along with the reification statements.  
           if(!empty($resourceRevisionsIndex))   
           {
-            for($i = 0; $i < ceil(count($resourceRevisionsIndex) / 25); $i++)
+            if($this->ws->sparql_insert == 'virtuoso')
             {
-              if($this->ws->sparql_insert == 'insert')
-              {
-                $this->ws->sparql->query('insert
-                                {
-                                  graph <'.$revisionDataset.'>
-                                  {
-                                    '.$n3Serializer->getSerializedIndex(array_slice($resourceRevisionsIndex, ($i * 25), 25, TRUE)).'
-                                  }                                      
-                                } where { select * {optional {?s ?p ?o} } limit 1 }');       
-              }
-              else
-              {
-                $this->ws->sparql->query('insert data
-                                {
-                                  graph <'.$revisionDataset.'>
-                                  {
-                                    '.$n3Serializer->getSerializedIndex(array_slice($resourceRevisionsIndex, ($i * 25), 25, TRUE)).'
-                                  }                                      
-                                }');       
-              }
-
+              $this->ws->sparql->query("DB.DBA.TTLP_MT('".str_replace("'", "\'", $n3Serializer->getSerializedIndex($resourceRevisionsIndex)) . "', '" . $revisionDataset . "', '". $revisionDataset . "')");
+              
               if($this->ws->sparql->error())
               {
                 $this->ws->conneg->setStatus(400);
                 $this->ws->conneg->setStatusMsg("Bad Request");
-                $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_300->name);
-                $this->ws->conneg->setError($this->ws->errorMessenger->_300->id, $this->ws->errorMessenger->ws,
-                  $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, 
-                  $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_300->level);
+                $this->ws->conneg->setError($this->ws->errorMessenger->_302->id, $this->ws->errorMessenger->ws,
+                  $this->ws->errorMessenger->_302->name, $this->ws->errorMessenger->_302->description, 
+                  $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_302->level);
+
                 return;
-              }  
+              }                
+            }
+            else
+            {
+              for($i = 0; $i < ceil(count($resourceRevisionsIndex) / 25); $i++)
+              {
+                if($this->ws->sparql_insert == 'insert')
+                {
+                  $this->ws->sparql->query('insert
+                                  {
+                                    graph <'.$revisionDataset.'>
+                                    {
+                                      '.$n3Serializer->getSerializedIndex(array_slice($resourceRevisionsIndex, ($i * 25), 25, TRUE)).'
+                                    }                                      
+                                  } where { select * {optional {?s ?p ?o} } limit 1 }');       
+                }
+                else
+                {
+                  $this->ws->sparql->query('insert data
+                                  {
+                                    graph <'.$revisionDataset.'>
+                                    {
+                                      '.$n3Serializer->getSerializedIndex(array_slice($resourceRevisionsIndex, ($i * 25), 25, TRUE)).'
+                                    }                                      
+                                  }');       
+                }
+
+                if($this->ws->sparql->error())
+                {
+                  $this->ws->conneg->setStatus(400);
+                  $this->ws->conneg->setStatusMsg("Bad Request");
+                  $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_300->name);
+                  $this->ws->conneg->setError($this->ws->errorMessenger->_300->id, $this->ws->errorMessenger->ws,
+                    $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, 
+                    $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_300->level);
+                  return;
+                }  
+              }
             }
           }
         }              
@@ -518,38 +536,56 @@
 
           if(!empty($irs))
           {
-            for($i = 0; $i < ceil(count($irs) / 25); $i++)
+            if($this->ws->sparql_insert == 'virtuoso')
             {
-              if($this->ws->sparql_insert == 'insert')
-              {
-                $this->ws->sparql->query('insert
-                                {
-                                  graph <'.$tempGraphUri.'>
-                                  {
-                                    '.$n3Serializer->getSerializedIndex(array_slice($irs, ($i * 25), 25, TRUE)).'
-                                  }                                      
-                                } where { select * {optional {?s ?p ?o} } limit 1 }');       
-              }
-              else
-              {
-                $this->ws->sparql->query('insert data
-                                {
-                                  graph <'.$tempGraphUri.'>
-                                  {
-                                    '.$n3Serializer->getSerializedIndex(array_slice($irs, ($i * 25), 25, TRUE)).'
-                                  }                                      
-                                }');       
-              }
+              $this->ws->sparql->query("DB.DBA.TTLP_MT('".str_replace("'", "\'", $n3Serializer->getSerializedIndex($irs)) . "', '" . $tempGraphUri . "', '". $tempGraphUri . "')");
               
               if($this->ws->sparql->error())
               {
                 $this->ws->conneg->setStatus(400);
                 $this->ws->conneg->setStatusMsg("Bad Request");
-                $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_300->name);
-                $this->ws->conneg->setError($this->ws->errorMessenger->_300->id, $this->ws->errorMessenger->ws,
-                  $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, 
-                  $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_300->level);
+                $this->ws->conneg->setError($this->ws->errorMessenger->_302->id, $this->ws->errorMessenger->ws,
+                  $this->ws->errorMessenger->_302->name, $this->ws->errorMessenger->_302->description, 
+                  $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_302->level);
+
                 return;
+              }                
+            }
+            else
+            {
+              for($i = 0; $i < ceil(count($irs) / 25); $i++)
+              {
+                if($this->ws->sparql_insert == 'insert')
+                {
+                  $this->ws->sparql->query('insert
+                                  {
+                                    graph <'.$tempGraphUri.'>
+                                    {
+                                      '.$n3Serializer->getSerializedIndex(array_slice($irs, ($i * 25), 25, TRUE)).'
+                                    }                                      
+                                  } where { select * {optional {?s ?p ?o} } limit 1 }');       
+                }
+                else
+                {
+                  $this->ws->sparql->query('insert data
+                                  {
+                                    graph <'.$tempGraphUri.'>
+                                    {
+                                      '.$n3Serializer->getSerializedIndex(array_slice($irs, ($i * 25), 25, TRUE)).'
+                                    }                                      
+                                  }');       
+                }
+                
+                if($this->ws->sparql->error())
+                {
+                  $this->ws->conneg->setStatus(400);
+                  $this->ws->conneg->setStatusMsg("Bad Request");
+                  $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_300->name);
+                  $this->ws->conneg->setError($this->ws->errorMessenger->_300->id, $this->ws->errorMessenger->ws,
+                    $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, 
+                    $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_300->level);
+                  return;
+                }
               }
             }
           }
@@ -609,38 +645,56 @@
 
             if(!empty($statements))
             {
-              for($i = 0; $i < ceil(count($statements) / 25); $i++)
+              if($this->ws->sparql_insert == 'virtuoso')
               {
-                if($this->ws->sparql_insert == 'insert')
-                {
-                  $this->ws->sparql->query('insert
-                      {
-                        graph <'.$tempGraphReificationUri.'>
-                        {
-                          '.$n3Serializer->getSerializedIndex(array_slice($statements, ($i * 25), 25, TRUE)).'
-                        }                                      
-                      } where { select * {optional {?s ?p ?o} } limit 1 }');       
-                }
-                else
-                {
-                  $this->ws->sparql->query('insert data
-                      {
-                        graph <'.$tempGraphReificationUri.'>
-                        {
-                          '.$n3Serializer->getSerializedIndex(array_slice($statements, ($i * 25), 25, TRUE)).'
-                        }                                      
-                      }');       
-                }
-              
+                $this->ws->sparql->query("DB.DBA.TTLP_MT('".str_replace("'", "\'", $n3Serializer->getSerializedIndex($statements)) . "', '" . $tempGraphReificationUri . "', '". $tempGraphReificationUri . "')");
+                
                 if($this->ws->sparql->error())
                 {
                   $this->ws->conneg->setStatus(400);
                   $this->ws->conneg->setStatusMsg("Bad Request");
-                  $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_300->name);
-                  $this->ws->conneg->setError($this->ws->errorMessenger->_300->id, $this->ws->errorMessenger->ws,
-                    $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, 
-                    $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_300->level);
+                  $this->ws->conneg->setError($this->ws->errorMessenger->_302->id, $this->ws->errorMessenger->ws,
+                    $this->ws->errorMessenger->_302->name, $this->ws->errorMessenger->_302->description, 
+                    $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_302->level);
+
                   return;
+                }                
+              }
+              else
+              {
+                for($i = 0; $i < ceil(count($statements) / 25); $i++)
+                {
+                  if($this->ws->sparql_insert == 'insert')
+                  {
+                    $this->ws->sparql->query('insert
+                        {
+                          graph <'.$tempGraphReificationUri.'>
+                          {
+                            '.$n3Serializer->getSerializedIndex(array_slice($statements, ($i * 25), 25, TRUE)).'
+                          }                                      
+                        } where { select * {optional {?s ?p ?o} } limit 1 }');       
+                  }
+                  else
+                  {
+                    $this->ws->sparql->query('insert data
+                        {
+                          graph <'.$tempGraphReificationUri.'>
+                          {
+                            '.$n3Serializer->getSerializedIndex(array_slice($statements, ($i * 25), 25, TRUE)).'
+                          }                                      
+                        }');       
+                  }
+                
+                  if($this->ws->sparql->error())
+                  {
+                    $this->ws->conneg->setStatus(400);
+                    $this->ws->conneg->setStatusMsg("Bad Request");
+                    $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_300->name);
+                    $this->ws->conneg->setError($this->ws->errorMessenger->_300->id, $this->ws->errorMessenger->ws,
+                      $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, 
+                      $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_300->level);
+                    return;
+                  }
                 }
               }
             }

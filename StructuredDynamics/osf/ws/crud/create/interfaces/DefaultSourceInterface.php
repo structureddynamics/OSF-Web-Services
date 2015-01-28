@@ -262,7 +262,7 @@
             {
               if($this->ws->sparql_insert == 'virtuoso')
               {
-                $this->ws->sparql->query("DB.DBA.TTLP_MT('".str_replace("'", "\'", $n3Serializer->getSerializedIndex($statements)) . "', '" . $this->ws->dataset . "', '". $this->ws->dataset . "')");
+                $this->ws->sparql->query("DB.DBA.TTLP_MT('".str_replace("'", "\'", $n3Serializer->getSerializedIndex($statements)) . "', '" . $this->ws->dataset . "reification/', '". $this->ws->dataset . "reification/')");
                 
                 if($this->ws->sparql->error())
                 {

@@ -34,7 +34,9 @@
         include_once("../../framework/arc2/ARC2.php");
         $parser = ARC2::getRDFParser();
         $parser->parse($this->ws->dataset, $this->ws->document);
+        
         $n3Serializer = ARC2::getNTriplesSerializer();
+        $rdfxmlSerializer = ARC2::getRDFXMLSerializer();
   
         $resourceIndex = $parser->getSimpleIndex(0);
 
@@ -196,7 +198,7 @@
             {
               if($this->ws->sparql_insert == 'virtuoso')
               {
-                $this->ws->sparql->query("DB.DBA.TTLP_MT('".str_replace("'", "\'", $n3Serializer->getSerializedIndex($irs)) . "', '" . $this->ws->dataset . "', '". $this->ws->dataset . "')");
+                $this->ws->sparql->query("DB.DBA.RDF_LOAD_RDFXML_MT('".str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($irs)) . "', '" . $this->ws->dataset . "', '". $this->ws->dataset . "')");
                 
                 if($this->ws->sparql->error())
                 {
@@ -262,7 +264,7 @@
             {
               if($this->ws->sparql_insert == 'virtuoso')
               {
-                $this->ws->sparql->query("DB.DBA.TTLP_MT('".str_replace("'", "\'", $n3Serializer->getSerializedIndex($statements)) . "', '" . $this->ws->dataset . "reification/', '". $this->ws->dataset . "reification/')");
+                $this->ws->sparql->query("DB.DBA.RDF_LOAD_RDFXML_MT('".str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($statements)) . "', '" . $this->ws->dataset . "reification/', '". $this->ws->dataset . "reification/')");
                 
                 if($this->ws->sparql->error())
                 {

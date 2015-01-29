@@ -56,6 +56,7 @@
         $parser->parse($this->ws->dataset, $this->ws->document);   
 
         $n3Serializer = ARC2::getNTriplesSerializer();
+        $rdfxmlSerializer = ARC2::getRDFXMLSerializer();
 
         $resourceIndex = $parser->getSimpleIndex(0);
         $resourceRevisionsIndex = $parser->getSimpleIndex(0);
@@ -467,7 +468,7 @@
           {
             if($this->ws->sparql_insert == 'virtuoso')
             {
-              $this->ws->sparql->query("DB.DBA.TTLP_MT('".str_replace("'", "\'", $n3Serializer->getSerializedIndex($resourceRevisionsIndex)) . "', '" . $revisionDataset . "', '". $revisionDataset . "')");
+              $this->ws->sparql->query("DB.DBA.RDF_LOAD_RDFXML_MT('".str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($resourceRevisionsIndex)) . "', '" . $revisionDataset . "', '". $revisionDataset . "')");
               
               if($this->ws->sparql->error())
               {
@@ -538,7 +539,7 @@
           {
             if($this->ws->sparql_insert == 'virtuoso')
             {
-              $this->ws->sparql->query("DB.DBA.TTLP_MT('".str_replace("'", "\'", $n3Serializer->getSerializedIndex($irs)) . "', '" . $tempGraphUri . "', '". $tempGraphUri . "')");
+              $this->ws->sparql->query("DB.DBA.RDF_LOAD_RDFXML_MT('".str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($irs)) . "', '" . $tempGraphUri . "', '". $tempGraphUri . "')");
               
               if($this->ws->sparql->error())
               {
@@ -647,7 +648,7 @@
             {
               if($this->ws->sparql_insert == 'virtuoso')
               {
-                $this->ws->sparql->query("DB.DBA.TTLP_MT('".str_replace("'", "\'", $n3Serializer->getSerializedIndex($statements)) . "', '" . $tempGraphReificationUri . "', '". $tempGraphReificationUri . "')");
+                $this->ws->sparql->query("DB.DBA.RDF_LOAD_RDFXML_MT('".str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($statements)) . "', '" . $tempGraphReificationUri . "', '". $tempGraphReificationUri . "')");
                 
                 if($this->ws->sparql->error())
                 {

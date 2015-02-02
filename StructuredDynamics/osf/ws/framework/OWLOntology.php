@@ -2259,10 +2259,10 @@ class OWLOntology
             $propertyDescription[Namespaces::$owl."inverseOf"] = array(); 
           }
           
-          array_push($propertyDescription[Namespaces::$owl."inverseOf"], array("uri" > $ipUri,
+          array_push($propertyDescription[Namespaces::$owl."inverseOf"], array("uri" => $ipUri,
                                                                                "reify" => array(
                                                                                "wsf:objectLabel" => array($this->getPrefLabel($inverseProperty))
-                                                                               )));  
+                                                                               )));                                                                                
         }       
       }
       

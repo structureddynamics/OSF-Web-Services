@@ -221,14 +221,14 @@
                   
                   if(!empty($otype))
                   {
-                    array_push($subject[$p], Array("value" => $o, 
-                                                   "lang" => $olang,
-                                                   "type" => ($otype == 'http://www.w3.org/2001/XMLSchema#string' ? '' : $otype)));
+                    array_push($subjects[$u][$p], Array("value" => $o, 
+                                                        "lang" => $olang,
+                                                        "type" => ($otype == 'http://www.w3.org/2001/XMLSchema#string' ? '' : $otype)));
                   }
                   else
                   {
-                    array_push($subject[$p], Array("uri" => $o, 
-                                                   "type" => ""));
+                    array_push($subjects[$u][$p], Array("uri" => $o, 
+                                                        "type" => ""));
                   }                  
                 }
               }

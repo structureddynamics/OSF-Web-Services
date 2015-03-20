@@ -36,17 +36,13 @@
         $parser->parse($this->ws->dataset, $this->ws->document);
 
         $n3Serializer;
-        $rdfxmlSerializer;
 
         if($this->ws->sparql_insert != 'virtuoso')        
         {
           $n3Serializer = ARC2::getNTriplesSerializer();
         }        
         
-        if($this->ws->mime != 'application/rdf+xml')
-        {
-          $rdfxmlSerializer = ARC2::getRDFXMLSerializer();
-        }
+        $rdfxmlSerializer = ARC2::getRDFXMLSerializer();
   
         $resourceIndex = $parser->getSimpleIndex(0);
 
@@ -208,14 +204,7 @@
             {
               if($this->ws->sparql_insert == 'virtuoso')
               {
-                if($this->ws->mime == 'application/rdf+xml')
-                {
-                  $this->ws->sparql->query("DB.DBA.RDF_LOAD_RDFXML_MT('".str_replace("'", "\'", $this->ws->document) . "', '" . $this->ws->dataset . "', '". $this->ws->dataset . "')");
-                }
-                else
-                {
-                  $this->ws->sparql->query("DB.DBA.RDF_LOAD_RDFXML_MT('".str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($irs)) . "', '" . $this->ws->dataset . "', '". $this->ws->dataset . "')");
-                }
+                $this->ws->sparql->query("DB.DBA.RDF_LOAD_RDFXML_MT('".str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($irs)) . "', '" . $this->ws->dataset . "', '". $this->ws->dataset . "')");
                 
                 if($this->ws->sparql->error())
                 {
@@ -281,14 +270,7 @@
             {
               if($this->ws->sparql_insert == 'virtuoso')
               {
-                if($this->ws->mime == 'application/rdf+xml')
-                {                
-                  $this->ws->sparql->query("DB.DBA.RDF_LOAD_RDFXML_MT('".str_replace("'", "\'", $this->ws->document) . "', '" . $this->ws->dataset . "reification/', '". $this->ws->dataset . "reification/')");
-                }
-                else
-                {
-                  $this->ws->sparql->query("DB.DBA.RDF_LOAD_RDFXML_MT('".str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($statements)) . "', '" . $this->ws->dataset . "reification/', '". $this->ws->dataset . "reification/')");
-                }
+                $this->ws->sparql->query("DB.DBA.RDF_LOAD_RDFXML_MT('".str_replace("'", "\'", $rdfxmlSerializer->getSerializedIndex($statements)) . "', '" . $this->ws->dataset . "reification/', '". $this->ws->dataset . "reification/')");
                 
                 if($this->ws->sparql->error())
                 {

@@ -55,7 +55,13 @@
         $parser = ARC2::getRDFParser();
         $parser->parse($this->ws->dataset, $this->ws->document);   
 
-        $n3Serializer = ARC2::getNTriplesSerializer();
+        $n3Serializer;
+        
+        if($this->ws->sparql_insert != 'virtuoso')        
+        {
+          $n3Serializer = ARC2::getNTriplesSerializer();
+        }        
+
         $rdfxmlSerializer = ARC2::getRDFXMLSerializer();
 
         $resourceIndex = $parser->getSimpleIndex(0);

@@ -299,117 +299,149 @@
           // that Virtuoso is properly configured so that it can access (DirsAllowed Virtuoso config option)
           // the folder where the ontology file has been saved.
 
-          if(filesize($this->ws->ontologyUri) > 8000000)
-          {
-            $sliceSize = 100;          
+          if(filesize($this->ws->ontologyUri) > 10000000)
+          {                   
+            if($this->ws->sparql_channel == 'odbc' && $this->ws->sparql_insert == 'virtuoso')
+            {                 
+              $sliceSize = 100;          
 
-            // Import the big file into Virtuoso  
-            $this->ws->sparql->query('load <'.$this->ws->ontologyUri.'> into graph <'.$this->ws->ontologyUri.'/import>');
-            
-            // count the number of records
-            $this->ws->sparql->query("select count(distinct ?s) as ?nb from <".$this->ws->ontologyUri."/import>
-              where
+              // Import the big file into Virtuoso  
+              $this->ws->sparql->query("DB.DBA.RDF_LOAD_RDFXML_MT(file_to_string_output('".str_replace("file://localhost", "", $this->ws->ontologyUri)."'),'".$this->ws->ontologyUri."/import','".$this->ws->ontologyUri."/import')");
+              
+              if($this->ws->sparql->error())
               {
-                ?s a ?o .
-              }");
-
-            $this->ws->sparql->fetch_binding();  
-            $nb = $this->ws->sparql->value('nb');
-
-            $nbRecordsDone = 0;
-            
-            while($nbRecordsDone < $nb && $nb > 0)
-            {
-              // Create slices of 100 records.
-              $this->ws->sparql->query("select ?s ?p ?o (DATATYPE(?o)) as ?otype (LANG(?o)) as ?olang
-                where 
+                // If there is an error, try to load it using the Turtle parser
+                $this->ws->sparql->query("DB.DBA.TTLP_MT(file_to_string_output('".str_replace("file://localhost", "", $this->ws->ontologyUri)."'),'".$this->ws->ontologyUri."/import','".$this->ws->ontologyUri."/import')");
+               
+                // If there is still an error, return it 
+                if($this->ws->sparql->error())
                 {
-                  {
-                    select distinct ?s from <".$this->ws->ontologyUri."/import> 
-                    where 
-                    {
-                      ?s a ?type.
-                    } 
-                    limit ".$sliceSize." 
-                    offset ".$nbRecordsDone."
-                  } 
-                  
-                  ?s ?p ?o
+                  $this->ws->conneg->setStatus(500);
+                  $this->ws->conneg->setStatusMsg("Internal Error");
+                  $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_300->name);
+                  $this->ws->conneg->setError($this->ws->errorMessenger->_300->id, $this->ws->errorMessenger->ws,
+                  $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, 
+                  $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_300->level);
+                  return;
+                }     
+              }
+
+              // count the number of records
+              $this->ws->sparql->query("select count(distinct ?s) as ?nb from <".$this->ws->ontologyUri."/import>
+                where
+                {
+                  ?s a ?o .
                 }");
 
-              $crudCreates = "";
-              $crudUpdates = "";
-              $crudDeletes = array();
-              
-              $rdfDocumentN3 = "";
-              
-              $currentSubject = "";
-              $subjectDescription = "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n";
+              $this->ws->sparql->fetch_binding();  
+              $nb = $this->ws->sparql->value('nb');
 
-              while($this->ws->sparql->fetch_binding())
+              $nbRecordsDone = 0;
+              
+              while($nbRecordsDone < $nb && $nb > 0)
               {
-                $s = $this->ws->sparql->value('s');
-                $p = $this->ws->sparql->value('p');
-                $o = $this->ws->sparql->value('o');
-                $otype = $this->ws->sparql->value('otype');
-                $olang = $this->ws->sparql->value('olang');
+                // Create slices of 100 records.
+                $this->ws->sparql->query("select ?s ?p ?o (DATATYPE(?o)) as ?otype (LANG(?o)) as ?olang
+                  where 
+                  {
+                    {
+                      select distinct ?s from <".$this->ws->ontologyUri."/import> 
+                      where 
+                      {
+                        ?s a ?type.
+                      } 
+                      limit ".$sliceSize." 
+                      offset ".$nbRecordsDone."
+                    } 
+                    
+                    ?s ?p ?o
+                  }");
+
+                $crudCreates = "";
+                $crudUpdates = "";
+                $crudDeletes = array();
                 
-                if(!empty($otype) || !empty($olang))
+                $rdfDocumentN3 = "";
+                
+                $currentSubject = "";
+                $subjectDescription = "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n";
+
+                while($this->ws->sparql->fetch_binding())
                 {
-                  $subjectDescription .= "<$s> <$p> \"\"\"".$this->n3Encode($o)."\"\"\" .\n";
-                }
-                else
+                  $s = $this->ws->sparql->value('s');
+                  $p = $this->ws->sparql->value('p');
+                  $o = $this->ws->sparql->value('o');
+                  $otype = $this->ws->sparql->value('otype');
+                  $olang = $this->ws->sparql->value('olang');
+                  
+                  if(!empty($otype) || !empty($olang))
+                  {
+                    $subjectDescription .= "<$s> <$p> \"\"\"".$this->n3Encode($o)."\"\"\" .\n";
+                  }
+                  else
+                  {
+                    $subjectDescription .= "<$s> <$p> <$o> .\n";
+                  }
+                }  
+
+                $crudCreate = new CrudCreate($subjectDescription, "application/rdf+n3", "full", $this->ws->ontologyUri);
+
+                $crudCreate->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
+                                       (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
+                                       (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
+                                       (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : "")); 
+
+                $crudCreate->process();
+
+                if($crudCreate->pipeline_getResponseHeaderStatus() != 200)
                 {
-                  $subjectDescription .= "<$s> <$p> <$o> .\n";
-                }
-              }  
+                  $this->ws->conneg->setStatus($crudCreate->pipeline_getResponseHeaderStatus());
+                  $this->ws->conneg->setStatusMsg($crudCreate->pipeline_getResponseHeaderStatusMsg());
+                  $this->ws->conneg->setStatusMsgExt($crudCreate->pipeline_getResponseHeaderStatusMsgExt());
+                  $this->ws->conneg->setError($crudCreate->pipeline_getError()->id,
+                    $crudCreate->pipeline_getError()->webservice, $crudCreate->pipeline_getError()->name,
+                    $crudCreate->pipeline_getError()->description, $crudCreate->pipeline_getError()->debugInfo,
+                    $crudCreate->pipeline_getError()->level);
+                                    
+                  // In case of error, we delete the dataset we previously created.
+                  $ontologyDelete = new OntologyDelete($this->ws->ontologyUri);
 
-              $crudCreate = new CrudCreate($subjectDescription, "application/rdf+n3", "full", $this->ws->ontologyUri);
+                  $ontologyDelete->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
+                                             (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
+                                             (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
+                                             (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : "")); 
 
-              $crudCreate->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
-                                     (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
-                                     (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
-                                     (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : "")); 
+                  $ontologyDelete->deleteOntology();
 
-              $crudCreate->process();
-
-              if($crudCreate->pipeline_getResponseHeaderStatus() != 200)
-              {
-                $this->ws->conneg->setStatus($crudCreate->pipeline_getResponseHeaderStatus());
-                $this->ws->conneg->setStatusMsg($crudCreate->pipeline_getResponseHeaderStatusMsg());
-                $this->ws->conneg->setStatusMsgExt($crudCreate->pipeline_getResponseHeaderStatusMsgExt());
-                $this->ws->conneg->setError($crudCreate->pipeline_getError()->id,
-                  $crudCreate->pipeline_getError()->webservice, $crudCreate->pipeline_getError()->name,
-                  $crudCreate->pipeline_getError()->description, $crudCreate->pipeline_getError()->debugInfo,
-                  $crudCreate->pipeline_getError()->level);
-                                  
-                // In case of error, we delete the dataset we previously created.
-                $ontologyDelete = new OntologyDelete($this->ws->ontologyUri);
-
-                $ontologyDelete->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
-                                           (isset($_SERVER['HTTP_ACCEPT_CHARSET']) ? $_SERVER['HTTP_ACCEPT_CHARSET'] : ""), 
-                                           (isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : ""), 
-                                           (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : "")); 
-
-                $ontologyDelete->deleteOntology();
-
-                if($ontologyDelete->pipeline_getResponseHeaderStatus() != 200)
-                {
-                  $this->ws->conneg->setStatus($ontologyDelete->pipeline_getResponseHeaderStatus());
-                  $this->ws->conneg->setStatusMsg($ontologyDelete->pipeline_getResponseHeaderStatusMsg());
-                  $this->ws->conneg->setStatusMsgExt($ontologyDelete->pipeline_getResponseHeaderStatusMsgExt());
-                  $this->ws->conneg->setError($ontologyDelete->pipeline_getError()->id,
-                    $ontologyDelete->pipeline_getError()->webservice, $ontologyDelete->pipeline_getError()->name,
-                    $ontologyDelete->pipeline_getError()->description, $ontologyDelete->pipeline_getError()->debugInfo,
-                    $ontologyDelete->pipeline_getError()->level);
-                }
-              }              
-              
-              $nbRecordsDone += $sliceSize;
+                  if($ontologyDelete->pipeline_getResponseHeaderStatus() != 200)
+                  {
+                    $this->ws->conneg->setStatus($ontologyDelete->pipeline_getResponseHeaderStatus());
+                    $this->ws->conneg->setStatusMsg($ontologyDelete->pipeline_getResponseHeaderStatusMsg());
+                    $this->ws->conneg->setStatusMsgExt($ontologyDelete->pipeline_getResponseHeaderStatusMsgExt());
+                    $this->ws->conneg->setError($ontologyDelete->pipeline_getError()->id,
+                      $ontologyDelete->pipeline_getError()->webservice, $ontologyDelete->pipeline_getError()->name,
+                      $ontologyDelete->pipeline_getError()->description, $ontologyDelete->pipeline_getError()->debugInfo,
+                      $ontologyDelete->pipeline_getError()->level);
+                  }
+                }              
+                
+                $nbRecordsDone += $sliceSize;
+              }
+            
+              // Now delete the graph we used to import the file
+              $this->ws->sparql->query("clear graph <".$this->ws->ontologyUri."/import>");   
             }
-          
-            // Now delete the graph we used to import the file
-            $this->ws->sparql->query("clear graph <".$this->ws->ontologyUri."/import>");
+            else
+            {
+              $this->ws->conneg->setStatus(500);
+              $this->ws->conneg->setStatusMsg("Internal Error");
+              $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_306->name);
+              $this->ws->conneg->setError($this->ws->errorMessenger->_306->id, $this->ws->errorMessenger->ws,
+                $this->ws->errorMessenger->_306->name, $this->ws->errorMessenger->_306->description, '',
+                $this->ws->errorMessenger->_306->level);                
+                
+              return;              
+            }
           }
           else
           {

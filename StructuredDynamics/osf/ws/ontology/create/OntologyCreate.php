@@ -94,6 +94,12 @@ class OntologyCreate extends \StructuredDynamics\osf\ws\framework\WebService
                           "level": "Fatal",
                           "name": "Source Interface\'s version not compatible with the web service endpoint\'s",
                           "description": "The version of the source interface you requested is not compatible with the one of the web service endpoint. Please contact the system administrator such that he updates the source interface to make it compatible with the new endpoint version."
+                        },
+                        "_306": {
+                          "id": "WS-ONTOLOGY-CREATE-306",
+                          "level": "Fatal",
+                          "name": "Can\'t load ontologies bigger than 10Mb using the HTTP channel.",
+                          "description": "It is not possible to load ontologies bigger than 10Mb with the HTTP channel. If you want to proceed with this request, make sure that OSF is configured with the ODBC channel. Check your configuration in osf.ini"
                         }
                       }';
 

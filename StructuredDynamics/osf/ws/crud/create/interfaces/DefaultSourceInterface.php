@@ -1083,11 +1083,11 @@
                       // We allign all label properties values in a single string so that we can search over all of them.
                       $labels = "";
 
-                      foreach($labelProperties as $property)
+                      foreach($labelProperties as $labelProperty)
                       {
-                        if(isset($subjectTriples[$property]))
+                        if(isset($subjectTriples[$labelProperty]))
                         {
-                          $labels .= $subjectTriples[$property][0] . " ";
+                          $labels .= $subjectTriples[$labelProperty][0] . " ";
                         }
                       }
 

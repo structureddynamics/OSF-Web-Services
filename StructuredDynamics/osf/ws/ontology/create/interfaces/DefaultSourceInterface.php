@@ -301,19 +301,40 @@
 
           if(filesize($this->ws->ontologyUri) > 10000000)
           {                   
-            if($this->ws->sparql_channel == 'odbc' && $this->ws->sparql_insert == 'virtuoso')
+            if($this->ws->sparql_channel == 'odbc')
             {                 
               $sliceSize = 100;          
 
-              // Import the big file into Virtuoso  
-              $this->ws->sparql->query("DB.DBA.RDF_LOAD_RDFXML_MT(file_to_string_output('".str_replace("file://localhost", "", $this->ws->ontologyUri)."'),'".$this->ws->ontologyUri."/import','".$this->ws->ontologyUri."/import')");
-              
-              if($this->ws->sparql->error())
+              if($this->ws->sparql_insert == 'virtuoso')
               {
-                // If there is an error, try to load it using the Turtle parser
-                $this->ws->sparql->query("DB.DBA.TTLP_MT(file_to_string_output('".str_replace("file://localhost", "", $this->ws->ontologyUri)."'),'".$this->ws->ontologyUri."/import','".$this->ws->ontologyUri."/import')");
-               
-                // If there is still an error, return it 
+                // Import the big file into Virtuoso  
+                $this->ws->sparql->query("log_enable(2)");
+                $this->ws->sparql->query("DB.DBA.RDF_LOAD_RDFXML_MT(file_to_string_output('".str_replace("file://localhost", "", $this->ws->ontologyUri)."'),'".$this->ws->ontologyUri."/import','".$this->ws->ontologyUri."/import')");
+                
+                if($this->ws->sparql->error())
+                {
+                  // If there is an error, try to load it using the Turtle parser
+                  $this->ws->sparql->query("DB.DBA.TTLP_MT(file_to_string_output('".str_replace("file://localhost", "", $this->ws->ontologyUri)."'),'".$this->ws->ontologyUri."/import','".$this->ws->ontologyUri."/import')");
+                 
+                  // If there is still an error, return it 
+                  if($this->ws->sparql->error())
+                  {
+                    $this->ws->conneg->setStatus(500);
+                    $this->ws->conneg->setStatusMsg("Internal Error");
+                    $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_300->name);
+                    $this->ws->conneg->setError($this->ws->errorMessenger->_300->id, $this->ws->errorMessenger->ws,
+                    $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, 
+                    $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_300->level);
+                    return;
+                  }     
+                }
+              }
+              else
+              {
+                // Import file using the LOAD ... INTO GRAPH ... SPARQL Update query if the triple store is something
+                // else than Virtuoso.
+                $this->ws->sparql->query('load <'.$this->ws->ontologyUri.'> into graph <'.$this->ws->ontologyUri.'/import>');
+                
                 if($this->ws->sparql->error())
                 {
                   $this->ws->conneg->setStatus(500);
@@ -323,7 +344,7 @@
                   $this->ws->errorMessenger->_300->name, $this->ws->errorMessenger->_300->description, 
                   $this->ws->sparql->errormsg(), $this->ws->errorMessenger->_300->level);
                   return;
-                }     
+                }                 
               }
 
               // count the number of records
@@ -404,6 +425,7 @@
                     $crudCreate->pipeline_getError()->level);
                                     
                   // In case of error, we delete the dataset we previously created.
+                  
                   $ontologyDelete = new OntologyDelete($this->ws->ontologyUri);
 
                   $ontologyDelete->ws_conneg((isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : ""), 
@@ -412,17 +434,7 @@
                                              (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : "")); 
 
                   $ontologyDelete->deleteOntology();
-
-                  if($ontologyDelete->pipeline_getResponseHeaderStatus() != 200)
-                  {
-                    $this->ws->conneg->setStatus($ontologyDelete->pipeline_getResponseHeaderStatus());
-                    $this->ws->conneg->setStatusMsg($ontologyDelete->pipeline_getResponseHeaderStatusMsg());
-                    $this->ws->conneg->setStatusMsgExt($ontologyDelete->pipeline_getResponseHeaderStatusMsgExt());
-                    $this->ws->conneg->setError($ontologyDelete->pipeline_getError()->id,
-                      $ontologyDelete->pipeline_getError()->webservice, $ontologyDelete->pipeline_getError()->name,
-                      $ontologyDelete->pipeline_getError()->description, $ontologyDelete->pipeline_getError()->debugInfo,
-                      $ontologyDelete->pipeline_getError()->level);
-                  }
+               
                 }              
                 
                 $nbRecordsDone += $sliceSize;

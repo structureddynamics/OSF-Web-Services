@@ -16,9 +16,9 @@ namespace StructuredDynamics\osf\ws\framework;
 
 abstract class SparqlQuery
 {
-  protected $endpoint = '';
-  
   protected $resultset;
+  
+  protected $wsf;
   
   abstract public function query($query);
   

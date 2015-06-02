@@ -35,12 +35,14 @@ class SparqlQueryOdbc extends \StructuredDynamics\osf\ws\framework\SparqlQuery
   
   private $error = '';
   
-  function __construct($username, $password, $dsn, $host)
+  function __construct(&$wsf)
   {
-    $this->username = $username;
-    $this->password = $password;
-    $this->dsn = $dsn;
-    $this->host = $host;
+    $this->wsf = $wsf;
+    
+    $this->username = $wsf->triplestore_username;
+    $this->password = $wsf->triplestore_password;
+    $this->dsn = $wsf->triplestore_dsn;
+    $this->host = $wsf->triplestore_host;
     
     ini_set("odbc.default_cursortype", "0");
     $this->link = odbc_connect($this->dsn, $this->username, $this->password);
@@ -66,6 +68,13 @@ class SparqlQueryOdbc extends \StructuredDynamics\osf\ws\framework\SparqlQuery
     else
     {
       $this->query = $query;
+    }
+    
+    if($wsf->$virtuoso_disable_transaction_log && 
+       (stripos($query, "DB.DBA.TTLP_MT") !==  FALSE ||
+        stripos($query, "DB.DBA.RDF_LOAD_RDFXML_MT") !== FALSE))
+    {
+      $this->resultset = odbc_exec($this->link, 'log_enabled(2)');
     }
     
     $this->resultset = odbc_exec($this->link, $this->query);

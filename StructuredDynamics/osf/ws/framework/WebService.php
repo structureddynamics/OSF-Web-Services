@@ -211,6 +211,8 @@ abstract class WebService
   
   protected $scones_endpoint = 'http://localhost:8080/scones/';
   
+  protected $virtuoso_disable_transaction_log = FALSE;
+  
   /** Version of the interface requested by the user */
   protected $requestedInterfaceVersion;
   
@@ -714,6 +716,11 @@ abstract class WebService
     {
       $this->scones_endpoint = $osf_ini["scones"]["scones_endpoint"];
     }    
+    
+    if(isset($osf_ini["triplestore"]["virtuoso-disable-transaction-log"]))  
+    {
+      $this->virtuoso_disable_transaction_log = filter_var($osf_ini["triplestore"]["virtuoso-disable-transaction-log"], FILTER_VALIDATE_BOOLEAN);
+    }      
 
     // This handler is defined for the fatal script errors. If a script can't be finished because a fatal error
     // occured, then the handleFatalPhpError function is used to return the error message to the requester.
@@ -732,17 +739,12 @@ abstract class WebService
     switch($this->sparql_channel)
     {
       case 'http':
-        $this->sparql = new SparqlQueryHttp('http://'. $this->triplestore_host . ':' .
-                                                       $this->triplestore_port . '/' .
-                                                       $this->sparql_endpoint);   
+        $this->sparql = new SparqlQueryHttp($this);   
       break;
       
       case 'odbc':
       default:
-        $this->sparql = new SparqlQueryOdbc($this->triplestore_username,
-                                            $this->triplestore_password,
-                                            $this->triplestore_dsn,
-                                            $this->triplestore_host);   
+        $this->sparql = new SparqlQueryOdbc($this);   
       break;
     }
   }

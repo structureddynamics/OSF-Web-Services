@@ -308,7 +308,6 @@
               if($this->ws->sparql_insert == 'virtuoso')
               {
                 // Import the big file into Virtuoso  
-                $this->ws->sparql->query("log_enable(2)");
                 $this->ws->sparql->query("DB.DBA.RDF_LOAD_RDFXML_MT(file_to_string_output('".str_replace("file://localhost", "", $this->ws->ontologyUri)."'),'".$this->ws->ontologyUri."/import','".$this->ws->ontologyUri."/import')");
                 
                 if($this->ws->sparql->error())

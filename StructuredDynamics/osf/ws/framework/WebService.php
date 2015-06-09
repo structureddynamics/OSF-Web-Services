@@ -211,7 +211,7 @@ abstract class WebService
   
   protected $scones_endpoint = 'http://localhost:8080/scones/';
   
-  protected $virtuoso_disable_transaction_log = FALSE;
+  protected $virtuoso_disable_transaction_log = TRUE;
   
   /** Version of the interface requested by the user */
   protected $requestedInterfaceVersion;

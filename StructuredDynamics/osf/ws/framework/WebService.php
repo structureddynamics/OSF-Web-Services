@@ -773,7 +773,37 @@ abstract class WebService
       @author Frederick Giasson, Structured Dynamics LLC.
   */
   abstract public function ws_serialize();
- 
+
+  /** getallheaders function inspired in mod_php
+   *  See http://www.php.net/manual/en/function.getallheaders.php
+
+      @return returns array of headers.
+    
+      @author Frederick Giasson, Structured Dynamics LLC.
+      @author Luís Algarvio <lp.algarvio@gmail.com>
+  */
+  protected function osf_getallheaders()
+  {
+    if (!is_array($_SERVER))
+    {
+      return array();
+    }
+    $headers = array();
+    foreach ($_SERVER as $name => $value)
+    {
+      
+      if (substr($name, 0, 5) == 'HTTP_')
+      {
+        $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
+      }
+      elseif(strtolower($name) == 'authorization')
+      {
+        $headers[$name] = $value;
+      }
+    }
+    return $headers;
+  }
+
   /** Core web service serializations supported by all OSF web service
              endpoints. This function is normally called within each web service
              function: ws_serialize(). Additionally, ws_serialize() can add more

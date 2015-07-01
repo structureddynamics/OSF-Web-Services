@@ -218,7 +218,15 @@ abstract class WebService
   
   function __construct()
   { 
-    $this->headers = array_change_key_case(getallheaders(), CASE_UPPER);
+    // Get headers either via mod_php function or custom implementation
+    if(function_exists('getallheaders'))
+    {
+       $this->headers = array_change_key_case(getallheaders(), CASE_UPPER);
+    }
+    else
+    {
+       $this->headers = array_change_key_case($this->osf_getallheaders(), CASE_UPPER);
+    }
 
     // Load INI settings
     $osf_ini = parse_ini_file(self::$osf_ini . "osf.ini", TRUE);

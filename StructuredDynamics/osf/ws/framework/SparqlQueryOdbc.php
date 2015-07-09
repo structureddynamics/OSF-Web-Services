@@ -70,7 +70,7 @@ class SparqlQueryOdbc extends \StructuredDynamics\osf\ws\framework\SparqlQuery
       $this->query = $query;
     }
     
-    if($wsf->$virtuoso_disable_transaction_log && 
+    if($wsf->virtuoso_disable_transaction_log && 
        (stripos($query, "DB.DBA.TTLP_MT") !==  FALSE ||
         stripos($query, "DB.DBA.RDF_LOAD_RDFXML_MT") !== FALSE))
     {

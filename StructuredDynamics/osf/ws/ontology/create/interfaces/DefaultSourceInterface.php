@@ -362,6 +362,7 @@
               {
                 // Create slices of 100 records.
                 $this->ws->sparql->query("select ?s ?p ?o (DATATYPE(?o)) as ?otype (LANG(?o)) as ?olang
+                  from <".$this->ws->ontologyUri."/import>
                   where 
                   {
                     {
@@ -394,9 +395,13 @@
                   $otype = $this->ws->sparql->value('otype');
                   $olang = $this->ws->sparql->value('olang');
                   
-                  if(!empty($otype) || !empty($olang))
+                  if(!empty($olang))
                   {
-                    $subjectDescription .= "<$s> <$p> \"\"\"".$this->n3Encode($o)."\"\"\" .\n";
+                    $subjectDescription .= "<$s> <$p> \"\"\"".$this->n3Encode($o)."\"\"\"@".$olang." .\n";
+                  }
+                  elseif(!empty($otype))
+                  {
+                    $subjectDescription .= "<$s> <$p> \"\"\"".$this->n3Encode($o)."\"\"\"^^<".$otype."> .\n";
                   }
                   else
                   {
@@ -433,7 +438,25 @@
                                              (isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) ? $_SERVER['HTTP_ACCEPT_LANGUAGE'] : "")); 
 
                   $ontologyDelete->deleteOntology();
-               
+                  
+                  if($ontologyDelete->pipeline_getResponseHeaderStatus() != 200)
+                  {
+                    $this->ws->conneg->setStatus($ontologyDelete->pipeline_getResponseHeaderStatus());
+                    $this->ws->conneg->setStatusMsg($ontologyDelete->pipeline_getResponseHeaderStatusMsg());
+                    $this->ws->conneg->setStatusMsgExt($ontologyDelete->pipeline_getResponseHeaderStatusMsgExt());
+                    $this->ws->conneg->setError($ontologyDelete->pipeline_getError()->id,
+                      $ontologyDelete->pipeline_getError()->webservice, $ontologyDelete->pipeline_getError()->name,
+                      $ontologyDelete->pipeline_getError()->description, $ontologyDelete->pipeline_getError()->debugInfo,
+                      $ontologyDelete->pipeline_getError()->level);
+
+                    $this->clearCache();  
+                      
+                    return;
+                  }
+                  
+                  $this->clearCache();
+
+                  return;
                 }              
                 
                 $nbRecordsDone += $sliceSize;

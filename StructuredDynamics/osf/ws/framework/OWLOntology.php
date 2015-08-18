@@ -868,11 +868,11 @@ class OWLOntology
       // Get possible restrictions descriptions and add them to the resultset            
       if($includeRestrictions)
       {
-      $restrictions = $this->_getClassRestrictionsDescription($class);
+        $restrictions = $this->_getClassRestrictionsDescription($class);
       
-      foreach($restrictions as $uri => $restriction)
-      {
-        $classDescription[$uri] = $restriction;
+        foreach($restrictions as $uri => $restriction)
+        {
+          $classDescription[$uri] = $restriction;
         }       
       }       
     }

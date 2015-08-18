@@ -188,8 +188,7 @@
                   from named <" . $this->ws->wsf_graph . "datasets/>
                   where
                   {
-                    graph <" . $this->ws->wsf_graph
-            . "datasets/>
+                    graph <" . $this->ws->wsf_graph . "datasets/>
                     {
                       <$dataset> a <http://rdfs.org/ns/void#Dataset> ;
                       <http://purl.org/dc/terms/created> ?created.

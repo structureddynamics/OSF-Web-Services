@@ -1034,7 +1034,7 @@ class Resultset
   *    
   * @return a RDF+XML document
   *    
-  * @see http://techwiki.openstructs.org/index.php/Internal_Resultset_Array
+  * @see http://wiki.opensemanticframework.org/index.php/Internal_Resultset_Array
   *    
   * @author Frederick Giasson, Structured Dynamics LLC.
   */  
@@ -1212,7 +1212,7 @@ class Resultset
   *    
   * @return a RDF+N3 document
   *    
-  * @see http://techwiki.openstructs.org/index.php/Internal_Resultset_Array
+  * @see http://wiki.opensemanticframework.org/index.php/Internal_Resultset_Array
   *    
   * @author Frederick Giasson, Structured Dynamics LLC.
   */  

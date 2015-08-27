@@ -74,7 +74,7 @@ class SparqlQueryOdbc extends \StructuredDynamics\osf\ws\framework\SparqlQuery
        (stripos($query, "DB.DBA.TTLP_MT") !==  FALSE ||
         stripos($query, "DB.DBA.RDF_LOAD_RDFXML_MT") !== FALSE))
     {
-      $this->resultset = odbc_exec($this->link, 'log_enabled(2)');
+      $this->resultset = odbc_exec($this->link, 'log_enable(2)');
     }
     
     $this->resultset = odbc_exec($this->link, $this->query);

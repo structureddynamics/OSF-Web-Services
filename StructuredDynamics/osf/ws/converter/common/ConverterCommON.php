@@ -120,6 +120,37 @@ class ConverterCommON extends \StructuredDynamics\osf\ws\framework\WebService
   {
     parent::__destruct();
   }
+  
+  /**
+  * Implementation of the __get() magic method. We do implement it to create getter functions
+  * for all the protected and private variables of this class, and to all protected variables
+  * of the parent class.
+  * 
+  * This implementation is needed by the interfaces layer since we want the SourceInterface
+  * class to access the variables of the web service class for which it is used as a 
+  * source interface.
+  * 
+  * This means that all the privated and propected variables of these web service objects
+  * are available to users; but they won't be able to set values for them.
+  * 
+  * Also note that This method is about 4 times slower than having the varaible as public instead 
+  * of protected and private. However, these variables are only accessed about 10 to 200 times 
+  * per script call. This means that for accessing these undefined variable using the __get magic 
+  * method call, then it adds about 0.00022 seconds to the call or, about 0.22 milli-second 
+  * (one fifth of a millisecond) For the gain of keeping the variables protected and private, 
+  * we can spend this one fifth of a milli-second. This is a good compromize.  
+  * 
+  * @param mixed $name Name of the variable that is currently not defined for this object
+  */
+  public function __get($name)
+  {
+    // Check if the variable exists (so, if it is private or protected). If it is, then
+    // we return the value. Otherwise a fatal error will be returned by PHP.
+    if(isset($this->{$name}))
+    {
+      return($this->{$name});
+    }
+  }  
 
   /** Validate a query to this web service
 

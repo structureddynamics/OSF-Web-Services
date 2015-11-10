@@ -1136,7 +1136,6 @@ abstract class WebService
       }
     }
     
-    // Check if the user is already existing
     $this->sparql->query("
       prefix wsf: <http://purl.org/ontology/wsf#> 
       select ?dataset ?create ?read ?update ?delete
@@ -1198,6 +1197,34 @@ abstract class WebService
                                                       'read' => filter_var($read, FILTER_VALIDATE_BOOLEAN),
                                                       'update' => filter_var($update, FILTER_VALIDATE_BOOLEAN),
                                                       'delete' => filter_var($delete, FILTER_VALIDATE_BOOLEAN)));
+      }
+      
+      // Make sure that all the datasets that needs to be validated appears in the results
+      // of the SPARQL query. If a dataset URI does not appear, it means that it is not
+      // registered as a OSF dataset and so that it cannot be accessed via OSF web services.
+      // This could happen if someone tries to access a local dataset to the Virtuoso instance
+      // that is not handled by OSF. This could lead to have access to private datasets while
+      // bypassing OSF's security authentication layer.
+      
+      if(!empty(array_diff($datasets, array_keys($datasetsAccesses))))
+      {
+        $this->conneg->setStatus(403);
+        $this->conneg->setStatusMsg("Forbidden");
+        $this->conneg->setStatusMsgExt('Unauthorized Access');
+        $this->conneg->setError('WS-AUTH-VALIDATION-104', 
+                                $this->uri, 
+                                'Unauthorized Request',
+                                'You are trying to access a dataset that is not registered in OSF: ' . 
+                                 current(array_diff($datasets, array_keys($datasetsAccesses))),
+                                '',
+                                'Fatal');      
+        
+        if($this->memcached_enabled)
+        {
+          $this->memcached->set($key, FALSE, NULL, $this->memcached_auth_validator_expire);
+        }
+        
+        return(FALSE);
       }
             
       // Now we want to validate that for all the input datasets, that the user has the right accesses to them

@@ -232,16 +232,6 @@
         if(preg_match_all("/^[\s\t]*construct[\s\t]*/Uim", $noPrologQuery, $matches) > 0)
         {
           $this->ws->isConstructQuery = TRUE;
-          /*
-          $this->ws->conneg->setStatus(400);
-          $this->ws->conneg->setStatusMsg("Bad Request");
-          $this->ws->conneg->setStatusMsgExt($this->ws->errorMessenger->_204->name);
-          $this->ws->conneg->setError($this->ws->errorMessenger->_204->id, $this->ws->errorMessenger->ws,
-            $this->ws->errorMessenger->_204->name, $this->ws->errorMessenger->_204->description, "",
-            $this->ws->errorMessenger->_204->level);
-
-          return;               
-          */
         }
         
         // Drop any SPARQL query with a GRAPH clause which are not bound by one, or a series, of FROM NAMED clauses

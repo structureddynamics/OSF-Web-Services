@@ -3634,7 +3634,7 @@ class OWLOntology
       } 
       elseif(isset($literalValue['datatype']))
       {
-        $iri = java("org.semanticweb.owlapi.model.IRI")->create($literalValue['type']);
+        $iri = java("org.semanticweb.owlapi.model.IRI")->create($literalValue['datatype']);
         $datatype = $this->owlDataFactory->getOWLDatatype($iri);
         $value = $this->owlDataFactory->getOWLLiteral($literalValue['value'], $datatype);
       }
@@ -3686,7 +3686,7 @@ class OWLOntology
       } 
       elseif(isset($literalValue['datatype']))
       {
-        $iri = java("org.semanticweb.owlapi.model.IRI")->create($literalValue['type']);
+        $iri = java("org.semanticweb.owlapi.model.IRI")->create($literalValue['datatype']);
         $datatype = $this->owlDataFactory->getOWLDatatype($iri);
         $value = $this->owlDataFactory->getOWLLiteral($literalValue['value'], $datatype);
       }
@@ -3811,7 +3811,7 @@ class OWLOntology
         } 
         elseif(isset($value['datatype']))
         {
-          $iri = java("org.semanticweb.owlapi.model.IRI")->create($value['type']);
+          $iri = java("org.semanticweb.owlapi.model.IRI")->create($value['datatype']);
           $datatype = $this->owlDataFactory->getOWLDatatype($iri);
           $literalValue = $this->owlDataFactory->getOWLLiteral($value['value'], $datatype);
         }
@@ -4113,7 +4113,7 @@ class OWLOntology
         } 
         elseif(isset($value['datatype']))
         {
-          $iri = java("org.semanticweb.owlapi.model.IRI")->create($value['type']);
+          $iri = java("org.semanticweb.owlapi.model.IRI")->create($value['datatype']);
           $datatype = $this->owlDataFactory->getOWLDatatype($iri);
           $literalValue = $this->owlDataFactory->getOWLLiteral($value['value'], $datatype);
         }
@@ -4446,8 +4446,8 @@ class OWLOntology
               $literalValue = $this->owlDataFactory->getOWLLiteral($value['value'], $value['lang']);
             } 
             elseif(isset($value['datatype']))
-            {
-              $iri = java("org.semanticweb.owlapi.model.IRI")->create($value['type']);
+            {                           
+              $iri = java("org.semanticweb.owlapi.model.IRI")->create($value['datatype']);
               $datatype = $this->owlDataFactory->getOWLDatatype($iri);
               $literalValue = $this->owlDataFactory->getOWLLiteral($value['value'], $datatype);
             }

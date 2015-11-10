@@ -27,10 +27,10 @@ class SparqlQueryHttp extends \StructuredDynamics\osf\ws\framework\SparqlQuery
   function __construct(&$wsf)
   {
     $this->wsf = $wsf;
-    
-    $this->endpoint = 'http://'. $wsf->triplestore_host . ':' .
-                                 $wsf->triplestore_port . '/' .
-                                 $wsf->sparql_endpoint;
+     
+    $endpoint = 'http://'. $this->wsf->triplestore_host . ':' .
+                           $this->wsf->triplestore_port . '/' .
+                           $this->wsf->sparql_endpoint;
     
     $this->ch = curl_init();
     

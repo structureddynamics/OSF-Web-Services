@@ -1205,8 +1205,9 @@ abstract class WebService
       // This could happen if someone tries to access a local dataset to the Virtuoso instance
       // that is not handled by OSF. This could lead to have access to private datasets while
       // bypassing OSF's security authentication layer.
+      $nonOSFDatasets = array_diff($datasets, array_keys($datasetsAccesses));
       
-      if(!empty(array_diff($datasets, array_keys($datasetsAccesses))))
+      if(!empty($nonOSFDatasets))
       {
         $this->conneg->setStatus(403);
         $this->conneg->setStatusMsg("Forbidden");

@@ -282,7 +282,7 @@ class CrudRead extends \StructuredDynamics\osf\ws\framework\WebService
      */
     if($this->globalDataset === TRUE)
     {
-      $ws_al = new AuthLister("access_user", "", "");
+      $ws_al = new AuthLister("access_user", "", "", $this->uri);
       
       $ws_al->pipeline_conneg($this->conneg->getAccept(), $this->conneg->getAcceptCharset(),
         $this->conneg->getAcceptEncoding(), $this->conneg->getAcceptLanguage());

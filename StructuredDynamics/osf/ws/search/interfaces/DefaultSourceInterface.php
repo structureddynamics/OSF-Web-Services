@@ -210,7 +210,7 @@
         // Get all datasets accessible to that user
         $accessibleDatasets = array();
 
-        $ws_al = new AuthLister("access_user", "", "");
+        $ws_al = new AuthLister("access_user", "", "", $this->ws->uri);
 
         $ws_al->pipeline_conneg($this->ws->conneg->getAccept(), $this->ws->conneg->getAcceptCharset(),
           $this->ws->conneg->getAcceptEncoding(), $this->ws->conneg->getAcceptLanguage());

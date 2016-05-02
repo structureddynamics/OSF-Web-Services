@@ -101,7 +101,7 @@ class SparqlQueryOdbc extends \StructuredDynamics\osf\ws\framework\SparqlQuery
     
     if($fieldID === FALSE)
     {
-      $this->error = 'Field numumber fetching error';
+      $this->error = 'Field number fetching error';
       
       return(FALSE);
     }
@@ -116,8 +116,7 @@ class SparqlQueryOdbc extends \StructuredDynamics\osf\ws\framework\SparqlQuery
     }
     
     // Handle possible big values
-    if($value != "" && 
-       odbc_field_len($this->resultset, $fieldID) > ini_get("odbc.defaultlrl"))
+    if(strlen($value) == (ini_get("odbc.defaultlrl") - 1))
     {
       while(($chunk = odbc_result($this->resultset, $fieldID)) !== FALSE)
       {
@@ -130,7 +129,7 @@ class SparqlQueryOdbc extends \StructuredDynamics\osf\ws\framework\SparqlQuery
   
   public function error()
   {
-    if(!empty($this->error)/* || !empty(odbc_error($this->link))*/)
+    if(!empty($this->error))
     {
       return(TRUE);
     }
